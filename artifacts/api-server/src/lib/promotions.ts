@@ -42,6 +42,13 @@ export async function validateAndComputePromotionDiscount(
     );
   }
   if (promotion.usageLimit != null) {
+    // Lock the promotion row FOR UPDATE so two concurrent checkout transactions
+    // can't both pass the usage-limit check before either inserts a redemption.
+    // The lock serializes them: the second transaction will re-read the row only
+    // after the first one commits (or rolls back), giving it the up-to-date
+    // redemption count.  When called outside a transaction (e.g. quoteCart) the
+    // lock is a no-op — the guard only matters during the commit path.
+    await tx.select({ id: promotionsTable.id }).from(promotionsTable).where(eq(promotionsTable.id, promotion.id)).for("update");
     const [{ count }] = await tx
       .select({ count: sql<number>`count(*)::int` })
       .from(promotionRedemptionsTable)

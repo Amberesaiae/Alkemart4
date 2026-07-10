@@ -80,11 +80,12 @@ export function defineAbilitiesFor(roles: AuthUserRole[]): AppAbility {
         can("read", "Order");
         can("manage", "Dispute");
         can("manage", "Conversation");
-        // Support agents get into the /admin shell (vendor list, dispute
-        // queue, inbox) alongside admins, per the admin-panel spec — this is
-        // a coarse "can enter the panel" grant, not "manage all"; individual
-        // routes still layer on their own checks where a distinction matters.
-        can("manage", "AdminPanel");
+        // Support agents can view the admin shell (vendor list, dispute queue,
+        // inbox, analytics) but cannot mutate admin-only resources such as
+        // vendor status.  "read AdminPanel" gates GET routes; mutation routes
+        // (PATCH /admin/vendors/:id) additionally check isAdmin() so support
+        // agents are blocked even though they can enter the panel.
+        can("read", "AdminPanel");
         break;
       case "admin":
         can("manage", "all");

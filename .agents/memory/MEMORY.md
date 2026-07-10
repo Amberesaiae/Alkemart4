@@ -10,3 +10,6 @@
 - [Alkemart admin/vendor analytics endpoints](alkemart-analytics-endpoints.md) — computed on the fly from existing tables; revenue only counts confirmed+fulfilled orders; vendor analytics must stay scoped by vendorIdsFor.
 - [Schema file drifting from live DB column names](schema-vs-live-db-drift.md) — Drizzle schema.ts column strings can silently mismatch the real Postgres column; check information_schema before assuming app code is wrong.
 - [Vendor analytics chart drill-down pattern](vendor-analytics-drilldown.md) — analytics API returns full ISO timestamps, not bare dates; slice before using as an orders filter key.
+- [Alkemart admin authz pattern](alkemart-admin-authz-pattern.md) — support_agent has `read AdminPanel`, not `manage`; vendor mutations need extra isAdmin() guard inside the handler.
+- [Alkemart checkout charge/amount invariant](alkemart-checkout-amount-invariant.md) — pass chargedAmountPesewas into runCheckoutWorkflow; mismatches throw ChargeAmountMismatchError and trigger a refund.
+- [Alkemart promo usage-limit locking](alkemart-promo-race-lock.md) — FOR UPDATE on the promotions row serializes concurrent limit checks; only effective inside a transaction.

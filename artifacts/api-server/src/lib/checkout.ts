@@ -34,6 +34,22 @@ export class AddressNotFoundError extends Error {
   }
 }
 
+/**
+ * Raised when the order total computed inside the checkout transaction differs
+ * from the amount already charged through Paystack. The caller should refund
+ * the captured charge and return an error to the buyer.
+ */
+export class ChargeAmountMismatchError extends Error {
+  constructor(
+    public readonly chargedAmountPesewas: number,
+    public readonly orderTotalPesewas: number,
+  ) {
+    super(
+      `Charged amount (${chargedAmountPesewas} pesewas) does not match order total (${orderTotalPesewas} pesewas) — prices or promotions changed between quote and checkout commit`,
+    );
+  }
+}
+
 export { InvalidPromotionError };
 
 /**
@@ -99,6 +115,15 @@ export async function runCheckoutWorkflow(
   buyerUserId: number,
   promoCode: string | undefined,
   payment: CheckoutPaymentInput,
+  /**
+   * For `momo` orders: the exact amount (in pesewas) already captured by
+   * Paystack before this workflow was called. The transaction validates that
+   * the order total it computes matches this figure; if prices or promotions
+   * changed between quote and commit, it throws `ChargeAmountMismatchError`
+   * so the caller can refund the captured charge rather than creating an order
+   * for the wrong amount.
+   */
+  chargedAmountPesewas?: number,
 ): Promise<OrderWithItems> {
   const order = await db.transaction(async (tx) => {
     const [address] = await tx
@@ -156,6 +181,15 @@ export async function runCheckoutWorkflow(
       appliedPromotion = result.promotion;
     }
     const totalPesewas = subtotalPesewas - discountPesewas;
+
+    // Invariant: for momo orders, the amount charged through Paystack before
+    // this transaction started must equal the order total computed here.  If
+    // prices or promotions changed between quote and commit (however unlikely),
+    // abort the transaction so the caller can refund the captured charge rather
+    // than creating a confirmed order for the wrong amount.
+    if (chargedAmountPesewas != null && totalPesewas !== chargedAmountPesewas) {
+      throw new ChargeAmountMismatchError(chargedAmountPesewas, totalPesewas);
+    }
 
     // Step 2: create the order + summary snapshot.
     const [createdOrder] = await tx

@@ -14,6 +14,7 @@ import {
 import { getOrCreateCart } from "../lib/cart";
 import {
   AddressNotFoundError,
+  ChargeAmountMismatchError,
   EmptyCartError,
   InsufficientStockError,
   InvalidPromotionError,
@@ -86,11 +87,17 @@ router.post("/checkout", requireAbility("create", "Order"), async (req, res): Pr
       chargedAmountPesewas = quote.totalPesewas;
     }
 
-    const order = await runCheckoutWorkflow(cart.id, req.user!.id, body.data.promoCode, {
-      addressId: body.data.addressId,
-      paymentMethod: body.data.paymentMethod,
-      paymentReference,
-    });
+    const order = await runCheckoutWorkflow(
+      cart.id,
+      req.user!.id,
+      body.data.promoCode,
+      {
+        addressId: body.data.addressId,
+        paymentMethod: body.data.paymentMethod,
+        paymentReference,
+      },
+      chargedAmountPesewas,
+    );
     res.json(CheckoutResponse.parse(order));
   } catch (error) {
     // If a momo charge already succeeded before the failure, the buyer's
@@ -104,7 +111,8 @@ router.post("/checkout", requireAbility("create", "Order"), async (req, res): Pr
       (error instanceof EmptyCartError ||
         error instanceof InsufficientStockError ||
         error instanceof InvalidPromotionError ||
-        error instanceof AddressNotFoundError);
+        error instanceof AddressNotFoundError ||
+        error instanceof ChargeAmountMismatchError);
 
     // Tracks the true outcome of the refund attempt (if one was made) so the
     // buyer-facing message never claims a refund that didn't actually happen.
@@ -151,6 +159,12 @@ router.post("/checkout", requireAbility("create", "Order"), async (req, res): Pr
     }
     if (error instanceof AddressNotFoundError) {
       res.status(400).json({ error: withRefundNote(error.message) });
+      return;
+    }
+    if (error instanceof ChargeAmountMismatchError) {
+      // Prices or promotions changed between quote and commit.  The charge has
+      // already been refunded (above) if the refund succeeded.
+      res.status(409).json({ error: withRefundNote("Checkout prices changed — please try again.") });
       return;
     }
     if (error instanceof PaymentDeclinedError) {

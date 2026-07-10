@@ -10,6 +10,7 @@ import {
   fulfillmentsTable,
   orderPaymentEventsTable,
 } from "@workspace/db";
+import { isAdmin } from "@workspace/abilities";
 import {
   ListAdminVendorsResponse,
   UpdateAdminVendorStatusParams,
@@ -25,7 +26,7 @@ import { requireAbility } from "../middlewares/auth-session";
 
 const router: IRouter = Router();
 
-router.get("/admin/vendors", requireAbility("manage", "AdminPanel"), async (_req, res): Promise<void> => {
+router.get("/admin/vendors", requireAbility("read", "AdminPanel"), async (_req, res): Promise<void> => {
   const vendors = await db.select().from(vendorsTable).orderBy(vendorsTable.name);
   const owners = await db
     .select({ vendorId: userRolesTable.vendorId, userId: userRolesTable.userId })
@@ -36,7 +37,13 @@ router.get("/admin/vendors", requireAbility("manage", "AdminPanel"), async (_req
   res.json(ListAdminVendorsResponse.parse({ items, total: items.length }));
 });
 
-router.patch("/admin/vendors/:id", requireAbility("manage", "AdminPanel"), async (req, res): Promise<void> => {
+router.patch("/admin/vendors/:id", requireAbility("read", "AdminPanel"), async (req, res): Promise<void> => {
+  // Vendor status mutations are admin-only; support agents can view but not
+  // change vendor records even though they can enter the admin panel.
+  if (!isAdmin(req.user!.roles)) {
+    res.status(403).json({ error: "Forbidden" });
+    return;
+  }
   const params = UpdateAdminVendorStatusParams.safeParse(req.params);
   const body = UpdateAdminVendorStatusBody.safeParse(req.body);
   if (!params.success || !body.success) {
@@ -58,7 +65,7 @@ router.patch("/admin/vendors/:id", requireAbility("manage", "AdminPanel"), async
   res.json(UpdateAdminVendorStatusResponse.parse(updated));
 });
 
-router.get("/admin/disputes", requireAbility("manage", "AdminPanel"), async (_req, res): Promise<void> => {
+router.get("/admin/disputes", requireAbility("read", "AdminPanel"), async (_req, res): Promise<void> => {
   const disputes = await db.select().from(disputesTable).orderBy(desc(disputesTable.createdAt));
 
   const orderIds = [...new Set(disputes.map((d) => d.orderId))];
@@ -100,7 +107,7 @@ router.get("/admin/disputes", requireAbility("manage", "AdminPanel"), async (_re
   res.json(ListAdminDisputesResponse.parse({ items: itemsResult, total: itemsResult.length }));
 });
 
-router.patch("/admin/disputes/:id", requireAbility("manage", "AdminPanel"), async (req, res): Promise<void> => {
+router.patch("/admin/disputes/:id", requireAbility("manage", "Dispute"), async (req, res): Promise<void> => {
   const params = UpdateAdminDisputeParams.safeParse(req.params);
   const body = UpdateAdminDisputeBody.safeParse(req.body);
   if (!params.success || !body.success) {
@@ -131,7 +138,7 @@ router.patch("/admin/disputes/:id", requireAbility("manage", "AdminPanel"), asyn
 // never counted revenue.
 const REVENUE_STATUSES = ["confirmed", "fulfilled"] as const;
 
-router.get("/admin/analytics", requireAbility("manage", "AdminPanel"), async (_req, res): Promise<void> => {
+router.get("/admin/analytics", requireAbility("read", "AdminPanel"), async (_req, res): Promise<void> => {
   const [revenueSeries, orderStatusBreakdown, topVendors, fulfillmentStatusBreakdown, disputeCounts] = await Promise.all([
     db
       .select({
