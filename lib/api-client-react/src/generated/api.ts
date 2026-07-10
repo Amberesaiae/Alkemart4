@@ -39,6 +39,7 @@ import type {
   ConversationSummaryList,
   CreateAddressInput,
   CreateConversationInput,
+  CreateDisputeInput,
   CreateMessageInput,
   CreatePromotionInput,
   CreateVendorProductInput,
@@ -70,6 +71,7 @@ import type {
   UpdateDisputeInput,
   UpdateFulfillmentStatusInput,
   UpdateHomepageSectionsInput,
+  UpdateProfileInput,
   UpdatePromotionInput,
   UpdateVendorProductInput,
   UpdateVendorStatusInput,
@@ -4257,5 +4259,172 @@ export const useRejectAdminImage = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getRejectAdminImageMutationOptions(options));
+    }
+
+export const getUpdateMyProfileUrl = () => {
+  return `/api/auth/profile`
+}
+
+/**
+ * @summary Update the current user's profile (first name, last name, phone)
+ */
+export const updateMyProfile = async (
+    updateProfileInput: UpdateProfileInput, options?: RequestInit): Promise<AuthUser> => {
+
+  return customFetch<AuthUser>(getUpdateMyProfileUrl(),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(updateProfileInput)
+  }
+);}
+
+export const getUpdateMyProfileMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateMyProfile>>, TError,{data: BodyType<UpdateProfileInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateMyProfile>>, TError,{data: BodyType<UpdateProfileInput>}, TContext> => {
+
+const mutationKey = ['updateMyProfile'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateMyProfile>>, {data: BodyType<UpdateProfileInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  updateMyProfile(data,requestOptions)
+        }
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateMyProfileMutationResult = NonNullable<Awaited<ReturnType<typeof updateMyProfile>>>
+    export type UpdateMyProfileMutationBody = BodyType<UpdateProfileInput>
+    export type UpdateMyProfileMutationError = ErrorType<void>
+
+    /**
+ * @summary Update the current user's profile (first name, last name, phone)
+ */
+export const useUpdateMyProfile = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateMyProfile>>, TError,{data: BodyType<UpdateProfileInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateMyProfile>>,
+        TError,
+        {data: BodyType<UpdateProfileInput>},
+        TContext
+      > => {
+      return useMutation(getUpdateMyProfileMutationOptions(options));
+    }
+
+
+export const getCancelMyOrderUrl = (id: number,) => {
+  return `/api/orders/${id}/cancel`
+}
+
+/**
+ * @summary Cancel a confirmed order (buyer only)
+ */
+export const cancelMyOrder = async (id: number, options?: RequestInit): Promise<Order> => {
+
+  return customFetch<Order>(getCancelMyOrderUrl(id),
+  {
+    ...options,
+    method: 'POST'
+  }
+);}
+
+export const getCancelMyOrderMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof cancelMyOrder>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof cancelMyOrder>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['cancelMyOrder'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof cancelMyOrder>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  cancelMyOrder(id,requestOptions)
+        }
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CancelMyOrderMutationResult = NonNullable<Awaited<ReturnType<typeof cancelMyOrder>>>
+
+    export type CancelMyOrderMutationError = ErrorType<void>
+
+    /**
+ * @summary Cancel a confirmed order (buyer only)
+ */
+export const useCancelMyOrder = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof cancelMyOrder>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof cancelMyOrder>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getCancelMyOrderMutationOptions(options));
+    }
+
+
+export const getCreateMyDisputeUrl = () => {
+  return `/api/disputes`
+}
+
+/**
+ * @summary Open a dispute for a confirmed or fulfilled order (buyer only)
+ */
+export const createMyDispute = async (
+    createDisputeInput: CreateDisputeInput, options?: RequestInit): Promise<Dispute> => {
+
+  return customFetch<Dispute>(getCreateMyDisputeUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(createDisputeInput)
+  }
+);}
+
+export const getCreateMyDisputeMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createMyDispute>>, TError,{data: BodyType<CreateDisputeInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createMyDispute>>, TError,{data: BodyType<CreateDisputeInput>}, TContext> => {
+
+const mutationKey = ['createMyDispute'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createMyDispute>>, {data: BodyType<CreateDisputeInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createMyDispute(data,requestOptions)
+        }
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateMyDisputeMutationResult = NonNullable<Awaited<ReturnType<typeof createMyDispute>>>
+    export type CreateMyDisputeMutationBody = BodyType<CreateDisputeInput>
+    export type CreateMyDisputeMutationError = ErrorType<void>
+
+    /**
+ * @summary Open a dispute for a confirmed or fulfilled order (buyer only)
+ */
+export const useCreateMyDispute = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createMyDispute>>, TError,{data: BodyType<CreateDisputeInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createMyDispute>>,
+        TError,
+        {data: BodyType<CreateDisputeInput>},
+        TContext
+      > => {
+      return useMutation(getCreateMyDisputeMutationOptions(options));
     }
 

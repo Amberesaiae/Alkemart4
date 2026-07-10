@@ -617,6 +617,19 @@ export interface UpdateDisputeInput {
   note?: string;
 }
 
+export interface UpdateProfileInput {
+  firstName?: string;
+  lastName?: string;
+  phone?: string;
+}
+
+export interface CreateDisputeInput {
+  orderId: number;
+  /** @minLength 1 @maxLength 120 */
+  subject: string;
+  note?: string;
+}
+
 export type ConversationStatus = typeof ConversationStatus[keyof typeof ConversationStatus];
 
 

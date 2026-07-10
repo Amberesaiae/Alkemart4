@@ -1,8 +1,9 @@
 import { Router, type IRouter } from "express";
 import { and, desc, eq, inArray } from "drizzle-orm";
-import { db, addressesTable, fulfillmentsTable, orderItemsTable, ordersTable } from "@workspace/db";
+import { db, addressesTable, fulfillmentsTable, orderItemsTable, ordersTable, orderPaymentEventsTable } from "@workspace/db";
 import { isAdmin, vendorIdsFor } from "@workspace/abilities";
 import {
+  CancelMyOrderResponse,
   CheckoutBody,
   CheckoutResponse,
   GetOrderParams,
@@ -282,6 +283,45 @@ router.get("/orders/:id", requireAbility("read", "Order"), async (req, res): Pro
   }
 
   res.json(GetOrderResponse.parse(order));
+});
+
+router.post("/orders/:id/cancel", requireAbility("create", "Order"), async (req, res): Promise<void> => {
+  const params = GetOrderParams.safeParse(req.params);
+  if (!params.success) {
+    res.status(400).json({ error: params.error.message });
+    return;
+  }
+
+  const order = await loadOrderWithItems(params.data.id);
+  if (!order) {
+    res.status(404).json({ error: "Order not found" });
+    return;
+  }
+
+  if (order.buyerUserId !== req.user!.id) {
+    res.status(403).json({ error: "Forbidden" });
+    return;
+  }
+
+  if (order.status !== "confirmed") {
+    res.status(409).json({ error: "Only confirmed orders can be cancelled" });
+    return;
+  }
+
+  await db.update(ordersTable).set({ status: "cancelled" }).where(eq(ordersTable.id, order.id));
+
+  // For mobile money orders, log a refund-pending note so support can process the refund manually.
+  if (order.paymentMethod === "momo") {
+    await db.insert(orderPaymentEventsTable).values({
+      orderId: order.id,
+      type: "refunded",
+      amountPesewas: 0,
+      note: "Cancellation requested — refund pending manual processing",
+    });
+  }
+
+  const cancelled = await loadOrderWithItems(order.id);
+  res.json(CancelMyOrderResponse.parse(cancelled));
 });
 
 export default router;

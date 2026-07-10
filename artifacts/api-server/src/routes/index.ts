@@ -12,6 +12,7 @@ import ordersRouter from "./orders";
 import promotionsRouter from "./promotions";
 import notificationsRouter from "./notifications";
 import addressesRouter from "./addresses";
+import disputesRouter from "./disputes";
 
 const router: IRouter = Router();
 
@@ -28,5 +29,6 @@ router.use(ordersRouter);
 router.use(promotionsRouter);
 router.use(notificationsRouter);
 router.use(addressesRouter);
+router.use(disputesRouter);
 
 export default router;

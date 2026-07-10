@@ -588,6 +588,61 @@ paths:
         "404":
           description: Not found
 
+  /orders/{id}/cancel:
+    post:
+      operationId: cancelMyOrder
+      tags: [orders]
+      summary: Cancel a confirmed order (buyer only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: The updated (cancelled) order
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+        "401":
+          description: Authentication required
+        "403":
+          description: Forbidden — caller is not the order owner
+        "404":
+          description: Order not found
+        "409":
+          description: Order is not in a cancellable status
+
+  /disputes:
+    post:
+      operationId: createMyDispute
+      tags: [orders]
+      summary: Open a dispute for a confirmed or fulfilled order (buyer only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateDisputeInput"
+      responses:
+        "200":
+          description: The created dispute
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Dispute"
+        "400":
+          description: Invalid input
+        "401":
+          description: Authentication required
+        "403":
+          description: Forbidden — caller is not the order owner or order status is not disputable
+        "404":
+          description: Order not found
+        "409":
+          description: Order cannot be disputed in its current status
+
   /notifications:
     get:
       operationId: listMyNotifications
@@ -781,6 +836,29 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AuthSession"
+
+  /auth/profile:
+    patch:
+      operationId: updateMyProfile
+      tags: [auth]
+      summary: Update the current user's profile (first name, last name, phone)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateProfileInput"
+      responses:
+        "200":
+          description: Updated user profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthUser"
+        "400":
+          description: Invalid input
+        "401":
+          description: Authentication required
 
   /homepage/sections:
     get:
@@ -1957,6 +2035,21 @@ components:
       properties:
         status:
           $ref: "#/components/schemas/DisputeStatus"
+        note: { type: string }
+
+    UpdateProfileInput:
+      type: object
+      properties:
+        firstName: { type: string }
+        lastName: { type: string }
+        phone: { type: string }
+
+    CreateDisputeInput:
+      type: object
+      required: [orderId, subject]
+      properties:
+        orderId: { type: integer }
+        subject: { type: string, minLength: 1, maxLength: 120 }
         note: { type: string }
 
     ConversationStatus:

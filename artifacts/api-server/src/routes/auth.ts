@@ -1,7 +1,8 @@
 import { Router, type IRouter } from "express";
 import { eq } from "drizzle-orm";
 import { db, usersTable, userRolesTable } from "@workspace/db";
-import { SignupBody, SignupResponse, LoginBody, LoginResponse, GetMeResponse } from "@workspace/api-zod";
+import { SignupBody, SignupResponse, LoginBody, LoginResponse, GetMeResponse, UpdateMyProfileBody, UpdateMyProfileResponse } from "@workspace/api-zod";
+import { requireAuth } from "../middlewares/auth-session";
 import {
   hashPassword,
   verifyPassword,
@@ -118,6 +119,39 @@ router.get("/auth/me", async (req, res): Promise<void> => {
         lastName: req.user.lastName,
         roles: req.user.roles,
       },
+    }),
+  );
+});
+
+router.patch("/auth/profile", requireAuth, async (req, res): Promise<void> => {
+  const parsed = UpdateMyProfileBody.safeParse(req.body ?? {});
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+
+  const { firstName, lastName, phone } = parsed.data;
+  const updates: Partial<{ firstName: string; lastName: string; phone: string }> = {};
+  if (firstName !== undefined) updates.firstName = firstName;
+  if (lastName !== undefined) updates.lastName = lastName;
+  if (phone !== undefined) updates.phone = phone;
+
+  let updated;
+  if (Object.keys(updates).length > 0) {
+    [updated] = await db.update(usersTable).set(updates).where(eq(usersTable.id, req.user!.id)).returning();
+  } else {
+    [updated] = await db.select().from(usersTable).where(eq(usersTable.id, req.user!.id));
+  }
+
+  const roles = await getUserRoles(updated.id);
+  res.json(
+    UpdateMyProfileResponse.parse({
+      id: updated.id,
+      email: updated.email,
+      phone: updated.phone,
+      firstName: updated.firstName,
+      lastName: updated.lastName,
+      roles,
     }),
   );
 });

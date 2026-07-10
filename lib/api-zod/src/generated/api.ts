@@ -1579,3 +1579,57 @@ export const RejectAdminImageResponse = zod.object({
 })
 
 
+/**
+ * @summary Update the current user's profile
+ */
+export const UpdateMyProfileBody = zod.object({
+  "firstName": zod.string().optional(),
+  "lastName": zod.string().optional(),
+  "phone": zod.string().optional(),
+})
+
+export const UpdateMyProfileResponse = zod.object({
+  "id": zod.number(),
+  "email": zod.string(),
+  "phone": zod.string().nullable(),
+  "firstName": zod.string().nullable(),
+  "lastName": zod.string().nullable(),
+  "roles": zod.array(zod.object({
+  "role": zod.enum(['buyer', 'vendor_owner', 'vendor_staff', 'admin', 'support_agent']),
+  "vendorId": zod.number().nullable()
+}))
+})
+
+
+/**
+ * @summary Cancel a confirmed order (buyer only)
+ */
+export const CancelMyOrderParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const CancelMyOrderResponse = GetOrderResponse
+
+
+/**
+ * @summary Open a dispute for a confirmed or fulfilled order (buyer only)
+ */
+export const CreateMyDisputeBody = zod.object({
+  "orderId": zod.number(),
+  "subject": zod.string().min(1).max(120),
+  "note": zod.string().optional(),
+})
+
+export const CreateMyDisputeResponse = zod.object({
+  "id": zod.number(),
+  "orderId": zod.number(),
+  "vendorId": zod.number().nullable(),
+  "buyerUserId": zod.number().nullable(),
+  "subject": zod.string(),
+  "status": zod.enum(['open', 'resolved_buyer', 'resolved_seller']),
+  "note": zod.string().nullable(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date(),
+})
+
+
