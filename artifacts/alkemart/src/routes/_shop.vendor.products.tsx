@@ -9,6 +9,8 @@ import {
   useCreateVendorProduct,
   useDeleteVendorProduct,
   useListCategories,
+  updateVendorProduct,
+  deleteVendorProduct,
   getListVendorProductsQueryKey,
 } from "@workspace/api-client-react";
 import type { Product } from "@workspace/api-client-react";
@@ -17,15 +19,27 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { ImageUploader } from "@/components/shop/image-uploader";
 import { VendorShell } from "@/components/vendor/vendor-nav";
 import { cn } from "@/lib/utils";
-import { PlusIcon, Trash2 } from "lucide-react";
+import { EyeIcon, EyeOffIcon, PlusIcon, Trash2 } from "lucide-react";
 
 const productsSearchSchema = z.object({ highlight: z.number().optional() });
 
@@ -72,6 +86,97 @@ function StockBadge({ stock }: { stock: number }) {
   return null;
 }
 
+// ---------------------------------------------------------------------------
+// Bulk action toolbar
+// ---------------------------------------------------------------------------
+
+function BulkActionBar({
+  selectedIds,
+  onHide,
+  onShow,
+  onDelete,
+  onClear,
+  isBusy,
+}: {
+  selectedIds: Set<number>;
+  onHide: () => void;
+  onShow: () => void;
+  onDelete: () => void;
+  onClear: () => void;
+  isBusy: boolean;
+}) {
+  const count = selectedIds.size;
+  if (count === 0) return null;
+
+  return (
+    <div className="sticky top-0 z-10 mb-3 flex flex-wrap items-center gap-2 rounded-md border border-border bg-background px-4 py-2.5 shadow-sm">
+      <span className="text-sm font-medium">{count} selected</span>
+      <div className="flex gap-2 ml-auto">
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={onShow}
+          disabled={isBusy}
+          className="gap-1.5"
+        >
+          <EyeIcon className="h-3.5 w-3.5" />
+          Show
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={onHide}
+          disabled={isBusy}
+          className="gap-1.5"
+        >
+          <EyeOffIcon className="h-3.5 w-3.5" />
+          Hide
+        </Button>
+
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button
+              size="sm"
+              variant="destructive"
+              disabled={isBusy}
+              className="gap-1.5"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              Delete {count}
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete {count} product{count !== 1 ? "s" : ""}?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Products referenced by existing orders will be hidden from your store instead of permanently
+                removed, so order history stays intact. This action cannot be undone for unreferenced products.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                onClick={onDelete}
+              >
+                Delete {count}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        <Button size="sm" variant="ghost" onClick={onClear} disabled={isBusy} className="text-muted-foreground">
+          Clear
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Add product sheet
+// ---------------------------------------------------------------------------
+
 function AddProductSheet({ onCreated }: { onCreated: (productId: number) => void }) {
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
@@ -82,7 +187,6 @@ function AddProductSheet({ onCreated }: { onCreated: (productId: number) => void
   const [categoryId, setCategoryId] = useState<string>("");
   const [tag, setTag] = useState<string>("");
   const [errors, setErrors] = useState<Record<string, string>>({});
-  // Created product id — used to attach image after creation
   const [createdId, setCreatedId] = useState<number | null>(null);
 
   const { data: categories } = useListCategories();
@@ -131,15 +235,8 @@ function AddProductSheet({ onCreated }: { onCreated: (productId: number) => void
   function handleOpenChange(next: boolean) {
     setOpen(next);
     if (!next) {
-      // Reset form when closing
-      setTitle("");
-      setBrand("");
-      setPrice("");
-      setStock("0");
-      setCategoryId("");
-      setTag("");
-      setErrors({});
-      setCreatedId(null);
+      setTitle(""); setBrand(""); setPrice(""); setStock("0");
+      setCategoryId(""); setTag(""); setErrors({}); setCreatedId(null);
     }
   }
 
@@ -165,15 +262,9 @@ function AddProductSheet({ onCreated }: { onCreated: (productId: number) => void
               targetType="product"
               targetId={createdId}
               label="Product image"
-              onUploaded={() => {
-                queryClient.invalidateQueries({ queryKey: getListVendorProductsQueryKey() });
-              }}
+              onUploaded={() => queryClient.invalidateQueries({ queryKey: getListVendorProductsQueryKey() })}
             />
-            <Button
-              variant="outline"
-              className="w-full"
-              onClick={() => handleOpenChange(false)}
-            >
+            <Button variant="outline" className="w-full" onClick={() => handleOpenChange(false)}>
               Done
             </Button>
           </div>
@@ -181,95 +272,50 @@ function AddProductSheet({ onCreated }: { onCreated: (productId: number) => void
           <form onSubmit={handleSubmit} className="mt-6 space-y-5">
             <div className="space-y-1.5">
               <Label htmlFor="ap-title">Title *</Label>
-              <Input
-                id="ap-title"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="e.g. Organic Basmati Rice 5kg"
-              />
+              <Input id="ap-title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Organic Basmati Rice 5kg" />
               {errors.title && <p className="text-xs text-destructive">{errors.title}</p>}
             </div>
-
             <div className="space-y-1.5">
               <Label htmlFor="ap-brand">Brand</Label>
-              <Input
-                id="ap-brand"
-                value={brand}
-                onChange={(e) => setBrand(e.target.value)}
-                placeholder="e.g. Gold Seal"
-              />
+              <Input id="ap-brand" value={brand} onChange={(e) => setBrand(e.target.value)} placeholder="e.g. Gold Seal" />
             </div>
-
             <div className="space-y-1.5">
               <Label htmlFor="ap-price">Price (GH₵) *</Label>
               <div className="flex items-center gap-1.5">
                 <span className="text-sm text-muted-foreground">GH₵</span>
-                <Input
-                  id="ap-price"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={price}
-                  onChange={(e) => setPrice(e.target.value)}
-                  placeholder="0.00"
-                  className="w-32"
-                />
+                <Input id="ap-price" type="number" min="0" step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="0.00" className="w-32" />
               </div>
               {errors.price && <p className="text-xs text-destructive">{errors.price}</p>}
             </div>
-
             <div className="space-y-1.5">
               <Label htmlFor="ap-stock">Initial stock</Label>
-              <Input
-                id="ap-stock"
-                type="number"
-                min="0"
-                step="1"
-                value={stock}
-                onChange={(e) => setStock(e.target.value)}
-                className="w-24"
-              />
+              <Input id="ap-stock" type="number" min="0" step="1" value={stock} onChange={(e) => setStock(e.target.value)} className="w-24" />
               {errors.stock && <p className="text-xs text-destructive">{errors.stock}</p>}
             </div>
-
             <div className="space-y-1.5">
               <Label>Category *</Label>
               <Select value={categoryId} onValueChange={setCategoryId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a category…" />
-                </SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="Select a category…" /></SelectTrigger>
                 <SelectContent>
                   {(categories ?? []).map((c) => (
-                    <SelectItem key={c.id} value={String(c.id)}>
-                      {c.name}
-                    </SelectItem>
+                    <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
               {errors.categoryId && <p className="text-xs text-destructive">{errors.categoryId}</p>}
             </div>
-
             <div className="space-y-1.5">
               <Label>Tag</Label>
               <Select value={tag} onValueChange={setTag}>
-                <SelectTrigger>
-                  <SelectValue placeholder="None" />
-                </SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
                 <SelectContent>
                   {PRODUCT_TAGS.map((t) => (
-                    <SelectItem key={t.value} value={t.value}>
-                      {t.label}
-                    </SelectItem>
+                    <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={createProduct.isPending}
-            >
+            <Button type="submit" className="w-full" disabled={createProduct.isPending}>
               {createProduct.isPending ? "Creating…" : "Create product"}
             </Button>
           </form>
@@ -279,15 +325,23 @@ function AddProductSheet({ onCreated }: { onCreated: (productId: number) => void
   );
 }
 
+// ---------------------------------------------------------------------------
+// Single-product editable row
+// ---------------------------------------------------------------------------
+
 function EditableRow({
   product,
   highlighted,
   softDeleted,
+  selected,
+  onToggleSelect,
   onDeleteAttempt,
 }: {
   product: Product;
   highlighted?: boolean;
   softDeleted?: boolean;
+  selected: boolean;
+  onToggleSelect: (id: number) => void;
   onDeleteAttempt: (id: number) => void;
 }) {
   const queryClient = useQueryClient();
@@ -300,9 +354,7 @@ function EditableRow({
   const [deleteOpen, setDeleteOpen] = useState(false);
 
   useEffect(() => {
-    if (highlighted) {
-      rowRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-    }
+    if (highlighted) rowRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
   }, [highlighted]);
 
   const updateProduct = useUpdateVendorProduct({
@@ -320,9 +372,7 @@ function EditableRow({
         onDeleteAttempt(product.id);
         queryClient.invalidateQueries({ queryKey: getListVendorProductsQueryKey() });
       },
-      onError: () => {
-        toast.error("Failed to delete product. Please try again.");
-      },
+      onError: () => toast.error("Failed to delete product. Please try again."),
     },
   });
 
@@ -337,61 +387,42 @@ function EditableRow({
     updateProduct.mutate({ id: product.id, data: { isActive: checked } });
   }
 
-  function confirmDelete() {
-    setDeleteOpen(false);
-    deleteProduct.mutate({ id: product.id });
-  }
-
   const activeSwitch = (
     <div className="flex items-center gap-2">
-      <Switch
-        checked={product.isActive}
-        onCheckedChange={toggleActive}
-        disabled={updateProduct.isPending || softDeleted}
-      />
+      <Switch checked={product.isActive} onCheckedChange={toggleActive} disabled={updateProduct.isPending || softDeleted} />
       <span className="text-xs text-muted-foreground">{product.isActive ? "Active" : "Hidden"}</span>
     </div>
   );
 
   return (
     <>
-      <TableRow ref={rowRef} className={cn(highlighted && "bg-primary/10 transition-colors")}>
-        <TableCell>
-          <Input
-            value={title}
-            aria-label="Product title"
-            onChange={(e) => {
-              setTitle(e.target.value);
-              setDirty(true);
-            }}
-            className="h-9 min-w-[220px]"
+      <TableRow
+        ref={rowRef}
+        className={cn(
+          highlighted && "bg-primary/10 transition-colors",
+          selected && "bg-primary/5",
+        )}
+      >
+        {/* Checkbox */}
+        <TableCell className="w-10 pr-0">
+          <Checkbox
+            checked={selected}
+            onCheckedChange={() => onToggleSelect(product.id)}
+            aria-label={`Select ${product.title}`}
           />
+        </TableCell>
+        <TableCell>
+          <Input value={title} aria-label="Product title" onChange={(e) => { setTitle(e.target.value); setDirty(true); }} className="h-9 min-w-[220px]" />
         </TableCell>
         <TableCell>
           <div className="flex items-center gap-1">
             <span className="text-xs text-muted-foreground">GH₵</span>
-            <Input
-              value={price}
-              aria-label="Product price"
-              onChange={(e) => {
-                setPrice(e.target.value);
-                setDirty(true);
-              }}
-              className="h-9 w-24"
-            />
+            <Input value={price} aria-label="Product price" onChange={(e) => { setPrice(e.target.value); setDirty(true); }} className="h-9 w-24" />
           </div>
         </TableCell>
         <TableCell>
           <div className="flex items-center gap-2">
-            <Input
-              value={stock}
-              aria-label="Product stock"
-              onChange={(e) => {
-                setStock(e.target.value);
-                setDirty(true);
-              }}
-              className="h-9 w-20"
-            />
+            <Input value={stock} aria-label="Product stock" onChange={(e) => { setStock(e.target.value); setDirty(true); }} className="h-9 w-20" />
             <StockBadge stock={product.stock} />
           </div>
         </TableCell>
@@ -399,18 +430,13 @@ function EditableRow({
           {softDeleted ? (
             <TooltipProvider>
               <Tooltip>
-                <TooltipTrigger asChild>
-                  <div>{activeSwitch}</div>
-                </TooltipTrigger>
+                <TooltipTrigger asChild><div>{activeSwitch}</div></TooltipTrigger>
                 <TooltipContent side="top" className="max-w-[220px] text-center">
-                  This product is referenced by existing orders and can't be fully removed. It's been hidden from your
-                  store instead.
+                  This product is referenced by existing orders and can't be fully removed. It's been hidden instead.
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
-          ) : (
-            activeSwitch
-          )}
+          ) : activeSwitch}
         </TableCell>
         <TableCell>
           <div className="flex items-center gap-2">
@@ -422,13 +448,7 @@ function EditableRow({
             </Button>
             <Popover open={deleteOpen} onOpenChange={setDeleteOpen}>
               <PopoverTrigger asChild>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                  aria-label="Delete product"
-                  disabled={deleteProduct.isPending}
-                >
+                <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive hover:bg-destructive/10" aria-label="Delete product" disabled={deleteProduct.isPending}>
                   <Trash2 className="h-4 w-4" />
                 </Button>
               </PopoverTrigger>
@@ -438,10 +458,8 @@ function EditableRow({
                   If this product appears in any orders it will be hidden instead of permanently removed.
                 </p>
                 <div className="flex gap-2 justify-end">
-                  <Button size="sm" variant="outline" onClick={() => setDeleteOpen(false)}>
-                    Cancel
-                  </Button>
-                  <Button size="sm" variant="destructive" onClick={confirmDelete}>
+                  <Button size="sm" variant="outline" onClick={() => setDeleteOpen(false)}>Cancel</Button>
+                  <Button size="sm" variant="destructive" onClick={() => { setDeleteOpen(false); deleteProduct.mutate({ id: product.id }); }}>
                     Delete
                   </Button>
                 </div>
@@ -452,7 +470,7 @@ function EditableRow({
       </TableRow>
       {showUploader && (
         <TableRow>
-          <TableCell colSpan={5} className="bg-surface/50">
+          <TableCell colSpan={7} className="bg-surface/50">
             <ImageUploader
               targetType="product"
               targetId={product.id}
@@ -467,31 +485,123 @@ function EditableRow({
   );
 }
 
+// ---------------------------------------------------------------------------
+// Page
+// ---------------------------------------------------------------------------
+
 function VendorProductsPage() {
   const search = Route.useSearch();
+  const queryClient = useQueryClient();
   const { data: productData, isLoading: productsLoading } = useListVendorProducts();
   const products = productData?.items ?? [];
-  // Track IDs where a delete was attempted — if the product comes back with isActive=false
-  // it was soft-deleted (still referenced by orders) and we show a tooltip on the switch.
+
   const [attemptedDeleteIds, setAttemptedDeleteIds] = useState<Set<number>>(new Set());
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [bulkBusy, setBulkBusy] = useState(false);
 
   function handleDeleteAttempt(id: number) {
     setAttemptedDeleteIds((prev) => new Set(prev).add(id));
   }
 
+  // Checkbox helpers -----------------------------------------------------------
+  const allSelected = products.length > 0 && products.every((p) => selectedIds.has(p.id));
+  const someSelected = products.some((p) => selectedIds.has(p.id));
+
+  function toggleSelectAll() {
+    if (allSelected) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(products.map((p) => p.id)));
+    }
+  }
+
+  function toggleSelect(id: number) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
+
+  // Bulk operations ------------------------------------------------------------
+  async function bulkSetVisibility(isActive: boolean) {
+    if (selectedIds.size === 0) return;
+    setBulkBusy(true);
+    const ids = Array.from(selectedIds);
+    const results = await Promise.allSettled(
+      ids.map((id) => updateVendorProduct(id, { isActive })),
+    );
+    const failed = results.filter((r) => r.status === "rejected").length;
+    await queryClient.invalidateQueries({ queryKey: getListVendorProductsQueryKey() });
+    setBulkBusy(false);
+    setSelectedIds(new Set());
+    if (failed === 0) {
+      toast.success(`${ids.length} product${ids.length !== 1 ? "s" : ""} ${isActive ? "shown" : "hidden"}.`);
+    } else {
+      toast.warning(`${ids.length - failed} succeeded, ${failed} failed.`);
+    }
+  }
+
+  async function bulkDelete() {
+    if (selectedIds.size === 0) return;
+    setBulkBusy(true);
+    const ids = Array.from(selectedIds);
+    const results = await Promise.allSettled(
+      ids.map((id) => deleteVendorProduct(id)),
+    );
+    results.forEach((r, i) => {
+      // A fulfilled void means deleted; we mark all as attempted so soft-deletes
+      // get the tooltip treatment on the next render.
+      if (r.status === "fulfilled") {
+        setAttemptedDeleteIds((prev) => new Set(prev).add(ids[i]));
+      }
+    });
+    const failed = results.filter((r) => r.status === "rejected").length;
+    await queryClient.invalidateQueries({ queryKey: getListVendorProductsQueryKey() });
+    setBulkBusy(false);
+    setSelectedIds(new Set());
+    if (failed === 0) {
+      toast.success(`${ids.length} product${ids.length !== 1 ? "s" : ""} removed.`);
+    } else {
+      toast.warning(`${ids.length - failed} removed, ${failed} failed.`);
+    }
+  }
+
+  const COLSPAN = 6; // checkbox + title + price + stock + visibility + actions
+
   return (
     <VendorShell title="Products" description="Update title, price, stock or visibility for products in your store.">
       <div className="rounded-md border border-border p-6">
+        {/* Bulk action bar */}
+        <BulkActionBar
+          selectedIds={selectedIds}
+          onHide={() => void bulkSetVisibility(false)}
+          onShow={() => void bulkSetVisibility(true)}
+          onDelete={() => void bulkDelete()}
+          onClear={() => setSelectedIds(new Set())}
+          isBusy={bulkBusy}
+        />
+
+        {/* Header row */}
         <div className="mb-4 flex items-center justify-between">
           <p className="text-sm text-muted-foreground">
             {products.length > 0 ? `${products.length} product${products.length !== 1 ? "s" : ""}` : ""}
           </p>
           <AddProductSheet onCreated={() => {}} />
         </div>
+
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-10 pr-0">
+                  <Checkbox
+                    checked={allSelected ? true : someSelected ? "indeterminate" : false}
+                    onCheckedChange={toggleSelectAll}
+                    aria-label="Select all products"
+                    disabled={products.length === 0}
+                  />
+                </TableHead>
                 <TableHead>Title</TableHead>
                 <TableHead>Price</TableHead>
                 <TableHead>Stock</TableHead>
@@ -502,13 +612,13 @@ function VendorProductsPage() {
             <TableBody>
               {productsLoading ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="py-8 text-center text-sm text-muted-foreground">
+                  <TableCell colSpan={COLSPAN} className="py-8 text-center text-sm text-muted-foreground">
                     Loading products…
                   </TableCell>
                 </TableRow>
               ) : products.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="py-8 text-center text-sm text-muted-foreground">
+                  <TableCell colSpan={COLSPAN} className="py-8 text-center text-sm text-muted-foreground">
                     No products yet. Click <strong>Add product</strong> to create your first listing.
                   </TableCell>
                 </TableRow>
@@ -519,6 +629,8 @@ function VendorProductsPage() {
                     product={p}
                     highlighted={search.highlight === p.id}
                     softDeleted={attemptedDeleteIds.has(p.id) && !p.isActive}
+                    selected={selectedIds.has(p.id)}
+                    onToggleSelect={toggleSelect}
                     onDeleteAttempt={handleDeleteAttempt}
                   />
                 ))
