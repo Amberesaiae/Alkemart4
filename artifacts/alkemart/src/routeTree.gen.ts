@@ -26,6 +26,7 @@ import { Route as ShopAccountRouteImport } from './routes/_shop.account'
 import { Route as ShopVendorStoreRouteImport } from './routes/_shop.vendor.store'
 import { Route as ShopVendorProductsRouteImport } from './routes/_shop.vendor.products'
 import { Route as ShopVendorOrdersRouteImport } from './routes/_shop.vendor.orders'
+import { Route as ShopVendorMessagesRouteImport } from './routes/_shop.vendor.messages'
 import { Route as ShopStoreSlugRouteImport } from './routes/_shop.store.$slug'
 import { Route as ShopOrderIdRouteImport } from './routes/_shop.order.$id'
 import { Route as ShopIpIdRouteImport } from './routes/_shop.ip.$id'
@@ -124,6 +125,11 @@ const ShopVendorOrdersRoute = ShopVendorOrdersRouteImport.update({
   path: '/orders',
   getParentRoute: () => ShopVendorRoute,
 } as any)
+const ShopVendorMessagesRoute = ShopVendorMessagesRouteImport.update({
+  id: '/messages',
+  path: '/messages',
+  getParentRoute: () => ShopVendorRoute,
+} as any)
 const ShopStoreSlugRoute = ShopStoreSlugRouteImport.update({
   id: '/store/$slug',
   path: '/store/$slug',
@@ -217,6 +223,7 @@ export interface FileRoutesByFullPath {
   '/ip/$id': typeof ShopIpIdRoute
   '/order/$id': typeof ShopOrderIdRoute
   '/store/$slug': typeof ShopStoreSlugRoute
+  '/vendor/messages': typeof ShopVendorMessagesRoute
   '/vendor/orders': typeof ShopVendorOrdersRoute
   '/vendor/products': typeof ShopVendorProductsRoute
   '/vendor/store': typeof ShopVendorStoreRoute
@@ -248,6 +255,7 @@ export interface FileRoutesByTo {
   '/ip/$id': typeof ShopIpIdRoute
   '/order/$id': typeof ShopOrderIdRoute
   '/store/$slug': typeof ShopStoreSlugRoute
+  '/vendor/messages': typeof ShopVendorMessagesRoute
   '/vendor/orders': typeof ShopVendorOrdersRoute
   '/vendor/products': typeof ShopVendorProductsRoute
   '/vendor/store': typeof ShopVendorStoreRoute
@@ -281,6 +289,7 @@ export interface FileRoutesById {
   '/_shop/ip/$id': typeof ShopIpIdRoute
   '/_shop/order/$id': typeof ShopOrderIdRoute
   '/_shop/store/$slug': typeof ShopStoreSlugRoute
+  '/_shop/vendor/messages': typeof ShopVendorMessagesRoute
   '/_shop/vendor/orders': typeof ShopVendorOrdersRoute
   '/_shop/vendor/products': typeof ShopVendorProductsRoute
   '/_shop/vendor/store': typeof ShopVendorStoreRoute
@@ -314,6 +323,7 @@ export interface FileRouteTypes {
     | '/ip/$id'
     | '/order/$id'
     | '/store/$slug'
+    | '/vendor/messages'
     | '/vendor/orders'
     | '/vendor/products'
     | '/vendor/store'
@@ -345,6 +355,7 @@ export interface FileRouteTypes {
     | '/ip/$id'
     | '/order/$id'
     | '/store/$slug'
+    | '/vendor/messages'
     | '/vendor/orders'
     | '/vendor/products'
     | '/vendor/store'
@@ -377,6 +388,7 @@ export interface FileRouteTypes {
     | '/_shop/ip/$id'
     | '/_shop/order/$id'
     | '/_shop/store/$slug'
+    | '/_shop/vendor/messages'
     | '/_shop/vendor/orders'
     | '/_shop/vendor/products'
     | '/_shop/vendor/store'
@@ -507,6 +519,13 @@ declare module '@tanstack/react-router' {
       path: '/orders'
       fullPath: '/vendor/orders'
       preLoaderRoute: typeof ShopVendorOrdersRouteImport
+      parentRoute: typeof ShopVendorRoute
+    }
+    '/_shop/vendor/messages': {
+      id: '/_shop/vendor/messages'
+      path: '/messages'
+      fullPath: '/vendor/messages'
+      preLoaderRoute: typeof ShopVendorMessagesRouteImport
       parentRoute: typeof ShopVendorRoute
     }
     '/_shop/store/$slug': {
@@ -642,12 +661,14 @@ const ShopAdminRouteWithChildren = ShopAdminRoute._addFileChildren(
 )
 
 interface ShopVendorRouteChildren {
+  ShopVendorMessagesRoute: typeof ShopVendorMessagesRoute
   ShopVendorOrdersRoute: typeof ShopVendorOrdersRoute
   ShopVendorProductsRoute: typeof ShopVendorProductsRoute
   ShopVendorStoreRoute: typeof ShopVendorStoreRoute
 }
 
 const ShopVendorRouteChildren: ShopVendorRouteChildren = {
+  ShopVendorMessagesRoute: ShopVendorMessagesRoute,
   ShopVendorOrdersRoute: ShopVendorOrdersRoute,
   ShopVendorProductsRoute: ShopVendorProductsRoute,
   ShopVendorStoreRoute: ShopVendorStoreRoute,

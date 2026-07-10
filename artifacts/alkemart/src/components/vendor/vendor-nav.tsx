@@ -1,5 +1,5 @@
 import { Link, useLocation } from "@tanstack/react-router";
-import { LayoutDashboard, Store, PackageSearch, ClipboardList } from "lucide-react";
+import { LayoutDashboard, Store, PackageSearch, ClipboardList, MessageSquare } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -9,18 +9,53 @@ import {
   SidebarHeader,
   SidebarInset,
   SidebarMenu,
+  SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
+import { useListMyConversations, getListMyConversationsQueryKey } from "@workspace/api-client-react";
+import { getLastSeenAt } from "@/lib/vendor-messages-seen";
 
-const navItems = [
+const BASE_NAV_ITEMS = [
   { to: "/vendor", label: "Overview", icon: LayoutDashboard },
   { to: "/vendor/store", label: "Store profile", icon: Store },
   { to: "/vendor/orders", label: "Orders", icon: ClipboardList },
   { to: "/vendor/products", label: "Products", icon: PackageSearch },
 ] as const;
+
+function MessagesNavItem({ isActive }: { isActive: boolean }) {
+  const { data: conversations } = useListMyConversations({
+    query: {
+      queryKey: getListMyConversationsQueryKey(),
+      refetchInterval: 30_000,
+      staleTime: 20_000,
+    },
+  });
+
+  const unreadCount = (() => {
+    if (!conversations) return 0;
+    const lastSeen = getLastSeenAt();
+    return conversations.filter((c) => new Date(c.lastMessageAt) > lastSeen).length;
+  })();
+
+  return (
+    <SidebarMenuItem>
+      <SidebarMenuButton asChild tooltip="Messages" isActive={isActive}>
+        <Link to="/vendor/messages">
+          <MessageSquare />
+          <span>Messages</span>
+        </Link>
+      </SidebarMenuButton>
+      {unreadCount > 0 && (
+        <SidebarMenuBadge className="bg-destructive text-destructive-foreground">
+          {unreadCount}
+        </SidebarMenuBadge>
+      )}
+    </SidebarMenuItem>
+  );
+}
 
 function VendorSidebar() {
   const { pathname } = useLocation();
@@ -40,7 +75,7 @@ function VendorSidebar() {
           <SidebarGroupLabel>Your store</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {navItems.map((item) => {
+              {BASE_NAV_ITEMS.map((item) => {
                 const isActive = item.to === "/vendor" ? pathname === "/vendor" : pathname.startsWith(item.to);
                 return (
                   <SidebarMenuItem key={item.to}>
@@ -53,6 +88,7 @@ function VendorSidebar() {
                   </SidebarMenuItem>
                 );
               })}
+              <MessagesNavItem isActive={pathname.startsWith("/vendor/messages")} />
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
