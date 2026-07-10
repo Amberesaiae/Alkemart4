@@ -15,11 +15,11 @@ import {
 } from "@workspace/api-client-react";
 import type { Product } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -470,7 +470,7 @@ function EditableRow({
       </TableRow>
       {showUploader && (
         <TableRow>
-          <TableCell colSpan={7} className="bg-surface/50">
+          <TableCell colSpan={COLSPAN} className="bg-surface/50">
             <ImageUploader
               targetType="product"
               targetId={product.id}
@@ -488,6 +488,8 @@ function EditableRow({
 // ---------------------------------------------------------------------------
 // Page
 // ---------------------------------------------------------------------------
+
+const COLSPAN = 6; // checkbox + title + price + stock + visibility + actions
 
 function VendorProductsPage() {
   const search = Route.useSearch();
@@ -542,7 +544,7 @@ function VendorProductsPage() {
     }
   }
 
-  async function bulkDelete() {
+  async function bulkDeleteSelected() {
     if (selectedIds.size === 0) return;
     setBulkBusy(true);
     const ids = Array.from(selectedIds);
@@ -553,7 +555,7 @@ function VendorProductsPage() {
       // A fulfilled void means deleted; we mark all as attempted so soft-deletes
       // get the tooltip treatment on the next render.
       if (r.status === "fulfilled") {
-        setAttemptedDeleteIds((prev) => new Set(prev).add(ids[i]));
+        setAttemptedDeleteIds((prev) => new Set(prev).add(ids[i]!));
       }
     });
     const failed = results.filter((r) => r.status === "rejected").length;
@@ -567,8 +569,6 @@ function VendorProductsPage() {
     }
   }
 
-  const COLSPAN = 6; // checkbox + title + price + stock + visibility + actions
-
   return (
     <VendorShell title="Products" description="Update title, price, stock or visibility for products in your store.">
       <div className="rounded-md border border-border p-6">
@@ -577,7 +577,7 @@ function VendorProductsPage() {
           selectedIds={selectedIds}
           onHide={() => void bulkSetVisibility(false)}
           onShow={() => void bulkSetVisibility(true)}
-          onDelete={() => void bulkDelete()}
+          onDelete={() => void bulkDeleteSelected()}
           onClear={() => setSelectedIds(new Set())}
           isBusy={bulkBusy}
         />
