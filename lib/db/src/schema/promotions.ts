@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { ordersTable } from "./orders";
@@ -51,7 +51,11 @@ export const promotionRedemptionsTable = pgTable("promotion_redemptions", {
     .references(() => usersTable.id),
   discountPesewas: integer("discount_pesewas").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (table) => [
+  index("promotion_redemptions_promotion_id_idx").on(table.promotionId),
+  index("promotion_redemptions_order_id_idx").on(table.orderId),
+  index("promotion_redemptions_buyer_user_id_idx").on(table.buyerUserId),
+]);
 
 export const insertPromotionSchema = createInsertSchema(promotionsTable).omit({
   id: true,

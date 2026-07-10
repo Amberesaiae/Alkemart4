@@ -86,31 +86,46 @@ router.post("/vendor/products", requireAbility("create", "Product"), async (req,
   }
   const vendorId = vendorIds[0]!;
 
+  // Build slug atomically: attempt insert with the base slug, catch a unique
+  // constraint violation (pg error 23505), and retry once with a 4-char random
+  // suffix. This replaces the old pre-flight SELECT loop which had a TOCTOU
+  // race: two concurrent requests for the same title both saw count=0, both
+  // tried to insert `leather-bag`, and one surfaced a 500.
   const baseSlug = slugify(body.data.title);
+  const insertValues = {
+    vendorId,
+    categoryId: body.data.categoryId,
+    title: body.data.title,
+    brand: body.data.brand ?? null,
+    description: body.data.description ?? null,
+    pricePesewas: body.data.pricePesewas,
+    compareAtPesewas: body.data.compareAtPesewas ?? null,
+    stock: body.data.stock,
+    tag: body.data.tag ?? null,
+  };
+
+  let created: typeof productsTable.$inferSelect | undefined;
   let slug = baseSlug;
-  for (let attempt = 0; attempt < 5; attempt++) {
-    const [existing] = await db.select({ id: productsTable.id }).from(productsTable).where(eq(productsTable.slug, slug));
-    if (!existing) break;
-    slug = `${baseSlug}-${Math.random().toString(36).slice(2, 7)}`;
+  for (let attempt = 0; attempt < 4; attempt++) {
+    try {
+      [created] = await db.insert(productsTable).values({ ...insertValues, slug }).returning();
+      break; // success
+    } catch (err) {
+      const pgError = err instanceof Error && err.cause instanceof Error ? err.cause : err;
+      const isSlugCollision =
+        typeof pgError === "object" && pgError !== null && "code" in pgError && (pgError as { code: string }).code === "23505";
+      if (!isSlugCollision) throw err;
+      // Slug collision — generate a new suffix for the next attempt.
+      const suffix = Math.random().toString(36).slice(2, 6);
+      slug = `${baseSlug}-${suffix}`;
+    }
+  }
+  if (!created) {
+    res.status(500).json({ error: "Failed to generate unique product slug after retries" });
+    return;
   }
 
-  const [created] = await db
-    .insert(productsTable)
-    .values({
-      vendorId,
-      categoryId: body.data.categoryId,
-      slug,
-      title: body.data.title,
-      brand: body.data.brand ?? null,
-      description: body.data.description ?? null,
-      pricePesewas: body.data.pricePesewas,
-      compareAtPesewas: body.data.compareAtPesewas ?? null,
-      stock: body.data.stock,
-      tag: body.data.tag ?? null,
-    })
-    .returning();
-
-  res.json(CreateVendorProductResponse.parse({ ...created, imageUrl: null }));
+  res.json(CreateVendorProductResponse.parse({ ...created!, imageUrl: null }));
 });
 
 router.patch("/vendor/products/:id", requireAbility("update", "Product"), async (req, res): Promise<void> => {

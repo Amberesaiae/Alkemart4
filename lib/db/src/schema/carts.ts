@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, timestamp, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { usersTable } from "./users";
@@ -10,7 +10,9 @@ export const cartsTable = pgTable("carts", {
   userId: integer("user_id").references(() => usersTable.id),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
-});
+}, (table) => [
+  index("carts_user_id_idx").on(table.userId),
+]);
 
 export const cartItemsTable = pgTable("cart_items", {
   id: serial("id").primaryKey(),
@@ -19,7 +21,10 @@ export const cartItemsTable = pgTable("cart_items", {
   qty: integer("qty").notNull().default(1),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
-});
+}, (table) => [
+  index("cart_items_cart_id_idx").on(table.cartId),
+  index("cart_items_product_id_idx").on(table.productId),
+]);
 
 export const insertCartSchema = createInsertSchema(cartsTable).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertCartItemSchema = createInsertSchema(cartItemsTable).omit({

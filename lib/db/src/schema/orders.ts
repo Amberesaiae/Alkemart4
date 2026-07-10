@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, timestamp, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { usersTable } from "./users";
@@ -65,7 +65,11 @@ export const ordersTable = pgTable("orders", {
   paymentMethod: text("payment_method").$type<OrderPaymentMethod>(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
-});
+}, (table) => [
+  index("orders_buyer_user_id_idx").on(table.buyerUserId),
+  index("orders_address_id_idx").on(table.addressId),
+  index("orders_status_idx").on(table.status),
+]);
 
 /**
  * Line items snapshot product title/price at purchase time so an order
@@ -90,7 +94,11 @@ export const orderItemsTable = pgTable("order_items", {
   qty: integer("qty").notNull(),
   subtotalPesewas: integer("subtotal_pesewas").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (table) => [
+  index("order_items_order_id_idx").on(table.orderId),
+  index("order_items_product_id_idx").on(table.productId),
+  index("order_items_vendor_id_idx").on(table.vendorId),
+]);
 
 export const orderPaymentEventsTable = pgTable("order_payment_events", {
   id: serial("id").primaryKey(),
@@ -103,7 +111,9 @@ export const orderPaymentEventsTable = pgTable("order_payment_events", {
   providerReference: text("provider_reference"),
   note: text("note"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (table) => [
+  index("order_payment_events_order_id_idx").on(table.orderId),
+]);
 
 export const insertOrderSchema = createInsertSchema(ordersTable).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertOrderItemSchema = createInsertSchema(orderItemsTable).omit({ id: true, createdAt: true });

@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, jsonb, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, jsonb, timestamp, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { vendorsTable } from "./vendors";
@@ -31,7 +31,10 @@ export const productsTable = pgTable("products", {
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
-});
+}, (table) => [
+  index("products_vendor_id_idx").on(table.vendorId),
+  index("products_category_id_idx").on(table.categoryId),
+]);
 
 export const insertProductSchema = createInsertSchema(productsTable).omit({
   id: true,

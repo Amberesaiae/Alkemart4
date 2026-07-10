@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, jsonb, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, jsonb, timestamp, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { usersTable } from "./users";
@@ -29,7 +29,11 @@ export const notificationsTable = pgTable("notifications", {
   data: jsonb("data").$type<Record<string, unknown>>().notNull().default({}),
   isRead: boolean("is_read").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (table) => [
+  // Composite index covers the notification bell query (WHERE user_id = ? AND is_read = false)
+  // and degrades gracefully for the full-list query (WHERE user_id = ?).
+  index("notifications_user_id_is_read_idx").on(table.userId, table.isRead),
+]);
 
 export const insertNotificationSchema = createInsertSchema(notificationsTable).omit({ id: true, createdAt: true });
 export type InsertNotification = z.infer<typeof insertNotificationSchema>;

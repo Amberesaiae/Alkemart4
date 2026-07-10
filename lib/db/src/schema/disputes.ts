@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, timestamp, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { usersTable } from "./users";
@@ -23,7 +23,11 @@ export const disputesTable = pgTable("disputes", {
   note: text("note"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (table) => [
+  index("disputes_order_id_idx").on(table.orderId),
+  index("disputes_vendor_id_idx").on(table.vendorId),
+  index("disputes_buyer_user_id_idx").on(table.buyerUserId),
+]);
 
 export const insertDisputeSchema = createInsertSchema(disputesTable).omit({ id: true, createdAt: true, updatedAt: true });
 export type InsertDispute = z.infer<typeof insertDisputeSchema>;

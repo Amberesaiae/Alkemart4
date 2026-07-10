@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, timestamp, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { usersTable } from "./users";
@@ -33,7 +33,12 @@ export const imagesTable = pgTable("images", {
   reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
-});
+}, (table) => [
+  index("images_owner_user_id_idx").on(table.ownerUserId),
+  index("images_vendor_id_idx").on(table.vendorId),
+  // Composite covers the primary approved-image lookup: WHERE target_type = ? AND target_id = ?
+  index("images_target_idx").on(table.targetType, table.targetId),
+]);
 
 export const insertImageSchema = createInsertSchema(imagesTable).omit({
   id: true,
