@@ -1,5 +1,5 @@
-import { useListProducts } from "@workspace/api-client-react";
-import type { HomepageSection, HomepageSectionType } from "@workspace/api-client-react";
+import { useListProducts, useListCategories } from "@workspace/api-client-react";
+import type { HomepageSection, HomepageSectionType, Category } from "@workspace/api-client-react";
 import { SectionHeader } from "./section-header";
 import { ProductRail } from "./product-rail";
 import { FeatureTile } from "./feature-tile";
@@ -31,8 +31,8 @@ function tag(value: unknown): ProductTag | undefined {
   return typeof value === "string" ? (value as ProductTag) : undefined;
 }
 
-function AnnouncementYellowSection() {
-  return <AnnouncementYellow />;
+function AnnouncementYellowSection({ config }: SectionProps) {
+  return <AnnouncementYellow headline={str(config.headline)} />;
 }
 
 function HeroSection({ config }: SectionProps) {
@@ -91,42 +91,30 @@ function ProductRailSection({ config }: SectionProps) {
   return config.useRealData ? <RealProductRail config={config} /> : <MockProductRail config={config} />;
 }
 
-function FeatureGridSection() {
+const DEFAULT_FEATURE_ITEMS = [
+  { id: "1", icon: "alkemart Pay", title: "5% cash back at alkemart", description: "Members earn every day with the alkemart Cash Rewards card." },
+  { id: "2", icon: "A winning choice", title: "Gift cards for Black Stars fans", description: "Instant delivery — perfect for last-minute presents." },
+  { id: "3", icon: "NHIS Pharmacy", title: "NHIS pharmacy claims now supported", description: "Submit and track your prescription claims online." },
+  { id: "4", icon: "Back-to-school ready", title: "Vision care for the year ahead", description: "Find an eye doctor near you to book an appointment." },
+];
+
+function FeatureGridSection({ config }: SectionProps) {
+  const configItems = Array.isArray(config.items) && config.items.length > 0
+    ? (config.items as { id: string; icon?: string; title: string; description?: string }[])
+    : DEFAULT_FEATURE_ITEMS;
+
   return (
     <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-      <FeatureTile
-        tone="muted"
-        eyebrow="alkemart Pay"
-        title="5% cash back at alkemart"
-        body="Members earn every day with the alkemart Cash Rewards card."
-        layout="stacked"
-        imageShape="circle"
-        imageTone="brand"
-      />
-      <FeatureTile
-        tone="secondary"
-        eyebrow="A winning choice"
-        title="Gift cards for Black Stars fans"
-        body="Instant delivery — perfect for last-minute presents."
-        layout="stacked"
-        imageTone="accent"
-      />
-      <FeatureTile
-        tone="surface"
-        eyebrow="NHIS Pharmacy"
-        title="NHIS pharmacy claims now supported"
-        body="Submit and track your prescription claims online."
-        layout="stacked"
-      />
-      <FeatureTile
-        tone="surface"
-        eyebrow="Back-to-school ready"
-        title="Vision care for the year ahead"
-        body="Find an eye doctor near you to book an appointment."
-        link="Find a provider"
-        layout="stacked"
-        imageTone="accent"
-      />
+      {configItems.map((item) => (
+        <FeatureTile
+          key={item.id}
+          tone="surface"
+          eyebrow={item.icon}
+          title={item.title}
+          body={item.description}
+          layout="stacked"
+        />
+      ))}
     </section>
   );
 }
@@ -151,9 +139,39 @@ function DealsColumn({ title, tone, tag }: (typeof dealColumns)[number]) {
   );
 }
 
-function DealsGridSection() {
+function DealsGridSection({ config }: SectionProps) {
+  const configTag = tag(config.tag);
+  const count = num(config.count) ?? 4;
+  const columns = num(config.columns) ?? 5;
+  const showAdd = Boolean(config.showAdd);
+  const title = str(config.title);
+
+  // Always call the hook; pass tag only when configured.
+  const { data, isLoading } = useListProducts(
+    configTag ? { tag: configTag, limit: count } : undefined,
+  );
+
+  // When a tag is configured, render a focused product rail instead of the
+  // default 5-column deal layout.
+  if (configTag) {
+    return (
+      <section>
+        {title && <SectionHeader title={title} />}
+        <ProductRail
+          count={count}
+          columns={columns}
+          tag={configTag}
+          showAdd={showAdd}
+          products={data?.items}
+          loading={isLoading}
+        />
+      </section>
+    );
+  }
+
   return (
     <section>
+      {title && <SectionHeader title={title} />}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         {dealColumns.map((c) => (
           <DealsColumn key={c.title} {...c} />
@@ -164,27 +182,44 @@ function DealsGridSection() {
 }
 
 const weeklyRow = ["Weekly Essentials", "Pantry", "Meat & seafood", "Frozen", "Produce", "Snacks", "Beverages", "Deli"];
-const categoryRow = ["Grocery", "Home", "Patio & Garden", "Fashion", "Tech", "Baby", "Toys", "Beauty"];
+const staticCategoryRow = ["Grocery", "Home", "Patio & Garden", "Fashion", "Tech", "Baby", "Toys", "Beauty"];
 
 function CategoryRowSection({ config }: SectionProps) {
   const title = str(config.title) ?? "Get it all right here";
   const linkTo = str(config.linkTo) ?? "/browse/$slug";
+  const pinnedIds = Array.isArray(config.categoryIds) && config.categoryIds.length > 0
+    ? (config.categoryIds as number[])
+    : null;
+
+  // Always fetch categories; only use the result when pinnedIds are configured.
+  const { data: categoryData } = useListCategories();
+  const pinnedCategories = pinnedIds !== null
+    ? (categoryData?.filter((c) => pinnedIds.includes(c.id)) ?? [])
+    : null;
 
   return (
     <section>
       <SectionHeader title={title} linkTo={linkTo} />
-      <div className="space-y-4">
+      {pinnedCategories !== null ? (
         <div className="grid grid-cols-4 gap-4 md:grid-cols-8">
-          {weeklyRow.map((c) => (
-            <CategoryTile key={c} label={c} imageTone="default" />
+          {pinnedCategories.map((c) => (
+            <CategoryTile key={c.id} label={c.name} imageTone="brand" />
           ))}
         </div>
-        <div className="grid grid-cols-4 gap-4 md:grid-cols-8">
-          {categoryRow.map((c) => (
-            <CategoryTile key={c} label={c} imageTone="brand" />
-          ))}
+      ) : (
+        <div className="space-y-4">
+          <div className="grid grid-cols-4 gap-4 md:grid-cols-8">
+            {weeklyRow.map((c) => (
+              <CategoryTile key={c} label={c} imageTone="default" />
+            ))}
+          </div>
+          <div className="grid grid-cols-4 gap-4 md:grid-cols-8">
+            {staticCategoryRow.map((c) => (
+              <CategoryTile key={c} label={c} imageTone="brand" />
+            ))}
+          </div>
         </div>
-      </div>
+      )}
     </section>
   );
 }
@@ -341,8 +376,13 @@ function HeroSplitSection({ config }: SectionProps) {
   );
 }
 
-function ExpressBandSection() {
-  return <ExpressDeliveryBand />;
+function ExpressBandSection({ config }: SectionProps) {
+  return (
+    <ExpressDeliveryBand
+      headline={str(config.headline)}
+      subtext={str(config.subtext)}
+    />
+  );
 }
 
 const SECTION_REGISTRY: Record<HomepageSectionType, (props: SectionProps) => React.JSX.Element> = {

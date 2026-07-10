@@ -1,6 +1,14 @@
 import { ImageSlot } from "./image-slot";
 
-export function ExpressDeliveryBand() {
+interface ExpressDeliveryBandProps {
+  headline?: string;
+  subtext?: string;
+}
+
+export function ExpressDeliveryBand({
+  headline = "Delivery as soon as 1 hour*",
+  subtext = "Shop your faves, fast!",
+}: ExpressDeliveryBandProps) {
   return (
     <div className="grid items-stretch gap-0 overflow-hidden rounded-2xl bg-primary text-primary-foreground md:grid-cols-[minmax(260px,320px)_1fr_minmax(260px,320px)]">
       <div className="flex items-center justify-center bg-background p-8">
@@ -18,10 +26,8 @@ export function ExpressDeliveryBand() {
         </div>
       </div>
       <div className="flex flex-col items-center justify-center gap-2 p-8 text-center">
-        <h2 className="font-display text-3xl font-bold md:text-4xl">
-          Delivery as soon as 1 hour*
-        </h2>
-        <p className="text-sm opacity-90">Shop your faves, fast!</p>
+        <h2 className="font-display text-3xl font-bold md:text-4xl">{headline}</h2>
+        <p className="text-sm opacity-90">{subtext}</p>
       </div>
       <div className="bg-accent p-6">
         <ImageSlot ratio={4 / 3} rounded="xl" tone="accent" />
