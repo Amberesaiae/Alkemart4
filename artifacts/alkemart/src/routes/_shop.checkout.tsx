@@ -263,7 +263,7 @@ function CheckoutPage() {
           ))}
         </Accordion>
 
-        <aside className="space-y-4 lg:sticky lg:top-32 lg:h-max">
+        <aside className="order-first space-y-4 lg:order-last lg:sticky lg:top-32 lg:h-max">
           <OrderSummaryCard
             itemCount={itemCount}
             subtotal={`GH₵${pesewasToPrice(subtotal)}`}

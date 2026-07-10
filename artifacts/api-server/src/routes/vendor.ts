@@ -32,6 +32,18 @@ import { domainEvents } from "../lib/events";
 
 const router: IRouter = Router();
 
+/**
+ * Returns true when the vendor account is active and allowed to mutate
+ * products. Suspended vendors get 403 on all write routes.
+ */
+async function isVendorActive(vendorId: number): Promise<boolean> {
+  const [vendor] = await db
+    .select({ status: vendorsTable.status })
+    .from(vendorsTable)
+    .where(eq(vendorsTable.id, vendorId));
+  return vendor?.status === "active";
+}
+
 router.get("/vendor/shop", requireAbility("update", "Product"), async (req, res): Promise<void> => {
   const vendorIds = vendorIdsFor(req.user!.roles);
   if (vendorIds.length === 0) {
@@ -85,6 +97,11 @@ router.post("/vendor/products", requireAbility("create", "Product"), async (req,
     return;
   }
   const vendorId = vendorIds[0]!;
+
+  if (!(await isVendorActive(vendorId))) {
+    res.status(403).json({ error: "Your vendor account is suspended and cannot create new products." });
+    return;
+  }
 
   // Build slug atomically: attempt insert with the base slug, catch a unique
   // constraint violation (pg error 23505), and retry once with a 4-char random
@@ -153,6 +170,11 @@ router.patch("/vendor/products/:id", requireAbility("update", "Product"), async 
     return;
   }
 
+  if (!(await isVendorActive(product.vendorId))) {
+    res.status(403).json({ error: "Your vendor account is suspended and cannot update products." });
+    return;
+  }
+
   const [updated] = await db
     .update(productsTable)
     .set(body.data)
@@ -177,6 +199,11 @@ router.delete("/vendor/products/:id", requireAbility("delete", "Product"), async
 
   if (!vendorIdsFor(req.user!.roles).includes(product.vendorId)) {
     res.status(403).json({ error: "Forbidden" });
+    return;
+  }
+
+  if (!(await isVendorActive(product.vendorId))) {
+    res.status(403).json({ error: "Your vendor account is suspended and cannot delete products." });
     return;
   }
 

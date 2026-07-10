@@ -101,15 +101,29 @@ function VendorOrdersPage() {
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow>
-                  <TableCell colSpan={8} className="py-8 text-center text-sm text-muted-foreground">
-                    Loading orders…
-                  </TableCell>
-                </TableRow>
+                Array.from({ length: 5 }).map((_, i) => (
+                  <TableRow key={i} className="animate-pulse">
+                    <TableCell><div className="h-4 w-12 rounded bg-muted" /></TableCell>
+                    <TableCell><div className="h-4 w-20 rounded bg-muted" /></TableCell>
+                    <TableCell><div className="h-4 w-44 rounded bg-muted" /></TableCell>
+                    <TableCell><div className="h-4 w-6 rounded bg-muted" /></TableCell>
+                    <TableCell><div className="h-4 w-16 rounded bg-muted" /></TableCell>
+                    <TableCell><div className="h-5 w-20 rounded-full bg-muted" /></TableCell>
+                    <TableCell><div className="h-5 w-20 rounded-full bg-muted" /></TableCell>
+                    <TableCell />
+                  </TableRow>
+                ))
               ) : items.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="py-8 text-center text-sm text-muted-foreground">
-                    {search.date ? "No orders placed on this date." : "No orders yet for your products."}
+                  <TableCell colSpan={8} className="py-12 text-center">
+                    <p className="text-sm font-medium text-foreground">
+                      {search.date ? "No orders on this date" : "No orders yet"}
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {search.date
+                        ? "Try clearing the date filter to see all orders."
+                        : "Orders will appear here once buyers purchase your products."}
+                    </p>
                   </TableCell>
                 </TableRow>
               ) : (

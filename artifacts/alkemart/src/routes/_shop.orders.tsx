@@ -142,12 +142,24 @@ function OrdersPage() {
       <div className="grid gap-8 lg:grid-cols-[1fr_320px]">
         <section className="space-y-4">
           {isLoading ? (
-            <div className="rounded-md border border-border bg-background p-8 text-center text-sm text-muted-foreground">
-              Loading your orders…
+            <div className="space-y-4">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="animate-pulse rounded-md border border-border bg-background p-5 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="h-4 w-28 rounded bg-muted" />
+                    <div className="h-5 w-16 rounded-full bg-muted" />
+                  </div>
+                  <div className="h-3 w-36 rounded bg-muted" />
+                  <div className="h-3 w-52 rounded bg-muted" />
+                </div>
+              ))}
             </div>
           ) : filteredOrders.length === 0 ? (
-            <div className="rounded-md border border-border bg-background p-8 text-center text-sm text-muted-foreground">
-              No orders found matching the filter criteria.
+            <div className="rounded-md border border-border bg-background p-12 text-center">
+              <p className="text-sm font-medium text-foreground">No orders found</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Try a different filter, or start shopping to place your first order.
+              </p>
             </div>
           ) : (
             filteredOrders.map((o: Order) => (

@@ -193,7 +193,14 @@ function VendorMessagesPage() {
         {/* Conversation list */}
         <div className="max-h-[560px] space-y-1.5 overflow-y-auto rounded-md border border-border p-3">
           {isLoading ? (
-            <p className="p-3 text-sm text-muted-foreground">Loading conversations…</p>
+            <div className="space-y-2">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="animate-pulse rounded-lg p-3 space-y-2">
+                  <div className="h-3.5 w-32 rounded bg-muted" />
+                  <div className="h-3 w-44 rounded bg-muted" />
+                </div>
+              ))}
+            </div>
           ) : conversations.length === 0 ? (
             <p className="p-3 text-sm text-muted-foreground">
               No support conversations yet. If you have a question, contact support from the Help menu.

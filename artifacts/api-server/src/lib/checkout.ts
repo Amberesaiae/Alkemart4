@@ -50,6 +50,16 @@ export class ChargeAmountMismatchError extends Error {
   }
 }
 
+/**
+ * Raised when a cart line item's product has isActive=false at the time of
+ * checkout. The buyer should be told to remove the item and try again.
+ */
+export class InactiveProductError extends Error {
+  constructor(public readonly productTitle: string) {
+    super(`"${productTitle}" is no longer available`);
+  }
+}
+
 export { InvalidPromotionError };
 
 /**
@@ -68,6 +78,14 @@ export async function quoteCart(cartId: number, promoCode?: string): Promise<{ s
 
   if (lines.length === 0) {
     throw new EmptyCartError();
+  }
+
+  // Reject deactivated products before any payment is attempted so buyers
+  // get a clear message rather than a confusing stock/price error later.
+  for (const line of lines) {
+    if (!line.product.isActive) {
+      throw new InactiveProductError(line.product.title);
+    }
   }
 
   const subtotalPesewas = lines.reduce((sum, line) => sum + line.product.pricePesewas * line.qty, 0);
@@ -146,6 +164,14 @@ export async function runCheckoutWorkflow(
 
     if (lines.length === 0) {
       throw new EmptyCartError();
+    }
+
+    // Defense-in-depth: re-check isActive inside the transaction so a product
+    // deactivated between quoteCart and runCheckoutWorkflow is still caught.
+    for (const line of lines) {
+      if (!line.product.isActive) {
+        throw new InactiveProductError(line.product.title);
+      }
     }
 
     // Step 1: reserve inventory per line item with a single guarded UPDATE —

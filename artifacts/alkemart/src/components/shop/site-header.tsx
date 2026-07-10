@@ -137,6 +137,7 @@ export function SiteHeader({ variant = "default" }: SiteHeaderProps) {
               <PopoverTrigger asChild>
                 <button
                   type="button"
+                  aria-label={isAuthenticated ? "Account menu" : "Sign in or create account"}
                   className="hidden items-center gap-2 rounded-full px-3 py-2 text-xs hover:bg-primary-hover md:flex"
                 >
                   <UserAvatar size="sm" name={displayName} isMember={isAuthenticated} />
@@ -236,6 +237,7 @@ export function SiteHeader({ variant = "default" }: SiteHeaderProps) {
 
             <Link
               to="/cart"
+              aria-label={`View cart, ${itemCount} item${itemCount !== 1 ? "s" : ""}`}
               className="relative flex items-center gap-2 rounded-full bg-primary-hover px-4 py-2 text-xs font-semibold hover:brightness-110"
             >
               <svg viewBox="0 0 24 24" className="h-5 w-5 fill-none stroke-current stroke-[2] shrink-0" aria-hidden="true">

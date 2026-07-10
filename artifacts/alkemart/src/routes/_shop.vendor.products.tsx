@@ -389,7 +389,12 @@ function EditableRow({
 
   const activeSwitch = (
     <div className="flex items-center gap-2">
-      <Switch checked={product.isActive} onCheckedChange={toggleActive} disabled={updateProduct.isPending || softDeleted} />
+      <Switch
+            checked={product.isActive}
+            onCheckedChange={toggleActive}
+            disabled={updateProduct.isPending || softDeleted}
+            aria-label={`Toggle visibility for ${product.title}`}
+          />
       <span className="text-xs text-muted-foreground">{product.isActive ? "Active" : "Hidden"}</span>
     </div>
   );
@@ -500,20 +505,42 @@ function VendorProductsPage() {
   const [attemptedDeleteIds, setAttemptedDeleteIds] = useState<Set<number>>(new Set());
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [bulkBusy, setBulkBusy] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "hidden" | "low-stock" | "out-of-stock">("all");
+
+  // Derived filtered view — scopes table rows, select-all, and result count
+  const filteredProducts = products.filter((p) => {
+    const matchesSearch = !searchQuery.trim() || p.title.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesStatus =
+      statusFilter === "active" ? p.isActive :
+      statusFilter === "hidden" ? !p.isActive :
+      statusFilter === "low-stock" ? p.stock > 0 && p.stock <= 10 :
+      statusFilter === "out-of-stock" ? p.stock === 0 :
+      true;
+    return matchesSearch && matchesStatus;
+  });
 
   function handleDeleteAttempt(id: number) {
     setAttemptedDeleteIds((prev) => new Set(prev).add(id));
   }
 
-  // Checkbox helpers -----------------------------------------------------------
-  const allSelected = products.length > 0 && products.every((p) => selectedIds.has(p.id));
-  const someSelected = products.some((p) => selectedIds.has(p.id));
+  // Checkbox helpers — scoped to the currently visible (filtered) rows --------
+  const allSelected = filteredProducts.length > 0 && filteredProducts.every((p) => selectedIds.has(p.id));
+  const someSelected = filteredProducts.some((p) => selectedIds.has(p.id));
 
   function toggleSelectAll() {
     if (allSelected) {
-      setSelectedIds(new Set());
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        filteredProducts.forEach((p) => next.delete(p.id));
+        return next;
+      });
     } else {
-      setSelectedIds(new Set(products.map((p) => p.id)));
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        filteredProducts.forEach((p) => next.add(p.id));
+        return next;
+      });
     }
   }
 
@@ -582,12 +609,44 @@ function VendorProductsPage() {
           isBusy={bulkBusy}
         />
 
-        {/* Header row */}
-        <div className="mb-4 flex items-center justify-between">
-          <p className="text-sm text-muted-foreground">
-            {products.length > 0 ? `${products.length} product${products.length !== 1 ? "s" : ""}` : ""}
-          </p>
-          <AddProductSheet onCreated={() => {}} />
+        {/* Filter bar */}
+        <div className="mb-4 space-y-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <Input
+              placeholder="Search products…"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="h-9 max-w-[220px]"
+              aria-label="Search products by title"
+            />
+            <div className="flex flex-wrap gap-1.5">
+              {(["all", "active", "hidden", "low-stock", "out-of-stock"] as const).map((f) => (
+                <button
+                  key={f}
+                  type="button"
+                  onClick={() => setStatusFilter(f)}
+                  className={cn(
+                    "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
+                    statusFilter === f
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-border bg-background text-muted-foreground hover:border-foreground hover:text-foreground",
+                  )}
+                >
+                  {f === "all" ? "All" : f === "low-stock" ? "Low stock" : f === "out-of-stock" ? "Out of stock" : f.charAt(0).toUpperCase() + f.slice(1)}
+                </button>
+              ))}
+            </div>
+            <div className="ml-auto flex items-center gap-3">
+              <p className="text-sm text-muted-foreground">
+                {products.length > 0
+                  ? filteredProducts.length === products.length
+                    ? `${products.length} product${products.length !== 1 ? "s" : ""}`
+                    : `Showing ${filteredProducts.length} of ${products.length}`
+                  : ""}
+              </p>
+              <AddProductSheet onCreated={() => {}} />
+            </div>
+          </div>
         </div>
 
         <div className="overflow-x-auto">
@@ -599,7 +658,7 @@ function VendorProductsPage() {
                     checked={allSelected ? true : someSelected ? "indeterminate" : false}
                     onCheckedChange={toggleSelectAll}
                     aria-label="Select all products"
-                    disabled={products.length === 0}
+                    disabled={filteredProducts.length === 0}
                   />
                 </TableHead>
                 <TableHead>Title</TableHead>
@@ -611,19 +670,32 @@ function VendorProductsPage() {
             </TableHeader>
             <TableBody>
               {productsLoading ? (
-                <TableRow>
-                  <TableCell colSpan={COLSPAN} className="py-8 text-center text-sm text-muted-foreground">
-                    Loading products…
-                  </TableCell>
-                </TableRow>
+                Array.from({ length: 4 }).map((_, i) => (
+                  <TableRow key={i} className="animate-pulse">
+                    <TableCell><div className="h-4 w-4 rounded bg-muted" /></TableCell>
+                    <TableCell><div className="h-8 w-48 rounded bg-muted" /></TableCell>
+                    <TableCell><div className="h-8 w-20 rounded bg-muted" /></TableCell>
+                    <TableCell><div className="h-8 w-20 rounded bg-muted" /></TableCell>
+                    <TableCell><div className="h-6 w-24 rounded bg-muted" /></TableCell>
+                    <TableCell><div className="h-8 w-32 rounded bg-muted" /></TableCell>
+                  </TableRow>
+                ))
               ) : products.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={COLSPAN} className="py-8 text-center text-sm text-muted-foreground">
-                    No products yet. Click <strong>Add product</strong> to create your first listing.
+                  <TableCell colSpan={COLSPAN} className="py-12 text-center">
+                    <p className="text-sm font-medium text-foreground">No products yet</p>
+                    <p className="mt-1 text-xs text-muted-foreground">Click <strong>Add product</strong> to create your first listing.</p>
+                  </TableCell>
+                </TableRow>
+              ) : filteredProducts.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={COLSPAN} className="py-12 text-center">
+                    <p className="text-sm font-medium text-foreground">No products match this filter</p>
+                    <p className="mt-1 text-xs text-muted-foreground">Try changing your search or selecting a different status.</p>
                   </TableCell>
                 </TableRow>
               ) : (
-                products.map((p) => (
+                filteredProducts.map((p) => (
                   <EditableRow
                     key={p.id}
                     product={p}

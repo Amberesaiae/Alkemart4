@@ -17,6 +17,7 @@ import {
   AddressNotFoundError,
   ChargeAmountMismatchError,
   EmptyCartError,
+  InactiveProductError,
   InsufficientStockError,
   InvalidPromotionError,
   quoteCart,
@@ -106,6 +107,9 @@ router.post("/checkout", requireAbility("create", "Order"), async (req, res): Pr
     // than leaving that reconciliation to chance. This only applies to
     // failures that happen *after* the charge (stock, promo, address); a
     // PaymentDeclinedError means the charge itself never succeeded.
+    // InactiveProductError is included here: if a product is deactivated in the
+    // narrow window between quoteCart (pre-charge) and the transaction commit,
+    // the momo capture has already succeeded and we must refund it.
     const chargeSucceededButOrderFailed =
       paymentReference !== undefined &&
       chargedAmountPesewas !== undefined &&
@@ -113,7 +117,8 @@ router.post("/checkout", requireAbility("create", "Order"), async (req, res): Pr
         error instanceof InsufficientStockError ||
         error instanceof InvalidPromotionError ||
         error instanceof AddressNotFoundError ||
-        error instanceof ChargeAmountMismatchError);
+        error instanceof ChargeAmountMismatchError ||
+        error instanceof InactiveProductError);
 
     // Tracks the true outcome of the refund attempt (if one was made) so the
     // buyer-facing message never claims a refund that didn't actually happen.
@@ -168,11 +173,17 @@ router.post("/checkout", requireAbility("create", "Order"), async (req, res): Pr
       res.status(409).json({ error: withRefundNote("Checkout prices changed — please try again.") });
       return;
     }
+    if (error instanceof InactiveProductError) {
+      res.status(422).json({ error: withRefundNote(`${error.message} — please remove it from your cart and try again.`) });
+      return;
+    }
     if (error instanceof PaymentDeclinedError) {
       res.status(402).json({ error: error.message });
       return;
     }
-    throw error;
+    // Unknown error — log and return a safe 500 instead of crashing the process.
+    logger.error({ err: error }, "POST /checkout unexpected error");
+    res.status(500).json({ error: withRefundNote("Checkout failed due to an unexpected error. Please try again.") });
   }
 });
 

@@ -78,6 +78,7 @@ export function NotificationBell() {
               <button
                 key={notification.id}
                 type="button"
+                aria-label={describeNotification(notification)}
                 onClick={() => {
                   if (!notification.isRead) {
                     markRead.mutate({ id: notification.id });
