@@ -237,7 +237,7 @@ router.get("/vendor/orders", requireAbility("read", "Order"), async (req, res): 
   res.json(ListVendorOrdersResponse.parse({ items: rows, total: rows.length }));
 });
 
-router.get("/admin/orders", requireAbility("manage", "AdminPanel"), async (_req, res): Promise<void> => {
+router.get("/admin/orders", requireAbility("read", "AdminPanel"), async (_req, res): Promise<void> => {
   const orders = await db.select().from(ordersTable).orderBy(desc(ordersTable.createdAt));
   const orderIds = orders.map((o) => o.id);
   const items = orderIds.length ? await db.select().from(orderItemsTable).where(inArray(orderItemsTable.orderId, orderIds)) : [];
@@ -270,7 +270,8 @@ router.get("/orders/:id", requireAbility("read", "Order"), async (req, res): Pro
     return;
   }
 
-  const callerIsAdminOrSupport = isAdmin(req.user!.roles) || req.ability.can("manage", "AdminPanel");
+  // "read AdminPanel" covers both admin (manage all) and support_agent (read AdminPanel).
+  const callerIsAdminOrSupport = isAdmin(req.user!.roles) || req.ability.can("read", "AdminPanel");
   const isBuyer = order.buyerUserId === req.user!.id;
   const vendorIds = vendorIdsFor(req.user!.roles);
   const isVendorOnOrder = order.items.some((item) => vendorIds.includes(item.vendorId));

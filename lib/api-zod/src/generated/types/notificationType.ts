@@ -12,4 +12,6 @@ export type NotificationType = typeof NotificationType[keyof typeof Notification
 export const NotificationType = {
   orderconfirmed: 'order.confirmed',
   ordernew_for_vendor: 'order.new_for_vendor',
+  fulfillmentshipped: 'fulfillment.shipped',
+  fulfillmentdelivered: 'fulfillment.delivered',
 } as const;

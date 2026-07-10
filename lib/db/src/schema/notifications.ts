@@ -8,7 +8,7 @@ import { usersTable } from "./users";
  * notifications task scope) — a preferences/subscription system can widen
  * this later without a schema change, since `data` is already an open bag.
  */
-export const NOTIFICATION_TYPES = ["order.confirmed", "order.new_for_vendor"] as const;
+export const NOTIFICATION_TYPES = ["order.confirmed", "order.new_for_vendor", "fulfillment.shipped", "fulfillment.delivered"] as const;
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
 
 /**

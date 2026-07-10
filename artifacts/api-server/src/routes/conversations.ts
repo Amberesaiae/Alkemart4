@@ -18,10 +18,17 @@ import { requireAbility, requireAuth } from "../middlewares/auth-session";
 
 const router: IRouter = Router();
 
-/** Can the caller read/post in this conversation? Own conversation, or admin/support_agent. */
+/**
+ * Can the caller read/post in this conversation?
+ * - Own conversation: the user whose thread this is (buyer or vendor).
+ * - Admin / support_agent: anyone with `manage Conversation` (support_agent
+ *   has this ability; admin has manage-all). This replaces the old
+ *   `manage AdminPanel` check that locked out support agents after the RBAC
+ *   fix downgraded them to `read AdminPanel`.
+ */
 function canAccessConversation(req: import("express").Request, conversation: { userId: number }): boolean {
   if (conversation.userId === req.user!.id) return true;
-  return req.ability.can("manage", "AdminPanel");
+  return req.ability.can("manage", "Conversation");
 }
 
 router.get("/conversations/me", requireAuth, async (req, res): Promise<void> => {
@@ -62,7 +69,7 @@ router.post("/conversations/me", requireAuth, async (req, res): Promise<void> =>
   res.json(CreateMyConversationResponse.parse(conversation));
 });
 
-router.get("/admin/conversations", requireAbility("manage", "AdminPanel"), async (_req, res): Promise<void> => {
+router.get("/admin/conversations", requireAbility("manage", "Conversation"), async (_req, res): Promise<void> => {
   const rows = await db
     .select({
       id: conversationsTable.id,
@@ -93,7 +100,7 @@ router.get("/admin/conversations", requireAbility("manage", "AdminPanel"), async
   res.json(ListAdminConversationsResponse.parse(items));
 });
 
-router.post("/admin/conversations", requireAbility("manage", "AdminPanel"), async (req, res): Promise<void> => {
+router.post("/admin/conversations", requireAbility("manage", "Conversation"), async (req, res): Promise<void> => {
   const body = CreateAdminConversationBody.safeParse(req.body);
   if (!body.success) {
     res.status(400).json({ error: body.error.message });

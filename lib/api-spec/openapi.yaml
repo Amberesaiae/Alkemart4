@@ -1730,7 +1730,7 @@ components:
 
     NotificationType:
       type: string
-      enum: [order.confirmed, order.new_for_vendor]
+      enum: [order.confirmed, order.new_for_vendor, fulfillment.shipped, fulfillment.delivered]
 
     Notification:
       type: object

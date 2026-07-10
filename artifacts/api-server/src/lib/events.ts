@@ -133,6 +133,30 @@ domainEvents.onEvent("fulfillment.status_changed", (payload) => {
   logger.info({ event: "fulfillment.status_changed", ...payload }, "Domain event: fulfillment.status_changed");
 });
 
+/**
+ * In-app notification subscriber for `fulfillment.status_changed`. Inserts a
+ * notification row for the buyer when their order ships or is delivered — the
+ * same two statuses that trigger the delivery-update email below. Runs as a
+ * fire-and-forget void (same pattern as the order.placed subscriber) so a DB
+ * error here never surfaces to the vendor updating the fulfillment.
+ */
+domainEvents.onEvent("fulfillment.status_changed", (payload) => {
+  if (!payload.buyerUserId) return;
+  if (payload.status !== "shipped" && payload.status !== "delivered") return;
+
+  void (async () => {
+    try {
+      await db.insert(notificationsTable).values({
+        userId: payload.buyerUserId as number,
+        type: payload.status === "shipped" ? "fulfillment.shipped" : "fulfillment.delivered",
+        data: { orderId: payload.orderId, fulfillmentId: payload.fulfillmentId },
+      });
+    } catch (error) {
+      logger.error({ error, event: "fulfillment.status_changed", ...payload }, "Failed to create in-app notification for fulfillment update");
+    }
+  })();
+});
+
 const DELIVERY_UPDATE_COPY: Record<string, string> = {
   shipped: "Your order is on its way!",
   delivered: "Your order has been delivered.",

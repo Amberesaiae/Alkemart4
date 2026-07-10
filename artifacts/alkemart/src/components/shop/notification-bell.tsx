@@ -15,12 +15,17 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 function describeNotification(notification: Notification): string {
-  const orderId = (notification.data as Record<string, unknown> | null)?.orderId;
+  const data = notification.data as Record<string, unknown> | null;
+  const orderId = data?.orderId;
   switch (notification.type) {
     case "order.confirmed":
       return `Order #${orderId} confirmed — thanks for shopping with us!`;
     case "order.new_for_vendor":
       return `New order #${orderId} received for your shop.`;
+    case "fulfillment.shipped":
+      return `Order #${orderId} is on its way — your package has shipped!`;
+    case "fulfillment.delivered":
+      return `Order #${orderId} has been delivered. Enjoy!`;
     default:
       return "You have a new notification.";
   }
