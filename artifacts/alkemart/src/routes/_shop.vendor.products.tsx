@@ -7,6 +7,7 @@ import {
   useListVendorProducts,
   useUpdateVendorProduct,
   useCreateVendorProduct,
+  useDeleteVendorProduct,
   useListCategories,
   getListVendorProductsQueryKey,
 } from "@workspace/api-client-react";
@@ -19,10 +20,12 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { ImageUploader } from "@/components/shop/image-uploader";
 import { VendorShell } from "@/components/vendor/vendor-nav";
 import { cn } from "@/lib/utils";
-import { PlusIcon } from "lucide-react";
+import { PlusIcon, Trash2 } from "lucide-react";
 
 const productsSearchSchema = z.object({ highlight: z.number().optional() });
 
@@ -276,7 +279,17 @@ function AddProductSheet({ onCreated }: { onCreated: (productId: number) => void
   );
 }
 
-function EditableRow({ product, highlighted }: { product: Product; highlighted?: boolean }) {
+function EditableRow({
+  product,
+  highlighted,
+  softDeleted,
+  onDeleteAttempt,
+}: {
+  product: Product;
+  highlighted?: boolean;
+  softDeleted?: boolean;
+  onDeleteAttempt: (id: number) => void;
+}) {
   const queryClient = useQueryClient();
   const rowRef = useRef<HTMLTableRowElement>(null);
   const [title, setTitle] = useState(product.title);
@@ -284,6 +297,7 @@ function EditableRow({ product, highlighted }: { product: Product; highlighted?:
   const [stock, setStock] = useState(String(product.stock));
   const [dirty, setDirty] = useState(false);
   const [showUploader, setShowUploader] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
   useEffect(() => {
     if (highlighted) {
@@ -300,6 +314,18 @@ function EditableRow({ product, highlighted }: { product: Product; highlighted?:
     },
   });
 
+  const deleteProduct = useDeleteVendorProduct({
+    mutation: {
+      onSuccess: () => {
+        onDeleteAttempt(product.id);
+        queryClient.invalidateQueries({ queryKey: getListVendorProductsQueryKey() });
+      },
+      onError: () => {
+        toast.error("Failed to delete product. Please try again.");
+      },
+    },
+  });
+
   function save() {
     updateProduct.mutate({
       id: product.id,
@@ -310,6 +336,22 @@ function EditableRow({ product, highlighted }: { product: Product; highlighted?:
   function toggleActive(checked: boolean) {
     updateProduct.mutate({ id: product.id, data: { isActive: checked } });
   }
+
+  function confirmDelete() {
+    setDeleteOpen(false);
+    deleteProduct.mutate({ id: product.id });
+  }
+
+  const activeSwitch = (
+    <div className="flex items-center gap-2">
+      <Switch
+        checked={product.isActive}
+        onCheckedChange={toggleActive}
+        disabled={updateProduct.isPending || softDeleted}
+      />
+      <span className="text-xs text-muted-foreground">{product.isActive ? "Active" : "Hidden"}</span>
+    </div>
+  );
 
   return (
     <>
@@ -354,10 +396,21 @@ function EditableRow({ product, highlighted }: { product: Product; highlighted?:
           </div>
         </TableCell>
         <TableCell>
-          <div className="flex items-center gap-2">
-            <Switch checked={product.isActive} onCheckedChange={toggleActive} disabled={updateProduct.isPending} />
-            <span className="text-xs text-muted-foreground">{product.isActive ? "Active" : "Hidden"}</span>
-          </div>
+          {softDeleted ? (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div>{activeSwitch}</div>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="max-w-[220px] text-center">
+                  This product is referenced by existing orders and can't be fully removed. It's been hidden from your
+                  store instead.
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          ) : (
+            activeSwitch
+          )}
         </TableCell>
         <TableCell>
           <div className="flex items-center gap-2">
@@ -367,6 +420,33 @@ function EditableRow({ product, highlighted }: { product: Product; highlighted?:
             <Button size="sm" variant="outline" onClick={() => setShowUploader((v) => !v)}>
               Image
             </Button>
+            <Popover open={deleteOpen} onOpenChange={setDeleteOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                  aria-label="Delete product"
+                  disabled={deleteProduct.isPending}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-64 p-4" side="left" align="center">
+                <p className="text-sm font-medium mb-1">Delete product?</p>
+                <p className="text-xs text-muted-foreground mb-3">
+                  If this product appears in any orders it will be hidden instead of permanently removed.
+                </p>
+                <div className="flex gap-2 justify-end">
+                  <Button size="sm" variant="outline" onClick={() => setDeleteOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button size="sm" variant="destructive" onClick={confirmDelete}>
+                    Delete
+                  </Button>
+                </div>
+              </PopoverContent>
+            </Popover>
           </div>
         </TableCell>
       </TableRow>
@@ -391,6 +471,13 @@ function VendorProductsPage() {
   const search = Route.useSearch();
   const { data: productData, isLoading: productsLoading } = useListVendorProducts();
   const products = productData?.items ?? [];
+  // Track IDs where a delete was attempted — if the product comes back with isActive=false
+  // it was soft-deleted (still referenced by orders) and we show a tooltip on the switch.
+  const [attemptedDeleteIds, setAttemptedDeleteIds] = useState<Set<number>>(new Set());
+
+  function handleDeleteAttempt(id: number) {
+    setAttemptedDeleteIds((prev) => new Set(prev).add(id));
+  }
 
   return (
     <VendorShell title="Products" description="Update title, price, stock or visibility for products in your store.">
@@ -426,7 +513,15 @@ function VendorProductsPage() {
                   </TableCell>
                 </TableRow>
               ) : (
-                products.map((p) => <EditableRow key={p.id} product={p} highlighted={search.highlight === p.id} />)
+                products.map((p) => (
+                  <EditableRow
+                    key={p.id}
+                    product={p}
+                    highlighted={search.highlight === p.id}
+                    softDeleted={attemptedDeleteIds.has(p.id) && !p.isActive}
+                    onDeleteAttempt={handleDeleteAttempt}
+                  />
+                ))
               )}
             </TableBody>
           </Table>
