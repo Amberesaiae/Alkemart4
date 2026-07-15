@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { useGetVendor, useListProducts, useAddCartItem, getGetCartQueryKey } from "@workspace/api-client-react";
+import { useListProducts } from "@/lib/hooks-products";
+import { useAddCartItem } from "@/lib/hooks-cart";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -13,6 +14,8 @@ import { Badge } from "@/components/ui/badge";
 import { ProductCard } from "@/components/shop/product-card";
 import { RatingStars } from "@/components/shop/rating-stars";
 import { ImageSlot } from "@/components/shop/image-slot";
+import { pesewasToLabel, pesewasToPrice } from "@/lib/money";
+import { ShopPage } from "@/components/shop/shop-page";
 
 export const Route = createFileRoute("/_shop/store/$slug")({
   head: ({ params }) => ({
@@ -21,26 +24,18 @@ export const Route = createFileRoute("/_shop/store/$slug")({
   component: StorePage,
 });
 
-function pesewasToPrice(pesewas: number): string {
-  return (pesewas / 100).toFixed(2);
-}
 
 function StorePage() {
   const { slug } = Route.useParams();
   const queryClient = useQueryClient();
-  const { data: vendor, isLoading: vendorLoading, error } = useGetVendor(slug);
-  const { data } = useListProducts({ vendorSlug: slug, limit: 24 });
-  const addCartItem = useAddCartItem({
-    mutation: {
-      onSuccess: () => queryClient.invalidateQueries({ queryKey: getGetCartQueryKey() }),
-    },
-  });
+  const { data } = useListProducts({ limit: 24 });
+  const addCartItem = useAddCartItem();
 
   const products = data?.items ?? [];
 
   if (!vendorLoading && (error || !vendor)) {
     return (
-      <div className="mx-auto max-w-[1440px] px-4 py-16 text-center">
+      <ShopPage className="py-16 text-center">
         <h1 className="font-display text-xl font-bold">Store not found</h1>
         <p className="mt-2 text-sm text-muted-foreground">
           We couldn't find a storefront for "{slug}".
@@ -48,12 +43,12 @@ function StorePage() {
         <Link to="/" className="mt-4 inline-block text-sm font-semibold text-primary underline">
           Back to home
         </Link>
-      </div>
+      </ShopPage>
     );
   }
 
   return (
-    <div className="mx-auto max-w-[1440px] space-y-6 px-4 py-4">
+    <ShopPage dense className="space-y-6">
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>
@@ -114,13 +109,19 @@ function StorePage() {
                 showAdd={i % 2 === 0}
                 showOptions={i % 2 !== 0}
                 emphasis={i % 4 === 0 ? "deal" : "default"}
-                onAdd={() => addCartItem.mutate({ data: { productId: p.id, qty: 1 } })}
+                onAdd={() => {
+                  if (!p.variantId) {
+                    console.error("Product has no purchasable variant", p.id);
+                    return;
+                  }
+                  addCartItem.mutate({ data: { variantId: p.variantId, qty: 1 } });
+                }}
                 addPending={addCartItem.isPending}
               />
             ))}
           </div>
         )}
       </div>
-    </div>
+    </ShopPage>
   );
 }

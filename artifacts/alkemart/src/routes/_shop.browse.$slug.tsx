@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { useListProducts, useAddCartItem, getGetCartQueryKey } from "@workspace/api-client-react";
+import { useListProducts } from "@/lib/hooks-products";
+import { useAddCartItem } from "@/lib/hooks-cart";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -29,8 +30,17 @@ import {
 import { ProductCard } from "@/components/shop/product-card";
 import { PillChip } from "@/components/shop/pill-chip";
 import { FilterFacet } from "@/components/shop/filter-facet";
+import { pesewasToPrice } from "@/lib/money";
+import { ShopPage } from "@/components/shop/shop-page";
+import {
+  PAGE_SIZE_PLP,
+  PLP_FILTER_GROUPS,
+  PLP_QUICK_FILTERS,
+  plpPriceBandMatchers,
+} from "@/lib/commerce-content";
 
 import { z } from "zod";
+import { useMemo } from "react";
 
 const browseSearchSchema = z.object({
   search: z.string().optional(),
@@ -51,7 +61,7 @@ export const Route = createFileRoute("/_shop/browse/$slug")({
           name: "description",
           content: isSearch
             ? `Search results for ${(search as { search?: string })?.search ?? ""} on alkemart Ghana.`
-            : `Shop ${title} across top brands with everyday alkemart deals and same-hour Accra delivery.`,
+            : `Shop ${title} on alkemart Ghana — multi-vendor marketplace deals.`,
         },
         { property: "og:title", content: `${capital} — alkemart Ghana` },
         { property: "og:description", content: isSearch ? `Search results.` : `Shop ${title} on alkemart Ghana.` },
@@ -61,36 +71,7 @@ export const Route = createFileRoute("/_shop/browse/$slug")({
   component: BrowsePage,
 });
 
-const filterGroups = [
-  { label: "Price", items: ["Under GH₵25", "GH₵25 – GH₵50", "GH₵50 – GH₵100", "GH₵100 – GH₵200", "GH₵200+"] },
-  { label: "Brand", items: ["Acme", "Nova", "Kite", "Orbit", "Halo", "Lumo"] },
-  { label: "Subscription", items: ["Auto-reorder", "One-time"] },
-  { label: "Walmart Cash Offers", items: ["1% back", "3% back", "5% back"] },
-  { label: "Screen size", items: ['13"', '15"', '17"', '21"', '27"'] },
-  { label: "Color", items: ["Black", "White", "Silver", "Blue"] },
-  { label: "Features", items: ["Wireless", "Touchscreen", "Backlit", "Waterproof"] },
-  { label: "Operating system", items: ["ChromeOS", "Windows", "macOS", "Linux"] },
-];
-
-const headerPills = [
-  "Tech deals",
-  "Pick up today",
-  "Shop by brand",
-  "Apple",
-  "Computers & tablets",
-  "Home theater",
-  "Headphones",
-  "Cell phones",
-  "Wearable tech",
-  "Smart home",
-  "TV & networking",
-];
-
-function pesewasToPrice(pesewas: number): string {
-  return (pesewas / 100).toFixed(2);
-}
-
-const PAGE_SIZE = 24;
+const PAGE_SIZE = PAGE_SIZE_PLP;
 
 type SortOption = "match" | "price-asc" | "price-desc" | "rated" | "new";
 
@@ -101,17 +82,18 @@ function BrowsePage() {
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const [sort, setSort] = useState<SortOption>("match");
-  const { data, isLoading } = useListProducts({
-    categorySlug: isSearch ? undefined : slug,
+  const isTagBrowse = !isSearch && ["rollback", "clearance", "best", "popular", "new"].includes(slug);
+  const isAllBrowse = slug === "all" || slug === "deals";
+  const { data, isLoading, isPending, isError } = useListProducts({
+    categorySlug: isSearch || isTagBrowse || isAllBrowse ? undefined : slug,
+    tag: isTagBrowse ? slug : undefined,
     search: isSearch ? (search.search ?? "") : undefined,
     limit: PAGE_SIZE,
     offset: (page - 1) * PAGE_SIZE,
   });
-  const addCartItem = useAddCartItem({
-    mutation: {
-      onSuccess: () => queryClient.invalidateQueries({ queryKey: getGetCartQueryKey() }),
-    },
-  });
+  // Don't trap PLP on infinite retry skeletons when API is offline
+  const showLoading = (isPending || isLoading) && !isError;
+  const addCartItem = useAddCartItem();
 
   const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({});
 
@@ -135,8 +117,25 @@ function BrowsePage() {
 
   const rawProducts = data?.items ?? [];
 
+  // Brand facet derived from current result set (not a hardcoded Acme/Nova list)
+  const brandOptions = useMemo(() => {
+    const set = new Set<string>();
+    for (const p of rawProducts) {
+      if (p.brand) set.add(p.brand);
+    }
+    return Array.from(set).sort();
+  }, [rawProducts]);
+
+  const filterGroups = useMemo(
+    () =>
+      PLP_FILTER_GROUPS.map((g) =>
+        g.label === "Brand" ? { label: g.label, items: brandOptions } : { label: g.label, items: [...g.items] },
+      ).filter((g) => g.items.length > 0 || g.label === "Brand"),
+    [brandOptions],
+  );
+
   const filteredProducts = rawProducts.filter((p) => {
-    // Brand filter
+    // Brand filter (client-side on current page until API facets exist)
     const selectedBrands = activeFilters["Brand"] ?? [];
     if (selectedBrands.length > 0) {
       if (!p.brand || !selectedBrands.includes(p.brand)) {
@@ -144,28 +143,16 @@ function BrowsePage() {
       }
     }
 
-    // Price filter
+    // Price filter only — bands from commerce-content (live currency symbol)
     const selectedPrices = activeFilters["Price"] ?? [];
     if (selectedPrices.length > 0) {
       const priceVal = p.pricePesewas / 100;
+      const bands = plpPriceBandMatchers();
       const matchesPrice = selectedPrices.some((range) => {
-        if (range === "Under GH₵25") return priceVal < 25;
-        if (range === "GH₵25 – GH₵50") return priceVal >= 25 && priceVal <= 50;
-        if (range === "GH₵50 – GH₵100") return priceVal >= 50 && priceVal <= 100;
-        if (range === "GH₵100 – GH₵200") return priceVal >= 100 && priceVal <= 200;
-        if (range === "GH₵200+") return priceVal > 200;
-        return true;
+        const band = bands.find((b) => b.label === range);
+        return band ? band.test(priceVal) : true;
       });
       if (!matchesPrice) return false;
-    }
-
-    // OS filter
-    const selectedOS = activeFilters["Operating system"] ?? [];
-    if (selectedOS.length > 0) {
-      const matchesOS = selectedOS.some((os) =>
-        p.title.toLowerCase().includes(os.toLowerCase())
-      );
-      if (!matchesOS) return false;
     }
 
     return true;
@@ -179,8 +166,6 @@ function BrowsePage() {
         return b.pricePesewas - a.pricePesewas;
       case "rated":
         return b.ratingAvgX100 - a.ratingAvgX100;
-      case "new":
-        return b.id - a.id;
       default:
         return 0;
     }
@@ -194,42 +179,52 @@ function BrowsePage() {
     : slug.replace(/-/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase());
 
   return (
-    <div className="mx-auto max-w-[1440px] space-y-6 px-4 py-4">
+    <ShopPage dense className="space-y-4 md:space-y-5">
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>
             <BreadcrumbLink asChild>
-              <Link to="/">Home</Link>
+              <Link to="/" className="text-link">
+                Home
+              </Link>
             </BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <BreadcrumbPage>{categoryLabel}</BreadcrumbPage>
+            <BreadcrumbPage className="font-semibold text-foreground">{categoryLabel}</BreadcrumbPage>
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
 
-      {/* Category hero banner */}
-      <div
-        className="relative min-h-[160px] overflow-hidden rounded-md bg-primary p-8 text-primary-foreground"
-      >
-        <div className="text-xs font-bold uppercase tracking-widest opacity-70">
-          {isSearch ? "Search" : "Category"}
+      {/* Quiet PLP header — title + count first (F-pattern), not a full blue billboard */}
+      <div className="flex flex-col gap-1 border-b border-border pb-3">
+        <p className="text-eyebrow">{isSearch ? "Search results" : "Department"}</p>
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <h1 className="text-2xl font-bold tracking-tight text-foreground md:text-3xl">
+            {categoryLabel}{" "}
+            <span className="text-base font-semibold tabular-nums text-muted-foreground">
+              ({total.toLocaleString()} items)
+            </span>
+          </h1>
+          <p className="text-meta max-w-xs text-right">
+            Prices when purchased online. Delivery options confirmed at checkout.
+          </p>
         </div>
-        <h1 className="mt-2 font-display text-4xl font-bold leading-tight">{categoryLabel}</h1>
       </div>
 
-      {/* Header pills row */}
-      <div className="flex flex-wrap items-center gap-2">
-        {headerPills.map((p, i) => (
-          <PillChip key={p} active={i === 0}>
-            {p}
-          </PillChip>
-        ))}
-        <div className="ml-auto flex items-center gap-2 text-sm">
-          <span className="text-muted-foreground">Sort by</span>
+      {/* Quick refine chips + sort toolbar */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-wrap items-center gap-2">
+          {PLP_QUICK_FILTERS.map((p) => (
+            <Link key={p.label} to="/browse/$slug" params={{ slug: p.value }}>
+              <PillChip active={slug === p.value}>{p.label}</PillChip>
+            </Link>
+          ))}
+        </div>
+        <div className="flex shrink-0 items-center gap-2 text-sm">
+          <span className="font-medium text-muted-foreground">Sort by</span>
           <Select value={sort} onValueChange={(v) => setSort(v as SortOption)}>
-            <SelectTrigger className="h-9 w-40 rounded-full">
+            <SelectTrigger className="h-9 w-44 rounded-full border-border bg-card">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -243,19 +238,18 @@ function BrowsePage() {
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[260px_1fr]">
-        {/* Filter sidebar */}
-        <aside className="lg:sticky lg:top-32 lg:h-max">
-          <div className="rounded-md border border-border bg-background p-4">
+      <div className="grid gap-5 lg:grid-cols-[240px_1fr] xl:grid-cols-[260px_1fr]">
+        {/* Sticky white facet card on gray canvas */}
+        <aside className="lg:sticky lg:top-28 lg:h-max">
+          <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
             <div className="mb-3 flex items-center justify-between">
-              <h2 className="font-display text-sm font-bold uppercase tracking-wider">
-                Filters
-              </h2>
+              <h2 className="text-sm font-bold tracking-tight text-foreground">Filters</h2>
               <button
+                type="button"
                 onClick={() => setActiveFilters({})}
-                className="text-xs font-semibold text-primary underline"
+                className="text-xs font-bold text-link hover:underline"
               >
-                Clear
+                Clear all
               </button>
             </div>
             <input
@@ -264,11 +258,7 @@ function BrowsePage() {
               placeholder="Search filters"
               className="mb-3 h-9 w-full rounded-full border border-input bg-background px-4 text-xs placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
             />
-            <Accordion
-              type="multiple"
-              defaultValue={["Price", "Brand"]}
-              className="w-full"
-            >
+            <Accordion type="multiple" defaultValue={["Price", "Brand", "Fulfillment"]} className="w-full">
               {filterGroups.map((g) => (
                 <FilterFacet
                   key={g.label}
@@ -283,55 +273,65 @@ function BrowsePage() {
         </aside>
 
         {/* Product grid */}
-        <div>
-          <div className="mb-3 flex items-center justify-between text-sm text-muted-foreground">
-            <span>
-              <span className="font-semibold text-foreground">{categoryLabel}</span> ({total})
-            </span>
-            <span>Explore great deals. Prices when purchased online.</span>
-          </div>
-          {isLoading ? (
-            <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-4">
+        <div className="min-w-0">
+          {showLoading ? (
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4 xl:grid-cols-4">
               {Array.from({ length: 12 }).map((_, i) => (
-                <div key={i} className="space-y-2">
-                  <div className="aspect-square animate-pulse rounded-md bg-black/5" />
-                  <div className="h-4 w-3/4 animate-pulse rounded bg-black/5" />
-                  <div className="h-4 w-1/2 animate-pulse rounded bg-black/5" />
+                <div key={i} className="rounded-lg border border-border bg-card p-3 space-y-2">
+                  <div className="aspect-square animate-pulse rounded-md bg-muted" />
+                  <div className="h-5 w-1/2 animate-pulse rounded bg-muted" />
+                  <div className="h-3 w-full animate-pulse rounded bg-muted" />
+                  <div className="h-3 w-2/3 animate-pulse rounded bg-muted" />
                 </div>
               ))}
             </div>
           ) : products.length === 0 ? (
-            <div className="flex flex-col items-center justify-center gap-2 rounded-md border border-dashed border-border py-20 text-center">
-              <p className="font-display text-lg font-semibold">No results found</p>
-              <p className="max-w-sm text-sm text-muted-foreground">
+            <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border bg-card px-6 py-16 text-center shadow-sm">
+              <p className="text-lg font-bold text-foreground">No results found</p>
+              <p className="max-w-md text-sm text-muted-foreground">
                 {isSearch
-                  ? `We couldn't find anything matching "${search.search ?? ""}". Try a different search term.`
-                  : "There are no products in this category yet. Check back soon."}
+                  ? `We couldn't find anything matching "${search.search ?? ""}". Try fewer words or a different spelling.`
+                  : "There are no products in this category yet. Try another department or check back soon."}
               </p>
+              <Link
+                to="/"
+                className="mt-1 rounded-full bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground hover:bg-primary-hover"
+              >
+                Continue shopping
+              </Link>
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-4">
-              {products.map((p, i: number) => (
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4 xl:grid-cols-4">
+              {products.map((p) => (
                 <ProductCard
                   key={p.id}
                   id={p.id}
                   title={p.title}
+                  brand={p.brand}
                   tag={(p.tag as "rollback" | "clearance" | "best" | "popular" | "new" | null) ?? undefined}
                   now={pesewasToPrice(p.pricePesewas)}
                   was={p.compareAtPesewas ? pesewasToPrice(p.compareAtPesewas) : undefined}
                   rating={p.ratingCount > 0 ? p.ratingAvgX100 / 100 : undefined}
                   reviews={p.ratingCount > 0 ? p.ratingCount : undefined}
-                  showAdd={i % 2 === 0}
-                  showOptions={i % 2 !== 0}
-                  emphasis={i % 4 === 0 ? "deal" : "default"}
-                  onAdd={() => addCartItem.mutate({ data: { productId: p.id, qty: 1 } })}
+                  imageUrl={p.imageUrl}
+                  showAdd
+                  showOptions={false}
+                  showShipping
+                  emphasis={p.tag === "rollback" ? "deal" : "default"}
+                  onAdd={() => {
+                    if (!p.variantId) {
+                      console.error("Product has no purchasable variant", p.id);
+                      return;
+                    }
+                    addCartItem.mutate({ data: { variantId: p.variantId, qty: 1 } });
+                  }}
                   addPending={addCartItem.isPending}
                 />
               ))}
             </div>
           )}
 
-          {!isLoading && products.length > 0 && (
+          {!showLoading && products.length > 0 && (
             <div className="mt-10 flex flex-col items-center gap-4">
               <Pagination>
                 <PaginationContent>
@@ -371,6 +371,6 @@ function BrowsePage() {
           )}
         </div>
       </div>
-    </div>
+    </ShopPage>
   );
 }

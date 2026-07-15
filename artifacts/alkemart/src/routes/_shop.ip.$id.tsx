@@ -2,13 +2,8 @@ import { useEffect } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { CheckIcon, BookmarkIcon, BookmarkFilledIcon } from "@radix-ui/react-icons";
 import { useQueryClient } from "@tanstack/react-query";
-import {
-  useGetProduct,
-  useAddCartItem,
-  useListCategories,
-  getGetCartQueryKey,
-  getGetProductQueryKey,
-} from "@workspace/api-client-react";
+import { useGetProduct, useListCategories, useListProducts } from "@/lib/hooks-products";
+import { useAddCartItem } from "@/lib/hooks-cart";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -29,17 +24,14 @@ import { ImageSlot } from "@/components/shop/image-slot";
 import { PriceCents } from "@/components/shop/price-cents";
 import { RatingStars } from "@/components/shop/rating-stars";
 import { DealTag } from "@/components/shop/deal-tag";
-import { TextSkeleton } from "@/components/shop/text-skeleton";
 import { SectionHeader } from "@/components/shop/section-header";
 import { ProductRail } from "@/components/shop/product-rail";
-import { ColorSwatch } from "@/components/shop/color-swatch";
 import { FulfillmentPicker } from "@/components/shop/fulfillment-picker";
-import { RatingHistogram } from "@/components/shop/rating-histogram";
-import { ReviewRow } from "@/components/shop/review-row";
-import { FbtBundle } from "@/components/shop/fbt-bundle";
 import { SaveBadge } from "@/components/shop/save-badge";
 import { AlkemartPlusInline } from "@/components/shop/alkemart-plus-inline";
 import { useWishlist } from "@/hooks/use-wishlist";
+import { pesewasToPrice, pesewasToLabel } from "@/lib/money";
+import { ShopPage } from "@/components/shop/shop-page";
 
 export const Route = createFileRoute("/_shop/ip/$id")({
   head: () => ({
@@ -48,48 +40,38 @@ export const Route = createFileRoute("/_shop/ip/$id")({
       {
         name: "description",
         content:
-          "Specs, ratings and reviews for products on alkemart Ghana. Free 14-day returns and same-hour Accra delivery.",
+          "Product details on alkemart Ghana. Free 14-day returns; delivery options confirmed at checkout.",
       },
-      { property: "og:title", content: "Product Details — alkemart Ghana" },
-      { property: "og:description", content: "Specs, ratings, reviews. Free 14-day returns in Ghana." },
     ],
   }),
   component: ProductPage,
 });
 
-function pesewasToPrice(pesewas: number): string {
-  return (pesewas / 100).toFixed(2);
-}
-
-const colors = [
-  { label: "Forging Blue", tone: "brand" as const, active: true },
-  { label: "Slate Silver", tone: "default" as const, active: false },
-];
-
-const highlights = [
-  "The best of Google's ecosystem: Chromebooks run ChromeOS, the fast and secure operating system from Google.",
-  "Get up to 8 hours of battery life so you can work and play with fewer charging breaks.",
-  "128GB of storage plus 4GB of memory for smooth everyday performance.",
-  "Ultra-thin 15.6-inch FHD display — great for movies, class, or a spreadsheet.",
-  "1MP webcam with a physical shutter for privacy and peace of mind.",
-  "Backlit keyboard with comfortable travel and layout designed for hours of typing.",
-];
-
+/**
+ * Product detail page — API-driven only.
+ * No Chromebook prototype content, fake reviews, compare tables, or FBT bundles.
+ */
 function ProductPage() {
   const { id } = Route.useParams();
-  const productId = Number(id);
   const queryClient = useQueryClient();
-  const { data: product } = useGetProduct(productId, {
-    query: { enabled: !Number.isNaN(productId), queryKey: getGetProductQueryKey(productId) },
-  });
-  const addCartItem = useAddCartItem({
-    mutation: {
-      onSuccess: () => queryClient.invalidateQueries({ queryKey: getGetCartQueryKey() }),
-    },
-  });
+  const {
+    data: product,
+    isLoading,
+    isError,
+    isPending,
+  } = useGetProduct(id);
+  const addCartItem = useAddCartItem();
   const { data: categories } = useListCategories();
-  const category = categories?.find((c) => c.id === product?.categoryId);
+  const category = categories?.find((c) => c.handle === product?.categoryHandle);
   const { saved, toggle } = useWishlist(product?.id);
+
+  // Similar items: same category when known
+  const { data: similar, isLoading: similarLoading } = useListProducts(
+    product
+      ? { categorySlug: category?.slug, limit: 6 }
+      : undefined,
+    { query: { enabled: Boolean(product && category?.slug), retry: false, throwOnError: false } },
+  );
 
   useEffect(() => {
     if (product?.title) {
@@ -97,13 +79,94 @@ function ProductPage() {
     }
   }, [product]);
 
+  const showLoading = (isPending || isLoading) && !isError && !product;
+  const notFound = !showLoading && (isError || !product);
+
+  if (showLoading) {
+    return (
+      <ShopPage className="space-y-8">
+        <div className="h-4 w-48 animate-pulse rounded bg-muted" />
+        <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
+          <div className="aspect-square animate-pulse rounded-2xl bg-muted" />
+          <div className="space-y-4">
+            <div className="h-8 w-3/4 animate-pulse rounded bg-muted" />
+            <div className="h-6 w-1/3 animate-pulse rounded bg-muted" />
+            <div className="h-40 animate-pulse rounded-2xl bg-muted" />
+          </div>
+        </div>
+      </ShopPage>
+    );
+  }
+
+  if (notFound || !product) {
+    return (
+      <ShopPage className="flex flex-col items-center gap-4 py-20 text-center">
+        <h1 className="text-2xl font-bold">Product not found</h1>
+        <p className="max-w-md text-sm text-muted-foreground">
+          This product may be unavailable or the link is incorrect.
+        </p>
+        <Button asChild className="rounded-full font-bold">
+          <Link to="/">Continue shopping</Link>
+        </Button>
+      </ShopPage>
+    );
+  }
+
+  const hasRating = product.ratingCount > 0;
+  const saveAmount =
+    product.compareAtPesewas && product.compareAtPesewas > product.pricePesewas
+      ? pesewasToPrice(product.compareAtPesewas - product.pricePesewas)
+      : null;
+  const similarItems = (similar?.items ?? []).filter((p) => p.id !== product.id).slice(0, 6);
+
+  const tagVariant =
+    product.tag === "rollback" ||
+    product.tag === "clearance" ||
+    product.tag === "best" ||
+    product.tag === "popular" ||
+    product.tag === "new"
+      ? product.tag
+      : undefined;
+
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: product.title,
+    description: product.description || product.title,
+    image: product.imageUrl || undefined,
+    brand: product.brand ? { "@type": "Brand", name: product.brand } : undefined,
+    sku: product.sku || undefined,
+    offers: {
+      "@type": "Offer",
+      priceCurrency: "GHS",
+      price: (product.pricePesewas / 100).toFixed(2),
+      availability:
+        product.stock > 0
+          ? "https://schema.org/InStock"
+          : "https://schema.org/OutOfStock",
+    },
+    aggregateRating: hasRating
+      ? {
+          "@type": "AggregateRating",
+          ratingValue: (product.ratingAvgX100 / 100).toFixed(1),
+          reviewCount: product.ratingCount,
+        }
+      : undefined,
+  };
+
   return (
-    <div className="mx-auto w-full max-w-[1600px] space-y-12 px-6 py-8">
+    <ShopPage className="space-y-10">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>
             <BreadcrumbLink asChild>
-              <Link to="/">Home</Link>
+              <Link to="/" className="text-link">
+                Home
+              </Link>
             </BreadcrumbLink>
           </BreadcrumbItem>
           {category && (
@@ -111,7 +174,7 @@ function ProductPage() {
               <BreadcrumbSeparator />
               <BreadcrumbItem>
                 <BreadcrumbLink asChild>
-                  <Link to="/browse/$slug" params={{ slug: category.slug }}>
+                  <Link to="/browse/$slug" params={{ slug: category.slug }} className="text-link">
                     {category.name}
                   </Link>
                 </BreadcrumbLink>
@@ -120,79 +183,71 @@ function ProductPage() {
           )}
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <BreadcrumbPage>{product?.title ?? "Chromebook CX15"}</BreadcrumbPage>
+            <BreadcrumbPage className="font-semibold">{product.title}</BreadcrumbPage>
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
 
-      {/* Hero */}
-      <section className="grid gap-6 lg:grid-cols-[80px_1fr_380px]">
-        {/* Thumb rail */}
-        <div className="order-2 flex gap-2 lg:order-1 lg:flex-col">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <button
-              key={i}
-              aria-label={`Preview ${i + 1}`}
-              className={`h-16 w-16 shrink-0 overflow-hidden rounded-lg border ${
-                i === 0 ? "border-primary ring-2 ring-primary/20" : "border-border"
-              }`}
-            >
-              <ImageSlot
-                ratio={1}
-                rounded="md"
-                tone={i % 2 === 0 ? "default" : "brand"}
-              />
-            </button>
-          ))}
+      {/* Hero: gallery + buy box — only real media (single image until gallery API exists) */}
+      <section className="grid gap-6 lg:grid-cols-[1fr_380px]">
+        <div className="min-w-0">
+          <ImageSlot
+            ratio={1}
+            rounded="2xl"
+            tone="brand"
+            src={product.imageUrl}
+            alt={product.title}
+          />
         </div>
 
-        {/* Main image */}
-        <div className="order-1 lg:order-2">
-          <ImageSlot ratio={1} rounded="2xl" tone="brand" src={product?.imageUrl} alt={product?.title} />
-        </div>
-
-        {/* Right buy-box */}
-        <div className="order-3 space-y-4">
+        <div className="space-y-4">
           <div>
             <div className="flex flex-wrap gap-2">
-              <DealTag variant="popular">100+ bought since yesterday</DealTag>
-              <DealTag variant="best">Best seller</DealTag>
+              {tagVariant && (
+                <DealTag variant={tagVariant}>
+                  {tagVariant === "rollback"
+                    ? "Rollback"
+                    : tagVariant === "best"
+                      ? "Best seller"
+                      : tagVariant.charAt(0).toUpperCase() + tagVariant.slice(1)}
+                </DealTag>
+              )}
+              {product.stock > 0 && product.stock <= 5 && (
+                <DealTag variant="clearance">Only {product.stock} left</DealTag>
+              )}
+              {product.stock === 0 && <DealTag variant="outline">Out of stock</DealTag>}
             </div>
-            <h1 className="mt-3 font-display text-2xl font-bold leading-tight">
-              {product?.title ??
-                'ASUS Chromebook CX15 Laptop, 15.6" FHD Display, Intel® Processor N50, 128GB Storage, 4GB RAM, ChromeOS, Forging Blue'}
-            </h1>
-            <div className="mt-2 flex flex-wrap items-center gap-3">
-              <RatingStars
-                rating={product && product.ratingCount > 0 ? product.ratingAvgX100 / 100 : 4.5}
-                count={product && product.ratingCount > 0 ? `${product.ratingCount} reviews` : "4.3 · 73 reviews"}
-              />
-              <a
-                href="#reviews"
-                className="text-xs font-semibold text-primary underline"
-              >
-                Write a review
-              </a>
-            </div>
+            <h1 className="mt-3 text-2xl font-bold leading-tight tracking-tight">{product.title}</h1>
+            {product.brand && (
+              <p className="mt-1 text-sm font-semibold text-muted-foreground">{product.brand}</p>
+            )}
+            {hasRating && (
+              <div className="mt-2">
+                <RatingStars
+                  rating={product.ratingAvgX100 / 100}
+                  count={`${product.ratingCount} rating${product.ratingCount === 1 ? "" : "s"}`}
+                />
+              </div>
+            )}
           </div>
 
-          <div className="rounded-2xl border border-border bg-background p-5">
+          <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
             <PriceCents
-              now={product ? pesewasToPrice(product.pricePesewas) : "199.00"}
-              was={product?.compareAtPesewas ? pesewasToPrice(product.compareAtPesewas) : "249.00"}
-              label="Now"
+              now={pesewasToPrice(product.pricePesewas)}
+              was={
+                product.compareAtPesewas
+                  ? pesewasToPrice(product.compareAtPesewas)
+                  : undefined
+              }
+              label={product.compareAtPesewas ? "Now" : undefined}
               size="xl"
-              emphasis="deal"
+              emphasis={product.tag === "rollback" ? "deal" : "default"}
             />
-            <div className="mt-2">
-              <SaveBadge
-                amount={
-                  product?.compareAtPesewas
-                    ? pesewasToPrice(product.compareAtPesewas - product.pricePesewas)
-                    : "50.00"
-                }
-              />
-            </div>
+            {saveAmount && (
+              <div className="mt-2">
+                <SaveBadge amount={saveAmount} />
+              </div>
+            )}
             <div className="mt-1 text-xs text-muted-foreground">Price when purchased online</div>
             <div className="mt-2">
               <AlkemartPlusInline />
@@ -202,43 +257,40 @@ function ProductPage() {
 
             <div>
               <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Actual color
-              </div>
-              <div className="flex gap-2">
-                {colors.map((c) => (
-                  <ColorSwatch key={c.label} label={c.label} active={c.active} tone={c.tone} />
-                ))}
-              </div>
-            </div>
-
-            <Separator className="my-4" />
-
-            <div>
-              <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                How you'll get this item
+                How you&apos;ll get this item
               </div>
               <FulfillmentPicker selected="shipping" />
-              <div className="mt-2 text-xs text-muted-foreground">
-                Ships to <span className="font-semibold text-primary underline">Accra, Osu</span> · Arrives Mon, Jul 6
-              </div>
             </div>
 
             <Button
-              className="mt-5 w-full"
+              className="mt-5 w-full rounded-full font-bold"
               size="lg"
-              disabled={!product || addCartItem.isPending}
+              disabled={
+                product.stock === 0 ||
+                !product.variantId ||
+                addCartItem.isPending
+              }
               onClick={() => {
-                if (product) addCartItem.mutate({ data: { productId: product.id, qty: 1 } });
+                if (!product.variantId) {
+                  console.error("Product has no purchasable variant", product.id);
+                  return;
+                }
+                addCartItem.mutate({ data: { variantId: product.variantId, qty: 1 } });
               }}
             >
-              {addCartItem.isPending ? "Adding…" : "Add to cart"}
+              {product.stock === 0
+                ? "Out of stock"
+                : !product.variantId
+                  ? "Unavailable"
+                  : addCartItem.isPending
+                    ? "Adding…"
+                    : "Add to cart"}
             </Button>
             <Button
               variant="outline"
-              className="mt-2 w-full"
+              className="mt-2 w-full rounded-full font-bold"
               size="lg"
               aria-pressed={saved}
-              disabled={!product}
               onClick={toggle}
             >
               {saved ? <BookmarkFilledIcon /> : <BookmarkIcon />}
@@ -247,234 +299,148 @@ function ProductPage() {
 
             <div className="mt-3 flex items-start gap-2 text-xs text-muted-foreground">
               <CheckIcon className="mt-0.5 h-4 w-4 text-success" />
-              <span>Free 14-day returns to any alkemart Ghana hub. Gift eligible.</span>
+              <span>Free 14-day returns to any alkemart Ghana hub.</span>
             </div>
 
-            <Separator className="my-4" />
-            <div className="text-xs">
-              <div className="font-semibold">
-                Sold and shipped by{" "}
-                {product ? (
-                  <Link to="/store/$slug" params={{ slug: product.vendor.slug }} className="text-primary underline">
-                    {product.vendor.name}
-                  </Link>
-                ) : (
-                  "alkemart Accra"
-                )}
-              </div>
-              <div className="mt-1 text-muted-foreground">
-                <RatingStars
-                  rating={product && product.vendor.ratingCount > 0 ? product.vendor.ratingAvgX100 / 100 : 4.8}
-                  count={
-                    product && product.vendor.ratingCount > 0
-                      ? `${product.vendor.ratingCount} seller reviews`
-                      : "1.2k seller reviews"
-                  }
-                />
-              </div>
-              <button className="mt-2 font-semibold text-primary underline">Report an issue</button>
-            </div>
-          </div>
-
-          <div className="rounded-2xl bg-foreground p-4 text-background">
-            <div className="text-xs font-bold">alkemart Pay Later</div>
-            <div className="mt-2 text-sm">
-              As low as <span className="font-bold">GH₵35/mo</span> — no credit impact to apply.
-            </div>
-            <Button variant="outline" size="sm" className="mt-3 bg-background text-foreground">
-              Learn more
-            </Button>
+            {product.vendor && (
+              <>
+                <Separator className="my-4" />
+                <div className="text-xs">
+                  <div className="font-semibold">
+                    Sold and shipped by{" "}
+                    <Link
+                      to="/store/$slug"
+                      params={{ slug: product.vendor.slug }}
+                      className="text-link hover:underline"
+                    >
+                      {product.vendor.name}
+                    </Link>
+                  </div>
+                  {product.vendor.ratingCount > 0 && (
+                    <div className="mt-1 text-muted-foreground">
+                      <RatingStars
+                        rating={product.vendor.ratingAvgX100 / 100}
+                        count={`${product.vendor.ratingCount} seller rating${product.vendor.ratingCount === 1 ? "" : "s"}`}
+                      />
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
           </div>
         </div>
       </section>
 
-      {/* Key highlights */}
-      <section className="rounded-2xl border border-border p-6">
-        <h2 className="font-display text-xl font-bold">Key highlights</h2>
-        <ul className="mt-4 grid gap-3 text-sm text-muted-foreground md:grid-cols-2">
-          {highlights.map((f) => (
-            <li key={f} className="flex items-start gap-2">
-              <CheckIcon className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-              <span>{f}</span>
-            </li>
-          ))}
-        </ul>
+      {/* Description — only when API provides it */}
+      {product.description?.trim() && (
+        <section className="rounded-2xl border border-border bg-card p-6">
+          <h2 className="text-xl font-bold tracking-tight">About this item</h2>
+          <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
+            {product.description}
+          </p>
+        </section>
+      )}
+
+      {/* Stock / seller facts from API only */}
+      <section className="rounded-2xl border border-border bg-card p-6">
+        <h2 className="text-xl font-bold tracking-tight">Product facts</h2>
+        <dl className="mt-4 grid gap-2 sm:grid-cols-2">
+          {[
+            ["Price", pesewasToLabel(product.pricePesewas)],
+            product.compareAtPesewas
+              ? ["Was", pesewasToLabel(product.compareAtPesewas)]
+              : null,
+            product.brand ? ["Brand", product.brand] : null,
+            [
+              "Availability",
+              product.stock == null
+                ? "Check availability at checkout"
+                : product.stock > 0
+                  ? `${product.stock} in stock`
+                  : "Out of stock",
+            ],
+            category ? ["Category", category.name] : null,
+            product.vendor ? ["Seller", product.vendor.name] : null,
+          ]
+            .filter(Boolean)
+            .map((row) => {
+              const [k, v] = row as [string, string];
+              return (
+                <div
+                  key={k}
+                  className="flex items-center justify-between border-b border-border py-2.5"
+                >
+                  <dt className="text-sm font-semibold">{k}</dt>
+                  <dd className="text-sm text-muted-foreground">{v}</dd>
+                </div>
+              );
+            })}
+        </dl>
       </section>
 
-      {/* About this item */}
+      {/* Similar from same category — live only */}
       <section>
-        <SectionHeader title="About this item" />
-        <Accordion
-          type="multiple"
-          defaultValue={["details"]}
-          className="rounded-2xl border border-border"
-        >
+        <SectionHeader
+          title="Similar items"
+          linkTo={category ? `/browse/${category.slug}` : undefined}
+          linkLabel="View category"
+        />
+        <ProductRail
+          count={6}
+          columns={6}
+          products={similarItems}
+          loading={similarLoading}
+          showAdd
+          emptyLabel="No similar products in this category yet."
+        />
+      </section>
+
+      {/* Reviews: only rating aggregate until a reviews API exists */}
+      {hasRating && (
+        <section className="rounded-2xl border border-border bg-card p-6">
+          <h2 className="text-xl font-bold tracking-tight">Customer ratings</h2>
+          <div className="mt-4 flex items-center gap-4">
+            <div className="text-4xl font-bold tabular-nums">
+              {(product.ratingAvgX100 / 100).toFixed(1)}
+            </div>
+            <div>
+              <RatingStars rating={product.ratingAvgX100 / 100} size="md" />
+              <p className="mt-1 text-sm text-muted-foreground">
+                Based on {product.ratingCount} rating{product.ratingCount === 1 ? "" : "s"}
+              </p>
+            </div>
+          </div>
+          <p className="mt-4 text-sm text-muted-foreground">
+            Written reviews will appear here when available.
+          </p>
+        </section>
+      )}
+
+      {/* Policy FAQ — generic platform policy, not product fiction */}
+      <section>
+        <SectionHeader title="Shopping with alkemart" />
+        <Accordion type="single" collapsible className="rounded-2xl border border-border bg-card">
           {[
-            { key: "details", label: "Product details", lines: 5 },
-            { key: "specs", label: "Specifications", lines: 0 },
-            { key: "warranty", label: "Warranty", lines: 3 },
-            { key: "brand", label: "About the brand", lines: 3 },
-          ].map((sec) => (
-            <AccordionItem key={sec.key} value={sec.key} className="border-border px-6">
-              <AccordionTrigger className="text-base font-bold">
-                {sec.label}
-              </AccordionTrigger>
-              <AccordionContent>
-                {sec.key === "specs" ? (
-                  <div className="grid gap-2 md:grid-cols-2">
-                    {[
-                      ["CPU", "Intel N50"],
-                      ["RAM", "4 GB"],
-                      ["Storage", "128 GB eMMC"],
-                      ["Display", "15.6\" FHD"],
-                      ["Battery", "Up to 8 hours"],
-                      ["Weight", "3.75 lbs"],
-                    ].map(([k, v]) => (
-                      <div
-                        key={k}
-                        className="flex items-center justify-between border-b border-border py-2"
-                      >
-                        <span className="text-sm font-semibold">{k}</span>
-                        <span className="text-sm text-muted-foreground">{v}</span>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <TextSkeleton
-                    lines={sec.lines}
-                    widths={["100%", "95%", "97%", "90%", "60%"]}
-                  />
-                )}
-              </AccordionContent>
+            {
+              q: "Return policy",
+              a: "Most items can be returned within 14 days to any alkemart Ghana hub. Some categories have special rules shown at checkout.",
+            },
+            {
+              q: "Delivery options",
+              a: "Pickup and delivery options depend on the seller and your address. Delivery windows are confirmed at checkout.",
+            },
+            {
+              q: "Payments",
+              a: "Pay with Mobile Money or cash on delivery where offered by the seller and platform.",
+            },
+          ].map((item, i) => (
+            <AccordionItem key={item.q} value={`q-${i}`} className="border-border px-6">
+              <AccordionTrigger className="text-sm font-semibold">{item.q}</AccordionTrigger>
+              <AccordionContent className="text-sm text-muted-foreground">{item.a}</AccordionContent>
             </AccordionItem>
           ))}
         </Accordion>
       </section>
-
-      {/* Similar items */}
-      <section>
-        <SectionHeader title="Similar items you might love" linkTo="/browse/$slug" />
-        <ProductRail count={5} columns={5} tag="best" />
-      </section>
-
-      {/* Reviews */}
-      <section id="reviews" className="rounded-2xl border border-border p-6">
-        <div className="grid gap-8 lg:grid-cols-[320px_1fr]">
-          <div className="space-y-4">
-            <RatingHistogram average={4.3} total={73} />
-            <Button variant="outline" className="w-full">
-              Write a review
-            </Button>
-          </div>
-
-          <div>
-            <h3 className="font-display text-lg font-bold">Customer photos</h3>
-            <div className="mt-3 grid grid-cols-5 gap-2">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <ImageSlot key={i} ratio={1} rounded="lg" tone="brand" />
-              ))}
-            </div>
-
-            <div className="mt-6 flex items-center justify-between">
-              <h3 className="font-display text-lg font-bold">Recent reviews</h3>
-              <div className="text-xs">
-                <span className="text-muted-foreground">Sort by</span>{" "}
-                <button className="font-semibold text-primary underline">
-                  Most helpful
-                </button>
-              </div>
-            </div>
-            <div className="mt-3 space-y-6">
-              {[
-                { rating: 5, title: "Good bang for your buck!" },
-                { rating: 4.5, title: "Amazing operating laptop for everyday" },
-                { rating: 4, title: "Easily replacing my old laptop" },
-              ].map((r) => (
-                <ReviewRow
-                  key={r.title}
-                  rating={r.rating}
-                  title={r.title}
-                  verified
-                  photoCount={2}
-                />
-              ))}
-            </div>
-            <Button variant="outline" className="mt-4">
-              View all 73 reviews
-            </Button>
-          </div>
-        </div>
-      </section>
-
-      {/* Compare with similar items */}
-      <section>
-        <SectionHeader title="Compare with similar items" />
-        <div className="overflow-x-auto rounded-2xl border border-border">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-surface">
-                <th className="p-4 text-left font-semibold">Feature</th>
-                {Array.from({ length: 3 }).map((_, i) => (
-                  <th key={i} className="p-4 text-left">
-                    <div className="w-32">
-                      <ImageSlot ratio={4 / 3} rounded="md" tone="brand" />
-                    </div>
-                    <div className="mt-2 text-xs font-normal text-muted-foreground">
-                      Product {i + 1}
-                    </div>
-                    <Button size="sm" className="mt-2">
-                      Add
-                    </Button>
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {[
-                ["Price", "GH₵199", "GH₵229", "GH₵249"],
-                ["RAM", "4 GB", "8 GB", "8 GB"],
-                ["Storage", "128 GB", "256 GB", "512 GB"],
-                ["Screen", "15.6\"", "14\"", "15.6\""],
-                ["Weight", "3.75 lbs", "3.1 lbs", "3.9 lbs"],
-              ].map(([k, ...vals]) => (
-                <tr key={k} className="border-t border-border">
-                  <td className="p-4 font-semibold">{k}</td>
-                  {vals.map((v, i) => (
-                    <td key={i} className="p-4 text-muted-foreground">
-                      {v}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      {/* Frequently bought together */}
-      <section>
-        <SectionHeader title="Frequently bought together" />
-        <FbtBundle itemCount={3} bundlePrice="304.97" />
-      </section>
-
-      {/* FAQ */}
-      <section>
-        <SectionHeader title="Common questions" />
-        <Accordion type="single" collapsible className="rounded-2xl border border-border">
-          {["Return policy", "Warranty details", "Shipping options", "Assembly required"].map(
-            (q, i) => (
-              <AccordionItem key={q} value={`q-${i}`} className="border-border px-6">
-                <AccordionTrigger className="text-sm font-semibold">
-                  {q}
-                </AccordionTrigger>
-                <AccordionContent>
-                  <TextSkeleton lines={2} />
-                </AccordionContent>
-              </AccordionItem>
-            ),
-          )}
-        </Accordion>
-      </section>
-    </div>
+    </ShopPage>
   );
 }

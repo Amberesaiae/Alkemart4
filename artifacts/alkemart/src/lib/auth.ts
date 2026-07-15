@@ -1,9 +1,9 @@
-import { useMemo } from "react";
-import type { QueryClient } from "@tanstack/react-query";
-import { redirect } from "@tanstack/react-router";
-import { useGetMe, getGetMeQueryOptions, getGetMeQueryKey } from "@workspace/api-client-react";
-import type { AuthUser } from "@workspace/api-client-react";
-import { defineAbilitiesFor, type AppAbility, type AuthUserRole } from "@workspace/abilities";
+import { useMemo } from "react"
+import type { QueryClient } from "@tanstack/react-query"
+import { redirect } from "@tanstack/react-router"
+import { useGetMe, getGetMeQueryKey, type AlkemartUser } from "./hooks-auth"
+import { createMedusaClient } from "./medusa/client"
+import { defineAbilitiesFor, type AppAbility, type AuthUserRole } from "@workspace/abilities"
 
 /**
  * Shared session + authorization hook. Authorization decisions (what a user
@@ -12,22 +12,22 @@ import { defineAbilitiesFor, type AppAbility, type AuthUserRole } from "@workspa
  * string comparisons, so client and server never diverge on "who can do what".
  */
 export function useAuth() {
-  const { data, isLoading } = useGetMe();
-  const user: AuthUser | null | undefined = data?.user;
+  const { data, isLoading } = useGetMe()
+  const user: AlkemartUser | null | undefined = data?.user
   const ability: AppAbility = useMemo(
     () => defineAbilitiesFor((user?.roles ?? []) as AuthUserRole[]),
     [user],
-  );
+  )
   return {
     user,
     ability,
     isLoading,
     isAuthenticated: Boolean(user),
-  };
+  }
 }
 
-function buildAbility(user: AuthUser | null | undefined): AppAbility {
-  return defineAbilitiesFor((user?.roles ?? []) as AuthUserRole[]);
+function buildAbility(user: AlkemartUser | null | undefined): AppAbility {
+  return defineAbilitiesFor((user?.roles ?? []) as AuthUserRole[])
 }
 
 /**
@@ -39,56 +39,106 @@ export async function requireAuthBeforeLoad({
   context,
   location,
 }: {
-  context: { queryClient: QueryClient };
-  location: { href: string };
+  context: { queryClient: QueryClient }
+  location: { href: string }
 }) {
-  const session = await context.queryClient.ensureQueryData(getGetMeQueryOptions());
+  const session = await context.queryClient.ensureQueryData({
+    queryKey: getGetMeQueryKey(),
+    queryFn: async () => {
+      try {
+        const sdk = createMedusaClient()
+        const { customer } = await sdk.store.customer.retrieve()
+        const meta = (customer as { metadata?: Record<string, unknown> }).metadata
+        // Prefer admin-set roles on customer.metadata; unmigrated customers default to buyer only.
+        const rolesFromMeta = Array.isArray(meta?.roles)
+          ? (meta!.roles as string[]).filter((r) => typeof r === "string")
+          : null
+        return {
+          user: {
+            id: customer.id,
+            email: customer.email,
+            firstName: (customer as { first_name?: string }).first_name,
+            lastName: (customer as { last_name?: string }).last_name,
+            roles: rolesFromMeta ?? ["buyer"],
+            countryCode: (meta?.country_code as string) ?? "GH",
+            preferredCurrency: (meta?.preferred_currency as string) ?? "GHS",
+          },
+        }
+      } catch {
+        return { user: null }
+      }
+    },
+  })
   if (!session.user) {
-    throw redirect({ to: "/signin", search: { redirect: location.href } });
+    throw redirect({ to: "/signin", search: { redirect: location.href } })
   }
-  return session.user;
+  return session.user
 }
 
 /**
  * Use in a `/vendor/*` route's `beforeLoad` once vendor-facing pages exist.
- * Requires an active session AND a CASL ability to update at least one
- * `Product` (i.e. a `vendor_owner`/`vendor_staff` role assignment) — a
- * capability buyers never have, unlike the broader `read Order` ability
- * that buyers and vendors share. Does NOT grant admin/support access.
  */
 export async function requireVendorAccessBeforeLoad({
   context,
   location,
 }: {
-  context: { queryClient: QueryClient };
-  location: { href: string };
+  context: { queryClient: QueryClient }
+  location: { href: string }
 }) {
-  const user = await requireAuthBeforeLoad({ context, location });
-  const ability = buildAbility(user);
+  const user = await requireAuthBeforeLoad({ context, location })
+  const ability = buildAbility(user)
   if (!ability.can("update", "Product")) {
-    throw redirect({ to: "/signin", search: { redirect: location.href } });
+    throw redirect({ to: "/signin", search: { redirect: location.href } })
   }
-  return user;
+  return user
 }
 
 /**
- * Use in an `/admin/*` route's `beforeLoad` once admin-facing pages exist.
- * Requires an active session AND the CASL `admin` capability
- * (`manage all`) rather than a plain role-string check.
+ * Use in an `/admin/*` route's `beforeLoad`.
  */
 export async function requireAdminAccessBeforeLoad({
   context,
   location,
 }: {
-  context: { queryClient: QueryClient };
-  location: { href: string };
+  context: { queryClient: QueryClient }
+  location: { href: string }
 }) {
-  const user = await requireAuthBeforeLoad({ context, location });
-  const ability = buildAbility(user);
-  if (!ability.can("manage", "AdminPanel")) {
-    throw redirect({ to: "/signin", search: { redirect: location.href } });
+  const user = await requireAuthBeforeLoad({ context, location })
+  const ability = buildAbility(user)
+  const canEnter =
+    ability.can("manage", "AdminPanel") || ability.can("read", "AdminPanel")
+  if (!canEnter) {
+    throw redirect({ to: "/" })
   }
-  return user;
+  return user
 }
 
-export { getGetMeQueryKey };
+/**
+ * Full admin only (homepage, promotions, image mod, role admin).
+ */
+export async function requireFullAdminBeforeLoad({
+  context,
+  location,
+}: {
+  context: { queryClient: QueryClient }
+  location: { href: string }
+}) {
+  const user = await requireAdminAccessBeforeLoad({ context, location })
+  const ability = buildAbility(user)
+  if (!ability.can("manage", "AdminPanel")) {
+    throw redirect({ to: "/admin" })
+  }
+  return user
+}
+
+/** True if the user can open the admin shell (admin or support). */
+export function canAccessAdminPanel(ability: AppAbility): boolean {
+  return ability.can("manage", "AdminPanel") || ability.can("read", "AdminPanel")
+}
+
+/** True if the user can mutate admin-only resources (homepage, promos, roles). */
+export function canManageAdminPanel(ability: AppAbility): boolean {
+  return ability.can("manage", "AdminPanel")
+}
+
+export { getGetMeQueryKey }
