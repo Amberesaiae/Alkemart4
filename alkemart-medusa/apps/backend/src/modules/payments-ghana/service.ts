@@ -34,6 +34,17 @@ class PaymentsGhanaModuleService extends MedusaService({
 
     const clientReference = randomUUID()
 
+    let expiresAt: Date | null = null
+    if (input.expiresAt != null) {
+      expiresAt =
+        input.expiresAt instanceof Date
+          ? input.expiresAt
+          : new Date(input.expiresAt)
+      if (Number.isNaN(expiresAt.getTime())) {
+        throw new Error(`Invalid expiresAt: ${input.expiresAt}`)
+      }
+    }
+
     return this.createPaymentIntents({
       cart_id: input.cartId ?? null,
       order_id: input.orderId ?? null,
@@ -42,7 +53,7 @@ class PaymentsGhanaModuleService extends MedusaService({
       amount_pesewas: input.amountPesewas,
       currency: (input.currency ?? "ghs").toLowerCase(),
       status: "initiated" satisfies PaymentIntentStatus,
-      expires_at: input.expiresAt ?? null,
+      expires_at: expiresAt,
       metadata: input.metadata ?? null,
     })
   }
