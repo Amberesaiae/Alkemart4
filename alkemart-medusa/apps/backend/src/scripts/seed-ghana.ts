@@ -1,5 +1,9 @@
 /**
- * Deterministic Ghana seed for Alkemart.
+ * DEV / CI FIXTURE ONLY — Deterministic Ghana seed for Alkemart local/dev.
+ *
+ * **Production catalog must come from ETL (migrate-from-express), not this seed.**
+ * Refused when `NODE_ENV=production`. Prefer
+ * `bootstrap-commerce-context.ts` for infrastructure without catalog.
  *
  * Creates / reuses:
  *   - Region "Ghana" (currency ghs, country gh)
@@ -25,7 +29,7 @@
  *   medusa_amount_ghs * 100  →  pesewas
  *   pesewas / 100            →  medusa_amount_ghs
  *
- * Usage:
+ * Usage (development / CI only):
  *   npx medusa exec ./src/scripts/seed-ghana.ts
  *
  * Idempotent: re-running reuses existing region / channel / location /
@@ -334,6 +338,12 @@ async function ensureVariantGhsPrice(
 // ---------------------------------------------------------------------------
 
 async function seedGhanaData({ container }: ExecArgs) {
+  if (process.env.NODE_ENV === "production") {
+    throw new Error(
+      "seed-ghana is a DEV FIXTURE only — refused in production. Use ETL migrate-from-express for real data."
+    )
+  }
+
   const logger = container.resolve(ContainerRegistrationKeys.LOGGER)
   const query = container.resolve(ContainerRegistrationKeys.QUERY)
   const regionModule = container.resolve(Modules.REGION)

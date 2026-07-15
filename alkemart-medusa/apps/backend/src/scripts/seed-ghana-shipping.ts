@@ -1,7 +1,10 @@
 /**
- * Idempotent Ghana shipping option seed (for COD/checkout smoke).
+ * DEV / CI FIXTURE ONLY — Idempotent Ghana shipping option seed (COD smoke).
  *
- * Usage:
+ * Prefer `bootstrap-commerce-context.ts` for production infrastructure.
+ * Refused when `NODE_ENV=production`.
+ *
+ * Usage (development / CI only):
  *   npx medusa exec ./src/scripts/seed-ghana-shipping.ts
  */
 import { ExecArgs } from "@medusajs/framework/types"
@@ -12,6 +15,12 @@ import {
 import { createShippingOptionsWorkflow } from "@medusajs/medusa/core-flows"
 
 export default async function seedGhanaShipping({ container }: ExecArgs) {
+  if (process.env.NODE_ENV === "production") {
+    throw new Error(
+      "seed-ghana-shipping is a DEV FIXTURE only — refused in production. Use bootstrap-commerce-context or ETL migrate-from-express for real data."
+    )
+  }
+
   const logger = container.resolve(ContainerRegistrationKeys.LOGGER)
   const query = container.resolve(ContainerRegistrationKeys.QUERY)
   const link = container.resolve(ContainerRegistrationKeys.LINK)

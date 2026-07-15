@@ -1,7 +1,22 @@
+/**
+ * DEV / CI FIXTURE ONLY — marketplace vendor rows for local smoke tests.
+ *
+ * Production vendors come from ETL (migrate-from-express), not this seed.
+ * Refused when `NODE_ENV=production`.
+ *
+ * Usage (development / CI only):
+ *   npx medusa exec ./src/scripts/seed-vendors.ts
+ */
 import { ExecArgs } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 
 async function seedVendors({ container }: ExecArgs) {
+  if (process.env.NODE_ENV === "production") {
+    throw new Error(
+      "seed-vendors is a DEV FIXTURE only — refused in production. Use ETL migrate-from-express for real data."
+    )
+  }
+
   const logger = container.resolve(ContainerRegistrationKeys.LOGGER)
 
   // Resolve the marketplace module service (custom module)
