@@ -23,8 +23,12 @@ export type AlkemartOrder = {
     /** Alias of quantity. */
     qty: number
     unitPrice: number
+    /** unitPrice * qty in pesewas */
+    subtotalPesewas: number
     thumbnail?: string
   }[]
+  /** Alias of total for older UI paths. */
+  subtotalPesewas: number
   shippingAddress?: {
     city?: string
     country?: string
@@ -54,16 +58,19 @@ function medusaOrderToAlkemart(o: any): AlkemartOrder {
     items: (o.items ?? []).map((item: any) => {
       const title = item.title ?? item.product_title ?? "Item"
       const quantity = Number(item.quantity ?? 0)
+      const unitPrice = medusaAmountToPesewas(Number(item.unit_price ?? 0))
       return {
         id: item.id,
         title,
         titleSnapshot: title,
         quantity,
         qty: quantity,
-        unitPrice: medusaAmountToPesewas(Number(item.unit_price ?? 0)),
+        unitPrice,
+        subtotalPesewas: unitPrice * quantity,
         thumbnail: item.thumbnail,
       }
     }),
+    subtotalPesewas: totalPesewas,
     shippingAddress: o.shipping_address
       ? {
           city: o.shipping_address.city,
@@ -102,10 +109,4 @@ export function useGetOrder(orderId: string | undefined) {
       const { order } = await sdk.store.order.retrieve(orderId!, {
         fields: "id,display_id,status,fulfillment_status,payment_status,created_at,total,currency_code,items.id,items.title,items.quantity,items.unit_price,items.thumbnail,shipping_address.city,shipping_address.country_code",
       } as any)
-      return medusaOrderToAlkemart(order)
-    },
-    enabled: !!orderId,
-    retry: false,
-    throwOnError: false,
-  })
-}
+      return medus
