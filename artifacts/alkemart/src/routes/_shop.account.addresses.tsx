@@ -4,20 +4,20 @@ import { PlusIcon, ChevronLeftIcon } from "@radix-ui/react-icons";
 import { useQueryClient } from "@tanstack/react-query";
 import { AddressCard } from "@/components/shop/address-card";
 import { AddressForm, type AddressFormValues } from "@/components/shop/address-form";
+import { ShopPage } from "@/components/shop/shop-page";
 import {
   useListMyAddresses,
   useCreateMyAddress,
   useUpdateMyAddress,
   useDeleteMyAddress,
-  getListMyAddressesQueryKey,
-  type Address,
-} from "@workspace/api-client-react";
+  type AlkemartAddress,
+} from "@/lib/hooks-cart"
 
 export const Route = createFileRoute("/_shop/account/addresses")({
   head: () => ({
     meta: [
       { title: "Addresses — alkemart Ghana" },
-      { name: "description", content: "Manage delivery addresses across Accra, Kumasi, Takoradi and beyond." },
+      { name: "description", content: "Manage delivery addresses for your alkemart orders across Ghana." },
       { property: "og:title", content: "Addresses — alkemart Ghana" },
       { property: "og:description", content: "Manage where alkemart delivers." },
       { property: "og:url", content: "/account/addresses" },
@@ -33,9 +33,9 @@ function AddressesPage() {
   const addresses = data?.items ?? [];
 
   const [formOpen, setFormOpen] = useState(false);
-  const [editing, setEditing] = useState<Address | undefined>(undefined);
+  const [editing, setEditing] = useState<AlkemartAddress | undefined>(undefined);
 
-  const invalidate = () => queryClient.invalidateQueries({ queryKey: getListMyAddressesQueryKey() });
+  const invalidate = () => queryClient.invalidateQueries({ queryKey: ["medusa", "addresses"] })
 
   const createAddress = useCreateMyAddress({ mutation: { onSuccess: () => { invalidate(); setFormOpen(false); } } });
   const updateAddress = useUpdateMyAddress({ mutation: { onSuccess: () => { invalidate(); setFormOpen(false); } } });
@@ -46,7 +46,7 @@ function AddressesPage() {
     setFormOpen(true);
   }
 
-  function openEdit(address: Address) {
+  function openEdit(address: AlkemartAddress) {
     setEditing(address);
     setFormOpen(true);
   }
@@ -60,7 +60,7 @@ function AddressesPage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-[1600px] px-6 py-10">
+    <ShopPage>
       <Link to="/account" className="inline-flex items-center gap-1 text-sm font-semibold text-muted-foreground hover:text-foreground">
         <ChevronLeftIcon /> Back to account
       </Link>
@@ -109,6 +109,6 @@ function AddressesPage() {
         isSaving={createAddress.isPending || updateAddress.isPending}
         onSubmit={handleSubmit}
       />
-    </div>
+    </ShopPage>
   );
 }

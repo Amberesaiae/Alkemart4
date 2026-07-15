@@ -7,6 +7,85 @@ import type { CommerceCart, ProductId, VariantId } from "./commerce/types"
 /** UI cart shape aligned with CommerceCart. */
 export type AlkemartCart = CommerceCart
 
+/** Create/update address form payload (shared by address form + Medusa hooks). */
+export type AddressFormValues = {
+  label?: string
+  fullName: string
+  phone: string
+  line1: string
+  city: string
+  region?: string
+  digitalAddress?: string
+  countryCode?: string
+  isDefault?: boolean
+}
+
+/** UI address shape (Medusa customer addresses mapped for SPA components). */
+export type AlkemartAddress = {
+  id: string
+  fullName: string
+  phone: string
+  line1: string
+  city: string
+  region?: string
+  digitalAddress?: string
+  countryCode?: string
+  isDefault: boolean
+  label?: string
+}
+
+/** Map Medusa store customer address → SPA Address fields. */
+export function medusaAddressToAlkemart(addr: any): AlkemartAddress {
+  const first = (addr.first_name ?? "").trim()
+  const last = (addr.last_name ?? "").trim()
+  const fullName =
+    [first, last].filter(Boolean).join(" ") ||
+    (addr.company as string | undefined)?.trim() ||
+    "Address"
+  return {
+    id: String(addr.id),
+    fullName,
+    phone: String(addr.phone ?? ""),
+    line1: String(addr.address_1 ?? ""),
+    city: String(addr.city ?? ""),
+    region: addr.province ? String(addr.province) : undefined,
+    digitalAddress: addr.postal_code
+      ? String(addr.postal_code)
+      : addr.metadata?.digital_address
+        ? String(addr.metadata.digital_address)
+        : undefined,
+    countryCode: addr.country_code
+      ? String(addr.country_code).toUpperCase()
+      : "GH",
+    isDefault: Boolean(addr.is_default_shipping ?? addr.is_default_billing),
+    label: addr.address_name ? String(addr.address_name) : undefined,
+  }
+}
+
+function formToMedusaAddressBody(data: AddressFormValues) {
+  const full = data.fullName.trim()
+  const parts = full.split(/\s+/)
+  const first_name = parts[0] || full || "Customer"
+  const last_name = parts.length > 1 ? parts.slice(1).join(" ") : ""
+  const country = (data.countryCode || "GH").toUpperCase()
+
+  return {
+    first_name,
+    last_name,
+    phone: data.phone.trim(),
+    address_1: data.line1.trim(),
+    city: data.city.trim(),
+    province: data.region?.trim() || undefined,
+    country_code: country.length === 2 ? country.toLowerCase() : "gh",
+    postal_code: data.digitalAddress?.trim() || undefined,
+    address_name: data.label?.trim() || undefined,
+    is_default_shipping: Boolean(data.isDefault),
+    metadata: data.digitalAddress?.trim()
+      ? { digital_address: data.digitalAddress.trim() }
+      : undefined,
+  }
+}
+
 function medusaToAlkemartCart(cart: any): AlkemartCart {
   return {
     id: cart.id,
@@ -170,21 +249,108 @@ export function useRemoveCartItem() {
   })
 }
 
-export function useListMyAddresses() {
+export function useListMyAddresses(opts?: {
+  query?: {
+    enabled?: boolean
+    retry?: boolean
+    throwOnError?: boolean
+    staleTime?: number
+  }
+}) {
   const sdk = useMedusa()
 
-  return useQuery({
+  return useQuery<{ items: AlkemartAddress[] }>({
     queryKey: ["medusa", "addresses"],
     queryFn: async () => {
       try {
-        const { customer } = await sdk.store.customer.retrieve()
-        return { items: customer.addresses ?? [] }
+        const { customer } = await sdk.store.customer.retrieve({
+          fields: "+addresses",
+        })
+        const raw = (customer.addresses ?? []) as unknown[]
+        const items: AlkemartAddress[] = raw.map(medusaAddressToAlkemart)
+        return { items }
       } catch {
         return { items: [] }
       }
     },
-    retry: false,
-    throwOnError: false,
-    staleTime: 60000,
+    retry: opts?.query?.retry ?? false,
+    throwOnError: opts?.query?.throwOnError ?? false,
+    staleTime: opts?.query?.staleTime ?? 60000,
+    enabled: opts?.query?.enabled,
+  })
+}
+
+export function useCreateMyAddress(opts?: {
+  mutation?: { onSuccess?: (addr: AlkemartAddress) => void }
+}) {
+  const sdk = useMedusa()
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (params: { data: AddressFormValues }) => {
+      const body = formToMedusaAddressBody(params.data)
+      const { customer } = await sdk.store.customer.createAddress(body)
+      const addresses: AlkemartAddress[] = (
+        (customer.addresses ?? []) as unknown[]
+      ).map(medusaAddressToAlkemart)
+      // Prefer newly created (last matching address_1 + phone) or last in list.
+      const created =
+        addresses.find(
+          (a: AlkemartAddress) =>
+            a.line1 === body.address_1 &&
+            a.phone === body.phone,
+        ) ?? addresses[addresses.length - 1]
+      if (!created) {
+        throw new Error("Address created but could not be read back")
+      }
+      return created
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["medusa", "addresses"] })
+      opts?.mutation?.onSuccess?.(data)
+    },
+  })
+}
+
+export function useUpdateMyAddress(opts?: {
+  mutation?: { onSuccess?: (addr: AlkemartAddress) => void }
+}) {
+  const sdk = useMedusa()
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (params: { id: string; data: AddressFormValues }) => {
+      const body = formToMedusaAddressBody(params.data)
+      const { customer } = await sdk.store.customer.updateAddress(params.id, body)
+      const addresses: AlkemartAddress[] = (
+        (customer.addresses ?? []) as unknown[]
+      ).map(medusaAddressToAlkemart)
+      const updated =
+        addresses.find((a: AlkemartAddress) => a.id === params.id) ?? addresses[0]
+      if (!updated) throw new Error("Address update failed")
+      return updated
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["medusa", "addresses"] })
+      opts?.mutation?.onSuccess?.(data)
+    },
+  })
+}
+
+export function useDeleteMyAddress(opts?: {
+  mutation?: { onSuccess?: () => void }
+}) {
+  const sdk = useMedusa()
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (params: { id: string } | string) => {
+      const id = typeof params === "string" ? params : params.id
+      await sdk.store.customer.deleteAddress(id)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["medusa", "addresses"] })
+      opts?.mutation?.onSuccess?.()
+    },
   })
 }

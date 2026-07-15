@@ -11,23 +11,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import type { Address } from "@workspace/api-client-react";
+import type { AlkemartAddress, AddressFormValues } from "@/lib/hooks-cart";
 
-export interface AddressFormValues {
-  label?: string;
-  fullName: string;
-  phone: string;
-  line1: string;
-  city: string;
-  region?: string;
-  digitalAddress?: string;
-  isDefault?: boolean;
-}
+export type { AddressFormValues };
 
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  address?: Address;
+  address?: AlkemartAddress;
   isSaving?: boolean;
   onSubmit: (values: AddressFormValues) => void;
 }
@@ -40,6 +31,7 @@ const emptyValues: AddressFormValues = {
   city: "",
   region: "",
   digitalAddress: "",
+  countryCode: "GH",
   isDefault: false,
 };
 
@@ -58,6 +50,7 @@ export function AddressForm({ open, onOpenChange, address, isSaving, onSubmit }:
               city: address.city,
               region: address.region ?? "",
               digitalAddress: address.digitalAddress ?? "",
+              countryCode: address.countryCode ?? "GH",
               isDefault: address.isDefault,
             }
           : emptyValues,
@@ -65,16 +58,32 @@ export function AddressForm({ open, onOpenChange, address, isSaving, onSubmit }:
     }
   }, [open, address]);
 
-  const canSubmit = values.fullName.trim() && values.phone.trim() && values.line1.trim() && values.city.trim();
+  const [fieldError, setFieldError] = useState<string | null>(null);
+
+  const canSubmit =
+    values.fullName.trim() &&
+    values.phone.trim().replace(/\D/g, "").length >= 9 &&
+    values.line1.trim() &&
+    values.city.trim();
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!canSubmit) return;
+    setFieldError(null);
+    const phoneDigits = values.phone.trim().replace(/\D/g, "");
+    if (!values.fullName.trim() || !values.line1.trim() || !values.city.trim()) {
+      setFieldError("Name, address and city are required.");
+      return;
+    }
+    if (phoneDigits.length < 9) {
+      setFieldError("Phone must be at least 9 digits.");
+      return;
+    }
     onSubmit({
       ...values,
       label: values.label?.trim() || undefined,
       region: values.region?.trim() || undefined,
       digitalAddress: values.digitalAddress?.trim() || undefined,
+      countryCode: (values.countryCode || "GH").toUpperCase(),
     });
   }
 
@@ -86,6 +95,10 @@ export function AddressForm({ open, onOpenChange, address, isSaving, onSubmit }:
             <DialogTitle>{address ? "Edit address" : "Add a new address"}</DialogTitle>
             <DialogDescription>Used for delivery ETAs and courier hand-off.</DialogDescription>
           </DialogHeader>
+
+          {fieldError && (
+            <p className="mt-3 text-xs font-semibold text-destructive">{fieldError}</p>
+          )}
 
           <div className="mt-4 grid gap-4">
             <div className="grid gap-1.5">
@@ -134,7 +147,7 @@ export function AddressForm({ open, onOpenChange, address, isSaving, onSubmit }:
                 <Input
                   id="address-city"
                   required
-                  placeholder="Osu, Accra"
+                  placeholder="City"
                   value={values.city}
                   onChange={(e) => setValues((v) => ({ ...v, city: e.target.value }))}
                 />
@@ -143,7 +156,7 @@ export function AddressForm({ open, onOpenChange, address, isSaving, onSubmit }:
                 <Label htmlFor="address-region">Region (optional)</Label>
                 <Input
                   id="address-region"
-                  placeholder="Greater Accra"
+                  placeholder="Region (optional)"
                   value={values.region}
                   onChange={(e) => setValues((v) => ({ ...v, region: e.target.value }))}
                 />

@@ -18,17 +18,19 @@ import { AddressCard } from "@/components/shop/address-card";
 import { AddressForm, type AddressFormValues } from "@/components/shop/address-form";
 import { PaymentMethodSelector } from "@/components/shop/payment-method-selector";
 import { useQueryClient } from "@tanstack/react-query";
+import { useGetCart, useListMyAddresses, useCreateMyAddress } from "@/lib/hooks-cart"
 import {
-  useGetCart,
-  useCheckout,
-  useListMyAddresses,
-  useCreateMyAddress,
-  getListMyNotificationsQueryKey,
-  getListMyAddressesQueryKey,
+  useGhanaCheckout,
   OrderPaymentMethod,
   MomoProvider,
-} from "@workspace/api-client-react";
-import { requireAuthBeforeLoad } from "@/lib/auth";
+  type GhanaCheckoutResult,
+  type OrderPaymentMethod as OrderPaymentMethodType,
+  type MomoProvider as MomoProviderType,
+} from "@/lib/hooks-checkout"
+import { useGetMe } from "@/lib/hooks-auth"
+import { requireAuthBeforeLoad } from "@/lib/auth"
+import { pesewasToLabel, pesewasToPrice } from "@/lib/money";
+import { ShopPage } from "@/components/shop/shop-page";
 
 export const Route = createFileRoute("/_shop/checkout")({
   beforeLoad: requireAuthBeforeLoad,
@@ -49,14 +51,13 @@ const trust = [
   "Backed by alkemart Ghana customer care",
 ];
 
-function pesewasToPrice(pesewas: number): string {
-  return (pesewas / 100).toFixed(2);
-}
 
 function CheckoutPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { data: cart, isLoading } = useGetCart();
+  const { data: meData } = useGetMe();
+  const userEmail = meData?.user?.email;
   const items = cart?.items ?? [];
   const itemCount = items.reduce((sum: number, line) => sum + line.qty, 0);
   const subtotal = cart?.subtotalPesewas ?? 0;
@@ -65,52 +66,87 @@ function CheckoutPage() {
 
   const { data: addressData, isLoading: addressesLoading } = useListMyAddresses();
   const addresses = addressData?.items ?? [];
-  const [selectedAddressId, setSelectedAddressId] = useState<number | undefined>(undefined);
+  const [selectedAddressId, setSelectedAddressId] = useState<string | undefined>(undefined);
   const [addressFormOpen, setAddressFormOpen] = useState(false);
+  /** When list is empty, allow place-order with form values without a saved id. */
+  const [inlineAddress, setInlineAddress] = useState<AddressFormValues | null>(null);
+  const [pendingPayment, setPendingPayment] = useState<Extract<
+    GhanaCheckoutResult,
+    { status: "payment_pending" }
+  > | null>(null);
 
-  const effectiveAddressId = selectedAddressId ?? addresses.find((a) => a.isDefault)?.id ?? addresses[0]?.id;
+  const effectiveAddressId =
+    selectedAddressId ??
+    addresses.find((a) => a.isDefault)?.id ??
+    addresses[0]?.id;
 
-  const invalidateAddresses = () => queryClient.invalidateQueries({ queryKey: getListMyAddressesQueryKey() });
+  const selectedAddress =
+    addresses.find((a) => a.id === effectiveAddressId) ?? undefined;
+
   const createAddress = useCreateMyAddress({
     mutation: {
       onSuccess: (created) => {
-        invalidateAddresses();
         setSelectedAddressId(created.id);
+        setInlineAddress(null);
         setAddressFormOpen(false);
       },
     },
   });
 
-  const [paymentMethod, setPaymentMethod] = useState<OrderPaymentMethod>(OrderPaymentMethod.momo);
+  const [paymentMethod, setPaymentMethod] = useState<OrderPaymentMethodType>(
+    OrderPaymentMethod.momo,
+  );
   const [momoPhone, setMomoPhone] = useState("");
-  const [momoProvider, setMomoProvider] = useState<MomoProvider>(MomoProvider.mtn);
+  const [momoProvider, setMomoProvider] = useState<MomoProviderType>(MomoProvider.mtn);
 
-  const checkout = useCheckout({
+  const checkout = useGhanaCheckout({
     mutation: {
-      onSuccess: (order) => {
-        queryClient.invalidateQueries({ queryKey: getListMyNotificationsQueryKey() });
-        navigate({ to: "/order/$id", params: { id: String(order.id) } });
+      onSuccess: (result) => {
+        queryClient.invalidateQueries({ queryKey: ["medusa", "notifications"] })
+        if (result.status === "completed") {
+          setPendingPayment(null);
+          navigate({ to: "/order/$id", params: { id: String(result.order_id) } });
+          return;
+        }
+        // MoMo async: keep cart, show approve-on-phone state (do not fake order id).
+        setPendingPayment(result);
       },
     },
   });
 
   const paymentReady = paymentMethod === "cash_on_delivery" || momoPhone.trim().length >= 9;
-  const canPlaceOrder = items.length > 0 && !isLoading && !!effectiveAddressId && paymentReady;
+  const hasDeliveryAddress = Boolean(selectedAddress || inlineAddress);
+  const canPlaceOrder =
+    items.length > 0 && !isLoading && hasDeliveryAddress && paymentReady && !pendingPayment;
 
   function placeOrder() {
-    if (!effectiveAddressId) return;
+    if (!selectedAddress && !inlineAddress) return;
     checkout.mutate({
       data: {
-        addressId: effectiveAddressId,
+        address: selectedAddress,
+        inlineAddress: selectedAddress ? undefined : inlineAddress ?? undefined,
         paymentMethod,
+        email: userEmail,
         ...(promoCode.trim() ? { promoCode: promoCode.trim() } : {}),
-        ...(paymentMethod === "momo" ? { momoPhone: momoPhone.trim(), momoProvider } : {}),
+        ...(paymentMethod === "momo"
+          ? { momoPhone: momoPhone.trim(), momoProvider }
+          : {}),
       },
     });
   }
 
   function handleAddAddress(values: AddressFormValues) {
-    createAddress.mutate({ data: values });
+    // Always keep form values so checkout can proceed even if save fails / list empty.
+    setInlineAddress(values);
+    createAddress.mutate(
+      { data: values },
+      {
+        onError: () => {
+          // Inline address still set — user can place order without a saved id.
+          setAddressFormOpen(false);
+        },
+      },
+    );
   }
 
   const steps = [
@@ -121,9 +157,10 @@ function CheckoutPage() {
         <div className="space-y-4">
           {addressesLoading ? (
             <p className="text-sm text-muted-foreground p-2">Loading your addresses…</p>
-          ) : addresses.length === 0 ? (
+          ) : addresses.length === 0 && !inlineAddress ? (
             <p className="text-sm text-muted-foreground p-2">
-              You don't have a saved delivery address yet. Add one below to continue.
+              You don't have a saved delivery address yet. Add one below to continue — you can place
+              the order with the form even if save is skipped.
             </p>
           ) : (
             <div className="grid gap-3 md:grid-cols-2">
@@ -139,9 +176,25 @@ function CheckoutPage() {
                   isDefault={a.isDefault}
                   selectable
                   selected={effectiveAddressId === a.id}
-                  onSelect={() => setSelectedAddressId(a.id)}
+                  onSelect={() => {
+                    setSelectedAddressId(a.id);
+                    setInlineAddress(null);
+                  }}
                 />
               ))}
+              {inlineAddress && addresses.length === 0 && (
+                <AddressCard
+                  name={inlineAddress.fullName}
+                  line1={inlineAddress.line1}
+                  city={inlineAddress.city}
+                  region={inlineAddress.region}
+                  digitalAddress={inlineAddress.digitalAddress}
+                  phone={inlineAddress.phone}
+                  selectable
+                  selected
+                  onSelect={() => {}}
+                />
+              )}
             </div>
           )}
           <Button variant="outline" size="sm" onClick={() => setAddressFormOpen(true)}>
@@ -156,7 +209,7 @@ function CheckoutPage() {
       content: (
         <div className="space-y-4">
           <FulfillmentPicker selected="shipping" />
-          <p className="text-xs text-muted-foreground">Delivery is free on this order.</p>
+          <p className="text-xs text-muted-foreground">Shipping cost confirmed at checkout based on your address.</p>
         </div>
       ),
     },
@@ -215,9 +268,46 @@ function CheckoutPage() {
               />
             </div>
           </div>
+          {pendingPayment && (
+            <div className="rounded-md border border-primary/40 bg-primary/5 p-4 space-y-2">
+              <p className="text-sm font-semibold text-foreground">
+                Approve Mobile Money on your phone
+              </p>
+              <p className="text-sm text-muted-foreground">
+                We started a Mobile Money charge. Confirm the prompt on your handset to complete
+                payment. Your cart is held until payment succeeds or expires.
+              </p>
+              {pendingPayment.expires_at && (
+                <p className="text-xs text-muted-foreground">
+                  Expires: {new Date(pendingPayment.expires_at).toLocaleString()}
+                </p>
+              )}
+              {typeof pendingPayment.amount_pesewas === "number" && (
+                <p className="text-xs text-muted-foreground">
+                  Amount: {pesewasToLabel(pendingPayment.amount_pesewas)}
+                </p>
+              )}
+              <div className="flex flex-wrap gap-2 pt-1">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => navigate({ to: "/orders" })}
+                >
+                  View orders
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setPendingPayment(null)}
+                >
+                  Dismiss
+                </Button>
+              </div>
+            </div>
+          )}
           {checkout.isError && (
             <p className="text-sm text-destructive p-2">
-              {(checkout.error as { response?: { data?: { error?: string } } } | undefined)?.response?.data?.error ??
+              {(checkout.error as Error | undefined)?.message ??
                 "We couldn't place your order. Please check your delivery address, payment details and cart, then try again."}
             </p>
           )}
@@ -238,7 +328,7 @@ function CheckoutPage() {
   ];
 
   return (
-    <div className="mx-auto w-full max-w-[1400px] space-y-8 px-6 py-8">
+    <ShopPage dense className="space-y-8">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <h1 className="font-display text-3xl font-bold">Checkout</h1>
         <Stepper steps={["Cart", "Delivery", "Payment", "Review"]} current={1} />
@@ -266,8 +356,8 @@ function CheckoutPage() {
         <aside className="order-first space-y-4 lg:order-last lg:sticky lg:top-32 lg:h-max">
           <OrderSummaryCard
             itemCount={itemCount}
-            subtotal={`GH₵${pesewasToPrice(subtotal)}`}
-            total={`GH₵${pesewasToPrice(subtotal)}`}
+            subtotal={pesewasToLabel(subtotal)}
+            total={pesewasToLabel(subtotal)}
             ctaLabel={checkout.isPending ? "Placing order…" : "Place order"}
             ctaDisabled={!canPlaceOrder || checkout.isPending}
             onCtaClick={placeOrder}
@@ -294,6 +384,6 @@ function CheckoutPage() {
         isSaving={createAddress.isPending}
         onSubmit={handleAddAddress}
       />
-    </div>
+    </ShopPage>
   );
 }

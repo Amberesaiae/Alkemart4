@@ -2,7 +2,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import type { MomoProvider, OrderPaymentMethod } from "@workspace/api-client-react";
+import type { MomoProvider, OrderPaymentMethod } from "@/lib/hooks-checkout";
 
 const MOMO_PROVIDERS: { value: MomoProvider; label: string }[] = [
   { value: "mtn", label: "MTN Mobile Money" },
