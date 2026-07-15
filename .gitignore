@@ -47,9 +47,15 @@ Thumbs.db
 # Secrets — never commit
 .env
 .env.*
+!.env.template
 *.pem
 *.key
 
 # Replit
 .cache/
 .local/
+
+# Alkemart Medusa (canonical tree under monorepo; never commit runtime artifacts)
+alkemart-medusa/**/node_modules/
+alkemart-medusa/**/.medusa/
+alkemart-medusa/**/dist/

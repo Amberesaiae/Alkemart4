@@ -1,0 +1,33 @@
+# Env / secrets
+.env
+.env.*
+!.env.template
+
+# Dependencies & build artifacts
+node_modules
+/node_modules
+dist
+/dist
+.medusa
+build
+.cache
+
+.DS_Store
+/uploads
+yarn-error.log
+
+.idea
+
+coverage
+
+!src/**
+
+./tsconfig.tsbuildinfo
+medusa-db.sql
+
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions
