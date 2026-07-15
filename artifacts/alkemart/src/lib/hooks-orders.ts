@@ -9,12 +9,19 @@ export type AlkemartOrder = {
   fulfillmentStatus?: string
   paymentStatus?: string
   createdAt: string
+  /** Pesewas — primary total field from Medusa adapter. */
   total: number
+  /** Alias for UI that still expects Express naming. */
+  totalPesewas: number
   currencyCode: string
   items: {
     id: string
     title: string
+    /** Alias of title for Express-era UI (OrderRow, search). */
+    titleSnapshot: string
     quantity: number
+    /** Alias of quantity. */
+    qty: number
     unitPrice: number
     thumbnail?: string
   }[]
@@ -33,6 +40,7 @@ export const OrderStatus = {
 } as const
 
 function medusaOrderToAlkemart(o: any): AlkemartOrder {
+  const totalPesewas = medusaAmountToPesewas(Number(o.total ?? 0))
   return {
     id: o.id,
     displayId: o.display_id,
@@ -40,15 +48,22 @@ function medusaOrderToAlkemart(o: any): AlkemartOrder {
     fulfillmentStatus: o.fulfillment_status,
     paymentStatus: o.payment_status,
     createdAt: o.created_at,
-    total: medusaAmountToPesewas(Number(o.total ?? 0)),
+    total: totalPesewas,
+    totalPesewas,
     currencyCode: o.currency_code ?? "ghs",
-    items: (o.items ?? []).map((item: any) => ({
-      id: item.id,
-      title: item.title ?? item.product_title ?? "Item",
-      quantity: item.quantity,
-      unitPrice: medusaAmountToPesewas(Number(item.unit_price ?? 0)),
-      thumbnail: item.thumbnail,
-    })),
+    items: (o.items ?? []).map((item: any) => {
+      const title = item.title ?? item.product_title ?? "Item"
+      const quantity = Number(item.quantity ?? 0)
+      return {
+        id: item.id,
+        title,
+        titleSnapshot: title,
+        quantity,
+        qty: quantity,
+        unitPrice: medusaAmountToPesewas(Number(item.unit_price ?? 0)),
+        thumbnail: item.thumbnail,
+      }
+    }),
     shippingAddress: o.shipping_address
       ? {
           city: o.shipping_address.city,

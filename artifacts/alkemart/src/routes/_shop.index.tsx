@@ -1,32 +1,28 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useListHomepageSections } from "@workspace/api-client-react";
 import { HomepageSectionList } from "@/components/shop/homepage-sections";
+import { ShopPage } from "@/components/shop/shop-page";
+import { DEFAULT_HOMEPAGE_SECTIONS } from "@/lib/homepage-fallback";
 
 export const Route = createFileRoute("/_shop/")({
   head: () => ({
     meta: [
-      { title: "alkemart Ghana — Everyday low prices, delivered as fast as 1 hour" },
-      {
-        name: "description",
-        content:
-          "Rollbacks, flash sales and same-hour delivery on groceries, electronics, home and fashion across Accra and Ghana.",
-      },
-      { property: "og:title", content: "alkemart Ghana — Everyday low prices" },
-      { property: "og:description", content: "Same-hour delivery in Accra. Rollbacks and flash sales daily." },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
+      { title: "alkemart Ghana" },
+      { name: "description", content: "Shop products from vendors on alkemart Ghana." },
     ],
   }),
   component: HomePage,
 });
 
+/**
+ * Homepage no longer depends on Express CMS stubs.
+ * Static shell + Medusa product rails (empty until catalog ETL/admin).
+ * When a Medusa homepage module ships, swap DEFAULT_HOMEPAGE_SECTIONS for API data.
+ */
 function HomePage() {
-  const { data } = useListHomepageSections();
-
   return (
-    <div className="mx-auto w-full max-w-[1600px] space-y-10 px-6 py-6">
-      <h1 className="sr-only">alkemart Ghana — Everyday low prices, delivered fast</h1>
-      <HomepageSectionList sections={data?.items ?? []} />
-    </div>
+    <ShopPage dense className="space-y-4 md:space-y-5">
+      <h1 className="sr-only">alkemart Ghana</h1>
+      <HomepageSectionList sections={DEFAULT_HOMEPAGE_SECTIONS as any} />
+    </ShopPage>
   );
 }
