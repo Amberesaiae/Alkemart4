@@ -110,3 +110,44 @@ Keep Express on its existing URL until ETL + cutover complete; set `EXPRESS_DATA
 - Short pointer: `docs/NEON.md`
 - Env template: `alkemart-medusa/apps/backend/.env.template`
 - Commerce bootstrap (no catalog): `npx medusa exec ./src/scripts/bootstrap-commerce-context.ts`
+
+
+---
+
+## 5. Live project wiring (2026-07-15)
+
+| Resource | Value |
+|---|---|
+| Org | `org-broad-mouse-77761956` |
+| Project | **Alkemart** `wispy-union-10280789` (aws-us-east-1) |
+| Express / default branch | `production` (`br-lucky-poetry-atb8ihl2`) DB `neondb` |
+| Medusa branch | `medusa-prod` (`br-solitary-surf-atbn0web`) |
+| Medusa database | **`alkemart_medusa`** (empty schema target) |
+| Env | `DATABASE_URL` → medusa-prod / alkemart_medusa (pooled) |
+| Env | `EXPRESS_DATABASE_URL` → production / neondb (pooled) |
+| Env | `DATABASE_URL_DIRECT` → medusa-prod direct (for migrations when pooler misbehaves) |
+
+### Ops commands
+
+```bash
+# Re-fetch pooled URLs after auth
+neonctl connection-string medusa-prod --project-id wispy-union-10280789 --database-name alkemart_medusa --pooled
+neonctl connection-string production --project-id wispy-union-10280789 --database-name neondb --pooled
+
+# Complete migrations when Neon is reachable from your network
+cd alkemart-medusa/apps/backend   # or /home/amber/... runtime
+export DATABASE_URL="$DATABASE_URL_DIRECT"   # session mode often better for MikroORM migrate
+npx medusa db:migrate
+npx medusa exec ./src/scripts/bootstrap-commerce-context.ts
+npx medusa exec ./src/scripts/migrate-from-express/run-all.ts
+```
+
+### Known friction (WSL)
+
+Medusa `db:migrate` from WSL may hit intermittent `ETIMEDOUT` / IPv6 `ENETUNREACH` to Neon. Prefer:
+
+1. Pooled URL for app runtime  
+2. Direct URL + retries for migrations  
+3. Or run migrate from a network with stable Neon access  
+
+As of wiring day: core modules partially migrated on `alkemart_medusa` (~113 tables when last checked); `store` may still need a successful migrate pass; `vendor` tables applied via SQL if marketplace migration flaked; `payment_intent` present.

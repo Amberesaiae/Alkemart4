@@ -59,3 +59,4 @@ Thumbs.db
 alkemart-medusa/**/node_modules/
 alkemart-medusa/**/.medusa/
 alkemart-medusa/**/dist/
+.neon
