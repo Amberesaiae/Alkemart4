@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { medusaAmountToPesewas } from "@workspace/platform-config"
 import { useMedusa } from "./medusa-provider"
 import { commerceContext } from "./medusa/client"
 import type { CommerceCart, ProductId, VariantId } from "./commerce/types"
@@ -15,13 +16,13 @@ function medusaToAlkemartCart(cart: any): AlkemartCart {
       variantId: (item.variant_id ?? "") as VariantId,
       product: {
         title: item.product_title ?? item.title ?? "Untitled",
-        pricePesewas: Math.round(item.unit_price ?? 0),
+        pricePesewas: medusaAmountToPesewas(Number(item.unit_price ?? 0)),
         compareAtPesewas: undefined,
         imageUrl: item.thumbnail ?? "",
         productId: (item.product_id ?? "") as ProductId,
       },
     })),
-    subtotalPesewas: Math.round(cart.total ?? cart.subtotal ?? 0),
+    subtotalPesewas: medusaAmountToPesewas(Number(cart.total ?? cart.subtotal ?? 0)),
   }
 }
 

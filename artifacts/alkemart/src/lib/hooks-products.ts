@@ -1,4 +1,5 @@
 import { useQuery, type UseQueryOptions } from "@tanstack/react-query"
+import { medusaAmountToPesewas } from "@workspace/platform-config"
 import { useMedusa } from "./medusa-provider"
 import { commerceContext } from "./medusa/client"
 import type { CommerceProduct, ProductId, VariantId } from "./commerce/types"
@@ -62,14 +63,17 @@ function extractPricePesewas(variant: MedusaVariant | undefined): {
     return { pricePesewas: 0, isPriceAvailable: false }
   }
 
+  const pricePesewas = medusaAmountToPesewas(amount)
   const original = variant?.calculated_price?.original_amount
   const compareAtPesewas =
-    typeof original === "number" && Number.isFinite(original) && original > amount
-      ? Math.round(original)
+    typeof original === "number" &&
+    Number.isFinite(original) &&
+    medusaAmountToPesewas(original) > pricePesewas
+      ? medusaAmountToPesewas(original)
       : undefined
 
   return {
-    pricePesewas: Math.round(amount),
+    pricePesewas,
     isPriceAvailable: true,
     compareAtPesewas,
   }
