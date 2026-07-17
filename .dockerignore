@@ -1,0 +1,9 @@
+node_modules
+.git
+*.md
+artifacts/alkemart
+artifacts/mockup-sandbox
+.env
+.replit
+.replitignore
+replit.md

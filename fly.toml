@@ -1,0 +1,28 @@
+# DEPRECATED — targeted Express dual-home API (port 3000).
+# Express is archived under archive/express-api-server-legacy/.
+# Live API: apps/backend Mercur/Medusa on port 9000.
+# See docs/architecture/2026-07-17-dead-project-cleanup.md
+#
+# Do not `fly deploy` this config until rewritten for Mercur.
+
+app = "alkemart-api"
+primary_region = "cdg"
+
+[build]
+
+[http_service]
+  internal_port = 9000
+  force_https = true
+  auto_stop_machines = true
+  auto_start_machines = true
+  min_machines_running = 0
+
+  [http_service.concurrency]
+    type = "connections"
+    hard_limit = 250
+    soft_limit = 200
+
+[[vm]]
+  memory = "1024mb"
+  cpu_kind = "shared"
+  cpus = 1

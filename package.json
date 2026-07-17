@@ -3,17 +3,27 @@
   "version": "0.0.0",
   "license": "MIT",
   "scripts": {
-    "preinstall": "sh -c 'rm -f package-lock.json yarn.lock; case \"$npm_config_user_agent\" in pnpm/*) ;; *) echo \"Use pnpm instead\" >&2; exit 1 ;; esac'",
-    "build": "pnpm run typecheck && pnpm -r --if-present run build",
-    "typecheck:libs": "tsc --build",
-    "typecheck": "pnpm run typecheck:libs && pnpm -r --filter \"./artifacts/**\" --filter \"./scripts\" --if-present run typecheck"
+    "dev": "bun run --filter @workspace/storefront dev",
+    "dev:storefront": "bun run --filter @workspace/storefront dev",
+    "dev:storefront:linux": "bun run --cwd /home/amber/alkemart-storefront dev",
+    "dev:backend": "bun run --cwd apps/backend dev",
+    "dev:backend:fast": "bun run --cwd /home/amber/alkemart-backend dev",
+    "neon:connect": "bun run scripts/src/neon-connect-backend.ts",
+    "backend:sync": "bun run scripts/src/backend-sync.ts",
+    "backend:migrate": "bun run scripts/src/backend-migrate.ts",
+    "typecheck": "bun run --filter './apps/storefront' --filter './scripts' typecheck",
+    "setup": "bun install"
   },
   "private": true,
   "devDependencies": {
+    "@neondatabase/serverless": "^1.1.0",
     "prettier": "^3.8.4",
     "typescript": "~5.9.3"
   },
-  "dependencies": {
-    "@replit/connectors-sdk": "^0.4.1"
-  }
+  "dependencies": {},
+  "workspaces": [
+    "apps/storefront",
+    "scripts"
+  ],
+  "packageManager": "bun@1.3.14"
 }

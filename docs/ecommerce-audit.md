@@ -1,5 +1,10 @@
 # Alkemart Full-Stack Audit — Architecture, Accessibility & Ghana/Africa Fit
 
+> **⚠️ Historical baseline (2026-07-09) — do not treat as current backlog.**  
+> Several P0s below are **resolved in code** (Paystack charge/refund helpers, real addresses CRUD + checkout `addressId`, order-linked disputes, cancel endpoint exists though compensation is incomplete).  
+> **Living architecture + commercial spine design (source of truth for next work):**  
+> [`docs/architecture/2026-07-13-alkemart-architecture-and-commercial-spine.md`](./architecture/2026-07-13-alkemart-architecture-and-commercial-spine.md)
+
 **Scope:** `artifacts/api-server` (Express + Drizzle + CASL), `artifacts/alkemart` (React + TanStack Router/Query + shadcn/ui), `lib/db`, `lib/abilities`, `lib/api-spec/openapi.yaml`.
 **Method:** static code review (routes, schema, checkout transaction, ability rules, frontend routes/components), no live user testing. This document is analysis only — no application code was changed.
 

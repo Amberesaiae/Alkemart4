@@ -1,0 +1,87 @@
+/**
+ * Alkemart branding for Seller Hub (vendor panel).
+ * Overrides Medusa UI / dashboard tokens — no Mercur purple chrome.
+ * Theme: yellow / white / black (matches apps/storefront).
+ */
+
+:root {
+  /* Core brand */
+  --alkemart-yellow: #f5c518;
+  --alkemart-black: #141414;
+  --alkemart-white: #ffffff;
+  --alkemart-bg: #fafafa;
+  --alkemart-muted: #f0f0f0;
+  --alkemart-border: #e8e8e8;
+  --alkemart-subtle: #5a5a5a;
+
+  /* Medusa UI interactive / button tokens (common set) */
+  --fg-interactive: var(--alkemart-black);
+  --fg-interactive-hover: #000000;
+  --bg-interactive: var(--alkemart-yellow);
+  --border-interactive: var(--alkemart-black);
+
+  --button-inverted: var(--alkemart-yellow);
+  --button-inverted-hover: #e0b400;
+  --button-inverted-pressed: #c9a200;
+  --button-inverted-foreground: var(--alkemart-black);
+
+  --button-neutral: var(--alkemart-black);
+  --button-neutral-hover: #2a2a2a;
+  --button-neutral-foreground: var(--alkemart-white);
+
+  --tag-blue-bg: #fff8d6;
+  --tag-blue-text: var(--alkemart-black);
+  --tag-blue-border: #f0d86a;
+
+  --fg-on-color: var(--alkemart-black);
+  --bg-highlight: #fff8d6;
+  --border-highlight: #f0d86a;
+}
+
+/* Page chrome */
+html,
+body,
+#root {
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", sans-serif;
+  background: var(--alkemart-bg) !important;
+  color: var(--alkemart-black);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Primary / inverted buttons → yellow */
+button[class*="bg-ui-button-inverted"],
+a[class*="bg-ui-button-inverted"],
+.bg-ui-button-inverted {
+  background-color: var(--alkemart-yellow) !important;
+  color: var(--alkemart-black) !important;
+  border-color: transparent !important;
+}
+
+button[class*="bg-ui-button-inverted"]:hover,
+a[class*="bg-ui-button-inverted"]:hover,
+.bg-ui-button-inverted:hover {
+  background-color: #e0b400 !important;
+}
+
+/* Focus rings */
+*:focus-visible {
+  outline-color: var(--alkemart-yellow) !important;
+}
+
+/* Hide obvious third-party wordmarks if rendered as text nodes in login chrome */
+[data-testid="login-page"] a[href*="medusajs"],
+[data-testid="login-page"] a[href*="mercur"] {
+  display: none !important;
+}
+
+/* Prefer our wordmark widget; hide preceding default logo art when present */
+[data-login-logo] > *:first-child:not(:only-child) {
+  display: none !important;
+}
+
+/* Soften default purple links if any remain */
+a.text-ui-fg-interactive,
+.text-ui-fg-interactive {
+  color: var(--alkemart-black) !important;
+}

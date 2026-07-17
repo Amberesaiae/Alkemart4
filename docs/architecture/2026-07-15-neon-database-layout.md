@@ -21,23 +21,39 @@ This is acceptable **only** for migration engineering:
 
 ---
 
-## 2. Target (ADR-P1)
+## 2. Target (ADR-P1) — updated 2026-07-16 clean slate
 
 | Consumer | Neon object | Purpose |
 |---|---|---|
-| **Medusa runtime** | Dedicated branch and/or database **`alkemart_medusa`** | Medusa core + marketplace + payments-ghana tables only |
-| **Express (until cutover)** | Current `neondb` (or existing Express branch) | Source of truth for catalog/orders during ETL |
-| **ETL** | Reads Express URL → writes Medusa URL | One-way migrate; freeze Express writes at cutover |
+| **`apps/backend` (Mercur/Medusa)** | Branch **`medusa-prod`**, database **`alkemart_marketplace`** | Clean-slate marketplace engine only |
+| **Legacy Medusa (archived)** | Database **`alkemart_medusa`** (same branch, frozen) | Historical only — do not target from new app |
+| **Express (until cutover)** | Branch **`production`** / **`neondb`** | ETL / reference source |
+| **ETL** | Reads Express URL → writes marketplace URL | One-way; freeze Express writes at cutover |
 
-**ADR-P1:** Production Medusa gets its **own Neon database** (or branch with isolated DB) named `alkemart_medusa`. Express stays on the current database until cutover is complete. ETL reads Express Neon and writes Medusa Neon. This avoids MikroORM migrations thrashing Express tables.
+**ADR-P1 (clean slate):** Runtime `DATABASE_URL` points at **`alkemart_marketplace`** via Neon CLI (`bun run neon:connect`). Never share Express `neondb` with Mercur migrations.
 
 ### Environment mapping (recommended)
 
 | Environment | Neon object | Purpose |
 |---|---|---|
-| Dev | Branch `dev` or shared project | Medusa + optional Express side-by-side |
-| Staging | Branch `staging` | Migration dry-run + Paystack **test** keys |
-| Production | Branch `main` / prod project | Medusa only after cutover |
+| Dev / clean slate | Branch `medusa-prod` / DB `alkemart_marketplace` | New Mercur backend |
+| Staging | Branch `staging` (create when needed) | Migration dry-run + Paystack **test** keys |
+| Production | Promote after cutover | Medusa/Mercur only |
+
+### CLI (canonical)
+
+```bash
+# Refresh pooled + unpooled URLs into apps/backend/packages/api/.env
+bun run neon:connect
+
+# Migrate schema (wakes Neon, then medusa db:migrate)
+bun run backend:migrate
+
+# Dev server
+bun run dev:backend
+```
+
+Non-secret context is stored in `.neon` (projectId, branchName, database).
 
 ---
 
@@ -53,8 +69,11 @@ This is acceptable **only** for migration engineering:
 ### Examples (placeholders only — never commit real strings)
 
 ```bash
-# Medusa runtime — pooled connection to dedicated Medusa DB/branch
-DATABASE_URL=postgresql://USER:PASSWORD@ep-xxxx-pooler.REGION.aws.neon.tech/alkemart_medusa?sslmode=require
+# apps/backend runtime — pooled connection to clean-slate marketplace DB
+DATABASE_URL=postgresql://USER:PASSWORD@ep-xxxx-pooler.REGION.aws.neon.tech/alkemart_marketplace?sslmode=require
+
+# Optional: direct (non-pooler) for tools that need session mode
+DATABASE_URL_UNPOOLED=postgresql://USER:PASSWORD@ep-xxxx.REGION.aws.neon.tech/alkemart_marketplace?sslmode=require
 
 # ETL only — Express source (may still be neondb until cutover)
 EXPRESS_DATABASE_URL=postgresql://USER:PASSWORD@ep-xxxx-pooler.REGION.aws.neon.tech/neondb?sslmode=require
@@ -86,9 +105,15 @@ npx neonctl@latest connection-string medusa-prod --project-id <id> --pooled
 
 Optional: create a database named `alkemart_medusa` on that branch if the branch still defaults to `neondb`, then point `DATABASE_URL` at that database name.
 
-Copy the resulting URL into:
+Prefer monorepo helper (writes secrets only to gitignored `.env` files):
 
-- `alkemart-medusa/apps/backend/.env` → `DATABASE_URL`
+```bash
+bun run neon:connect
+```
+
+Manual targets if needed:
+
+- `apps/backend/packages/api/.env` → `DATABASE_URL` (pooled) + `DATABASE_URL_UNPOOLED`
 - Host secrets (Fly/etc.) for production/staging
 
 Keep Express on its existing URL until ETL + cutover complete; set `EXPRESS_DATABASE_URL` only on machines that run migration scripts.

@@ -55,8 +55,25 @@ Thumbs.db
 .cache/
 .local/
 
-# Alkemart Medusa (canonical tree under monorepo; never commit runtime artifacts)
-alkemart-medusa/**/node_modules/
-alkemart-medusa/**/.medusa/
-alkemart-medusa/**/dist/
+# Archived dual-home / Express trees (reference only — never install/run as live)
+archive/**/node_modules/
+archive/**/.medusa/
+archive/**/dist/
+archive/**/.tanstack/
+
+# Clean-slate backend (Mercur / Medusa)
+apps/backend/**/node_modules/
+apps/backend/**/.medusa/
+apps/backend/**/dist/
+apps/backend/**/.env
+apps/backend/**/.env.local
+
+# Clean-slate storefront
+apps/storefront/**/node_modules/
+apps/storefront/**/dist/
+apps/storefront/**/.tanstack/
+
 .neon
+
+# Local agent brainstorm state
+.superpowers/

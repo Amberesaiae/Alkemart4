@@ -2,17 +2,20 @@
 
 Canonical layout, ADR-P1 (dedicated Medusa DB/branch), env contract (`DATABASE_URL` vs `EXPRESS_DATABASE_URL`), and `neonctl` branch creation steps:
 
-→ **[docs/architecture/2026-07-15-neon-database-layout.md](./architecture/2026-07-15-neon-database-layout.md)**
+→ **[docs/architecture/2026-07-15-neon-database-layout.md](./architecture/2026-07-15-neon-database-layout.md)**  
+→ **Clean-slate backend:** [docs/architecture/2026-07-16-clean-slate-backend.md](./architecture/2026-07-16-clean-slate-backend.md)
 
-**Summary**
+**Summary (2026-07-16 clean slate)**
 
-| Today | Target |
+| Consumer | Target |
 |---|---|
-| Express + Medusa share `neondb` (transitional) | Medusa → `alkemart_medusa` (or dedicated branch); Express stays until cutover |
+| **`apps/backend`** (Mercur/Medusa sole commerce API) | Dedicated Neon **database or branch**, e.g. `alkemart_marketplace` — set in `apps/backend/packages/api/.env` as `DATABASE_URL` (pooled) |
+| Express (`archive/express-api-server-legacy`) | `EXPRESS_DATABASE_URL` / legacy `neondb` — **archived ETL/reference only**, not SPA production write path |
+| Archived Medusa | Do not point new app at half-migrated legacy schemas |
 
 | Env var | Use |
 |---|---|
-| `DATABASE_URL` | Medusa runtime (prefer Neon **pooled** host) |
-| `EXPRESS_DATABASE_URL` | ETL source only — never Medusa runtime |
+| `DATABASE_URL` | **New** backend runtime only (`apps/backend/packages/api`) — prefer Neon **pooled** host |
+| `EXPRESS_DATABASE_URL` | Express/ETL source only — never the new Medusa runtime |
 
 Never commit connection strings. Agents without `NEON_API_KEY` must not run interactive `neonctl auth`.
