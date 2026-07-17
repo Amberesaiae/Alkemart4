@@ -77,6 +77,7 @@
         "@mercurjs/core": "2.2.0",
         "@mercurjs/types": "2.2.0",
         "http-proxy-middleware": "3.0.7",
+        "meilisearch": "^0.59.0",
       },
       "devDependencies": {
         "@acme/admin": "*",
@@ -1971,6 +1972,8 @@
     "meant": ["meant@1.0.3", "", {}, "sha512-88ZRGcNxAq4EH38cQ4D85PM57pikCwS8Z99EWHODxN7KBY+UuPiqzRTtZzS8KTXO/ywSWbdjjJST2Hly/EQxLw=="],
 
     "media-typer": ["media-typer@0.3.0", "", {}, "sha512-dq+qelQ9akHpcOl/gUVRTxVIOkAJ1wR3QAvb4RsVjS8oVoFjDGTc679wJYmUmknUF5HwMLOgb5O+a3KxfWapPQ=="],
+
+    "meilisearch": ["meilisearch@0.59.0", "", {}, "sha512-9KxasX98+qYhOVa4PPeaX/yY/ukM9DMuJlUJRgJVwrdCkWw+mkkiIh6EJmYyCxU8nXhj0VEzdYr3dNUJT1BQow=="],
 
     "merge-descriptors": ["merge-descriptors@1.0.3", "", {}, "sha512-gaNvAS7TZ897/rVaZ0nMtAyxNyi/pdbjbAwUpFQpN70GqnVfOiXpeUUMKRBmzXaSQ8DdTX4/0ms62r2K+hE6mQ=="],
 

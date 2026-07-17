@@ -276,12 +276,12 @@ Do **not** require GPS API for every order day one.
 
 ### Phase 2 — Search + self-building filters (2–4 weeks)
 
-1. Deploy Meilisearch (Docker Compose next to API, or Cloud).  
-2. Port Medusa Meilisearch module pattern into `apps/backend/packages/api`.  
-3. Index seller + price fields for GH.  
-4. Storefront InstantSearch or `/store/search` proxy.  
-5. Facet UI on `/search` and `/browse/$slug`.  
-6. Admin reindex control (labelled **Search sync**, not engine marketing name if possible).
+1. [x] Meilisearch deploy path: `docker-compose.search.yml` (or binary/Cloud).  
+2. [x] Thin search lib + subscribers in `apps/backend/packages/api` (`src/lib/search/*`).  
+3. [x] Index document includes seller + min_price + categories (when graph provides them).  
+4. [x] Store proxy `GET|POST /store/search` (falls back to product.list when disabled).  
+5. [x] Facet UI on `/search` (self-building from facetDistribution); browse facets can follow.  
+6. [x] Admin **Search sync**: `POST /admin/search/reindex` + `medusa exec ./src/scripts/reindex-search.ts`.
 
 ### Phase 3 — SEO hardening
 
