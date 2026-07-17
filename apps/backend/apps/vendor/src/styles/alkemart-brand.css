@@ -150,6 +150,53 @@ a[href*="mercurjs.com"] {
   display: none !important;
 }
 
+/* Login mark — quiet Mercur AvatarBox chrome, crisp square mark */
+[data-testid="login-page"] .alk-login-mark,
+[data-testid="login-page"] [data-alk-logo-sized="1"] {
+  background: transparent !important;
+  box-shadow: none !important;
+  overflow: hidden;
+}
+[data-testid="login-page"] .alk-login-mark::after,
+[data-testid="login-page"] [class*="rounded-xl"]::after {
+  display: none !important;
+  content: none !important;
+}
+[data-testid="login-page"] img[alt="alkemart"] {
+  object-fit: contain !important;
+  border-radius: 14px !important;
+  background: transparent !important;
+}
+
+/* Wordmark lockup under the mark */
+.alk-login-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  margin: 10px 0 4px;
+  width: 100%;
+}
+.alk-login-wordmark {
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+  font-weight: 800;
+  font-size: 1.75rem;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  color: #141414;
+}
+.alk-login-wordmark .alk-dot {
+  color: #f5c518;
+}
+.alk-login-role {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #5c5c5c;
+}
+
 /* Alkemart analytics page helpers */
 .alk-page {
   max-width: 1200px;
@@ -395,37 +442,26 @@ main,
 }
 
 
-/* —— Login copy overrides (strip Mercur marketing) —— */
-body:has(input[type="password"]) h1 {
-  font-size: 0 !important;
-  line-height: 0 !important;
-  margin: 0 !important;
-  color: transparent !important;
-}
-body:has(input[type="password"]) h1::after {
-  content: "Welcome to alkemart";
-  display: block !important;
+/* —— Login typography (brand wordmark already shows alkemart.) —— */
+[data-testid="login-page"] [data-testid="login-title"],
+body:has([data-testid="login-page"]) h1 {
   font-size: 1.35rem !important;
   line-height: 1.3 !important;
   font-weight: 800 !important;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.03em !important;
   color: var(--alkemart-black) !important;
-  margin-top: 0.5rem;
+  margin: 0.35rem 0 0 !important;
 }
-body:has(input[type="password"]) h1 + p {
-  font-size: 0 !important;
-  line-height: 0 !important;
-  color: transparent !important;
-  margin: 0 !important;
-}
-body:has(input[type="password"]) h1 + p::after {
-  content: "Log in to your seller account";
-  display: block !important;
+[data-testid="login-page"] [data-testid="login-hint"],
+body:has([data-testid="login-page"]) h1 + p {
   font-size: 0.875rem !important;
-  line-height: 1.4 !important;
+  line-height: 1.45 !important;
+  font-weight: 500 !important;
   color: var(--alkemart-subtle) !important;
-  margin-top: 0.35rem;
+  margin: 0.4rem 0 0 !important;
+  max-width: 16rem;
 }
+
 
 /* Hide default monogram square that is not our brand widget */
 body:has(input[type="password"]) [class*="bg-ui-bg-component"]:has(> span:only-child),

@@ -24,7 +24,7 @@ export default function AdminAnalyticsPage() {
     <AnalyticsDashboard
       mode="admin"
       title="Platform analytics"
-      subtitle="Orders, GMV, sellers, and catalog from the live marketplace API — not a second warehouse."
+      subtitle="Live orders, GMV, sellers, and catalog from GET /admin/alkemart/stats (Medusa graph on Postgres)."
       statsUrl={`${base}/admin/alkemart/stats`}
     />
   )

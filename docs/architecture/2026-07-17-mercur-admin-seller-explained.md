@@ -39,35 +39,41 @@ cd /home/amber/alkemart-backend/packages/api   # or apps/backend/packages/api
 bunx medusa user -e admin@alkemart.local -p 'YourNewPasswordHere'
 ```
 
-## Seller: no working demo login yet
+## Seller: lab login (ready)
 
-Seed file *would* create:
+| Field | Value |
+|-------|--------|
+| **URL** | http://localhost:7001/seller (or http://localhost:9000/seller) |
+| **Email** | `seller@alkemart.local` |
+| **Password** | `supersecret` |
+| **Store** | Alkemart Lab Shop (status `open`) |
 
-- Email: `seller@mercur.dev`
-- Password: `supersecret`
+Repair if broken:
 
-On this database those credentials currently return **Invalid email or password** — seed seller was never applied, or was wiped. **There is no secret seller password you are missing**; you create a seller yourself.
+```bash
+cd packages/api
+bunx medusa exec ./src/scripts/ensure-lab-seller.ts
+```
+
+Seed also uses `seller@alkemart.local` (not `seller@mercur.dev`).
 
 ### How a seller is born (correct flow)
 
 ```
-1. Go to http://localhost:9000/seller/register
-   → creates a MEMBER (seller staff login)
+1. Register / auth as member (panel login or /seller/register)
 
-2. Complete “create seller / store” in the vendor panel
-   → seller often starts as pending_approval
+2. Create seller/store (onboarding) OR run ensure-lab-seller.ts
 
-3. Log into ADMIN (credentials above)
-   → approve the seller
+3. Admin approves if status is pending_approval
+   (ensure-lab-seller auto-approves)
 
-4. Back in SELLER hub
-   → stock location, products, shipping, offers
+4. Store-select → open the store → catalog, shipping, offers
 
 5. Buyer storefront (:5175)
    → catalog shows published products from store API
 ```
 
-**Important auth detail:** seller APIs use the **`member`** actor, not the shopper’s customer JWT and not the admin user.
+**Important auth detail:** seller APIs use the **`member`** actor + `x-seller-id` after store select — not the shopper JWT and not the admin user.
 
 ## What each panel manages
 

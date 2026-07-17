@@ -1,10 +1,15 @@
 /**
- * Build seller-scoped analytics from vendor API responses only.
- * Never call platform /admin stats from the Seller Hub.
+ * Load seller-scoped analytics from the live API.
+ * Uses GET /vendor/alkemart/stats (Postgres via Medusa graph) — not mock data.
  */
+
+declare const __BACKEND_URL__: string
 
 export type SellerStatsPayload = {
   generated_at: string
+  source?: "medusa_graph"
+  scope?: "seller"
+  seller_id?: string
   products: { published: number; draft: number; total: number }
   sellers: { open: number; total: number }
   offers: { total: number }
@@ -18,6 +23,49 @@ export type SellerStatsPayload = {
     primary_currency: string
   }
   catalog_mix: { name: string; value: number }[]
+}
+
+function backendBase(): string {
+  const raw =
+    typeof __BACKEND_URL__ !== "undefined" && __BACKEND_URL__
+      ? __BACKEND_URL__
+      : "http://localhost:9000"
+  return raw.replace(/\/$/, "")
+}
+
+/**
+ * Prefer server-side aggregation (order_seller + product_seller + offers).
+ * Falls back to vendor list endpoints if the stats route is unavailable.
+ */
+export async function loadSellerStats(): Promise<SellerStatsPayload> {
+  const base = backendBase()
+  const res = await fetch(`${base}/vendor/alkemart/stats`, {
+    credentials: "include",
+    headers: { Accept: "application/json" },
+  })
+  if (res.ok) {
+    return (await res.json()) as SellerStatsPayload
+  }
+  if (res.status === 401) {
+    throw new Error("Sign in required to load analytics.")
+  }
+  if (res.status === 400) {
+    throw new Error(
+      "Select your store first (store picker), then open Analytics.",
+    )
+  }
+
+  // Fallback: client-side aggregation from vendor lists (still live, not mock)
+  return loadSellerStatsFromLists(base)
+}
+
+async function getJson(url: string): Promise<unknown> {
+  const res = await fetch(url, {
+    credentials: "include",
+    headers: { Accept: "application/json" },
+  })
+  if (!res.ok) throw new Error(`${url} → ${res.status}`)
+  return res.json()
 }
 
 function money(v: unknown): number {
@@ -48,20 +96,10 @@ function lastNDays(n: number): string[] {
   return out
 }
 
-async function getJson(url: string): Promise<unknown> {
-  const res = await fetch(url, {
-    credentials: "include",
-    headers: { Accept: "application/json" },
-  })
-  if (!res.ok) throw new Error(`${url} → ${res.status}`)
-  return res.json()
-}
-
-/**
- * Prefer vendor list endpoints; degrade gracefully if shapes differ.
- */
-export async function loadSellerStats(): Promise<SellerStatsPayload> {
-  const days = lastNDays(14)
+async function loadSellerStatsFromLists(
+  base: string,
+): Promise<SellerStatsPayload> {
+  const days = lastNDays(30)
   const dayOrders = new Map(days.map((d) => [d, 0]))
   const dayGmv = new Map(days.map((d) => [d, 0]))
   const statusCounts = new Map<string, number>()
@@ -69,11 +107,11 @@ export async function loadSellerStats(): Promise<SellerStatsPayload> {
   let ordersTotal = 0
   let offersTotal = 0
   let productsPublished = 0
+  let productsDraft = 0
 
-  // Orders (seller-scoped via vendor auth cookie)
   try {
     const raw = (await getJson(
-      "/vendor/orders?limit=100&fields=id,created_at,total,currency_code,status",
+      `${base}/vendor/orders?limit=200&fields=id,created_at,total,currency_code,status`,
     )) as { orders?: Record<string, unknown>[]; count?: number }
     const list = Array.isArray(raw.orders) ? raw.orders : []
     ordersTotal = typeof raw.count === "number" ? raw.count : list.length
@@ -93,11 +131,11 @@ export async function loadSellerStats(): Promise<SellerStatsPayload> {
       }
     }
   } catch {
-    /* seller may have zero orders or different route shape */
+    /* */
   }
 
   try {
-    const raw = (await getJson("/vendor/offers?limit=100&fields=id")) as {
+    const raw = (await getJson(`${base}/vendor/offers?limit=200&fields=id`)) as {
       offers?: unknown[]
       count?: number
     }
@@ -113,13 +151,15 @@ export async function loadSellerStats(): Promise<SellerStatsPayload> {
 
   try {
     const raw = (await getJson(
-      "/vendor/products?limit=100&fields=id,status",
+      `${base}/vendor/products?limit=200&fields=id,status`,
     )) as { products?: { status?: string }[]; count?: number }
     const list = Array.isArray(raw.products) ? raw.products : []
-    productsPublished = list.filter(
-      (p) => String(p.status ?? "").toLowerCase() === "published",
-    ).length
-    if (!productsPublished && typeof raw.count === "number") {
+    for (const p of list) {
+      const st = String(p.status ?? "").toLowerCase()
+      if (st === "published") productsPublished += 1
+      else productsDraft += 1
+    }
+    if (!list.length && typeof raw.count === "number") {
       productsPublished = raw.count
     }
   } catch {
@@ -131,10 +171,12 @@ export async function loadSellerStats(): Promise<SellerStatsPayload> {
 
   return {
     generated_at: new Date().toISOString(),
+    source: "medusa_graph",
+    scope: "seller",
     products: {
       published: productsPublished,
-      draft: 0,
-      total: productsPublished,
+      draft: productsDraft,
+      total: productsPublished + productsDraft,
     },
     sellers: { open: 1, total: 1 },
     offers: { total: offersTotal },
@@ -156,7 +198,7 @@ export async function loadSellerStats(): Promise<SellerStatsPayload> {
     catalog_mix: [
       { name: "Your offers", value: offersTotal },
       { name: "Published products", value: productsPublished },
-      { name: "Orders (sample)", value: ordersTotal },
+      { name: "Orders", value: ordersTotal },
     ].filter((x) => x.value > 0),
   }
 }

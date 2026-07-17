@@ -30,6 +30,8 @@ import {
 
 export type StatsPayload = {
   generated_at: string
+  source?: "medusa_graph"
+  scope?: "platform" | "seller"
   products: { published: number; draft: number; total: number }
   sellers: { open: number; total: number }
   offers: { total: number }
@@ -132,18 +134,32 @@ export function AnalyticsDashboard({ title, subtitle, statsUrl, mode }: Props) {
 
       {data && !loading ? (
         <>
+          <p
+            style={{
+              margin: 0,
+              fontSize: 12,
+              fontWeight: 600,
+              color: "#5c5c5c",
+              letterSpacing: "0.02em",
+            }}
+          >
+            Live data from Medusa/Mercur Postgres
+            {data.source ? ` · source=${data.source}` : ""}
+            {data.scope ? ` · scope=${data.scope}` : ""}
+          </p>
+
           <AlkKpiGrid>
             <AlkKpi
               label="Orders"
               value={formatNum(data.orders.total)}
-              hint="All time (graph)"
+              hint="All-time count (live graph)"
             />
             <AlkKpi
               label={`GMV (${currency})`}
               value={
                 currency === "GHS" ? formatGhs(gmvPrimary) : formatNum(gmvPrimary)
               }
-              hint="Sum of order totals"
+              hint="Sum of live order totals"
             />
             {mode === "admin" ? (
               <>
@@ -163,7 +179,7 @@ export function AnalyticsDashboard({ title, subtitle, statsUrl, mode }: Props) {
                       </span>
                     </>
                   }
-                  hint="Open / total"
+                  hint="Open / total (live)"
                 />
                 <AlkKpi
                   label="Products"
@@ -176,7 +192,7 @@ export function AnalyticsDashboard({ title, subtitle, statsUrl, mode }: Props) {
                 <AlkKpi
                   label="Offers"
                   value={formatNum(data.offers.total)}
-                  hint="Live sellables"
+                  hint="Your live sellables"
                 />
                 <AlkKpi
                   label="Catalog"
@@ -190,8 +206,8 @@ export function AnalyticsDashboard({ title, subtitle, statsUrl, mode }: Props) {
           <div className="alk-chart-grid">
             <AlkChartCard
               wide
-              title="Orders & GMV (14 days)"
-              subtitle="Daily order count (bars) and GMV line · empty days stay on axis"
+              title="Orders & GMV (30 days)"
+              subtitle="Daily order count (bars) and GMV line · from live marketplace orders"
             >
               {daySeries.every((d) => d.orders === 0 && d.gmv === 0) ? (
                 <AlkEmpty>No orders in this window yet.</AlkEmpty>
@@ -312,7 +328,7 @@ export function AnalyticsDashboard({ title, subtitle, statsUrl, mode }: Props) {
               )}
             </AlkChartCard>
 
-            <AlkChartCard title="Catalog mix" subtitle="Counts from platform graph">
+            <AlkChartCard title="Catalog mix" subtitle="Live catalog counts from Postgres">
               {mixData.length === 0 ? (
                 <AlkEmpty>No catalog data.</AlkEmpty>
               ) : (

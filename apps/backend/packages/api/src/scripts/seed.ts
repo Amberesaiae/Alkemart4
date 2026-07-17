@@ -110,7 +110,7 @@ export default async function seedDemoData({ container }: ExecArgs) {
     input: {
       selector: { id: store.id },
       update: {
-        name: 'Mercur Marketplace',
+        name: "alkemart",
         default_sales_channel_id: defaultSalesChannel[0].id,
       },
     },
@@ -267,7 +267,7 @@ export default async function seedDemoData({ container }: ExecArgs) {
   }
   logger.info("Finished seeding product categories.");
 
-  const SELLER_EMAIL = "seller@mercur.dev";
+  const SELLER_EMAIL = "seller@alkemart.local";
   const SELLER_PASSWORD = "supersecret";
 
   const { data: existingSellers } = await query.graph({
@@ -311,11 +311,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
       first_name: "Demo",
       last_name: "Seller",
       seller: {
-        name: "Demo Store",
+        name: "Alkemart Lab Shop",
         email: SELLER_EMAIL,
-        currency_code: "eur",
+        currency_code: "ghs",
         description:
-          "A demo marketplace seller with a full catalog of offers.",
+          "Lab marketplace seller for Ghana COD / MoMo checkout testing.",
       },
     },
   });

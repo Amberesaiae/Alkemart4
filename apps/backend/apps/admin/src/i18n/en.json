@@ -1,14 +1,14 @@
 {
   "login": {
-    "title": "Welcome to alkemart",
-    "hint": "Sign in to access Admin",
-    "forgotPassword": "Forgot password? - <0>Reset</0>",
-    "sessionExpired": "Session expired"
+    "title": "Welcome back",
+    "hint": "Manage sellers, orders, and marketplace settings.",
+    "forgotPassword": "Forgot password? — <0>Reset</0>",
+    "sessionExpired": "Your session expired — sign in again."
   },
   "invite": {
-    "title": "Welcome to alkemart Admin",
-    "hint": "Create your account below",
-    "backToLogin": "Back to login",
+    "title": "Join the ops team",
+    "hint": "Create your admin account to start managing alkemart.",
+    "backToLogin": "Back to sign in",
     "createAccount": "Create account"
   },
   "customFields": {

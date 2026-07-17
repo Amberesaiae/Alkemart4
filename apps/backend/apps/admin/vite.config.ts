@@ -1,7 +1,6 @@
 import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 import { createRequire } from 'node:module'
-import path from 'node:path'
 
 // createRequire (not a static import): the plugin's ESM build can't dynamic-require
 // medusa-config.ts, so it silently falls back to base "/" and 404s panel assets.
@@ -25,7 +24,9 @@ export default defineConfig(({ mode }) => {
         backendUrl,
         // Display name in login title: "Welcome to {{name}}"
         name: 'alkemart',
-        logo: path.resolve(__dirname, 'public/logo.svg'),
+        // Public URL (not filesystem path) — AvatarBox uses this as <img src>.
+        // base is /dashboard so the asset is served at /dashboard/logo.svg
+        logo: '/dashboard/logo.svg',
       }),
     ],
   }

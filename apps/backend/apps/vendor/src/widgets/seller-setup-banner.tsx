@@ -8,8 +8,8 @@ export const config = defineWidgetConfig({
 export default function SellerSetupBanner() {
   return (
     <AlkBanner
-      title="Welcome to alkemart"
-      body="Finish setup, then list offers buyers can purchase with cash on delivery."
+      title="Almost ready to sell"
+      body="Finish setup, then list offers buyers can purchase with cash on delivery or MoMo."
     />
   )
 }
