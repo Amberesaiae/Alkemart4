@@ -50,7 +50,7 @@ SPA → browse catalog (thin) → offer cart → address → shipping option
 | Env | Default | Meaning |
 |-----|---------|---------|
 | `VITE_FEATURE_MOMO_LAB` | unset / off | Hide MoMo at checkout |
-| `VITE_FEATURE_MOMO_LAB=true` | opt-in | Show MoMo labeled “Lab only” |
+| `VITE_FEATURE_MOMO_LAB=true` | opt-in | Show MoMo labeled “Lab only”; real Paystack when `PAYSTACK_SECRET_KEY` set — **not** simulated success |
 | `VITE_OPS_BACKEND` | `off` | No SPA admin/vendor |
 
 ---

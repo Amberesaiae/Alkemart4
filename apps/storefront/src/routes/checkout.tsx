@@ -15,8 +15,9 @@ import {
 } from "@/lib/cart"
 import {
   listShippingOptionsForCart,
-  placeCodOrder,
+  placeGhanaOrder,
   type CheckoutAddress,
+  type MomoProvider,
 } from "@/lib/checkout"
 import { SellerChip } from "@/components/seller-chip"
 import { listRegionCountryCodes } from "@/lib/region"
@@ -26,6 +27,7 @@ import { EmptyState } from "@/components/empty-state"
 import { Skeleton } from "@/components/skeleton"
 import { FormField, FormSelect } from "@/components/form-field"
 import { cn } from "@/lib/utils"
+import { isMomoLabEnabled } from "@/lib/env"
 
 export const Route = createFileRoute("/checkout")({
   component: CheckoutPage,
@@ -100,6 +102,9 @@ function CheckoutPage() {
   const [province, setProvince] = useState("")
   const [country, setCountry] = useState("")
   const [postal, setPostal] = useState("")
+  const momoLab = isMomoLabEnabled()
+  const [payMethod, setPayMethod] = useState<"cod" | "momo">("cod")
+  const [momoProvider, setMomoProvider] = useState<MomoProvider>("mtn")
 
   const setters = {
     setFirstName,
@@ -143,6 +148,9 @@ function CheckoutPage() {
           "No country on region — configure region countries in Admin",
         )
       }
+      if (payMethod === "momo" && !momoLab) {
+        throw new Error("Mobile Money is not enabled for this storefront")
+      }
       const address: CheckoutAddress = {
         first_name: firstName,
         last_name: lastName,
@@ -154,13 +162,28 @@ function CheckoutPage() {
         country_code: countryCode,
         postal_code: postal || undefined,
       }
-      return placeCodOrder({ address, email: effectiveEmail })
+      return placeGhanaOrder({
+        address,
+        email: effectiveEmail,
+        paymentMethod: payMethod,
+        momoProvider: payMethod === "momo" ? momoProvider : undefined,
+      })
     },
     onSuccess: (result) => {
       const cart = cartQ.data
+      if (result.status === "payment_pending") {
+        void navigate({
+          to: "/checkout/pending",
+          search: {
+            cart_id: result.cart_id,
+            ref: result.client_reference ?? result.provider_reference ?? "",
+          },
+        })
+        return
+      }
       trackOrderCompleted({
         orderId: result.order_id,
-        paymentMethod: "cod",
+        paymentMethod: payMethod,
         itemCount: cart?.items.length,
         total: cart?.total ?? null,
         currency: cart?.currencyCode ?? null,
@@ -168,7 +191,7 @@ function CheckoutPage() {
       void navigate({
         to: "/order/$id",
         params: { id: result.order_id },
-        search: { placed: "1" },
+        search: { placed: "1", pay: payMethod },
       })
     },
   })
@@ -203,8 +226,9 @@ function CheckoutPage() {
           Checkout
         </h1>
         <p className="text-sm text-muted-foreground">
-          Cash on delivery. Shipping attaches from the store API when you place
-          the order.
+          {payMethod === "momo" && momoLab
+            ? "Lab Mobile Money — not a production payment claim."
+            : "Cash on delivery. Shipping attaches from the store API when you place the order."}
         </p>
       </header>
 
@@ -456,12 +480,19 @@ function CheckoutPage() {
 
               <div className="space-y-3 rounded-2xl border border-border bg-muted/20 p-4 text-sm">
                 <p className="font-bold">Payment</p>
-                <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-primary bg-primary/10 p-3">
+                <label
+                  className={cn(
+                    "flex cursor-pointer items-start gap-3 rounded-xl border p-3",
+                    payMethod === "cod"
+                      ? "border-primary bg-primary/10"
+                      : "border-border",
+                  )}
+                >
                   <input
                     type="radio"
                     name="pay"
-                    checked
-                    readOnly
+                    checked={payMethod === "cod"}
+                    onChange={() => setPayMethod("cod")}
                     className="mt-1"
                   />
                   <span>
@@ -473,15 +504,62 @@ function CheckoutPage() {
                     </span>
                   </span>
                 </label>
-                <label className="flex cursor-not-allowed items-start gap-3 rounded-xl border border-border p-3 opacity-50">
-                  <input type="radio" name="pay" disabled className="mt-1" />
-                  <span>
-                    <span className="font-semibold">Mobile Money (Paystack)</span>
-                    <span className="mt-0.5 block text-muted-foreground">
-                      Not enabled — not simulated.
+                {momoLab ? (
+                  <>
+                    <label
+                      className={cn(
+                        "flex cursor-pointer items-start gap-3 rounded-xl border p-3",
+                        payMethod === "momo"
+                          ? "border-primary bg-primary/10"
+                          : "border-border",
+                      )}
+                    >
+                      <input
+                        type="radio"
+                        name="pay"
+                        checked={payMethod === "momo"}
+                        onChange={() => setPayMethod("momo")}
+                        className="mt-1"
+                      />
+                      <span>
+                        <span className="font-semibold text-foreground">
+                          Mobile Money{" "}
+                          <span className="rounded bg-foreground/10 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide">
+                            Lab only
+                          </span>
+                        </span>
+                        <span className="mt-0.5 block text-muted-foreground">
+                          Real Paystack charge when keys are set — not simulated
+                          success.
+                        </span>
+                      </span>
+                    </label>
+                    {payMethod === "momo" ? (
+                      <FormSelect
+                        label="Network"
+                        value={momoProvider}
+                        onChange={(v) => setMomoProvider(v as MomoProvider)}
+                        required
+                      >
+                        <option value="mtn">MTN MoMo</option>
+                        <option value="vodafone">Telecel / Vodafone</option>
+                        <option value="airteltigo">AirtelTigo</option>
+                      </FormSelect>
+                    ) : null}
+                  </>
+                ) : (
+                  <label className="flex cursor-not-allowed items-start gap-3 rounded-xl border border-border p-3 opacity-50">
+                    <input type="radio" name="pay" disabled className="mt-1" />
+                    <span>
+                      <span className="font-semibold">
+                        Mobile Money (Paystack)
+                      </span>
+                      <span className="mt-0.5 block text-muted-foreground">
+                        Not enabled — set VITE_FEATURE_MOMO_LAB=true for lab only.
+                      </span>
                     </span>
-                  </span>
-                </label>
+                  </label>
+                )}
               </div>
 
               {place.isError ? (
@@ -498,7 +576,13 @@ function CheckoutPage() {
                 className="hidden min-h-12 w-full rounded-xl md:inline-flex"
                 disabled={!canSubmit}
               >
-                {place.isPending ? "Placing order…" : "Place COD order"}
+                {place.isPending
+                  ? payMethod === "momo"
+                    ? "Starting MoMo…"
+                    : "Placing order…"
+                  : payMethod === "momo"
+                    ? "Pay with Mobile Money (lab)"
+                    : "Place COD order"}
               </Button>
             </form>
           </div>
@@ -566,7 +650,11 @@ function CheckoutPage() {
               className="min-h-11 shrink-0 rounded-xl"
               disabled={!canSubmit}
             >
-              {place.isPending ? "…" : "Place COD order"}
+              {place.isPending
+                ? "…"
+                : payMethod === "momo"
+                  ? "Pay MoMo (lab)"
+                  : "Place COD order"}
             </Button>
           </div>
         </div>

@@ -14,16 +14,28 @@ function asList(data: unknown): Record<string, unknown>[] {
   return []
 }
 
-function num(v: unknown): number {
+/** Coerce Medusa money fields (number | string | BigNumberJSON | nested). */
+export function moneyAmount(v: unknown): number {
+  if (v == null) return 0
   if (typeof v === "number" && Number.isFinite(v)) return v
   if (typeof v === "string" && v.trim()) {
     const n = Number(v)
     return Number.isFinite(n) ? n : 0
   }
-  // Medusa big number shape { value, precision }
-  if (v && typeof v === "object" && "value" in (v as object)) {
-    const n = Number((v as { value: unknown }).value)
-    return Number.isFinite(n) ? n : 0
+  if (typeof v === "object") {
+    const o = v as Record<string, unknown>
+    // BigNumber JSON: { value: "45.5", precision: 20 }
+    if ("value" in o) {
+      const n = Number(o.value)
+      return Number.isFinite(n) ? n : 0
+    }
+    // Sometimes totals nest: { total: { value } } or { numeric: n }
+    if ("numeric" in o) {
+      const n = Number(o.numeric)
+      return Number.isFinite(n) ? n : 0
+    }
+    if ("amount" in o) return moneyAmount(o.amount)
+    if ("total" in o) return moneyAmount(o.total)
   }
   return 0
 }
@@ -110,16 +122,43 @@ export async function collectCommerceStats(
   try {
     const { data } = await query.graph({
       entity: "order",
-      fields: ["id", "total", "currency_code", "status"],
+      fields: [
+        "id",
+        "total",
+        "summary.total",
+        "summary.raw_total",
+        "currency_code",
+        "status",
+      ],
       filters: {},
     })
     for (const o of asList(data)) {
       ordersTotal += 1
       const cur = String(o.currency_code ?? "unknown").toLowerCase()
-      gmv[cur] = (gmv[cur] ?? 0) + num(o.total)
+      const summary = o.summary as Record<string, unknown> | undefined
+      const total =
+        moneyAmount(o.total) ||
+        moneyAmount(summary?.total) ||
+        moneyAmount(summary?.raw_total) ||
+        moneyAmount(o.raw_total)
+      gmv[cur] = (gmv[cur] ?? 0) + total
     }
   } catch {
-    /* */
+    /* retry minimal fields if summary not on graph */
+    try {
+      const { data } = await query.graph({
+        entity: "order",
+        fields: ["id", "total", "currency_code"],
+        filters: {},
+      })
+      for (const o of asList(data)) {
+        ordersTotal += 1
+        const cur = String(o.currency_code ?? "unknown").toLowerCase()
+        gmv[cur] = (gmv[cur] ?? 0) + moneyAmount(o.total)
+      }
+    } catch {
+      /* */
+    }
   }
 
   return {

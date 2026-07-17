@@ -16,20 +16,24 @@ import { CopyButton } from "@/components/copy-button"
 
 export type OrderSearch = {
   placed?: string
+  pay?: string
 }
 
 export const Route = createFileRoute("/order/$id")({
   validateSearch: (search: Record<string, unknown>): OrderSearch => {
-    if (typeof search.placed === "string") return { placed: search.placed }
-    return {}
+    const out: OrderSearch = {}
+    if (typeof search.placed === "string") out.placed = search.placed
+    if (typeof search.pay === "string") out.pay = search.pay
+    return out
   },
   component: OrderDetailPage,
 })
 
 function OrderDetailPage() {
   const { id } = Route.useParams()
-  const { placed } = Route.useSearch()
+  const { placed, pay } = Route.useSearch()
   const justPlaced = placed === "1"
+  const paidMomo = pay === "momo"
 
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ["store", "order", id],
@@ -74,8 +78,9 @@ function OrderDetailPage() {
             Order placed
           </h1>
           <p className="mt-2 max-w-md text-sm text-muted-foreground">
-            Cash on delivery — pay when you receive your items. Save your order
-            reference below.
+            {paidMomo
+              ? "Mobile Money charge confirmed (lab). Save your order reference below."
+              : "Cash on delivery — pay when you receive your items. Save your order reference below."}
           </p>
         </section>
       ) : null}

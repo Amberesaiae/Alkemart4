@@ -66,3 +66,13 @@ export function getMercurAdminUrl(): string {
   const v = (import.meta.env.VITE_MERCUR_ADMIN_URL as string | undefined)?.trim()
   return v ?? ""
 }
+
+/**
+ * Lab-only Mobile Money UI. Default off (Mode B COD story).
+ * When true, checkout may show MoMo labeled “Lab only” — not production money.
+ * @see docs/architecture/2026-07-16-mode-b-lab-demo-freeze.md
+ */
+export function isMomoLabEnabled(): boolean {
+  const v = (import.meta.env.VITE_FEATURE_MOMO_LAB as string | undefined)?.trim()
+  return v === "1" || v === "true" || v === "yes"
+}

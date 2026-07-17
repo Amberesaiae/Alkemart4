@@ -23,6 +23,21 @@ export type CodCheckoutResult = {
   cart_id: string
 }
 
+export type MomoPendingResult = {
+  status: "payment_pending"
+  cart_id: string
+  payment_intent_id?: string
+  client_reference?: string
+  provider_reference?: string
+  expires_at?: string
+  amount_pesewas?: number
+  provider_status?: string
+}
+
+export type GhanaCheckoutResult = CodCheckoutResult | MomoPendingResult
+
+export type MomoProvider = "mtn" | "vodafone" | "airteltigo"
+
 /** Public: list shipping options for cart (API only — never invent option ids). */
 export async function listShippingOptionsForCart(cartId?: string) {
   const id = cartId ?? (await ensureCartId())
@@ -128,6 +143,26 @@ export async function placeCodOrder(input: {
   address: CheckoutAddress
   email: string
 }): Promise<CodCheckoutResult> {
+  const result = await placeGhanaOrder({
+    ...input,
+    paymentMethod: "cod",
+  })
+  if (result.status !== "completed") {
+    throw new Error("Unexpected COD response")
+  }
+  return result
+}
+
+/**
+ * COD or lab MoMo via /store/ghana-checkout.
+ * MoMo may return payment_pending (202) until USSD/pay-offline confirms.
+ */
+export async function placeGhanaOrder(input: {
+  address: CheckoutAddress
+  email: string
+  paymentMethod: "cod" | "momo"
+  momoProvider?: MomoProvider
+}): Promise<GhanaCheckoutResult> {
   const cartId = await prepareCartForCod(input)
   const cart = await retrieveCart(cartId)
   if (!cart?.items.length) {
@@ -146,23 +181,50 @@ export async function placeCodOrder(input: {
   }
   if (token) headers.Authorization = `Bearer ${token}`
 
+  const body: Record<string, unknown> = {
+    cart_id: cartId,
+    payment_method: input.paymentMethod,
+    email: input.email.trim(),
+    phone: input.address.phone.trim(),
+  }
+  if (input.paymentMethod === "momo") {
+    if (!input.momoProvider) {
+      throw new Error("Select a Mobile Money network")
+    }
+    body.momo_provider = input.momoProvider
+  }
+
   const res = await fetch(`${base}/store/ghana-checkout`, {
     method: "POST",
     headers,
-    body: JSON.stringify({
-      cart_id: cartId,
-      payment_method: "cod",
-      email: input.email.trim(),
-      phone: input.address.phone.trim(),
-    }),
+    body: JSON.stringify(body),
   })
 
   const data = (await res.json().catch(() => ({}))) as {
     status?: string
     order_id?: string
     cart_id?: string
+    payment_intent_id?: string
+    client_reference?: string
+    provider_reference?: string
+    expires_at?: string
+    amount_pesewas?: number
+    provider_status?: string
     error?: string
     message?: string
+  }
+
+  if (res.status === 202 || data.status === "payment_pending") {
+    return {
+      status: "payment_pending",
+      cart_id: data.cart_id ?? cartId,
+      payment_intent_id: data.payment_intent_id,
+      client_reference: data.client_reference,
+      provider_reference: data.provider_reference,
+      expires_at: data.expires_at,
+      amount_pesewas: data.amount_pesewas,
+      provider_status: data.provider_status,
+    }
   }
 
   if (!res.ok) {
@@ -178,6 +240,71 @@ export async function placeCodOrder(input: {
     order_id: data.order_id,
     cart_id: data.cart_id ?? cartId,
   }
+}
+
+/** Poll MoMo pending cart until completed/failed. */
+export async function pollMomoCheckoutStatus(
+  cartId: string,
+): Promise<GhanaCheckoutResult | { status: "failed" | "idle"; message?: string; cart_id: string }> {
+  const base = getBackendUrl()
+  const pk = getPublishableKey()
+  const sdk = getMedusaClient()
+  const token = await sdk.client.getToken()
+  const headers: Record<string, string> = {
+    Accept: "application/json",
+    "x-publishable-api-key": pk,
+  }
+  if (token) headers.Authorization = `Bearer ${token}`
+
+  const res = await fetch(
+    `${base}/store/ghana-checkout/status?cart_id=${encodeURIComponent(cartId)}`,
+    { headers },
+  )
+  const data = (await res.json().catch(() => ({}))) as {
+    status?: string
+    order_id?: string
+    cart_id?: string
+    message?: string
+    error?: string
+    payment_intent_id?: string
+    client_reference?: string
+    provider_reference?: string
+    expires_at?: string
+    amount_pesewas?: number
+    provider_status?: string
+  }
+
+  if (data.status === "completed" && data.order_id) {
+    clearLocalCartId()
+    return {
+      status: "completed",
+      order_id: data.order_id,
+      cart_id: data.cart_id ?? cartId,
+    }
+  }
+  if (data.status === "payment_pending") {
+    return {
+      status: "payment_pending",
+      cart_id: data.cart_id ?? cartId,
+      payment_intent_id: data.payment_intent_id,
+      client_reference: data.client_reference,
+      provider_reference: data.provider_reference,
+      expires_at: data.expires_at,
+      amount_pesewas: data.amount_pesewas,
+      provider_status: data.provider_status,
+    }
+  }
+  if (data.status === "failed" || res.status === 402) {
+    return {
+      status: "failed",
+      cart_id: data.cart_id ?? cartId,
+      message: data.message || data.error || "Payment failed",
+    }
+  }
+  if (!res.ok) {
+    throw new Error(data.error || data.message || `Status check failed (${res.status})`)
+  }
+  return { status: "idle", cart_id: data.cart_id ?? cartId }
 }
 
 export { getLocalCartId }
