@@ -1,0 +1,17 @@
+=== ADMIN ===
+shot admin-01-login
+shot admin-02-login-filled
+shot admin-03-after-login
+ADMIN LOGIN FAILED
+=== SELLER ===
+shot seller-01-login
+shot seller-02-login-filled
+shot seller-03-after-login
+shot seller-01-login
+shot seller-02-login-filled
+shot seller-03-after-login
+shot seller-01-login
+shot seller-02-login-filled
+shot seller-03-after-login
+SELLER LOGIN FAILED all candidates
+DONE /mnt/c/src/Alkemart4/docs/ui-audit-panels-2026-07-17

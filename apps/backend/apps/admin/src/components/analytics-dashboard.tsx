@@ -1,8 +1,5 @@
 /**
- * Platform analytics — Recharts best practices:
- * - tabular nums, limited series, no 3D junk
- * - empty/loading states, accessible labels
- * - primary currency from API (not hard-coded GHS in chart title only as fallback)
+ * Platform analytics — Recharts best practices + shared alkemart UI primitives.
  */
 import { useEffect, useState } from "react"
 import {
@@ -21,6 +18,15 @@ import {
   YAxis,
 } from "recharts"
 import { CHART, formatGhs, formatNum, shortDate } from "../lib/chart-theme"
+import {
+  AlkChartCard,
+  AlkEmpty,
+  AlkError,
+  AlkKpi,
+  AlkKpiGrid,
+  AlkPage,
+  AlkPageHeader,
+} from "./ui"
 
 export type StatsPayload = {
   generated_at: string
@@ -48,7 +54,6 @@ export type StatsPayload = {
 type Props = {
   title: string
   subtitle: string
-  /** Absolute or relative path, e.g. /admin/alkemart/stats */
   statsUrl: string
   mode: "admin" | "seller"
 }
@@ -108,253 +113,234 @@ export function AnalyticsDashboard({ title, subtitle, statsUrl, mode }: Props) {
   const mixData = data?.catalog_mix ?? []
 
   return (
-    <div className="alk-page">
-      <header className="alk-page-header">
-        <div>
-          <div className="alk-badge" style={{ marginBottom: 8 }}>
-            alkemart · {mode === "admin" ? "Admin" : "Seller Hub"}
-          </div>
-          <h1>{title}</h1>
-          <p>{subtitle}</p>
-        </div>
-        {data?.generated_at ? (
-          <p style={{ fontSize: 12, color: "#5c5c5c" }}>
-            Updated {new Date(data.generated_at).toLocaleString()}
-          </p>
-        ) : null}
-      </header>
+    <AlkPage>
+      <AlkPageHeader
+        badge={`alkemart · ${mode === "admin" ? "Admin" : "Seller Hub"}`}
+        title={title}
+        description={subtitle}
+        meta={
+          data?.generated_at ? (
+            <span style={{ fontSize: 12, color: "#5c5c5c" }}>
+              Updated {new Date(data.generated_at).toLocaleString()}
+            </span>
+          ) : null
+        }
+      />
 
-      {loading ? (
-        <div className="alk-empty">Loading analytics…</div>
-      ) : null}
-
-      {error ? <div className="alk-error">{error}</div> : null}
+      {loading ? <AlkEmpty>Loading analytics…</AlkEmpty> : null}
+      {error ? <AlkError>{error}</AlkError> : null}
 
       {data && !loading ? (
         <>
-          <div className="alk-kpi-grid">
-            <div className="alk-kpi">
-              <div className="alk-kpi-label">Orders</div>
-              <div className="alk-kpi-value">{formatNum(data.orders.total)}</div>
-              <div className="alk-kpi-hint">All time (graph)</div>
-            </div>
-            <div className="alk-kpi">
-              <div className="alk-kpi-label">GMV ({currency})</div>
-              <div className="alk-kpi-value">
-                {currency === "GHS" ? formatGhs(gmvPrimary) : formatNum(gmvPrimary)}
-              </div>
-              <div className="alk-kpi-hint">Sum of order totals</div>
-            </div>
+          <AlkKpiGrid>
+            <AlkKpi
+              label="Orders"
+              value={formatNum(data.orders.total)}
+              hint="All time (graph)"
+            />
+            <AlkKpi
+              label={`GMV (${currency})`}
+              value={
+                currency === "GHS" ? formatGhs(gmvPrimary) : formatNum(gmvPrimary)
+              }
+              hint="Sum of order totals"
+            />
             {mode === "admin" ? (
               <>
-                <div className="alk-kpi">
-                  <div className="alk-kpi-label">Sellers</div>
-                  <div className="alk-kpi-value">
-                    {formatNum(data.sellers.open)}
-                    <span
-                      style={{
-                        fontSize: "0.9rem",
-                        fontWeight: 600,
-                        color: "#5c5c5c",
-                      }}
-                    >
-                      /{formatNum(data.sellers.total)}
-                    </span>
-                  </div>
-                  <div className="alk-kpi-hint">Open / total</div>
-                </div>
-                <div className="alk-kpi">
-                  <div className="alk-kpi-label">Products</div>
-                  <div className="alk-kpi-value">
-                    {formatNum(data.products.published)}
-                  </div>
-                  <div className="alk-kpi-hint">
-                    {formatNum(data.products.draft)} draft ·{" "}
-                    {formatNum(data.offers.total)} offers
-                  </div>
-                </div>
+                <AlkKpi
+                  label="Sellers"
+                  value={
+                    <>
+                      {formatNum(data.sellers.open)}
+                      <span
+                        style={{
+                          fontSize: "0.9rem",
+                          fontWeight: 600,
+                          color: "#5c5c5c",
+                        }}
+                      >
+                        /{formatNum(data.sellers.total)}
+                      </span>
+                    </>
+                  }
+                  hint="Open / total"
+                />
+                <AlkKpi
+                  label="Products"
+                  value={formatNum(data.products.published)}
+                  hint={`${formatNum(data.products.draft)} draft · ${formatNum(data.offers.total)} offers`}
+                />
               </>
             ) : (
               <>
-                <div className="alk-kpi">
-                  <div className="alk-kpi-label">Offers</div>
-                  <div className="alk-kpi-value">
-                    {formatNum(data.offers.total)}
-                  </div>
-                  <div className="alk-kpi-hint">Live sellables</div>
-                </div>
-                <div className="alk-kpi">
-                  <div className="alk-kpi-label">Catalog</div>
-                  <div className="alk-kpi-value">
-                    {formatNum(data.products.published)}
-                  </div>
-                  <div className="alk-kpi-hint">Published products</div>
-                </div>
+                <AlkKpi
+                  label="Offers"
+                  value={formatNum(data.offers.total)}
+                  hint="Live sellables"
+                />
+                <AlkKpi
+                  label="Catalog"
+                  value={formatNum(data.products.published)}
+                  hint="Published products"
+                />
               </>
             )}
-          </div>
+          </AlkKpiGrid>
 
           <div className="alk-chart-grid">
-            <section className="alk-chart-card" style={{ gridColumn: "1 / -1" }}>
-              <h2>Orders & GMV (14 days)</h2>
-              <p className="alk-chart-sub">
-                Daily order count (bars) and GMV line · empty days stay on axis
-              </p>
-              <div className="alk-chart-body" style={{ minHeight: 260 }}>
-                {daySeries.every((d) => d.orders === 0 && d.gmv === 0) ? (
-                  <div className="alk-empty">No orders in this window yet.</div>
-                ) : (
-                  <ResponsiveContainer width="100%" height={260}>
-                    <AreaChart
-                      data={daySeries}
-                      margin={{ top: 8, right: 12, left: 0, bottom: 0 }}
-                    >
-                      <defs>
-                        <linearGradient id="gmvFill" x1="0" y1="0" x2="0" y2="1">
-                          <stop
-                            offset="0%"
-                            stopColor={CHART.yellow}
-                            stopOpacity={0.45}
-                          />
-                          <stop
-                            offset="100%"
-                            stopColor={CHART.yellow}
-                            stopOpacity={0.05}
-                          />
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid
-                        stroke={CHART.grid}
-                        strokeDasharray="3 3"
-                        vertical={false}
-                      />
-                      <XAxis
-                        dataKey="label"
-                        tick={{ fontSize: 11, fill: CHART.gray }}
-                        tickLine={false}
-                        axisLine={{ stroke: CHART.border }}
-                      />
-                      <YAxis
-                        yAxisId="orders"
-                        allowDecimals={false}
-                        tick={{ fontSize: 11, fill: CHART.gray }}
-                        tickLine={false}
-                        axisLine={false}
-                        width={36}
-                      />
-                      <YAxis
-                        yAxisId="gmv"
-                        orientation="right"
-                        tick={{ fontSize: 11, fill: CHART.gray }}
-                        tickLine={false}
-                        axisLine={false}
-                        width={48}
-                      />
-                      <Tooltip
-                        contentStyle={CHART.tooltip}
-                        labelStyle={{ fontWeight: 700 }}
-                      />
-                      <Legend wrapperStyle={{ fontSize: 12 }} />
-                      <Bar
-                        yAxisId="orders"
-                        dataKey="orders"
-                        name="Orders"
-                        fill={CHART.black}
-                        radius={[4, 4, 0, 0]}
-                        maxBarSize={28}
-                      />
-                      <Area
-                        yAxisId="gmv"
-                        type="monotone"
-                        dataKey="gmv"
-                        name={`GMV (${currency})`}
-                        stroke={CHART.yellow}
-                        strokeWidth={2}
-                        fill="url(#gmvFill)"
-                      />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                )}
-              </div>
-            </section>
+            <AlkChartCard
+              wide
+              title="Orders & GMV (14 days)"
+              subtitle="Daily order count (bars) and GMV line · empty days stay on axis"
+            >
+              {daySeries.every((d) => d.orders === 0 && d.gmv === 0) ? (
+                <AlkEmpty>No orders in this window yet.</AlkEmpty>
+              ) : (
+                <ResponsiveContainer width="100%" height={260}>
+                  <AreaChart
+                    data={daySeries}
+                    margin={{ top: 8, right: 12, left: 0, bottom: 0 }}
+                  >
+                    <defs>
+                      <linearGradient id="gmvFill" x1="0" y1="0" x2="0" y2="1">
+                        <stop
+                          offset="0%"
+                          stopColor={CHART.yellow}
+                          stopOpacity={0.45}
+                        />
+                        <stop
+                          offset="100%"
+                          stopColor={CHART.yellow}
+                          stopOpacity={0.05}
+                        />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid
+                      stroke={CHART.grid}
+                      strokeDasharray="3 3"
+                      vertical={false}
+                    />
+                    <XAxis
+                      dataKey="label"
+                      tick={{ fontSize: 11, fill: CHART.gray }}
+                      tickLine={false}
+                      axisLine={{ stroke: CHART.border }}
+                    />
+                    <YAxis
+                      yAxisId="orders"
+                      allowDecimals={false}
+                      tick={{ fontSize: 11, fill: CHART.gray }}
+                      tickLine={false}
+                      axisLine={false}
+                      width={36}
+                    />
+                    <YAxis
+                      yAxisId="gmv"
+                      orientation="right"
+                      tick={{ fontSize: 11, fill: CHART.gray }}
+                      tickLine={false}
+                      axisLine={false}
+                      width={48}
+                    />
+                    <Tooltip
+                      contentStyle={CHART.tooltip}
+                      labelStyle={{ fontWeight: 700 }}
+                    />
+                    <Legend wrapperStyle={{ fontSize: 12 }} />
+                    <Bar
+                      yAxisId="orders"
+                      dataKey="orders"
+                      name="Orders"
+                      fill={CHART.black}
+                      radius={[4, 4, 0, 0]}
+                      maxBarSize={28}
+                    />
+                    <Area
+                      yAxisId="gmv"
+                      type="monotone"
+                      dataKey="gmv"
+                      name={`GMV (${currency})`}
+                      stroke={CHART.yellow}
+                      strokeWidth={2}
+                      fill="url(#gmvFill)"
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              )}
+            </AlkChartCard>
 
-            <section className="alk-chart-card">
-              <h2>Orders by status</h2>
-              <p className="alk-chart-sub">Distribution · not a funnel claim</p>
-              <div className="alk-chart-body">
-                {statusData.length === 0 ? (
-                  <div className="alk-empty">No status breakdown yet.</div>
-                ) : (
-                  <ResponsiveContainer width="100%" height={220}>
-                    <BarChart
-                      data={statusData}
-                      layout="vertical"
-                      margin={{ left: 8, right: 16 }}
-                    >
-                      <CartesianGrid
-                        stroke={CHART.grid}
-                        horizontal={false}
-                        strokeDasharray="3 3"
-                      />
-                      <XAxis
-                        type="number"
-                        allowDecimals={false}
-                        tick={{ fontSize: 11, fill: CHART.gray }}
-                      />
-                      <YAxis
-                        type="category"
-                        dataKey="name"
-                        width={88}
-                        tick={{ fontSize: 11, fill: CHART.black }}
-                      />
-                      <Tooltip contentStyle={CHART.tooltip} />
-                      <Bar dataKey="value" name="Orders" radius={[0, 4, 4, 0]}>
-                        {statusData.map((_, i) => (
-                          <Cell
-                            key={i}
-                            fill={CHART.series[i % CHART.series.length]}
-                          />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                )}
-              </div>
-            </section>
+            <AlkChartCard
+              title="Orders by status"
+              subtitle="Distribution · not a funnel claim"
+            >
+              {statusData.length === 0 ? (
+                <AlkEmpty>No status breakdown yet.</AlkEmpty>
+              ) : (
+                <ResponsiveContainer width="100%" height={220}>
+                  <BarChart
+                    data={statusData}
+                    layout="vertical"
+                    margin={{ left: 8, right: 16 }}
+                  >
+                    <CartesianGrid
+                      stroke={CHART.grid}
+                      horizontal={false}
+                      strokeDasharray="3 3"
+                    />
+                    <XAxis
+                      type="number"
+                      allowDecimals={false}
+                      tick={{ fontSize: 11, fill: CHART.gray }}
+                    />
+                    <YAxis
+                      type="category"
+                      dataKey="name"
+                      width={88}
+                      tick={{ fontSize: 11, fill: CHART.black }}
+                    />
+                    <Tooltip contentStyle={CHART.tooltip} />
+                    <Bar dataKey="value" name="Orders" radius={[0, 4, 4, 0]}>
+                      {statusData.map((_, i) => (
+                        <Cell
+                          key={i}
+                          fill={CHART.series[i % CHART.series.length]}
+                        />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
+            </AlkChartCard>
 
-            <section className="alk-chart-card">
-              <h2>Catalog mix</h2>
-              <p className="alk-chart-sub">Counts from platform graph</p>
-              <div className="alk-chart-body">
-                {mixData.length === 0 ? (
-                  <div className="alk-empty">No catalog data.</div>
-                ) : (
-                  <ResponsiveContainer width="100%" height={220}>
-                    <PieChart>
-                      <Pie
-                        data={mixData}
-                        dataKey="value"
-                        nameKey="name"
-                        innerRadius={52}
-                        outerRadius={80}
-                        paddingAngle={2}
-                      >
-                        {mixData.map((_, i) => (
-                          <Cell
-                            key={i}
-                            fill={CHART.series[i % CHART.series.length]}
-                            stroke="#fff"
-                            strokeWidth={1}
-                          />
-                        ))}
-                      </Pie>
-                      <Tooltip contentStyle={CHART.tooltip} />
-                      <Legend wrapperStyle={{ fontSize: 12 }} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                )}
-              </div>
-            </section>
+            <AlkChartCard title="Catalog mix" subtitle="Counts from platform graph">
+              {mixData.length === 0 ? (
+                <AlkEmpty>No catalog data.</AlkEmpty>
+              ) : (
+                <ResponsiveContainer width="100%" height={220}>
+                  <PieChart>
+                    <Pie
+                      data={mixData}
+                      dataKey="value"
+                      nameKey="name"
+                      innerRadius={52}
+                      outerRadius={80}
+                      paddingAngle={2}
+                    >
+                      {mixData.map((_, i) => (
+                        <Cell
+                          key={i}
+                          fill={CHART.series[i % CHART.series.length]}
+                          stroke="#fff"
+                          strokeWidth={1}
+                        />
+                      ))}
+                    </Pie>
+                    <Tooltip contentStyle={CHART.tooltip} />
+                    <Legend wrapperStyle={{ fontSize: 12 }} />
+                  </PieChart>
+                </ResponsiveContainer>
+              )}
+            </AlkChartCard>
           </div>
 
           {data.search?.enabled ? (
@@ -370,6 +356,6 @@ export function AnalyticsDashboard({ title, subtitle, statsUrl, mode }: Props) {
           ) : null}
         </>
       ) : null}
-    </div>
+    </AlkPage>
   )
 }

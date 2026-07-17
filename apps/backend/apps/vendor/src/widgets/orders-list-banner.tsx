@@ -1,4 +1,6 @@
 import { defineWidgetConfig } from "@mercurjs/dashboard-sdk"
+import { panelHref } from "../lib/panel-href"
+import { AlkBanner } from "../components/ui"
 
 export const config = defineWidgetConfig({
   zone: "orders.list.before",
@@ -6,12 +8,10 @@ export const config = defineWidgetConfig({
 
 export default function OrdersListBanner() {
   return (
-    <div className="alk-banner">
-      <strong>alkemart Seller Hub</strong>
-      <span style={{ fontSize: 13, color: "#5c5c5c" }}>
-        Your shop orders · trends on Analytics
-      </span>
-      <a href="/analytics">Open analytics →</a>
-    </div>
+    <AlkBanner
+      title="alkemart Seller Hub"
+      body="Your shop orders · trends on Analytics"
+      action={<a href={panelHref("analytics")}>Open analytics →</a>}
+    />
   )
 }

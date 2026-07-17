@@ -1,4 +1,16 @@
 {
+  "login": {
+    "title": "Welcome to alkemart",
+    "hint": "Sign in to access Admin",
+    "forgotPassword": "Forgot password? - <0>Reset</0>",
+    "sessionExpired": "Session expired"
+  },
+  "invite": {
+    "title": "Welcome to alkemart Admin",
+    "hint": "Create your account below",
+    "backToLogin": "Back to login",
+    "createAccount": "Create account"
+  },
   "customFields": {
     "title": "Custom Fields",
     "description": "Manage your custom fields and configurations",

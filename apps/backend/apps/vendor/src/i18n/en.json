@@ -1,4 +1,14 @@
 {
+  "login": {
+    "title": "Welcome to alkemart",
+    "hint": "Log in to your seller account",
+    "forgotPassword": "Forgot password? <0>Reset</0>",
+    "sessionExpired": "Session expired"
+  },
+  "invite": {
+    "title": "Welcome to alkemart Seller Hub",
+    "hint": "Create your seller account"
+  },
   "customFields": {
     "title": "Custom Fields",
     "description": "Manage your custom fields and configurations",

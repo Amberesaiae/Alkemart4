@@ -304,9 +304,131 @@ a[href*="mercurjs.com"] {
   letter-spacing: -0.02em;
 }
 
+.alk-banner-body {
+  font-size: 13px;
+  color: var(--alkemart-subtle);
+  flex: 1 1 12rem;
+}
+
 .alk-banner a {
   font-weight: 700;
   color: var(--alkemart-black);
   text-decoration: underline;
   text-underline-offset: 2px;
+}
+
+.alk-page-meta {
+  font-size: 12px;
+  color: var(--alkemart-subtle);
+}
+
+/* —— Kill residual Medusa / Mercur shell brand —— */
+/* Sidebar store name often rendered as "Medusa Store" */
+aside [data-testid="sidebar-store-name"],
+[data-testid="sidebar-store-name"],
+aside span:has(+ [data-testid="sidebar-user-menu-name"]) {
+  /* keep structure */
+}
+
+/* Replace known shell label via attribute when present */
+[data-testid="sidebar"] a[href="/"] span,
+aside a[href="/"] {
+  /* logo link */
+}
+
+/* Hide default monogram "M" avatar squares in chrome (not analytics) */
+aside [class*="rounded"][class*="bg-ui-bg-component"]:has(> span:only-child) {
+  background: #141414 !important;
+  color: #f5c518 !important;
+}
+
+/* Force sidebar header text if it literally says Medusa */
+/* JS-less: hide store name text node containers that match via title attr */
+[title="Medusa Store"],
+[aria-label="Medusa Store"] {
+  font-size: 0 !important;
+}
+[title="Medusa Store"]::after,
+[aria-label="Medusa Store"]::after {
+  content: "alkemart";
+  font-size: 14px !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.03em;
+  color: var(--alkemart-black);
+}
+
+/* —— Navigation hierarchy (best-effort shell hooks) —— */
+nav a,
+aside a,
+[data-testid="sidebar"] a {
+  font-size: 13px !important;
+  font-weight: 550 !important;
+  border-radius: var(--alkemart-radius-sm) !important;
+}
+
+nav a:hover,
+aside a:hover,
+[data-testid="sidebar"] a:hover {
+  background-color: var(--alkemart-muted) !important;
+}
+
+/* Section labels in sidebar */
+aside [class*="text-ui-fg-muted"],
+nav [class*="text-ui-fg-muted"] {
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.08em !important;
+  text-transform: uppercase !important;
+  color: var(--alkemart-subtle) !important;
+}
+
+/* Main content padding rhythm */
+main,
+[class*="main-content"],
+[data-testid="main-content"] {
+  background: var(--alkemart-bg) !important;
+}
+
+/* Consistent card chrome on list pages */
+[class*="divide-y"] > * {
+  border-color: var(--alkemart-border) !important;
+}
+
+
+/* —— Login copy overrides (strip Mercur marketing) —— */
+body:has(input[type="password"]) h1 {
+  font-size: 0 !important;
+  line-height: 0 !important;
+  margin: 0 !important;
+  color: transparent !important;
+}
+body:has(input[type="password"]) h1::after {
+  content: "Welcome to alkemart";
+  display: block !important;
+  font-size: 1.35rem !important;
+  line-height: 1.3 !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.03em;
+  color: var(--alkemart-black) !important;
+  margin-top: 0.5rem;
+}
+body:has(input[type="password"]) h1 + p {
+  font-size: 0 !important;
+  line-height: 0 !important;
+  color: transparent !important;
+  margin: 0 !important;
+}
+body:has(input[type="password"]) h1 + p::after {
+  content: "Log in to your seller account";
+  display: block !important;
+  font-size: 0.875rem !important;
+  line-height: 1.4 !important;
+  color: var(--alkemart-subtle) !important;
+  margin-top: 0.35rem;
+}
+
+/* Hide default monogram square that is not our brand widget */
+body:has(input[type="password"]) [class*="bg-ui-bg-component"]:has(> span:only-child),
+body:has(input[type="password"]) div[class*="rounded"][class*="bg-"]:has(> span) {
+  /* too aggressive — skip */
 }

@@ -1,0 +1,14 @@
+{
+  "title": "alkemart Admin",
+  "h1": "Platform analytics",
+  "medusaLeft": [],
+  "hasMedusaStore": false,
+  "kpi": 4,
+  "kpiVals": [
+    "6",
+    "GHS 345",
+    "2/2",
+    "1"
+  ],
+  "yellow": "#f5c518"
+}

@@ -1,0 +1,11 @@
+shot admin-v2-01-login
+shot admin-v2-02-filled
+shot admin-v2-03-after
+admin url http://localhost:7000/dashboard/login
+ADMIN FAIL
+shot seller-v2-01-login
+shot seller-v2-02-filled
+shot seller-v2-03-after
+seller url http://localhost:7001/seller/login
+SELLER FAIL
+DONE
