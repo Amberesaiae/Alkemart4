@@ -49,6 +49,16 @@ medusa exec ./src/scripts/reindex-search.ts
 
 Health: `GET /store/search?health=1` (publishable key header).
 
+## Commerce stats (ops)
+
+```bash
+medusa exec ./src/scripts/print-commerce-stats.ts
+# authenticated admin:
+# GET /admin/alkemart/stats
+```
+
+Returns product/seller/offer/order counts and `gmv_by_currency` from the order graph (not a BI warehouse).
+
 ## Storefront
 
 - `/search` uses `POST /store/search` when Meilisearch is up.

@@ -271,7 +271,7 @@ Do **not** require GPS API for every order day one.
 
 1. [x] PostHog client + env `VITE_PUBLIC_POSTHOG_KEY` / `VITE_PUBLIC_POSTHOG_HOST` (no-op when unset).  
 2. [x] Instrument storefront: `$pageview`, `product_viewed`, `product_added`, `checkout_started`, `order_completed`, `search_performed`, `seller_store_viewed`.  
-3. [ ] Admin: simple SQL or dashboard for order counts / GMV (even a Metabase on Neon later).  
+3. [x] Admin ops snapshot: `GET /admin/alkemart/stats` + `medusa exec ./src/scripts/print-commerce-stats.ts` (Metabase optional later).  
 4. [x] Event dictionary — see appendix §12.
 
 ### Phase 2 — Search + self-building filters (2–4 weeks)

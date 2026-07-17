@@ -122,6 +122,14 @@ export async function ensureProductsIndex(): Promise<boolean> {
       "has_offer",
       "tags",
     ],
+    // Ghana / EN discovery helpers — not UI-facing; expand carefully
+    synonyms: {
+      oil: ["cooking oil", "palm oil", "vegetable oil"],
+      palm: ["palm oil", "red oil"],
+      phone: ["mobile", "smartphone", "handset"],
+      momo: ["mobile money", "mtn", "vodafone", "telecel"],
+      accra: ["greater accra", "tema", "spintex"],
+    },
   })
 
   return true
