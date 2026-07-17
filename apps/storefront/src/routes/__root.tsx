@@ -14,6 +14,7 @@ import { SiteFooter } from "@/components/site-footer"
 import { DocumentTitle } from "@/components/document-title"
 import { ScrollToTop } from "@/components/scroll-to-top"
 import { NotFoundPage } from "@/components/not-found"
+import { trackPageview } from "@/lib/analytics"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { IconCart, IconSearch } from "@/components/icons"
 
@@ -36,9 +37,19 @@ function RootLayout() {
     <QueryClientProvider client={queryClient}>
       <DocumentTitle />
       <ScrollToTop />
+      <AnalyticsPageviews />
       <Shell />
     </QueryClientProvider>
   )
+}
+
+/** SPA pageviews — path only, no query strings with emails/tokens. */
+function AnalyticsPageviews() {
+  const pathname = useRouterState({ select: (s) => s.location.pathname })
+  useEffect(() => {
+    trackPageview(pathname)
+  }, [pathname])
+  return null
 }
 
 function Shell() {

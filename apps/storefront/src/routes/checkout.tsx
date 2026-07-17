@@ -1,8 +1,12 @@
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
 import { useMutation, useQuery } from "@tanstack/react-query"
 import { Button } from "@/components/ui/button"
 import { Price } from "@/components/price"
+import {
+  trackCheckoutStarted,
+  trackOrderCompleted,
+} from "@/lib/analytics"
 import {
   formatMoney,
   getLocalCartId,
@@ -52,6 +56,7 @@ function applyAddress(
 
 function CheckoutPage() {
   const navigate = useNavigate()
+  const checkoutStartedSent = useRef(false)
   const cartQ = useQuery({
     queryKey: ["store", "cart"],
     queryFn: () => retrieveCart(),
@@ -119,6 +124,17 @@ function CheckoutPage() {
   const effectiveEmail = email.trim() || sessionQ.data?.email?.trim() || ""
   const countryCode = country || defaultCountry
 
+  useEffect(() => {
+    const cart = cartQ.data
+    if (!cart?.items.length || checkoutStartedSent.current) return
+    checkoutStartedSent.current = true
+    trackCheckoutStarted({
+      itemCount: cart.items.length,
+      cartTotal: cart.total,
+      currency: cart.currencyCode,
+    })
+  }, [cartQ.data])
+
   const place = useMutation({
     mutationFn: async () => {
       if (!countryCode) {
@@ -139,6 +155,14 @@ function CheckoutPage() {
       return placeCodOrder({ address, email: effectiveEmail })
     },
     onSuccess: (result) => {
+      const cart = cartQ.data
+      trackOrderCompleted({
+        orderId: result.order_id,
+        paymentMethod: "cod",
+        itemCount: cart?.items.length,
+        total: cart?.total ?? null,
+        currency: cart?.currencyCode ?? null,
+      })
       void navigate({
         to: "/order/$id",
         params: { id: result.order_id },

@@ -1,3 +1,4 @@
+import { useEffect } from "react"
 import { createFileRoute, Link } from "@tanstack/react-router"
 import { useQuery } from "@tanstack/react-query"
 import { ProductCard } from "@/components/product-card"
@@ -6,6 +7,7 @@ import { EmptyState } from "@/components/empty-state"
 import { ProductGridSkeleton, Skeleton } from "@/components/skeleton"
 import { getBackendUrl, getPublishableKey } from "@/lib/env"
 import { listStoreProducts } from "@/lib/products"
+import { trackSellerStoreViewed } from "@/lib/analytics"
 
 export const Route = createFileRoute("/store/$slug")({
   component: StorePage,
@@ -52,6 +54,15 @@ function StorePage() {
 
   const vendor = vendorQ.data?.vendor
   const name = vendor?.name
+
+  useEffect(() => {
+    if (!vendorQ.isSuccess) return
+    trackSellerStoreViewed({
+      sellerHandle: slug,
+      sellerId: vendor?.id ?? null,
+    })
+  }, [vendorQ.isSuccess, slug, vendor?.id])
+
   const filtered =
     productsQ.data?.products.filter((p) => {
       if (!vendor) return false

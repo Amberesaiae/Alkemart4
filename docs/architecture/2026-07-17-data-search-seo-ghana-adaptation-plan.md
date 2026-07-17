@@ -269,10 +269,10 @@ Do **not** require GPS API for every order day one.
 
 ### Phase 1 — Measurement (1–2 weeks effort)
 
-1. Add PostHog (or Plausible) project + env `VITE_PUBLIC_POSTHOG_KEY` (or similar).  
-2. Instrument storefront: pageview, product_viewed, add_to_cart, checkout_started, order_completed, search.  
-3. Admin: simple SQL or dashboard for order counts / GMV (even a Metabase on Neon later).  
-4. Document event dictionary in this file’s appendix when implemented.
+1. [x] PostHog client + env `VITE_PUBLIC_POSTHOG_KEY` / `VITE_PUBLIC_POSTHOG_HOST` (no-op when unset).  
+2. [x] Instrument storefront: `$pageview`, `product_viewed`, `product_added`, `checkout_started`, `order_completed`, `search_performed`, `seller_store_viewed`.  
+3. [ ] Admin: simple SQL or dashboard for order counts / GMV (even a Metabase on Neon later).  
+4. [x] Event dictionary — see appendix §12.
 
 ### Phase 2 — Search + self-building filters (2–4 weeks)
 
@@ -345,6 +345,23 @@ Storefront search page facets from Meilisearch distribution; URL state; empty ho
 | PostHog ecommerce event spec | Stats / funnels |
 | GhanaPostGPS + landmark checkout patterns | Local delivery fields |
 | Alkemart clean-slate E2E handbook | Who logs where |
+
+---
+
+## 12. Appendix — storefront event dictionary (Phase 1)
+
+| Event | When | Properties (no PII) |
+|-------|------|---------------------|
+| `$pageview` | Route pathname changes | `path` |
+| `product_viewed` | PDP product loaded | `product_id`, `product_name`, `price`, `currency`, `seller_id` |
+| `product_added` | ATC success | `product_id`, `offer_id`, `quantity`, `price`, `currency` |
+| `checkout_started` | Checkout page with cart items | `item_count`, `cart_total`, `currency` |
+| `order_completed` | COD place success | `order_id`, `payment_method`, `item_count`, `total`, `currency` |
+| `search_performed` | Search results returned | `query`, `result_count` |
+| `seller_store_viewed` | Seller store loaded | `seller_handle`, `seller_id` |
+
+**Gating:** `apps/storefront/src/lib/analytics.ts` — no capture without `VITE_PUBLIC_POSTHOG_KEY`.  
+**Never send:** email, phone, address, MoMo numbers, passwords, tokens.
 
 ---
 

@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { createFileRoute, Link } from "@tanstack/react-router"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { Button } from "@/components/ui/button"
@@ -10,6 +10,10 @@ import { Skeleton, ProductGridSkeleton } from "@/components/skeleton"
 import { QtyStepper } from "@/components/qty-stepper"
 import { addOfferToCart } from "@/lib/cart"
 import { getStoreProduct, listRelatedProducts } from "@/lib/products"
+import {
+  trackProductAdded,
+  trackProductViewed,
+} from "@/lib/analytics"
 
 export const Route = createFileRoute("/product/$id")({
   component: ProductDetailPage,
@@ -26,6 +30,17 @@ function ProductDetailPage() {
   })
 
   const p = productQ.data
+
+  useEffect(() => {
+    if (!p?.id) return
+    trackProductViewed({
+      productId: p.id,
+      name: p.title,
+      price: p.amount ?? null,
+      currency: p.currencyCode ?? null,
+      sellerId: p.seller?.id ?? null,
+    })
+  }, [p?.id])
 
   const relatedQ = useQuery({
     queryKey: [
@@ -52,6 +67,16 @@ function ProductDetailPage() {
       return addOfferToCart(offerId, qty)
     },
     onSuccess: () => {
+      const offerId = productQ.data?.offerId
+      if (offerId) {
+        trackProductAdded({
+          productId: productQ.data?.id,
+          offerId,
+          quantity: qty,
+          price: productQ.data?.amount ?? null,
+          currency: productQ.data?.currencyCode ?? null,
+        })
+      }
       void queryClient.invalidateQueries({ queryKey: ["store", "cart"] })
     },
   })

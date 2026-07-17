@@ -7,6 +7,7 @@ import { EmptyState } from "@/components/empty-state"
 import { ProductGridSkeleton } from "@/components/skeleton"
 import { Button } from "@/components/ui/button"
 import { listStoreProducts } from "@/lib/products"
+import { trackSearchPerformed } from "@/lib/analytics"
 
 export const Route = createFileRoute("/search")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -30,6 +31,11 @@ function SearchPage() {
     queryFn: () => listStoreProducts({ limit: 48, q }),
     enabled: q.length > 0,
   })
+
+  useEffect(() => {
+    if (!q || !productsQ.isSuccess) return
+    trackSearchPerformed(q, productsQ.data.products.length)
+  }, [q, productsQ.isSuccess, productsQ.data?.products.length])
 
   function submit(e: React.FormEvent) {
     e.preventDefault()
