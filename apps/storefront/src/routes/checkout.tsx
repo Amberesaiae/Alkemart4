@@ -95,6 +95,7 @@ function CheckoutPage() {
   const [lastName, setLastName] = useState("")
   const [phone, setPhone] = useState("")
   const [line1, setLine1] = useState("")
+  const [landmark, setLandmark] = useState("")
   const [city, setCity] = useState("")
   const [province, setProvince] = useState("")
   const [country, setCountry] = useState("")
@@ -147,6 +148,7 @@ function CheckoutPage() {
         last_name: lastName,
         phone,
         address_1: line1,
+        address_2: landmark || undefined,
         city,
         province: province || undefined,
         country_code: countryCode,
@@ -354,11 +356,19 @@ function CheckoutPage() {
                 required
               />
               <FormField
-                label="Address"
+                label="Street address"
                 value={line1}
                 onChange={setLine1}
                 autoComplete="street-address"
                 required
+                placeholder="House number, street, area"
+              />
+              <FormField
+                label="Landmark / directions (optional)"
+                value={landmark}
+                onChange={setLandmark}
+                autoComplete="address-line2"
+                placeholder="Near Goil station, blue gate…"
               />
               <FormField
                 label="City"
@@ -372,6 +382,7 @@ function CheckoutPage() {
                 value={province}
                 onChange={setProvince}
                 autoComplete="address-level1"
+                placeholder="e.g. Greater Accra"
               />
               <FormSelect
                 label="Country"
@@ -397,11 +408,16 @@ function CheckoutPage() {
                 )}
               </FormSelect>
               <FormField
-                label="Postal / GhanaPost (optional)"
+                label="GhanaPostGPS (optional)"
                 value={postal}
                 onChange={setPostal}
                 autoComplete="postal-code"
+                placeholder="e.g. GA-123-4567"
               />
+              <p className="text-xs text-muted-foreground">
+                Digital address helps riders when available — not required for
+                cash on delivery.
+              </p>
 
               <div className="space-y-2 rounded-2xl border border-border bg-muted/20 p-4 text-sm">
                 <p className="font-bold">Shipping options</p>

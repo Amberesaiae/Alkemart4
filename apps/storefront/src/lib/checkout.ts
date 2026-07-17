@@ -8,9 +8,12 @@ export type CheckoutAddress = {
   last_name: string
   phone: string
   address_1: string
+  /** Landmark / directions for riders (Ghana delivery UX) */
+  address_2?: string
   city: string
   province?: string
   country_code: string
+  /** GhanaPostGPS digital address when known (optional) */
   postal_code?: string
 }
 
@@ -86,6 +89,7 @@ export async function prepareCartForCod(input: {
       last_name: a.last_name.trim(),
       phone: a.phone.trim(),
       address_1: a.address_1.trim(),
+      address_2: a.address_2?.trim() || undefined,
       city: a.city.trim(),
       province: a.province?.trim() || undefined,
       country_code: a.country_code.trim().toLowerCase(),

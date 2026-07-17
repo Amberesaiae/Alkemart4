@@ -5,7 +5,7 @@ import {
   getProductsIndex,
   isSearchEnabled,
 } from "./client"
-import { mapProductToDocument } from "./documents"
+import { enrichDocsWithOffers, mapProductToDocument } from "./documents"
 import type {
   SearchProductDocument,
   SearchQueryInput,
@@ -31,11 +31,48 @@ const PRODUCT_FIELDS = [
   "tags.value",
   "variants.id",
   "variants.offer_id",
-  // seller relation when Mercur exposes it on product graph
   "seller.id",
   "seller.name",
   "seller.handle",
 ]
+
+const OFFER_FIELDS = [
+  "id",
+  "product_id",
+  "variant_id",
+  "seller_id",
+  "sku",
+  "seller.id",
+  "seller.name",
+  "seller.handle",
+  "prices.amount",
+  "prices.currency_code",
+]
+
+async function fetchOffersForProducts(
+  query: QueryService,
+  productIds?: string[],
+): Promise<Record<string, unknown>[]> {
+  try {
+    const filters: Record<string, unknown> = {}
+    if (productIds?.length) {
+      filters.product_id = productIds
+    }
+    const { data } = await query.graph({
+      entity: "offer",
+      fields: OFFER_FIELDS,
+      filters,
+    })
+    const list = Array.isArray(data) ? data : data ? [data] : []
+    return list as Record<string, unknown>[]
+  } catch (e) {
+    console.warn(
+      "[search] offer graph unavailable",
+      e instanceof Error ? e.message : e,
+    )
+    return []
+  }
+}
 
 export async function fetchProductsForIndex(
   query: QueryService,
@@ -53,12 +90,49 @@ export async function fetchProductsForIndex(
   })
 
   const list = Array.isArray(data) ? data : data ? [data] : []
-  const docs: SearchProductDocument[] = []
+  let docs: SearchProductDocument[] = []
   for (const row of list) {
     const doc = mapProductToDocument(row as Record<string, unknown>)
     if (doc) docs.push(doc)
   }
+
+  const productIds = ids?.length ? ids : docs.map((d) => d.id)
+  const offers = await fetchOffersForProducts(
+    query,
+    productIds.length ? productIds : undefined,
+  )
+  if (offers.length) {
+    docs = enrichDocsWithOffers(docs, offers)
+  }
   return docs
+}
+
+/** Published product handles for sitemap (discovery SEO). */
+export async function listPublishedSitemapEntries(
+  query: QueryService,
+): Promise<{ handle: string; id: string; updated_at?: string }[]> {
+  const { data } = await query.graph({
+    entity: "product",
+    fields: ["id", "handle", "status", "updated_at"],
+    filters: { status: "published" },
+  })
+  const list = Array.isArray(data) ? data : data ? [data] : []
+  return list
+    .map((row) => {
+      const r = row as Record<string, unknown>
+      const handle = typeof r.handle === "string" ? r.handle.trim() : ""
+      const id = typeof r.id === "string" ? r.id : ""
+      if (!handle || !id) return null
+      return {
+        handle,
+        id,
+        updated_at:
+          r.updated_at != null ? String(r.updated_at) : undefined,
+      }
+    })
+    .filter((x): x is { handle: string; id: string; updated_at?: string } =>
+      Boolean(x),
+    )
 }
 
 /** Index only published products (discovery). */

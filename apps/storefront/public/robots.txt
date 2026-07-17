@@ -13,4 +13,8 @@ Disallow: /signin
 # Multi-facet search combos explode crawl space — allow plain ?q=
 # (SPA also sets noindex when category+seller filters are active)
 
-Sitemap: /sitemap.xml
+# Dynamic sitemap from Mercur API (published products + static routes).
+# Point crawlers at your API host in production, e.g.:
+# Sitemap: https://api.example.com/store/sitemap
+# Local:
+Sitemap: http://localhost:9000/store/sitemap
