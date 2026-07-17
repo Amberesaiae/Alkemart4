@@ -285,10 +285,10 @@ Do **not** require GPS API for every order day one.
 
 ### Phase 3 — SEO hardening
 
-1. JSON-LD on PDP + seller store.  
-2. Sitemap generation from API product handles (job or build step).  
-3. Prerender critical routes or SSR migration for PDP/category only.  
-4. Facet URL policy (`noindex` multi-select).
+1. [x] JSON-LD on PDP + seller store + Organization home (`lib/seo.ts`, `PageSeo`).  
+2. [x] Static `public/sitemap.xml` + `robots.txt`; dynamic product URLs = later job.  
+3. [ ] Prerender critical routes or SSR migration for PDP/category only.  
+4. [x] Facet URL policy: `noindex` when multi-facet and for `?q=` search results.
 
 ### Phase 4 — Ghana depth (aligned with money spine)
 

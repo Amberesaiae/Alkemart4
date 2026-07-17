@@ -1,31 +1,118 @@
 import { useEffect } from "react"
 import { useRouterState } from "@tanstack/react-router"
+import { applyPageSeo, defaultDescription, organizationJsonLd, setJsonLd } from "@/lib/seo"
 
-const TITLES: { match: (path: string) => boolean; title: string }[] = [
-  { match: (p) => p === "/", title: "Market" },
-  { match: (p) => p.startsWith("/browse"), title: "Browse" },
+/**
+ * Fallback SEO by path for routes that do not render <PageSeo />.
+ * Product/store pages override with API-backed titles + JSON-LD.
+ */
+const ROUTES: {
+  match: (path: string) => boolean
+  title: string
+  description?: string
+  noindex?: boolean
+  path?: string
+}[] = [
+  {
+    match: (p) => p === "/",
+    title: "Market",
+    description: defaultDescription(),
+    path: "/",
+  },
+  {
+    match: (p) => p.startsWith("/browse"),
+    title: "Browse",
+    description: "Browse products from Ghana sellers on alkemart.",
+  },
   { match: (p) => p.startsWith("/product/"), title: "Product" },
   { match: (p) => p.startsWith("/store/"), title: "Store" },
-  { match: (p) => p === "/cart", title: "Cart" },
-  { match: (p) => p === "/checkout", title: "Checkout" },
-  { match: (p) => p === "/signin", title: "Sign in" },
-  { match: (p) => p === "/account", title: "Account" },
-  { match: (p) => p === "/orders", title: "Orders" },
-  { match: (p) => p.startsWith("/order/"), title: "Order" },
-  { match: (p) => p === "/search", title: "Search" },
-  { match: (p) => p === "/help", title: "Help" },
-  { match: (p) => p === "/sellers", title: "Sellers" },
-  { match: (p) => p === "/partners", title: "Partners" },
-  { match: (p) => p === "/sell", title: "Sell" },
+  {
+    match: (p) => p === "/cart",
+    title: "Cart",
+    noindex: true,
+    path: "/cart",
+  },
+  {
+    match: (p) => p === "/checkout",
+    title: "Checkout",
+    noindex: true,
+    path: "/checkout",
+  },
+  {
+    match: (p) => p === "/signin" || p.startsWith("/signin"),
+    title: "Sign in",
+    noindex: true,
+  },
+  {
+    match: (p) => p === "/account",
+    title: "Account",
+    noindex: true,
+    path: "/account",
+  },
+  {
+    match: (p) => p === "/orders",
+    title: "Orders",
+    noindex: true,
+    path: "/orders",
+  },
+  {
+    match: (p) => p.startsWith("/order/"),
+    title: "Order",
+    noindex: true,
+  },
+  {
+    match: (p) => p === "/search",
+    title: "Search",
+    description: "Search products on alkemart.",
+    path: "/search",
+  },
+  {
+    match: (p) => p === "/help",
+    title: "Help",
+    description: "Help and support for alkemart shoppers.",
+    path: "/help",
+  },
+  {
+    match: (p) => p === "/sellers",
+    title: "Sellers",
+    description: "Discover sellers on alkemart.",
+    path: "/sellers",
+  },
+  {
+    match: (p) => p === "/partners",
+    title: "Partners",
+    path: "/partners",
+  },
+  {
+    match: (p) => p === "/sell",
+    title: "Sell",
+    description: "Start selling on alkemart — open Seller Hub.",
+    path: "/sell",
+  },
 ]
 
-/** Sets document.title from path — no hardcodes of commerce data. */
 export function DocumentTitle() {
   const pathname = useRouterState({ select: (s) => s.location.pathname })
 
   useEffect(() => {
-    const hit = TITLES.find((t) => t.match(pathname))
-    document.title = hit ? `${hit.title} · alkemart` : "alkemart"
+    // Product and store pages manage their own SEO with API data
+    if (pathname.startsWith("/product/") || pathname.startsWith("/store/")) {
+      return
+    }
+
+    const hit = ROUTES.find((t) => t.match(pathname))
+    applyPageSeo({
+      title: hit?.title ?? "alkemart",
+      description: hit?.description,
+      path: hit?.path ?? pathname,
+      noindex: hit?.noindex,
+    })
+
+    if (pathname === "/") {
+      setJsonLd(organizationJsonLd())
+    } else {
+      setJsonLd(null)
+    }
   }, [pathname])
 
   return null

@@ -8,6 +8,8 @@ import { ProductGridSkeleton, Skeleton } from "@/components/skeleton"
 import { getBackendUrl, getPublishableKey } from "@/lib/env"
 import { listStoreProducts } from "@/lib/products"
 import { trackSellerStoreViewed } from "@/lib/analytics"
+import { PageSeo } from "@/components/page-seo"
+import { storeJsonLd, stripHtml, truncateMeta } from "@/lib/seo"
 
 export const Route = createFileRoute("/store/$slug")({
   component: StorePage,
@@ -78,8 +80,26 @@ function StorePage() {
       return false
     }) ?? []
 
+  const storePath = `/store/${slug}`
+
   return (
     <div className="space-y-6">
+      {name ? (
+        <PageSeo
+          title={name}
+          description={
+            vendor?.bio
+              ? truncateMeta(stripHtml(String(vendor.bio)))
+              : `Shop ${name} on alkemart`
+          }
+          path={storePath}
+          jsonLd={storeJsonLd({
+            name,
+            description: vendor?.bio ? String(vendor.bio) : null,
+            path: storePath,
+          })}
+        />
+      ) : null}
       <nav className="text-xs text-muted-foreground">
         <Link to="/" className="hover:underline">
           Home

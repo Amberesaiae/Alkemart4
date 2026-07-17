@@ -12,6 +12,7 @@ import {
 } from "@/components/search-facets"
 import { searchCatalog } from "@/lib/search"
 import { trackSearchPerformed } from "@/lib/analytics"
+import { PageSeo } from "@/components/page-seo"
 
 function parseList(v: unknown): string[] {
   if (typeof v === "string" && v.trim()) {
@@ -129,8 +130,23 @@ function SearchPage() {
         ? "Catalog search"
         : null
 
+  // Multi-facet URLs: noindex to avoid crawl explosion (SEO plan Phase 3)
+  const multiFacet =
+    active.category_handles.length + active.seller_handles.length > 1 ||
+    (active.category_handles.length > 0 && active.seller_handles.length > 0)
+
   return (
     <div className="space-y-6">
+      <PageSeo
+        title={q ? `Search: ${q}` : "Search"}
+        description={
+          q
+            ? `Search results for “${q}” on alkemart`
+            : "Search products on alkemart."
+        }
+        path="/search"
+        noindex={multiFacet || Boolean(q)}
+      />
       <header className="space-y-4 rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6">
         <div>
           <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">

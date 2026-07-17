@@ -14,6 +14,13 @@ import {
   trackProductAdded,
   trackProductViewed,
 } from "@/lib/analytics"
+import { PageSeo } from "@/components/page-seo"
+import {
+  breadcrumbJsonLd,
+  productJsonLd,
+  stripHtml,
+  truncateMeta,
+} from "@/lib/seo"
 
 export const Route = createFileRoute("/product/$id")({
   component: ProductDetailPage,
@@ -83,8 +90,57 @@ function ProductDetailPage() {
 
   const canAdd = Boolean(p?.offerId)
 
+  const productPath = `/product/${id}`
+  const jsonLd = p?.id
+    ? {
+        "@context": "https://schema.org",
+        "@graph": [
+          productJsonLd({
+            id: p.id,
+            title: p.title,
+            description: p.description,
+            handle: p.handle,
+            thumbnail: p.thumbnail,
+            amount: p.amount,
+            currencyCode: p.currencyCode,
+            path: productPath,
+            sellerName: p.seller?.name,
+          }),
+          breadcrumbJsonLd([
+            { name: "Home", path: "/" },
+            { name: "Browse", path: "/browse/all" },
+            ...(p.seller?.handle
+              ? [
+                  {
+                    name: p.seller.name ?? "Seller",
+                    path: `/store/${p.seller.handle}`,
+                  },
+                ]
+              : []),
+            { name: p.title, path: productPath },
+          ]),
+        ],
+      }
+    : null
+
   return (
     <div className="space-y-10 pb-28 md:pb-8">
+      {p ? (
+        <PageSeo
+          title={p.title}
+          description={
+            p.description
+              ? truncateMeta(stripHtml(p.description))
+              : p.seller?.name
+                ? `${p.title} from ${p.seller.name} on alkemart`
+                : `${p.title} on alkemart`
+          }
+          path={productPath}
+          image={p.thumbnail}
+          type="product"
+          jsonLd={jsonLd}
+        />
+      ) : null}
       <nav className="text-xs text-muted-foreground">
         <Link to="/" className="hover:underline">
           Home

@@ -1,0 +1,16 @@
+# alkemart storefront — SPA
+# Prefer VITE_PUBLIC_SITE_URL host in production; this file is served as-is by Vite.
+
+User-agent: *
+Allow: /
+# Buyer private / transactional
+Disallow: /account
+Disallow: /cart
+Disallow: /checkout
+Disallow: /orders
+Disallow: /order/
+Disallow: /signin
+# Multi-facet search combos explode crawl space — allow plain ?q=
+# (SPA also sets noindex when category+seller filters are active)
+
+Sitemap: /sitemap.xml
