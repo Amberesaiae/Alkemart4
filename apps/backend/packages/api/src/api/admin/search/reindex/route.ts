@@ -43,7 +43,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
   }
 }
 
-export async function GET(req: MedusaRequest, res: MedusaResponse) {
+export async function GET(_req: MedusaRequest, res: MedusaResponse) {
   const health = await searchHealth()
   res.status(200).json(health)
 }

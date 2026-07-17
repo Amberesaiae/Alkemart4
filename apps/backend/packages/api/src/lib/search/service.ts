@@ -117,22 +117,19 @@ export async function listPublishedSitemapEntries(
     filters: { status: "published" },
   })
   const list = Array.isArray(data) ? data : data ? [data] : []
-  return list
-    .map((row) => {
-      const r = row as Record<string, unknown>
-      const handle = typeof r.handle === "string" ? r.handle.trim() : ""
-      const id = typeof r.id === "string" ? r.id : ""
-      if (!handle || !id) return null
-      return {
-        handle,
-        id,
-        updated_at:
-          r.updated_at != null ? String(r.updated_at) : undefined,
-      }
+  const out: { handle: string; id: string; updated_at?: string }[] = []
+  for (const row of list) {
+    const r = row as Record<string, unknown>
+    const handle = typeof r.handle === "string" ? r.handle.trim() : ""
+    const id = typeof r.id === "string" ? r.id : ""
+    if (!handle || !id) continue
+    out.push({
+      handle,
+      id,
+      ...(r.updated_at != null ? { updated_at: String(r.updated_at) } : {}),
     })
-    .filter((x): x is { handle: string; id: string; updated_at?: string } =>
-      Boolean(x),
-    )
+  }
+  return out
 }
 
 /** Index only published products (discovery). */

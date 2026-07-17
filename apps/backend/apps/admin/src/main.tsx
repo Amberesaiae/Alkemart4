@@ -6,6 +6,10 @@ import App from "@mercurjs/admin"
 
 document.title = "alkemart Admin"
 
+if (typeof document !== "undefined") {
+  document.documentElement.dataset.brand = "alkemart"
+}
+
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <App />

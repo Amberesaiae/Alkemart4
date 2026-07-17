@@ -1,0 +1,162 @@
+/**
+ * Build seller-scoped analytics from vendor API responses only.
+ * Never call platform /admin stats from the Seller Hub.
+ */
+
+export type SellerStatsPayload = {
+  generated_at: string
+  products: { published: number; draft: number; total: number }
+  sellers: { open: number; total: number }
+  offers: { total: number }
+  orders: {
+    total: number
+    gmv_by_currency: Record<string, number>
+    by_status: { name: string; value: number }[]
+  }
+  series: {
+    days: { date: string; orders: number; gmv: number }[]
+    primary_currency: string
+  }
+  catalog_mix: { name: string; value: number }[]
+}
+
+function money(v: unknown): number {
+  if (typeof v === "number" && Number.isFinite(v)) return v
+  if (typeof v === "string") {
+    const n = Number(v)
+    return Number.isFinite(n) ? n : 0
+  }
+  if (v && typeof v === "object" && "value" in (v as object)) {
+    const n = Number((v as { value: unknown }).value)
+    return Number.isFinite(n) ? n : 0
+  }
+  return 0
+}
+
+function dayKey(d: Date): string {
+  return d.toISOString().slice(0, 10)
+}
+
+function lastNDays(n: number): string[] {
+  const out: string[] = []
+  const now = new Date()
+  for (let i = n - 1; i >= 0; i--) {
+    const d = new Date(now)
+    d.setUTCDate(d.getUTCDate() - i)
+    out.push(dayKey(d))
+  }
+  return out
+}
+
+async function getJson(url: string): Promise<unknown> {
+  const res = await fetch(url, {
+    credentials: "include",
+    headers: { Accept: "application/json" },
+  })
+  if (!res.ok) throw new Error(`${url} → ${res.status}`)
+  return res.json()
+}
+
+/**
+ * Prefer vendor list endpoints; degrade gracefully if shapes differ.
+ */
+export async function loadSellerStats(): Promise<SellerStatsPayload> {
+  const days = lastNDays(14)
+  const dayOrders = new Map(days.map((d) => [d, 0]))
+  const dayGmv = new Map(days.map((d) => [d, 0]))
+  const statusCounts = new Map<string, number>()
+  const gmv: Record<string, number> = {}
+  let ordersTotal = 0
+  let offersTotal = 0
+  let productsPublished = 0
+
+  // Orders (seller-scoped via vendor auth cookie)
+  try {
+    const raw = (await getJson(
+      "/vendor/orders?limit=100&fields=id,created_at,total,currency_code,status",
+    )) as { orders?: Record<string, unknown>[]; count?: number }
+    const list = Array.isArray(raw.orders) ? raw.orders : []
+    ordersTotal = typeof raw.count === "number" ? raw.count : list.length
+    for (const o of list) {
+      const cur = String(o.currency_code ?? "ghs").toLowerCase()
+      const total = money(o.total)
+      gmv[cur] = (gmv[cur] ?? 0) + total
+      const st = String(o.status ?? "unknown").toLowerCase()
+      statusCounts.set(st, (statusCounts.get(st) ?? 0) + 1)
+      const created = o.created_at ? new Date(String(o.created_at)) : null
+      if (created && !Number.isNaN(created.getTime())) {
+        const k = dayKey(created)
+        if (dayOrders.has(k)) {
+          dayOrders.set(k, (dayOrders.get(k) ?? 0) + 1)
+          dayGmv.set(k, (dayGmv.get(k) ?? 0) + total)
+        }
+      }
+    }
+  } catch {
+    /* seller may have zero orders or different route shape */
+  }
+
+  try {
+    const raw = (await getJson("/vendor/offers?limit=100&fields=id")) as {
+      offers?: unknown[]
+      count?: number
+    }
+    offersTotal =
+      typeof raw.count === "number"
+        ? raw.count
+        : Array.isArray(raw.offers)
+          ? raw.offers.length
+          : 0
+  } catch {
+    /* */
+  }
+
+  try {
+    const raw = (await getJson(
+      "/vendor/products?limit=100&fields=id,status",
+    )) as { products?: { status?: string }[]; count?: number }
+    const list = Array.isArray(raw.products) ? raw.products : []
+    productsPublished = list.filter(
+      (p) => String(p.status ?? "").toLowerCase() === "published",
+    ).length
+    if (!productsPublished && typeof raw.count === "number") {
+      productsPublished = raw.count
+    }
+  } catch {
+    /* */
+  }
+
+  const primary_currency =
+    Object.entries(gmv).sort((a, b) => b[1] - a[1])[0]?.[0] ?? "ghs"
+
+  return {
+    generated_at: new Date().toISOString(),
+    products: {
+      published: productsPublished,
+      draft: 0,
+      total: productsPublished,
+    },
+    sellers: { open: 1, total: 1 },
+    offers: { total: offersTotal },
+    orders: {
+      total: ordersTotal,
+      gmv_by_currency: gmv,
+      by_status: Array.from(statusCounts.entries())
+        .map(([name, value]) => ({ name, value }))
+        .sort((a, b) => b.value - a.value),
+    },
+    series: {
+      days: days.map((date) => ({
+        date,
+        orders: dayOrders.get(date) ?? 0,
+        gmv: dayGmv.get(date) ?? 0,
+      })),
+      primary_currency,
+    },
+    catalog_mix: [
+      { name: "Your offers", value: offersTotal },
+      { name: "Published products", value: productsPublished },
+      { name: "Orders (sample)", value: ordersTotal },
+    ].filter((x) => x.value > 0),
+  }
+}

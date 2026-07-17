@@ -24,12 +24,10 @@ export function moneyAmount(v: unknown): number {
   }
   if (typeof v === "object") {
     const o = v as Record<string, unknown>
-    // BigNumber JSON: { value: "45.5", precision: 20 }
     if ("value" in o) {
       const n = Number(o.value)
       return Number.isFinite(n) ? n : 0
     }
-    // Sometimes totals nest: { total: { value } } or { numeric: n }
     if ("numeric" in o) {
       const n = Number(o.numeric)
       return Number.isFinite(n) ? n : 0
@@ -38,6 +36,17 @@ export function moneyAmount(v: unknown): number {
     if ("total" in o) return moneyAmount(o.total)
   }
   return 0
+}
+
+export type DayPoint = {
+  date: string
+  orders: number
+  gmv: number
+}
+
+export type NamedCount = {
+  name: string
+  value: number
 }
 
 export type CommerceStats = {
@@ -58,17 +67,50 @@ export type CommerceStats = {
     total: number
     /** Sum of order.total when present (major units as stored by Medusa) */
     gmv_by_currency: Record<string, number>
+    by_status: NamedCount[]
   }
+  /** Last N days order volume + GMV (primary currency preferred) */
+  series: {
+    days: DayPoint[]
+    primary_currency: string
+  }
+  catalog_mix: NamedCount[]
   search?: {
     enabled: boolean
     indexed_hint?: number
   }
 }
 
+function dayKey(d: Date): string {
+  return d.toISOString().slice(0, 10)
+}
+
+function lastNDays(n: number): string[] {
+  const out: string[] = []
+  const now = new Date()
+  for (let i = n - 1; i >= 0; i--) {
+    const d = new Date(now)
+    d.setUTCDate(d.getUTCDate() - i)
+    out.push(dayKey(d))
+  }
+  return out
+}
+
+function orderTotal(o: Record<string, unknown>): number {
+  const summary = o.summary as Record<string, unknown> | undefined
+  return (
+    moneyAmount(o.total) ||
+    moneyAmount(summary?.total) ||
+    moneyAmount(summary?.raw_total) ||
+    moneyAmount(o.raw_total)
+  )
+}
+
 export async function collectCommerceStats(
   query: QueryService,
-  opts?: { searchEnabled?: boolean },
+  opts?: { searchEnabled?: boolean; days?: number },
 ): Promise<CommerceStats> {
+  const daysN = opts?.days ?? 14
   let productsPublished = 0
   let productsDraft = 0
   let productsTotal = 0
@@ -77,6 +119,14 @@ export async function collectCommerceStats(
   let offersTotal = 0
   let ordersTotal = 0
   const gmv: Record<string, number> = {}
+  const statusCounts = new Map<string, number>()
+  const dayOrders = new Map<string, number>()
+  const dayGmv = new Map<string, number>()
+  const keys = lastNDays(daysN)
+  for (const k of keys) {
+    dayOrders.set(k, 0)
+    dayGmv.set(k, 0)
+  }
 
   try {
     const { data } = await query.graph({
@@ -91,7 +141,7 @@ export async function collectCommerceStats(
       else productsDraft += 1
     }
   } catch {
-    /* module missing in edge env */
+    /* */
   }
 
   try {
@@ -119,47 +169,68 @@ export async function collectCommerceStats(
     /* */
   }
 
-  try {
+  const loadOrders = async (fields: string[]) => {
     const { data } = await query.graph({
       entity: "order",
-      fields: [
-        "id",
-        "total",
-        "summary.total",
-        "summary.raw_total",
-        "currency_code",
-        "status",
-      ],
+      fields,
       filters: {},
     })
-    for (const o of asList(data)) {
-      ordersTotal += 1
-      const cur = String(o.currency_code ?? "unknown").toLowerCase()
-      const summary = o.summary as Record<string, unknown> | undefined
-      const total =
-        moneyAmount(o.total) ||
-        moneyAmount(summary?.total) ||
-        moneyAmount(summary?.raw_total) ||
-        moneyAmount(o.raw_total)
-      gmv[cur] = (gmv[cur] ?? 0) + total
-    }
+    return asList(data)
+  }
+
+  let orderRows: Record<string, unknown>[] = []
+  try {
+    orderRows = await loadOrders([
+      "id",
+      "total",
+      "summary.total",
+      "summary.raw_total",
+      "currency_code",
+      "status",
+      "created_at",
+    ])
   } catch {
-    /* retry minimal fields if summary not on graph */
     try {
-      const { data } = await query.graph({
-        entity: "order",
-        fields: ["id", "total", "currency_code"],
-        filters: {},
-      })
-      for (const o of asList(data)) {
-        ordersTotal += 1
-        const cur = String(o.currency_code ?? "unknown").toLowerCase()
-        gmv[cur] = (gmv[cur] ?? 0) + moneyAmount(o.total)
-      }
+      orderRows = await loadOrders([
+        "id",
+        "total",
+        "currency_code",
+        "status",
+        "created_at",
+      ])
     } catch {
-      /* */
+      orderRows = []
     }
   }
+
+  for (const o of orderRows) {
+    ordersTotal += 1
+    const cur = String(o.currency_code ?? "unknown").toLowerCase()
+    const total = orderTotal(o)
+    gmv[cur] = (gmv[cur] ?? 0) + total
+
+    const st = String(o.status ?? "unknown").toLowerCase() || "unknown"
+    statusCounts.set(st, (statusCounts.get(st) ?? 0) + 1)
+
+    const created = o.created_at ? new Date(String(o.created_at)) : null
+    if (created && !Number.isNaN(created.getTime())) {
+      const k = dayKey(created)
+      if (dayOrders.has(k)) {
+        dayOrders.set(k, (dayOrders.get(k) ?? 0) + 1)
+        dayGmv.set(k, (dayGmv.get(k) ?? 0) + total)
+      }
+    }
+  }
+
+  const primary_currency =
+    Object.entries(gmv).sort((a, b) => b[1] - a[1])[0]?.[0] ??
+    (Object.keys(gmv)[0] || "ghs")
+
+  const seriesDays: DayPoint[] = keys.map((date) => ({
+    date,
+    orders: dayOrders.get(date) ?? 0,
+    gmv: dayGmv.get(date) ?? 0,
+  }))
 
   return {
     generated_at: new Date().toISOString(),
@@ -176,10 +247,23 @@ export async function collectCommerceStats(
     orders: {
       total: ordersTotal,
       gmv_by_currency: gmv,
+      by_status: Array.from(statusCounts.entries())
+        .map(([name, value]) => ({ name, value }))
+        .sort((a, b) => b.value - a.value),
     },
-    search: opts?.searchEnabled
-      ? { enabled: true }
-      : { enabled: Boolean(opts?.searchEnabled) },
+    series: {
+      days: seriesDays,
+      primary_currency,
+    },
+    catalog_mix: [
+      { name: "Published products", value: productsPublished },
+      { name: "Draft products", value: productsDraft },
+      { name: "Open sellers", value: sellersOpen },
+      { name: "Offers", value: offersTotal },
+    ].filter((x) => x.value > 0),
+    search: {
+      enabled: Boolean(opts?.searchEnabled),
+    },
   }
 }
 

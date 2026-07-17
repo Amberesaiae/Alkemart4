@@ -1,15 +1,25 @@
 /**
- * Alkemart branding for Admin panel.
- * Same tokens as Seller Hub / storefront — yellow / white / black.
+ * Alkemart Admin — thorough theme (yellow / white / black).
+ * Themes Mercur shell without forking core routes.
  */
 
 :root {
   --alkemart-yellow: #f5c518;
+  --alkemart-yellow-hover: #e0b400;
+  --alkemart-yellow-pressed: #c9a200;
+  --alkemart-yellow-soft: #fff8d6;
   --alkemart-black: #141414;
+  --alkemart-ink: #0a0a0a;
   --alkemart-white: #ffffff;
-  --alkemart-bg: #fafafa;
-  --alkemart-muted: #f0f0f0;
-  --alkemart-border: #e8e8e8;
+  --alkemart-bg: #f7f7f5;
+  --alkemart-surface: #ffffff;
+  --alkemart-muted: #f0f0ee;
+  --alkemart-border: #e6e6e2;
+  --alkemart-subtle: #5c5c5c;
+  --alkemart-radius: 12px;
+  --alkemart-radius-sm: 8px;
+  --alkemart-shadow: 0 1px 2px rgba(20, 20, 20, 0.06),
+    0 8px 24px rgba(20, 20, 20, 0.04);
 
   --fg-interactive: var(--alkemart-black);
   --fg-interactive-hover: #000000;
@@ -17,20 +27,20 @@
   --border-interactive: var(--alkemart-black);
 
   --button-inverted: var(--alkemart-yellow);
-  --button-inverted-hover: #e0b400;
-  --button-inverted-pressed: #c9a200;
+  --button-inverted-hover: var(--alkemart-yellow-hover);
+  --button-inverted-pressed: var(--alkemart-yellow-pressed);
   --button-inverted-foreground: var(--alkemart-black);
 
   --button-neutral: var(--alkemart-black);
   --button-neutral-hover: #2a2a2a;
   --button-neutral-foreground: var(--alkemart-white);
 
-  --tag-blue-bg: #fff8d6;
+  --tag-blue-bg: var(--alkemart-yellow-soft);
   --tag-blue-text: var(--alkemart-black);
   --tag-blue-border: #f0d86a;
 
   --fg-on-color: var(--alkemart-black);
-  --bg-highlight: #fff8d6;
+  --bg-highlight: var(--alkemart-yellow-soft);
   --border-highlight: #f0d86a;
 }
 
@@ -38,36 +48,265 @@ html,
 body,
 #root {
   font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
-    "Segoe UI", sans-serif;
+    "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
   background: var(--alkemart-bg) !important;
-  color: var(--alkemart-black);
+  color: var(--alkemart-black) !important;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
+/* —— Primary actions —— */
 button[class*="bg-ui-button-inverted"],
 a[class*="bg-ui-button-inverted"],
 .bg-ui-button-inverted {
   background-color: var(--alkemart-yellow) !important;
   color: var(--alkemart-black) !important;
   border-color: transparent !important;
+  font-weight: 600 !important;
+  border-radius: var(--alkemart-radius-sm) !important;
 }
 
 button[class*="bg-ui-button-inverted"]:hover,
-a[class*="bg-ui-button-inverted"]:hover,
-.bg-ui-button-inverted:hover {
-  background-color: #e0b400 !important;
+a[class*="bg-ui-button-inverted"]:hover {
+  background-color: var(--alkemart-yellow-hover) !important;
+}
+
+button[class*="bg-ui-button-neutral"],
+.bg-ui-button-neutral {
+  background-color: var(--alkemart-black) !important;
+  color: var(--alkemart-white) !important;
+  border-radius: var(--alkemart-radius-sm) !important;
 }
 
 *:focus-visible {
-  outline-color: var(--alkemart-yellow) !important;
+  outline: 2px solid var(--alkemart-yellow) !important;
+  outline-offset: 2px;
+}
+
+/* —— Links —— */
+a.text-ui-fg-interactive,
+.text-ui-fg-interactive,
+a[class*="text-ui-fg-interactive"] {
+  color: var(--alkemart-black) !important;
+}
+
+/* —— Sidebar / shell (best-effort class hooks) —— */
+aside,
+nav[class*="sidebar"],
+[data-testid="sidebar"],
+[class*="Sidebar"] {
+  background: var(--alkemart-white) !important;
+  border-color: var(--alkemart-border) !important;
+}
+
+/* Active nav item → soft yellow */
+[aria-current="page"],
+a[aria-current="page"],
+button[aria-current="page"] {
+  background-color: var(--alkemart-yellow-soft) !important;
+  color: var(--alkemart-black) !important;
+  border-radius: var(--alkemart-radius-sm);
+  font-weight: 600 !important;
+}
+
+/* Cards / surfaces */
+[class*="shadow-elevation"],
+[class*="bg-ui-bg-base"],
+.bg-ui-bg-base {
+  border-radius: var(--alkemart-radius) !important;
+}
+
+/* Tables */
+table thead th {
+  font-size: 11px !important;
+  letter-spacing: 0.04em !important;
+  text-transform: uppercase !important;
+  color: var(--alkemart-subtle) !important;
+  font-weight: 700 !important;
+}
+
+/* Login page */
+[data-testid="login-page"],
+main:has(form[action*="login"]),
+body:has([data-login-logo]) {
+  background: linear-gradient(
+      165deg,
+      #ffffff 0%,
+      #fafafa 40%,
+      #fff8d6 100%
+    )
+    !important;
 }
 
 [data-testid="login-page"] a[href*="medusajs"],
-[data-testid="login-page"] a[href*="mercur"] {
+[data-testid="login-page"] a[href*="mercur"],
+a[href*="medusajs.com"],
+a[href*="mercurjs.com"] {
   display: none !important;
 }
 
-a.text-ui-fg-interactive,
-.text-ui-fg-interactive {
-  color: var(--alkemart-black) !important;
+/* Hide default logo art when our brand widget is present */
+[data-login-logo] > *:first-child:not(:only-child) {
+  display: none !important;
+}
+
+/* Alkemart analytics page helpers */
+.alk-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1.5rem 1.25rem 3rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.alk-page-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-bottom: 0.25rem;
+  border-bottom: 1px solid var(--alkemart-border);
+}
+
+.alk-page-header h1 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--alkemart-black);
+}
+
+.alk-page-header p {
+  margin: 0.35rem 0 0;
+  font-size: 0.875rem;
+  color: var(--alkemart-subtle);
+}
+
+.alk-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.75rem;
+}
+
+.alk-kpi {
+  background: var(--alkemart-surface);
+  border: 1px solid var(--alkemart-border);
+  border-radius: var(--alkemart-radius);
+  padding: 1rem 1.1rem;
+  box-shadow: var(--alkemart-shadow);
+}
+
+.alk-kpi-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--alkemart-subtle);
+}
+
+.alk-kpi-value {
+  margin-top: 0.35rem;
+  font-size: 1.65rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--alkemart-black);
+  font-variant-numeric: tabular-nums;
+}
+
+.alk-kpi-hint {
+  margin-top: 0.25rem;
+  font-size: 0.75rem;
+  color: var(--alkemart-subtle);
+}
+
+.alk-chart-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1rem;
+}
+
+.alk-chart-card {
+  background: var(--alkemart-surface);
+  border: 1px solid var(--alkemart-border);
+  border-radius: var(--alkemart-radius);
+  padding: 1rem 1rem 0.5rem;
+  box-shadow: var(--alkemart-shadow);
+  min-height: 280px;
+  display: flex;
+  flex-direction: column;
+}
+
+.alk-chart-card h2 {
+  margin: 0 0 0.25rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.alk-chart-card .alk-chart-sub {
+  margin: 0 0 0.75rem;
+  font-size: 0.75rem;
+  color: var(--alkemart-subtle);
+}
+
+.alk-chart-body {
+  flex: 1;
+  min-height: 200px;
+  width: 100%;
+}
+
+.alk-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  background: var(--alkemart-yellow);
+  color: var(--alkemart-black);
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.alk-empty {
+  padding: 2rem 1rem;
+  text-align: center;
+  color: var(--alkemart-subtle);
+  font-size: 0.875rem;
+}
+
+.alk-error {
+  border: 1px solid #f5c2c2;
+  background: #fff5f5;
+  color: #8b1e1e;
+  border-radius: var(--alkemart-radius);
+  padding: 0.85rem 1rem;
+  font-size: 0.875rem;
+}
+
+.alk-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1rem;
+  padding: 0.85rem 1rem;
+  border-radius: var(--alkemart-radius);
+  border: 1px solid var(--alkemart-border);
+  background: linear-gradient(90deg, #fff 0%, var(--alkemart-yellow-soft) 100%);
+  margin-bottom: 0.75rem;
+}
+
+.alk-banner strong {
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.alk-banner a {
+  font-weight: 700;
+  color: var(--alkemart-black);
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
