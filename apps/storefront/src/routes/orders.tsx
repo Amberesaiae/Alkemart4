@@ -10,8 +10,22 @@ import { EmptyState } from "@/components/empty-state"
 import { Price } from "@/components/price"
 import { formInputClassName } from "@/components/form-field"
 
+function OrdersPendingComponent() {
+  return (
+    <div className="mx-auto max-w-2xl space-y-8" role="status" aria-label="Loading orders">
+      <Skeleton className="h-28 w-full rounded-3xl" />
+      <div className="space-y-3">
+        <Skeleton className="h-24 w-full rounded-2xl" />
+        <Skeleton className="h-24 w-full rounded-2xl" />
+        <Skeleton className="h-24 w-full rounded-2xl" />
+      </div>
+    </div>
+  )
+}
+
 export const Route = createFileRoute("/orders")({
   component: OrdersPage,
+  pendingComponent: OrdersPendingComponent,
 })
 
 function OrdersPage() {
@@ -47,8 +61,8 @@ function OrdersPage() {
         </p>
         <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Orders</h1>
         <p className="text-sm text-muted-foreground">
-          Account history from the store API, or open a guest order by the id
-          from checkout.
+          Signed-in order history, or look up a guest order with the id from
+          checkout.
         </p>
       </header>
 
@@ -56,8 +70,7 @@ function OrdersPage() {
         <div>
           <h2 className="text-base font-bold">Find an order</h2>
           <p className="mt-1 text-xs text-muted-foreground">
-            Paste the order id from your confirmation page. We do not invent
-            order numbers.
+            Paste the order id from your confirmation page.
           </p>
         </div>
         <form
@@ -109,6 +122,7 @@ function OrdersPage() {
 
       {!session.isLoading && !session.data ? (
         <EmptyState
+          illustration="emptyOrders"
           title="Sign in for account orders"
           description="Orders linked to your customer appear here after you sign in. Guest checkouts stay available via the order id above."
           actionLabel="Sign in"
@@ -139,6 +153,7 @@ function OrdersPage() {
 
           {ordersQ.data && ordersQ.data.length === 0 ? (
             <EmptyState
+              illustration="emptyOrders"
               title="No orders yet"
               description="When you place a COD order while signed in, it will show up here."
               actionLabel="Browse market"

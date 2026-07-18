@@ -53,9 +53,23 @@ function CheckoutErrorComponent({ error, reset }: { error: Error; reset: () => v
   )
 }
 
+function CheckoutPendingComponent() {
+  return (
+    <div className="mx-auto max-w-5xl space-y-6 pb-28" role="status" aria-label="Loading checkout">
+      <Skeleton className="h-10 w-48" />
+      <Skeleton className="h-4 w-64" />
+      <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
+        <Skeleton className="h-96 w-full rounded-3xl" />
+        <Skeleton className="h-48 w-full rounded-3xl" />
+      </div>
+    </div>
+  )
+}
+
 export const Route = createFileRoute("/checkout")({
   component: CheckoutPage,
   errorComponent: CheckoutErrorComponent,
+  pendingComponent: CheckoutPendingComponent,
 })
 
 function applyAddress(

@@ -42,9 +42,24 @@ function AccountErrorComponent({ error, reset }: { error: Error; reset: () => vo
   )
 }
 
+function AccountPendingComponent() {
+  return (
+    <div className="mx-auto max-w-2xl space-y-6" role="status" aria-label="Loading account">
+      <Skeleton className="h-40 w-full rounded-3xl" />
+      <div className="space-y-3 border border-border bg-card p-5 sm:p-6">
+        <Skeleton className="h-5 w-40" />
+        <Skeleton className="h-4 w-56" />
+        <Skeleton className="h-20 w-full rounded-2xl" />
+        <Skeleton className="h-20 w-full rounded-2xl" />
+      </div>
+    </div>
+  )
+}
+
 export const Route = createFileRoute("/account")({
   component: AccountPage,
   errorComponent: AccountErrorComponent,
+  pendingComponent: AccountPendingComponent,
 })
 
 function AccountPage() {
