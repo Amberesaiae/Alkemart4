@@ -20,17 +20,42 @@ import {
   type MomoProvider,
 } from "@/lib/checkout"
 import { SellerChip } from "@/components/seller-chip"
-import { listRegionCountryCodes } from "@/lib/region"
+import { listOperatingMarkets, marketForCountry } from "@/lib/markets"
 import { getSessionCustomer } from "@/lib/auth"
 import { listMyAddresses, type CustomerAddress } from "@/lib/addresses"
 import { EmptyState } from "@/components/empty-state"
+import { TrustStrip } from "@/components/trust-strip"
 import { Skeleton } from "@/components/skeleton"
 import { FormField, FormSelect } from "@/components/form-field"
+import {
+  MarketAddressFields,
+  type MarketAddressValues,
+} from "@/components/market-address-fields"
 import { cn } from "@/lib/utils"
 import { isMomoLabEnabled } from "@/lib/env"
 
+function CheckoutErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
+  return (
+    <div className="flex min-h-[50vh] items-center justify-center p-8">
+      <div className="text-center">
+        <h2 className="text-lg font-semibold">Checkout error</h2>
+        <p className="mt-2 text-sm text-muted-foreground">
+          {error.message || "Something went wrong during checkout."}
+        </p>
+        <button
+          onClick={reset}
+          className="mt-4 rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground"
+        >
+          Try again
+        </button>
+      </div>
+    </div>
+  )
+}
+
 export const Route = createFileRoute("/checkout")({
   component: CheckoutPage,
+  errorComponent: CheckoutErrorComponent,
 })
 
 function applyAddress(
@@ -63,9 +88,9 @@ function CheckoutPage() {
     queryKey: ["store", "cart"],
     queryFn: () => retrieveCart(),
   })
-  const countriesQ = useQuery({
-    queryKey: ["store", "region-countries"],
-    queryFn: () => listRegionCountryCodes(),
+  const marketsQ = useQuery({
+    queryKey: ["store", "operating-markets"],
+    queryFn: () => listOperatingMarkets(),
   })
   const sessionQ = useQuery({
     queryKey: ["store", "session"],
@@ -85,8 +110,9 @@ function CheckoutPage() {
     enabled: Boolean(cartQ.data?.items.length),
   })
 
-  const countries = countriesQ.data ?? []
-  const defaultCountry = countries[0] ?? ""
+  const markets = marketsQ.data?.markets ?? []
+  const defaultCountry =
+    marketsQ.data?.default_country_code ?? markets[0]?.country_code ?? ""
   const saved = addressesQ.data ?? []
 
   const [selectedAddressId, setSelectedAddressId] = useState<string | "new">(
@@ -127,8 +153,23 @@ function CheckoutPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [saved.length])
 
+  // Default country when markets load (admin-gated operating markets)
+  useEffect(() => {
+    if (!country && defaultCountry) setCountry(defaultCountry)
+  }, [country, defaultCountry])
+
   const effectiveEmail = email.trim() || sessionQ.data?.email?.trim() || ""
   const countryCode = country || defaultCountry
+  const activeMarket = marketForCountry(markets, countryCode)
+  const addressValues: MarketAddressValues = {
+    phone,
+    address_1: line1,
+    address_2: landmark,
+    city,
+    province,
+    country_code: countryCode,
+    postal_code: postal,
+  }
 
   useEffect(() => {
     const cart = cartQ.data
@@ -143,9 +184,14 @@ function CheckoutPage() {
 
   const place = useMutation({
     mutationFn: async () => {
-      if (!countryCode) {
+      if (!countryCode || !markets.length) {
         throw new Error(
-          "No country on region — configure region countries in Admin",
+          "No operating market — Admin must enable a country on a region",
+        )
+      }
+      if (!marketForCountry(markets, countryCode)) {
+        throw new Error(
+          `Country ${countryCode.toUpperCase()} is not in operation`,
         )
       }
       if (payMethod === "momo" && !momoLab) {
@@ -227,10 +273,14 @@ function CheckoutPage() {
         </h1>
         <p className="text-sm text-muted-foreground">
           {payMethod === "momo" && momoLab
-            ? "Lab Mobile Money — not a production payment claim."
-            : "Cash on delivery. Shipping attaches from the store API when you place the order."}
+            ? "Mobile Money — approve the payment prompt on your phone."
+            : "Cash on delivery. Delivery options are confirmed when you place the order."}
         </p>
       </header>
+
+      {items.length > 0 ? (
+        <TrustStrip variant="checkout" className="hidden sm:block" />
+      ) : null}
 
       {cartQ.isLoading ? (
         <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
@@ -241,6 +291,7 @@ function CheckoutPage() {
 
       {!cartQ.isLoading && items.length === 0 ? (
         <EmptyState
+          illustration="emptyCart"
           title="Cart is empty"
           description="Add products with an offer before checkout."
           actionLabel="Browse market"
@@ -370,78 +421,45 @@ function CheckoutPage() {
                   required
                 />
               </div>
-              <FormField
-                label="Phone"
-                value={phone}
-                onChange={setPhone}
-                type="tel"
-                inputMode="tel"
-                autoComplete="tel"
-                required
-              />
-              <FormField
-                label="Street address"
-                value={line1}
-                onChange={setLine1}
-                autoComplete="street-address"
-                required
-                placeholder="House number, street, area"
-              />
-              <FormField
-                label="Landmark / directions (optional)"
-                value={landmark}
-                onChange={setLandmark}
-                autoComplete="address-line2"
-                placeholder="Near Goil station, blue gate…"
-              />
-              <FormField
-                label="City"
-                value={city}
-                onChange={setCity}
-                autoComplete="address-level2"
-                required
-              />
-              <FormField
-                label="Region / province"
-                value={province}
-                onChange={setProvince}
-                autoComplete="address-level1"
-                placeholder="e.g. Greater Accra"
-              />
-              <FormSelect
-                label="Country"
-                value={countryCode}
-                onChange={setCountry}
-                required
+              {marketsQ.isLoading ? (
+                <p className="text-xs text-muted-foreground">
+                  Loading delivery markets…
+                </p>
+              ) : null}
+              {marketsQ.isError ? (
+                <p className="text-sm text-destructive" role="alert">
+                  {marketsQ.error instanceof Error
+                    ? marketsQ.error.message
+                    : "Could not load operating markets"}
+                </p>
+              ) : null}
+              <MarketAddressFields
+                markets={markets}
+                values={addressValues}
+                onChange={(patch) => {
+                  if (patch.phone !== undefined) setPhone(patch.phone)
+                  if (patch.address_1 !== undefined) setLine1(patch.address_1)
+                  if (patch.address_2 !== undefined) setLandmark(patch.address_2)
+                  if (patch.city !== undefined) setCity(patch.city)
+                  if (patch.province !== undefined) setProvince(patch.province)
+                  if (patch.country_code !== undefined)
+                    setCountry(patch.country_code)
+                  if (patch.postal_code !== undefined)
+                    setPostal(patch.postal_code)
+                }}
                 error={
-                  countriesQ.isError
-                    ? countriesQ.error instanceof Error
-                      ? countriesQ.error.message
-                      : "Could not load countries"
+                  marketsQ.isError
+                    ? marketsQ.error instanceof Error
+                      ? marketsQ.error.message
+                      : "Could not load markets"
                     : undefined
                 }
-              >
-                {!countries.length ? (
-                  <option value="">Loading…</option>
-                ) : (
-                  countries.map((c) => (
-                    <option key={c} value={c}>
-                      {c.toUpperCase()}
-                    </option>
-                  ))
-                )}
-              </FormSelect>
-              <FormField
-                label="GhanaPostGPS (optional)"
-                value={postal}
-                onChange={setPostal}
-                autoComplete="postal-code"
-                placeholder="e.g. GA-123-4567"
               />
-              <p className="text-xs text-muted-foreground">
-                Digital address helps riders when available — not required for
-                cash on delivery.
-              </p>
+              {activeMarket?.locale.shipping.hint ? (
+                <p className="text-xs text-muted-foreground">
+                  {activeMarket.locale.shipping.hint}
+                </p>
+              ) : null}
 
               <div className="space-y-2 rounded-2xl border border-border bg-muted/20 p-4 text-sm">
                 <p className="font-bold">Shipping options</p>
@@ -473,7 +491,8 @@ function CheckoutPage() {
                   </ul>
                 ) : shippingQ.isSuccess ? (
                   <p className="text-xs text-muted-foreground">
-                    No options yet. Configure seller shipping in Mercur.
+                    No delivery options for this cart yet. The seller may still
+                    need to set up delivery for your area.
                   </p>
                 ) : null}
               </div>
@@ -523,14 +542,11 @@ function CheckoutPage() {
                       />
                       <span>
                         <span className="font-semibold text-foreground">
-                          Mobile Money{" "}
-                          <span className="rounded bg-foreground/10 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide">
-                            Lab only
-                          </span>
+                          Mobile Money
                         </span>
                         <span className="mt-0.5 block text-muted-foreground">
-                          Real Paystack charge when keys are set — not simulated
-                          success.
+                          Pay with MTN, Telecel, or AirtelTigo. Approve the
+                          prompt on your phone when it appears.
                         </span>
                       </span>
                     </label>
@@ -547,19 +563,7 @@ function CheckoutPage() {
                       </FormSelect>
                     ) : null}
                   </>
-                ) : (
-                  <label className="flex cursor-not-allowed items-start gap-3 rounded-xl border border-border p-3 opacity-50">
-                    <input type="radio" name="pay" disabled className="mt-1" />
-                    <span>
-                      <span className="font-semibold">
-                        Mobile Money (Paystack)
-                      </span>
-                      <span className="mt-0.5 block text-muted-foreground">
-                        Not enabled — set VITE_FEATURE_MOMO_LAB=true for lab only.
-                      </span>
-                    </span>
-                  </label>
-                )}
+                ) : null}
               </div>
 
               {place.isError ? (
@@ -581,8 +585,8 @@ function CheckoutPage() {
                     ? "Starting MoMo…"
                     : "Placing order…"
                   : payMethod === "momo"
-                    ? "Pay with Mobile Money (lab)"
-                    : "Place COD order"}
+                    ? "Pay with Mobile Money"
+                    : "Place order"}
               </Button>
             </form>
           </div>
@@ -653,8 +657,8 @@ function CheckoutPage() {
               {place.isPending
                 ? "…"
                 : payMethod === "momo"
-                  ? "Pay MoMo (lab)"
-                  : "Place COD order"}
+                  ? "Pay with MoMo"
+                  : "Place order"}
             </Button>
           </div>
         </div>

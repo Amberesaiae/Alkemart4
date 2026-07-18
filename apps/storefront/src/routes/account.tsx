@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { Button } from "@/components/ui/button"
 import { EmptyState } from "@/components/empty-state"
 import { Skeleton } from "@/components/skeleton"
-import { FormField, FormSelect } from "@/components/form-field"
+import { FormField } from "@/components/form-field"
 import {
   getSessionCustomer,
   logout,
@@ -16,11 +16,35 @@ import {
   setDefaultShippingAddress,
   type AddressInput,
 } from "@/lib/addresses"
-import { listRegionCountryCodes } from "@/lib/region"
-import { useState } from "react"
+import { listOperatingMarkets, marketForCountry } from "@/lib/markets"
+import {
+  MarketAddressFields,
+  type MarketAddressValues,
+} from "@/components/market-address-fields"
+import { useEffect, useState } from "react"
+
+function AccountErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
+  return (
+    <div className="flex min-h-[50vh] items-center justify-center p-8">
+      <div className="text-center">
+        <h2 className="text-lg font-semibold">Account unavailable</h2>
+        <p className="mt-2 text-sm text-muted-foreground">
+          {error.message || "Something went wrong loading your account."}
+        </p>
+        <button
+          onClick={reset}
+          className="mt-4 rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground"
+        >
+          Try again
+        </button>
+      </div>
+    </div>
+  )
+}
 
 export const Route = createFileRoute("/account")({
   component: AccountPage,
+  errorComponent: AccountErrorComponent,
 })
 
 function AccountPage() {
@@ -37,9 +61,9 @@ function AccountPage() {
     enabled: Boolean(sessionQ.data),
   })
 
-  const countriesQ = useQuery({
-    queryKey: ["store", "region-countries"],
-    queryFn: () => listRegionCountryCodes(),
+  const marketsQ = useQuery({
+    queryKey: ["store", "operating-markets"],
+    queryFn: () => listOperatingMarkets(),
     enabled: Boolean(sessionQ.data),
   })
 
@@ -52,24 +76,44 @@ function AccountPage() {
   const [lastName, setLastName] = useState("")
   const [phone, setPhone] = useState("")
   const [line1, setLine1] = useState("")
+  const [line2, setLine2] = useState("")
   const [city, setCity] = useState("")
   const [province, setProvince] = useState("")
   const [country, setCountry] = useState("")
   const [postal, setPostal] = useState("")
 
-  const countries = countriesQ.data ?? []
-  const countryCode = country || countries[0] || ""
+  const markets = marketsQ.data?.markets ?? []
+  const defaultCountry =
+    marketsQ.data?.default_country_code ?? markets[0]?.country_code ?? ""
+  const countryCode = country || defaultCountry
+
+  useEffect(() => {
+    if (!country && defaultCountry) setCountry(defaultCountry)
+  }, [country, defaultCountry])
+
+  const addressValues: MarketAddressValues = {
+    phone,
+    address_1: line1,
+    address_2: line2,
+    city,
+    province,
+    country_code: countryCode,
+    postal_code: postal,
+  }
 
   const createAddr = useMutation({
     mutationFn: () => {
-      if (!countryCode) {
-        throw new Error("Country required from region configuration")
+      if (!countryCode || !marketForCountry(markets, countryCode)) {
+        throw new Error(
+          "Country must be an operating market (Admin → Regions)",
+        )
       }
       const body: AddressInput = {
         first_name: firstName,
         last_name: lastName,
         phone,
         address_1: line1,
+        address_2: line2 || undefined,
         city,
         province: province || undefined,
         country_code: countryCode,
@@ -138,6 +182,7 @@ function AccountPage() {
     return (
       <div className="mx-auto max-w-2xl">
         <EmptyState
+          illustration="authBuyer"
           title="Sign in required"
           description="Manage your profile and saved addresses after you sign in."
           actionLabel="Sign in"
@@ -209,7 +254,7 @@ function AccountPage() {
         <section className="space-y-3 border border-border bg-card p-5">
           <h2 className="text-base font-bold">Profile</h2>
           <p className="text-xs text-muted-foreground">
-            Updates go to the Medusa customer record. Email is not changed here.
+            Changes save to your customer profile. Email cannot be changed here.
           </p>
           <div className="grid gap-3 sm:grid-cols-2">
             <FormField
@@ -362,41 +407,19 @@ function AccountPage() {
                 required
               />
             </div>
-            <FormField
-              label="Phone"
-              value={phone}
-              onChange={setPhone}
-              type="tel"
-              required
-            />
-            <FormField
-              label="Address"
-              value={line1}
-              onChange={setLine1}
-              required
-            />
-            <FormField label="City" value={city} onChange={setCity} required />
-            <FormField
-              label="Region"
-              value={province}
-              onChange={setProvince}
-            />
-            <FormSelect
-              label="Country"
-              value={countryCode}
-              onChange={setCountry}
-              required
-            >
-              {countries.map((c) => (
-                <option key={c} value={c}>
-                  {c.toUpperCase()}
-                </option>
-              ))}
-            </FormSelect>
-            <FormField
-              label="Postal (optional)"
-              value={postal}
-              onChange={setPostal}
+            <MarketAddressFields
+              markets={markets}
+              values={addressValues}
+              onChange={(patch) => {
+                if (patch.phone !== undefined) setPhone(patch.phone)
+                if (patch.address_1 !== undefined) setLine1(patch.address_1)
+                if (patch.address_2 !== undefined) setLine2(patch.address_2)
+                if (patch.city !== undefined) setCity(patch.city)
+                if (patch.province !== undefined) setProvince(patch.province)
+                if (patch.country_code !== undefined)
+                  setCountry(patch.country_code)
+                if (patch.postal_code !== undefined) setPostal(patch.postal_code)
+              }}
             />
             {createAddr.isError ? (
               <p className="text-sm text-destructive" role="alert">

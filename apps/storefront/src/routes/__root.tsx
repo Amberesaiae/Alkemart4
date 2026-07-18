@@ -5,6 +5,7 @@ import {
   useNavigate,
   useRouterState,
 } from "@tanstack/react-router"
+import { ErrorBoundary } from "@/components/error-boundary"
 import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-query"
 import { useEffect, useRef, useState } from "react"
 import { retrieveCart } from "@/lib/cart"
@@ -34,12 +35,14 @@ export const Route = createRootRoute({
 
 function RootLayout() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <DocumentTitle />
-      <ScrollToTop />
-      <AnalyticsPageviews />
-      <Shell />
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <DocumentTitle />
+        <ScrollToTop />
+        <AnalyticsPageviews />
+        <Shell />
+      </QueryClientProvider>
+    </ErrorBoundary>
   )
 }
 
@@ -113,17 +116,20 @@ function Shell() {
       ).toUpperCase()
     : null
 
-  // Full-bleed auth: no constrained main, no footer chrome
+  // Full-bleed auth: no scroll, no footer chrome
   if (isAuthPage) {
     return (
-      <div className="min-h-screen flex flex-col bg-background">
+      <div className="flex h-dvh max-h-dvh flex-col overflow-hidden bg-background">
         <a
           href="#main"
           className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:bg-primary focus:px-3 focus:py-2 focus:text-sm focus:font-semibold"
         >
           Skip to content
         </a>
-        <main id="main" className="flex min-h-screen flex-1 flex-col">
+        <main
+          id="main"
+          className="flex min-h-0 flex-1 flex-col overflow-hidden"
+        >
           <Outlet />
         </main>
       </div>

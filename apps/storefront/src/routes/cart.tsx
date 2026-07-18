@@ -14,8 +14,28 @@ import {
   type CartLine,
 } from "@/lib/cart"
 
+function CartErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
+  return (
+    <div className="flex min-h-[50vh] items-center justify-center p-8">
+      <div className="text-center">
+        <h2 className="text-lg font-semibold">Cart unavailable</h2>
+        <p className="mt-2 text-sm text-muted-foreground">
+          {error.message || "Something went wrong loading your cart."}
+        </p>
+        <button
+          onClick={reset}
+          className="mt-4 rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground"
+        >
+          Try again
+        </button>
+      </div>
+    </div>
+  )
+}
+
 export const Route = createFileRoute("/cart")({
   component: CartPage,
+  errorComponent: CartErrorComponent,
 })
 
 function CartPage() {
@@ -87,8 +107,9 @@ function CartPage() {
 
       {!isLoading && !isError && items.length === 0 ? (
         <EmptyState
+          illustration="emptyCart"
           title="Your cart is empty"
-          description="Browse the market and add products that have a live offer."
+          description="Browse the market and add products from local sellers."
           actionLabel="Browse market"
           actionTo="/"
         />
