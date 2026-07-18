@@ -40,7 +40,8 @@
     "@mercurjs/core": "2.2.0",
     "@mercurjs/types": "2.2.0",
     "http-proxy-middleware": "3.0.7",
-    "meilisearch": "^0.59.0"
+    "meilisearch": "^0.59.0",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@acme/admin": "*",
