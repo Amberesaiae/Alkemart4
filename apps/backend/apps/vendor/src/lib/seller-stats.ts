@@ -5,6 +5,16 @@
 
 declare const __BACKEND_URL__: string
 
+export type SellerReadinessSlice = {
+  phase: string
+  setup_complete: boolean
+  can_propose_products: boolean
+  can_create_offers: boolean
+  checklist?: Record<string, boolean>
+  next_action?: { code: string; label: string } | null
+  mercur_status?: string
+}
+
 export type SellerStatsPayload = {
   generated_at: string
   source?: "medusa_graph"
@@ -23,6 +33,8 @@ export type SellerStatsPayload = {
     primary_currency: string
   }
   catalog_mix: { name: string; value: number }[]
+  /** Present when /vendor/alkemart/stats includes readiness (onboarding ADR) */
+  readiness?: SellerReadinessSlice | null
 }
 
 function backendBase(): string {

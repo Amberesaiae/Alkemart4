@@ -190,8 +190,9 @@ function BrowsePage() {
 
       {missingCategory ? (
         <EmptyState
+          illustration="emptyCatalog"
           title="Category not found"
-          description="No matching category from the store API. Showing nothing rather than inventing products."
+          description="This category was not found. Try browsing all products instead."
           actionLabel="All products"
           actionTo="/"
         />
@@ -239,8 +240,9 @@ function BrowsePage() {
 
             {!loading && products.length === 0 ? (
               <EmptyState
+                illustration="emptyCatalog"
                 title="No products in this view"
-                description="Publish offers in Mercur, clear seller filters, or pick another category."
+                description="Nothing matches this view yet. Try another category, clear filters, or check back soon."
                 actionLabel="Home"
                 actionTo="/"
               />

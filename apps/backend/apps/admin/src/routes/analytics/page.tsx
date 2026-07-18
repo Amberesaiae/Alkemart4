@@ -12,7 +12,7 @@ export const config: RouteConfig = {
 
 /**
  * Platform analytics for alkemart Admin.
- * Data from GET /admin/alkemart/stats (Medusa graph — SoR).
+ * Data from the marketplace stats API (orders, GMV, sellers, catalog).
  */
 export default function AdminAnalyticsPage() {
   const base = (typeof __BACKEND_URL__ !== "undefined" && __BACKEND_URL__
@@ -24,7 +24,7 @@ export default function AdminAnalyticsPage() {
     <AnalyticsDashboard
       mode="admin"
       title="Platform analytics"
-      subtitle="Live orders, GMV, sellers, and catalog from GET /admin/alkemart/stats (Medusa graph on Postgres)."
+      subtitle="Live marketplace totals — orders, sales value, sellers, and catalog."
       statsUrl={`${base}/admin/alkemart/stats`}
     />
   )

@@ -17,6 +17,10 @@ export type SearchProductDocument = {
   min_price: number | null
   currency_code: string | null
   has_offer: boolean
+  /** Derived: published + offer + stock + seller open + channel (ADR sellable) */
+  sellable: boolean
+  in_stock: boolean
+  quality_score: number | null
   tags: string[]
 }
 

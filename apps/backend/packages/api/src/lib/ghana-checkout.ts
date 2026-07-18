@@ -26,6 +26,11 @@ import {
   verifyPaystackTransaction,
   type MomoProvider,
 } from "./paystack-client"
+import {
+  listOperatingMarkets,
+  normalizePhoneForCountry,
+  requireOperatingMarket,
+} from "./operating-markets"
 
 export const SYSTEM_PAYMENT_PROVIDER_ID = "pp_system_default"
 
@@ -95,6 +100,7 @@ type LoadedCart = {
     payment_sessions?: { id: string; status?: string; provider_id?: string }[]
   } | null
   items?: { id: string; quantity?: number }[] | null
+  shipping_methods?: { id: string; shipping_option_id?: string | null }[] | null
   completed_at?: string | Date | null
 }
 
@@ -118,6 +124,8 @@ export async function loadCheckoutCart(
       "shipping_address.*",
       "items.id",
       "items.quantity",
+      "shipping_methods.id",
+      "shipping_methods.shipping_option_id",
       "payment_collection.id",
       "payment_collection.payment_sessions.id",
       "payment_collection.payment_sessions.status",
@@ -133,7 +141,13 @@ export async function loadCheckoutCart(
   return cart
 }
 
-function requireCartReadyForCheckout(cart: LoadedCart): void {
+/**
+ * Spine: cart ready + shipping country is an operating market + currency match.
+ */
+async function requireCartReadyForCheckout(
+  container: MedusaContainer,
+  cart: LoadedCart,
+): Promise<void> {
   if (cart.completed_at) {
     throw new CheckoutHttpError(409, "Cart has already been completed")
   }
@@ -143,31 +157,87 @@ function requireCartReadyForCheckout(cart: LoadedCart): void {
   if (!cart.shipping_address) {
     throw new CheckoutHttpError(
       400,
-      "Cart requires a shipping_address before checkout"
+      "Cart requires a shipping_address before checkout",
     )
+  }
+  if (!cart.shipping_methods?.length) {
+    throw new CheckoutHttpError(
+      400,
+      "Cart requires a shipping method before checkout. Choose a delivery option returned by the store API.",
+    )
+  }
+
+  const query = container.resolve(ContainerRegistrationKeys.QUERY) as {
+    graph: (args: unknown) => Promise<{ data: unknown }>
+  }
+  const markets = await listOperatingMarkets(query)
+  if (!markets.length) {
+    throw new CheckoutHttpError(
+      503,
+      "No operating markets configured. Admin must enable a country on a region.",
+    )
+  }
+
+  const country = String(cart.shipping_address?.country_code || "")
+    .trim()
+    .toLowerCase()
+  if (!country) {
+    throw new CheckoutHttpError(400, "Shipping address country is required")
+  }
+
+  let market
+  try {
+    market = requireOperatingMarket(markets, country)
+  } catch (e) {
+    throw new CheckoutHttpError(
+      400,
+      e instanceof Error
+        ? e.message
+        : `Country ${country.toUpperCase()} is not in operation`,
+    )
+  }
+
+  const cartCurrency = String(cart.currency_code || "").toLowerCase()
+  if (
+    cartCurrency &&
+    market.currency_code &&
+    cartCurrency !== market.currency_code
+  ) {
+    throw new CheckoutHttpError(
+      400,
+      `Cart currency ${cartCurrency.toUpperCase()} does not match ${market.display_name} (${market.currency_code.toUpperCase()}).`,
+    )
+  }
+
+  const addr = cart.shipping_address || {}
+  for (const field of market.locale.address.fields) {
+    if (!field.required || field.key === "country_code") continue
+    const raw = addr[field.key as keyof typeof addr]
+    const val = raw == null ? "" : String(raw).trim()
+    if (!val) {
+      throw new CheckoutHttpError(
+        400,
+        `${field.label} is required for ${market.display_name}`,
+      )
+    }
   }
 }
 
-/** Ghana MSISDN → +233… for Paystack. */
+/**
+ * Normalize phone for checkout. Defaults to Ghana rules (primary market).
+ * Prefer normalizePhoneForCountry(country, phone) when country is known.
+ */
 export function normalizeGhanaPhone(phone: string): string {
-  const trimmed = phone.trim()
-  const digits = trimmed.replace(/\D/g, "")
-  if (digits.startsWith("233") && digits.length >= 12) {
-    return `+${digits}`
+  try {
+    return normalizePhoneForCountry("gh", phone)
+  } catch (e) {
+    throw new CheckoutHttpError(
+      400,
+      e instanceof Error
+        ? e.message
+        : "Enter a valid Ghana mobile money number (e.g. 024… or +23324…)",
+    )
   }
-  if (digits.startsWith("0") && digits.length === 10) {
-    return `+233${digits.slice(1)}`
-  }
-  if (digits.length === 9) {
-    return `+233${digits}`
-  }
-  if (trimmed.startsWith("+") && digits.length >= 10) {
-    return `+${digits}`
-  }
-  throw new CheckoutHttpError(
-    400,
-    "Enter a valid Ghana mobile money number (e.g. 024… or +23324…)"
-  )
 }
 
 async function mergeCartMetadata(
@@ -262,7 +332,7 @@ export async function runCodCheckout(
   input: CheckoutInput
 ): Promise<CheckoutResult> {
   const cart = await loadCheckoutCart(container, input.cartId)
-  requireCartReadyForCheckout(cart)
+  await requireCartReadyForCheckout(container, cart)
 
   try {
     const { order_id } = await ensureSystemPaymentAndCompleteCart(
@@ -407,7 +477,7 @@ export async function runMomoCheckout(
   }
 
   const cart = await loadCheckoutCart(container, input.cartId)
-  requireCartReadyForCheckout(cart)
+  await requireCartReadyForCheckout(container, cart)
 
   // Resume: already paid & completed
   if (cart.completed_at && cart.metadata?.ghana_order_id) {
@@ -453,7 +523,18 @@ export async function runMomoCheckout(
     throw new CheckoutHttpError(400, "Cart total must be greater than zero")
   }
   const amountPesewas = toPaystackAmountPesewas(totalMajor, currency)
-  const phone = normalizeGhanaPhone(input.phone)
+  const shipCountry = String(
+    cart.shipping_address?.country_code || "gh",
+  ).toLowerCase()
+  let phone: string
+  try {
+    phone = normalizePhoneForCountry(shipCountry, input.phone)
+  } catch (e) {
+    throw new CheckoutHttpError(
+      400,
+      e instanceof Error ? e.message : "Invalid phone for market",
+    )
+  }
   const reference = `momo_${cart.id.replace(/[^a-zA-Z0-9]/g, "").slice(-16)}_${Date.now().toString(36)}`
   const expiresAt = new Date(Date.now() + MOMO_PENDING_TTL_MS).toISOString()
 

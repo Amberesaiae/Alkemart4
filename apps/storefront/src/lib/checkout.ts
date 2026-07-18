@@ -91,7 +91,7 @@ export async function prepareCartForCod(input: {
     throw new Error("Address, city, and phone are required")
   }
   if (!a.country_code?.trim()) {
-    throw new Error("country_code is required (from form / config, not invented in API layer)")
+    throw new Error("Country is required for delivery")
   }
 
   const cartId = await ensureCartId()
@@ -115,7 +115,7 @@ export async function prepareCartForCod(input: {
   const options = await listCartShippingOptions(cartId)
   if (!options.length) {
     throw new Error(
-      "No shipping options from store API for this cart. Configure seller shipping in Mercur.",
+      "No delivery options are available for this cart. Please try another address or contact the seller.",
     )
   }
 

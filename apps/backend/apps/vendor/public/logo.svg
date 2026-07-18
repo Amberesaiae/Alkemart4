@@ -1,11 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" role="img" aria-label="alkemart">
-  <!-- App mark: black tile + geometric A + gold period (matches alkemart.) -->
+  <!-- Mark only: black tile + gold period (no letter monogram) -->
   <rect width="64" height="64" rx="16" fill="#141414"/>
-  <!-- A body -->
-  <path
-    fill="#F5C518"
-    d="M32.0 13.5c1.05 0 1.98.58 2.45 1.52l16.2 32.5a2.75 2.75 0 0 1-2.45 3.98h-7.1a2.75 2.75 0 0 1-2.48-1.58L36.3 44.2H27.7l-2.32 5.72a2.75 2.75 0 0 1-2.48 1.58h-7.1a2.75 2.75 0 0 1-2.45-3.98l16.2-32.5A2.75 2.75 0 0 1 32 13.5Zm0 14.2-4.55 11.2h9.1L32 27.7Z"
-  />
-  <!-- gold period accent (wordmark echo) -->
-  <circle cx="50.5" cy="49.5" r="3.25" fill="#F5C518"/>
+  <circle cx="32" cy="32" r="10" fill="#F5C518"/>
 </svg>

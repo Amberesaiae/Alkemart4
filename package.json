@@ -11,6 +11,8 @@
     "neon:connect": "bun run scripts/src/neon-connect-backend.ts",
     "backend:sync": "bun run scripts/src/backend-sync.ts",
     "backend:migrate": "bun run scripts/src/backend-migrate.ts",
+    "lab:bootstrap": "bash scripts/lab-bootstrap-marketplace.sh",
+    "smoke:onboarding": "bash scripts/smoke-onboarding-quality.sh",
     "typecheck": "bun run --filter './apps/storefront' --filter './scripts' typecheck",
     "setup": "bun install"
   },

@@ -23,8 +23,8 @@ export function SiteFooter() {
             alkemart<span className="text-primary">.</span>
           </p>
           <p className="max-w-xs text-xs leading-relaxed text-muted-foreground">
-            Multi-seller marketplace for Ghana. Catalog and prices come from the
-            store API.
+            Multi-seller marketplace for Ghana — shop local sellers with cash on
+            delivery and more.
           </p>
         </div>
 
@@ -79,7 +79,7 @@ export function SiteFooter() {
             </p>
             <nav className="flex flex-col gap-2 text-sm text-muted-foreground">
               <Link to="/partners" className="hover:text-foreground">
-                Partners &amp; ops
+                Partners
               </Link>
               {sellUrl ? (
                 <a

@@ -107,32 +107,51 @@ export async function fetchProductsForIndex(
   return docs
 }
 
-/** Published product handles for sitemap (discovery SEO). */
+/**
+ * Sitemap entries — hard rule: only sellable products (published + offer).
+ * Prefer sellable index docs when available; otherwise published ∩ has_offer.
+ */
 export async function listPublishedSitemapEntries(
   query: QueryService,
 ): Promise<{ handle: string; id: string; updated_at?: string }[]> {
-  const { data } = await query.graph({
-    entity: "product",
-    fields: ["id", "handle", "status", "updated_at"],
-    filters: { status: "published" },
-  })
-  const list = Array.isArray(data) ? data : data ? [data] : []
+  const docs = await fetchProductsForIndex(query)
   const out: { handle: string; id: string; updated_at?: string }[] = []
-  for (const row of list) {
-    const r = row as Record<string, unknown>
-    const handle = typeof r.handle === "string" ? r.handle.trim() : ""
-    const id = typeof r.id === "string" ? r.id : ""
-    if (!handle || !id) continue
-    out.push({
-      handle,
-      id,
-      ...(r.updated_at != null ? { updated_at: String(r.updated_at) } : {}),
+  for (const d of docs) {
+    if (!(d.sellable && d.status === "published" && d.has_offer)) continue
+    if (!d.handle || !d.id) continue
+    out.push({ handle: d.handle, id: d.id })
+  }
+  // Fallback if graph enrichment empty but published products exist
+  if (!out.length) {
+    const { data } = await query.graph({
+      entity: "product",
+      fields: ["id", "handle", "status", "updated_at", "variants.offer_id"],
+      filters: { status: "published" },
     })
+    const list = Array.isArray(data) ? data : data ? [data] : []
+    for (const row of list) {
+      const r = row as Record<string, unknown>
+      const handle = typeof r.handle === "string" ? r.handle.trim() : ""
+      const id = typeof r.id === "string" ? r.id : ""
+      const variants = Array.isArray(r.variants) ? r.variants : []
+      const hasOffer = variants.some(
+        (v) =>
+          v &&
+          typeof v === "object" &&
+          typeof (v as { offer_id?: string }).offer_id === "string",
+      )
+      if (!handle || !id || !hasOffer) continue
+      out.push({
+        handle,
+        id,
+        ...(r.updated_at != null ? { updated_at: String(r.updated_at) } : {}),
+      })
+    }
   }
   return out
 }
 
-/** Index only published products (discovery). */
+/** Index only sellable products (discovery SoT). Non-sellable ids are removed. */
 export async function upsertProductDocuments(
   docs: SearchProductDocument[],
 ): Promise<number> {
@@ -140,22 +159,24 @@ export async function upsertProductDocuments(
   if (!index) return 0
   await ensureProductsIndex()
 
-  const published = docs.filter((d) => d.status === "published")
-  const unpublishedIds = docs
-    .filter((d) => d.status !== "published")
+  const sellable = docs.filter(
+    (d) => d.sellable && d.status === "published" && d.has_offer,
+  )
+  const removeIds = docs
+    .filter((d) => !(d.sellable && d.status === "published" && d.has_offer))
     .map((d) => d.id)
 
-  if (unpublishedIds.length) {
+  if (removeIds.length) {
     try {
-      await index.deleteDocuments(unpublishedIds)
+      await index.deleteDocuments(removeIds)
     } catch {
       /* ignore missing */
     }
   }
 
-  if (!published.length) return 0
-  await index.addDocuments(published, { primaryKey: "id" })
-  return published.length
+  if (!sellable.length) return 0
+  await index.addDocuments(sellable, { primaryKey: "id" })
+  return sellable.length
 }
 
 export async function deleteProductDocuments(ids: string[]): Promise<void> {
@@ -174,37 +195,39 @@ export async function reindexAllProducts(
   const docs = await fetchProductsForIndex(query)
   // Wipe + replace so deleted products leave the index
   const index = getProductsIndex()!
-  const published = docs.filter((d) => d.status === "published")
+  const sellable = docs.filter(
+    (d) => d.sellable && d.status === "published" && d.has_offer,
+  )
   await index.deleteAllDocuments()
-  if (published.length) {
-    await index.addDocuments(published, { primaryKey: "id" })
+  if (sellable.length) {
+    await index.addDocuments(sellable, { primaryKey: "id" })
   }
-  return { indexed: published.length, enabled: true }
+  return { indexed: sellable.length, enabled: true }
 }
 
-function buildFilterExpression(input: SearchQueryInput["filters"]): string | undefined {
-  if (!input) return undefined
-  const parts: string[] = ['status = "published"']
+function buildFilterExpression(input?: SearchQueryInput["filters"]): string {
+  // Hard rule: discovery only returns sellable catalog
+  const parts: string[] = ['status = "published"', "sellable = true"]
 
-  if (input.category_handles?.length) {
+  if (input?.category_handles?.length) {
     const ors = input.category_handles
       .map((h) => `category_handles = "${escapeFilter(h)}"`)
       .join(" OR ")
     parts.push(`(${ors})`)
   }
-  if (input.seller_handles?.length) {
+  if (input?.seller_handles?.length) {
     const ors = input.seller_handles
       .map((h) => `seller_handle = "${escapeFilter(h)}"`)
       .join(" OR ")
     parts.push(`(${ors})`)
   }
-  if (typeof input.has_offer === "boolean") {
+  if (typeof input?.has_offer === "boolean") {
     parts.push(`has_offer = ${input.has_offer}`)
   }
-  if (typeof input.min_price === "number" && Number.isFinite(input.min_price)) {
+  if (typeof input?.min_price === "number" && Number.isFinite(input.min_price)) {
     parts.push(`min_price >= ${input.min_price}`)
   }
-  if (typeof input.max_price === "number" && Number.isFinite(input.max_price)) {
+  if (typeof input?.max_price === "number" && Number.isFinite(input.max_price)) {
     parts.push(`min_price <= ${input.max_price}`)
   }
 

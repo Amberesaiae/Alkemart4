@@ -1,17 +1,15 @@
-import { commerceContext, getMedusaClient } from "./medusa"
+import { listOperatingMarkets } from "./markets"
 
-/** Country codes available on the configured Medusa region (from API). */
+/**
+ * Country codes currently in operation (admin-gated via regions).
+ * Prefer markets API so currency + locale stay aligned with country.
+ */
 export async function listRegionCountryCodes(): Promise<string[]> {
-  const sdk = getMedusaClient()
-  const { regionId } = commerceContext()
-  const { region } = await sdk.store.region.retrieve(regionId)
-  const countries = (region as { countries?: { iso_2?: string }[] })?.countries
-  if (!Array.isArray(countries) || !countries.length) {
+  const { markets } = await listOperatingMarkets()
+  if (!markets.length) {
     throw new Error(
-      "Region has no countries from store API. Configure the region in Admin.",
+      "No operating countries. In Admin → Settings → Regions, attach a country to a region.",
     )
   }
-  return countries
-    .map((c) => (c.iso_2 ?? "").toLowerCase())
-    .filter(Boolean)
+  return markets.map((m) => m.country_code)
 }

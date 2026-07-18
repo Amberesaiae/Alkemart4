@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils"
 
 const inputClass =
-  "h-11 min-h-11 w-full border border-border bg-background px-3 text-sm outline-none transition focus:border-foreground focus:ring-1 focus:ring-foreground"
+  "h-12 min-h-12 w-full rounded-xl border border-border bg-background px-3.5 text-sm outline-none transition placeholder:text-muted-foreground/70 focus:border-foreground focus:ring-2 focus:ring-foreground/10"
 
 export function formInputClassName(extra?: string) {
   return cn(inputClass, extra)

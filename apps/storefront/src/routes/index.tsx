@@ -4,10 +4,12 @@ import { useQuery } from "@tanstack/react-query"
 import { ProductCard } from "@/components/product-card"
 import { ProductGridShell } from "@/components/product-grid"
 import { Button } from "@/components/ui/button"
+import { EmptyState } from "@/components/empty-state"
 import { LoadMore } from "@/components/load-more"
 import { ProductGridSkeleton } from "@/components/skeleton"
 import { IconChevronRight } from "@/components/icons"
 import { HomeBento, HomeBentoSkeleton } from "@/components/home-bento"
+import { TrustStrip } from "@/components/trust-strip"
 import { listStoreCategories, listStoreProducts } from "@/lib/products"
 import { listStoreVendors } from "@/lib/vendors"
 import type { StoreProductCard } from "@/lib/products"
@@ -23,10 +25,9 @@ const PAGE = 20
  * ─────────────────────
  * 1. Department strip (categories API)
  * 2. Bento board (products + dept + seller tiles from API only)
- * 3. Shop-by-department grid
- * 4. Full assortment + load more
- *
- * Bento uses live catalog media — never invents products or prices.
+ * 3. Trust / how-it-works illustrations
+ * 4. Shop-by-department grid
+ * 5. Full assortment + load more
  */
 function HomePage() {
   const [limit, setLimit] = useState(PAGE)
@@ -102,7 +103,10 @@ function HomePage() {
         />
       ) : null}
 
-      {/* 3. Department destinations */}
+      {/* 3. How it works */}
+      <TrustStrip variant="home" />
+
+      {/* 4. Department destinations */}
       {categories.length > 0 ? (
         <section className="space-y-3">
           <SectionHead
@@ -187,15 +191,13 @@ function HomePage() {
         ) : null}
 
         {!isLoading && !isError && products.length === 0 ? (
-          <div className="border border-dashed border-border px-6 py-12 text-center">
-            <p className="font-semibold">No products in the catalog yet</p>
-            <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
-              Publish offers in Mercur. Bento and grids only show API results.
-            </p>
-            <Button asChild className="mt-4" variant="outline">
-              <Link to="/help">Help</Link>
-            </Button>
-          </div>
+          <EmptyState
+            illustration="emptyCatalog"
+            title="No products available yet"
+            description="Sellers are still setting up their shops. Check back soon when listings go live."
+            actionLabel="Help"
+            actionTo="/help"
+          />
         ) : null}
 
         {products.length > 0 ? (

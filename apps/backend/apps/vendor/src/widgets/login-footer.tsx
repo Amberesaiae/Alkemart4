@@ -4,21 +4,22 @@ export const config = defineWidgetConfig({
   zone: "login.after.after",
 })
 
+/**
+ * Secondary actions under the sign-in form.
+ * Keep it short — no brand slogans or role lectures (those live in title/hint).
+ */
 export default function LoginFooter() {
+  // Relative to vendor base (/seller) — works on :9000/seller and :7001/seller
+  const href = "register"
+
   return (
-    <p
-      style={{
-        marginTop: 16,
-        textAlign: "center",
-        fontSize: 12,
-        color: "#5c5c5c",
-        lineHeight: 1.45,
-      }}
-    >
-      Sell on <strong style={{ color: "#141414" }}>alkemart</strong>
-      .
-      <br />
-      Manage offers, orders, and shipping for your shop.
-    </p>
+    <div className="alk-auth-footer" data-alk-auth-footer="1">
+      <p className="alk-auth-footer-inline">
+        New seller?{" "}
+        <a className="alk-auth-footer-link" href={href}>
+          Create an account
+        </a>
+      </p>
+    </div>
   )
 }

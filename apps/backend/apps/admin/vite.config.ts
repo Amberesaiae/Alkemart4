@@ -24,9 +24,8 @@ export default defineConfig(({ mode }) => {
         backendUrl,
         // Display name in login title: "Welcome to {{name}}"
         name: 'alkemart',
-        // Public URL (not filesystem path) — AvatarBox uses this as <img src>.
-        // base is /dashboard so the asset is served at /dashboard/logo.svg
-        logo: '/dashboard/logo.svg',
+        // Wordmark (not favicon mark) for login branding
+        logo: '/dashboard/logo-wordmark.svg',
       }),
     ],
   }

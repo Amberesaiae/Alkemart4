@@ -1,6 +1,5 @@
 /**
- * Lab MoMo pending screen — polls /store/ghana-checkout/status until complete/fail.
- * Not a production payment claim.
+ * Mobile Money pending screen — polls checkout status until complete/fail.
  */
 import { useEffect, useState } from "react"
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
@@ -65,17 +64,17 @@ function MomoPendingPage() {
 
   return (
     <div className="mx-auto max-w-lg space-y-6 py-10">
-      <PageSeo title="MoMo pending (lab)" noindex path="/checkout/pending" />
+      <PageSeo title="Payment pending" noindex path="/checkout/pending" />
       <header className="space-y-2 text-center">
         <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
-          Lab · Mobile Money
+          Mobile Money
         </p>
         <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
           Confirm payment on your phone
         </h1>
         <p className="text-sm text-muted-foreground">
-          Approve the USSD / MoMo prompt. This page polls the API — we do not
-          invent a paid status.
+          Approve the MoMo prompt on your phone. This page updates when payment
+          is confirmed.
         </p>
       </header>
 
@@ -122,7 +121,7 @@ function MomoPendingPage() {
         </div>
       ) : (
         <p className="text-center text-xs text-muted-foreground animate-pulse">
-          Waiting for Paystack confirmation…
+          Waiting for payment confirmation…
         </p>
       )}
 

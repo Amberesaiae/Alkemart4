@@ -6,12 +6,12 @@ export const config = defineWidgetConfig({
 
 /**
  * Login wordmark — Seller Hub.
- * Note: Mercur 2.2 login page does not mount WidgetZone; brand-patch.ts
- * injects the same lockup. Kept for when zones are wired.
+ * HTML text (not SVG) so it matches admin + storefront "alkemart." brand.
+ * brand-patch.ts enforces the same when WidgetZone is not mounted.
  */
 export default function LoginBrand() {
   return (
-    <div className="alk-login-brand" data-login-logo="1">
+    <div className="alk-login-brand" data-login-logo="1" data-alk-login-wordmark="1">
       <div className="alk-login-wordmark">
         alkemart<span className="alk-dot">.</span>
       </div>

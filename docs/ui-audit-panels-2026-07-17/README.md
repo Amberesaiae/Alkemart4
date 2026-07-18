@@ -59,7 +59,24 @@ cd apps/backend/apps/admin && bun run dev    # :7000/dashboard
 cd apps/backend/apps/vendor && bun run dev   # :7001/seller
 ```
 
+## Ghana v1 — silenced nav (not deleted)
+
+These Mercur modules are **hidden from the sidebar** (routes still exist by URL if needed):
+
+| Hidden | Why it doesn’t fit Ghana COD/MoMo v1 |
+|--------|--------------------------------------|
+| Campaigns | EU-style ad campaign budgets |
+| Promotions / price lists | Complex B2B pricing; keep simple GHS list prices first |
+| Payouts | Stripe-style seller payouts — not MoMo/bank Ghana yet |
+| Customer groups | Advanced CRM segmenting |
+| Collections / categories (nav) | Can manage later under products/settings |
+| Reservations (admin) | Advanced inventory hold |
+
+**Kept:** Orders, Products, Offers, Customers, Inventory, Sellers (admin), Analytics, Settings.
+
+Analytics UI copy no longer shows API paths, Postgres, or “Medusa” to operators.
+
 ## Known residual (cosmetic)
 
-- Sidebar monogram letter (**A** / **L**) comes from Mercur avatar chip; store name shows **Alkemart Lab Shop**.
-- “Almost ready to sell” banner is intentional setup copy on seller pages until catalog is fully stocked.
+- Sidebar monogram letter (**A** / **L**) comes from the shell avatar chip.
+- “Almost ready to sell” banner until the shop has offers/stock.

@@ -67,8 +67,9 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
       lastName: customer.last_name ?? undefined,
       phone: customer.phone ?? undefined,
       roles,
-      countryCode: (meta.country_code as string) ?? "GH",
-      preferredCurrency: (meta.preferred_currency as string) ?? "GHS",
+      // Prefer metadata; UI should still bind country from operating markets API
+      countryCode: (meta.country_code as string) || undefined,
+      preferredCurrency: (meta.preferred_currency as string) || undefined,
     },
     roles,
   })

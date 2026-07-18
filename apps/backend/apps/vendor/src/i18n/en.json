@@ -1,13 +1,38 @@
 {
   "login": {
-    "title": "Welcome back",
-    "hint": "Products, offers, and orders for your store.",
+    "title": "Seller sign in",
+    "hint": "Products, offers, and orders for your shop.",
     "forgotPassword": "Forgot password? <0>Reset</0>",
     "sessionExpired": "Your session expired — sign in again."
   },
   "invite": {
-    "title": "Start selling",
-    "hint": "Create your seller account and open your storefront."
+    "title": "Create a seller account",
+    "hint": "Register once, then open your shop. Ops may need to approve before you list products.",
+    "backToLogin": "Already registered? Sign in",
+    "createAccount": "Create seller account"
+  },
+  "resetPassword": {
+    "title": "Reset password",
+    "hint": "Enter the email you used for Seller Hub.",
+    "backToLogin": "Back to sign in"
+  },
+  "onboarding": {
+    "wizard": {
+      "store": {
+        "currency": "Currency (use GHS for Ghana)"
+      },
+      "address": {
+        "title": "Shop / warehouse address (Ghana)",
+        "name": "Location name"
+      },
+      "validation": {
+        "currencyRequired": "Choose GHS for Ghana sales",
+        "countryRequired": "Choose Ghana (GH) as country"
+      }
+    }
+  },
+  "fields": {
+    "phone": "Ghana mobile (optional)"
   },
   "customFields": {
     "title": "Custom Fields",

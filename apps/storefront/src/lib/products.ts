@@ -1,4 +1,10 @@
 import { commerceContext, getMedusaClient } from "./medusa"
+import {
+  filterStoreSellable,
+  getBackendUrl,
+  getPublishableKey,
+  useAlkemartCatalog,
+} from "./env"
 import type { SellerRef } from "@/components/seller-chip"
 
 export type StoreProductCard = {
@@ -7,7 +13,7 @@ export type StoreProductCard = {
   handle?: string | null
   thumbnail?: string | null
   description?: string | null
-  /** Present when Mercur hydrates offer on variants — never invented. */
+  /** Present when store API hydrates offer on variants — never invented. */
   offerId?: string | null
   /** Major currency units from calculated_price — only if API returns them. */
   amount?: number | null
@@ -75,7 +81,140 @@ function mapProduct(p: ProductSlice): StoreProductCard {
   }
 }
 
+/**
+ * Product list often omits *seller; /store/offers carries seller on each offer.
+ * Join by offer_id / product_id — never invent sellers.
+ */
+async function enrichSellersFromOffers(
+  products: StoreProductCard[],
+): Promise<StoreProductCard[]> {
+  const need = products.filter((p) => !p.seller && (p.offerId || p.id))
+  if (!need.length) return products
+
+  try {
+    const base = getBackendUrl()
+    const pk = getPublishableKey()
+    const res = await fetch(`${base}/store/offers?limit=100`, {
+      headers: {
+        Accept: "application/json",
+        "x-publishable-api-key": pk,
+      },
+    })
+    if (!res.ok) return products
+    const data = (await res.json()) as {
+      offers?: {
+        id?: string
+        product_id?: string
+        seller?: { id?: string; name?: string; handle?: string } | null
+      }[]
+    }
+    const byOffer = new Map<string, SellerRef>()
+    const byProduct = new Map<string, SellerRef>()
+    for (const o of data.offers ?? []) {
+      const name = o.seller?.name?.trim()
+      if (!name) continue
+      const ref: SellerRef = {
+        id: o.seller?.id ?? null,
+        name,
+        handle: o.seller?.handle ?? null,
+      }
+      if (o.id) byOffer.set(o.id, ref)
+      if (o.product_id) byProduct.set(o.product_id, ref)
+    }
+    return products.map((p) => {
+      if (p.seller) return p
+      const fromOffer = p.offerId ? byOffer.get(p.offerId) : undefined
+      const fromProduct = byProduct.get(p.id)
+      const seller = fromOffer ?? fromProduct ?? null
+      return seller ? { ...p, seller } : p
+    })
+  } catch {
+    return products
+  }
+}
+
 const LIST_FIELDS = "*variants.calculated_price,*seller"
+
+/**
+ * Prefer products that can be added to cart (have offer_id).
+ * When `strict` (default true for production filter path): return only
+ * offer-bearing rows even if that empties the list (honest empty state).
+ * When not strict and no offer_ids present (API omitted fields), return
+ * original list so lab UIs still render.
+ */
+export function preferSellableProducts<T extends { offerId?: string | null }>(
+  products: T[],
+  opts?: { strict?: boolean },
+): T[] {
+  const withOffer = products.filter((p) => Boolean(p.offerId))
+  if (withOffer.length > 0) return withOffer
+  if (opts?.strict) return withOffer
+  return products
+}
+
+/**
+ * Prefer Alkemart catalog (published + offer) when no category/search filters.
+ * Falls back to Medusa product.list with client-side offer filter.
+ */
+async function listFromAlkemartCatalog(limit: number): Promise<{
+  products: StoreProductCard[]
+  count: number
+} | null> {
+  try {
+    const base = getBackendUrl()
+    const pk = getPublishableKey()
+    const res = await fetch(
+      `${base}/store/alkemart/catalog?limit=${encodeURIComponent(String(limit))}`,
+      {
+        headers: {
+          Accept: "application/json",
+          "x-publishable-api-key": pk,
+        },
+      },
+    )
+    if (!res.ok) return null
+    const data = (await res.json()) as {
+      products?: Array<{
+        id?: string
+        title?: string
+        handle?: string | null
+        thumbnail?: string | null
+        description?: string | null
+        offer_id?: string | null
+        seller?: {
+          id?: string | null
+          name?: string | null
+          handle?: string | null
+        } | null
+      }>
+      count?: number
+    }
+    const products: StoreProductCard[] = (data.products ?? [])
+      .filter((p) => p.id)
+      .map((p) => ({
+        id: p.id as string,
+        title: p.title ?? "Untitled",
+        handle: p.handle ?? null,
+        thumbnail: p.thumbnail ?? null,
+        description: p.description ?? null,
+        offerId: p.offer_id ?? null,
+        amount: null,
+        currencyCode: null,
+        seller: p.seller?.name
+          ? {
+              id: p.seller.id ?? null,
+              name: p.seller.name,
+              handle: p.seller.handle ?? null,
+            }
+          : null,
+      }))
+    if (!products.length) return null
+    // Prices still need region calculated_price — enrich via product.list ids if needed
+    return { products, count: data.count ?? products.length }
+  } catch {
+    return null
+  }
+}
 
 /**
  * List published store products for the configured region.
@@ -96,6 +235,49 @@ export async function listStoreProducts(opts?: {
   const limit = opts?.limit ?? 24
   const offset = opts?.offset ?? 0
 
+  const useCatalog =
+    !opts?.categoryId?.trim() &&
+    !opts?.q?.trim() &&
+    offset === 0 &&
+    useAlkemartCatalog()
+
+  if (useCatalog) {
+    const catalog = await listFromAlkemartCatalog(limit)
+    if (catalog?.products.length) {
+      // Hydrate prices from product.list for the catalog ids (region-aware)
+      try {
+        const ids = catalog.products.map((p) => p.id)
+        const response = await sdk.store.product.list({
+          id: ids,
+          limit: ids.length,
+          region_id: regionId,
+          fields: LIST_FIELDS,
+        } as never)
+        const byId = new Map(
+          ((response.products ?? []) as ProductSlice[]).map((p) => [
+            p.id,
+            mapProduct(p),
+          ]),
+        )
+        const hydrated = catalog.products.map((p) => {
+          const full = byId.get(p.id)
+          if (!full) return p
+          return {
+            ...full,
+            offerId: full.offerId || p.offerId,
+            seller: full.seller || p.seller,
+          }
+        })
+        return {
+          products: await enrichSellersFromOffers(hydrated),
+          count: catalog.count,
+        }
+      } catch {
+        return catalog
+      }
+    }
+  }
+
   const query: Record<string, unknown> = {
     limit,
     offset,
@@ -109,10 +291,21 @@ export async function listStoreProducts(opts?: {
     query.q = opts.q.trim()
   }
 
+  // Over-fetch slightly so client-side sellable filter still fills the page
+  const fetchLimit = Math.min(limit * 3, 100)
+  query.limit = fetchLimit
+
   const response = await sdk.store.product.list(query as never)
 
   const raw = (response.products ?? []) as ProductSlice[]
-  const products = raw.map((p) => mapProduct(p))
+  let products = await enrichSellersFromOffers(raw.map((p) => mapProduct(p)))
+
+  // Prefer ATC-capable rows (offer_id). Search/sitemap remain stricter SoT.
+  // Production builds use strict mode (empty list > non-buyable cards).
+  if (filterStoreSellable()) {
+    const strict = import.meta.env.PROD === true
+    products = preferSellableProducts(products, { strict }).slice(0, limit)
+  }
 
   return {
     products,
@@ -139,7 +332,10 @@ export async function getStoreProduct(
       fields,
     } as Record<string, unknown>)
     if (!product?.id) throw new Error("Product not found")
-    return mapProduct(product as unknown as ProductSlice)
+    const [mapped] = await enrichSellersFromOffers([
+      mapProduct(product as unknown as ProductSlice),
+    ])
+    return mapped
   } catch {
     const list = await sdk.store.product.list({
       handle: key,
@@ -151,7 +347,8 @@ export async function getStoreProduct(
     if (!first?.id) {
       throw new Error(`Product not found: ${key}`)
     }
-    return mapProduct(first)
+    const [mapped] = await enrichSellersFromOffers([mapProduct(first)])
+    return mapped
   }
 }
 

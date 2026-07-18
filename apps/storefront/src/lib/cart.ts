@@ -203,7 +203,7 @@ export async function addOfferToCart(
 ): Promise<StoreCart> {
   const trimmed = offerId.trim()
   if (!trimmed) {
-    throw new Error("offer_id is required to add a line item")
+    throw new Error("This item is not available to buy yet")
   }
   if (!Number.isInteger(quantity) || quantity < 1) {
     throw new Error("quantity must be a positive integer")

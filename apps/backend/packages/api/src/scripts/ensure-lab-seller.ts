@@ -1,6 +1,11 @@
 /**
  * Ensure lab seller seller@alkemart.local exists, is approved, and can open Seller Hub.
  * Run: bunx medusa exec ./src/scripts/ensure-lab-seller.ts
+ *
+ * For stock + shipping + a sellable product, prefer:
+ *   bunx medusa exec ./src/scripts/ensure-lab-commerce.ts
+ *
+ * Seller Hub login uses POST /auth/member/emailpass (not /auth/seller).
  */
 import { ExecArgs, Modules, ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import {

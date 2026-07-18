@@ -216,6 +216,7 @@ function SearchPage() {
 
             {productsQ.data && productsQ.data.products.length === 0 ? (
               <EmptyState
+                illustration="emptyCatalog"
                 title={q ? `No results for “${q}”` : "No matching products"}
                 description="Try another term, clear filters, or browse the full catalog."
                 actionLabel="Browse all"

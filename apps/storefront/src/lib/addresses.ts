@@ -18,6 +18,7 @@ export type AddressInput = {
   last_name: string
   phone: string
   address_1: string
+  address_2?: string
   city: string
   province?: string
   country_code: string
@@ -64,6 +65,7 @@ export async function createMyAddress(
     last_name: data.last_name.trim(),
     phone: data.phone.trim(),
     address_1: data.address_1.trim(),
+    address_2: data.address_2?.trim() || undefined,
     city: data.city.trim(),
     province: data.province?.trim() || undefined,
     country_code: data.country_code.trim().toLowerCase(),

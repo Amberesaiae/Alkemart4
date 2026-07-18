@@ -70,7 +70,7 @@ function ProductDetailPage() {
   const add = useMutation({
     mutationFn: async () => {
       const offerId = productQ.data?.offerId
-      if (!offerId) throw new Error("No offer_id from store API")
+      if (!offerId) throw new Error("This item is not available to buy yet")
       return addOfferToCart(offerId, qty)
     },
     onSuccess: () => {
@@ -213,7 +213,7 @@ function ProductDetailPage() {
               />
             ) : (
               <div className="flex aspect-square items-center justify-center bg-gradient-to-br from-muted to-muted/50 text-sm text-muted-foreground">
-                No image from store API
+                No image
               </div>
             )}
           </div>
@@ -233,8 +233,8 @@ function ProductDetailPage() {
             </header>
 
             <p className="rounded-2xl border border-border bg-muted/40 px-4 py-3 text-xs leading-relaxed text-muted-foreground">
-              Delivery options and fees are confirmed at checkout from seller
-              shipping configuration — not estimated here.
+              Delivery options and fees are confirmed at checkout for your
+              address.
             </p>
 
             {p.description ? (
@@ -246,13 +246,13 @@ function ProductDetailPage() {
               </div>
             ) : (
               <p className="text-sm text-muted-foreground">
-                No description from API.
+                No description yet.
               </p>
             )}
 
             {!p.offerId ? (
               <p className="rounded-xl border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
-                This product has no offer_id — cannot add to cart.
+                This item is not available to buy yet.
               </p>
             ) : null}
 

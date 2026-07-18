@@ -13,6 +13,7 @@ import {
 } from "@/lib/orders"
 import { rememberOrderId } from "@/lib/recent-orders"
 import { CopyButton } from "@/components/copy-button"
+import { Illustration } from "@/components/illustration"
 
 export type OrderSearch = {
   placed?: string
@@ -71,17 +72,22 @@ function OrderDetailPage() {
           className="overflow-hidden rounded-3xl border border-primary/30 bg-primary/15 p-6 sm:p-8"
           aria-live="polite"
         >
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-foreground/70">
-            Success
-          </p>
-          <h1 className="mt-2 text-3xl font-bold tracking-tight">
-            Order placed
-          </h1>
-          <p className="mt-2 max-w-md text-sm text-muted-foreground">
-            {paidMomo
-              ? "Mobile Money charge confirmed (lab). Save your order reference below."
-              : "Cash on delivery — pay when you receive your items. Save your order reference below."}
-          </p>
+          <div className="flex flex-col items-start gap-5 sm:flex-row sm:items-center">
+            <Illustration name="orderSuccess" size="md" className="mx-0" />
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-foreground/70">
+                Success
+              </p>
+              <h1 className="mt-2 text-3xl font-bold tracking-tight">
+                Order placed
+              </h1>
+              <p className="mt-2 max-w-md text-sm text-muted-foreground">
+                {paidMomo
+                  ? "Mobile Money payment confirmed. Save your order reference below."
+                  : "Cash on delivery — pay when you receive your items. Save your order reference below."}
+              </p>
+            </div>
+          </div>
         </section>
       ) : null}
 
@@ -134,8 +140,7 @@ function OrderDetailPage() {
             </div>
             {data.displayId == null ? (
               <p className="text-xs text-muted-foreground">
-                Short reference from API id — not a formal receipt until
-                display_id is set.
+                Keep this order id as your reference for support.
               </p>
             ) : null}
             {data.createdAt ? (

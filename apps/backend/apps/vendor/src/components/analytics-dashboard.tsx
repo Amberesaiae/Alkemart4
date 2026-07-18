@@ -78,14 +78,12 @@ export function SellerAnalyticsDashboard() {
           </div>
           <h1>Your shop analytics</h1>
           <p>
-            Live orders and catalog for this seller only — GET /vendor/alkemart/stats
-            (Postgres via Medusa), not platform-wide totals and not mock data.
+            Orders and sales for your shop only — not the whole marketplace.
           </p>
         </div>
         {data?.generated_at ? (
           <p style={{ fontSize: 12, color: "#5c5c5c" }}>
             Updated {new Date(data.generated_at).toLocaleString()}
-            {data.source ? ` · ${data.source}` : ""}
           </p>
         ) : null}
       </header>
@@ -95,30 +93,43 @@ export function SellerAnalyticsDashboard() {
         <div className="alk-error">
           {error}
           <div style={{ marginTop: 8, fontSize: 12 }}>
-            Select your store first if prompted. Empty charts mean this shop has no
-            orders/products yet — place a lab COD order as a buyer after listing offers.
+            Select your store first if prompted. Empty charts mean this shop has
+            no sales yet — list an offer, then place a COD order on the storefront.
           </div>
+        </div>
+      ) : null}
+
+      {data?.readiness && data.readiness.phase !== "active" ? (
+        <div className="alk-banner" style={{ marginBottom: 16 }}>
+          <strong>
+            Setup: {data.readiness.phase.replace(/_/g, " ")}
+          </strong>
+          <span className="alk-banner-body">
+            {data.readiness.next_action?.label ||
+              "Finish shop setup before listing offers."}
+            {!data.readiness.can_propose_products
+              ? " You cannot submit products for review yet."
+              : ""}
+          </span>
         </div>
       ) : null}
 
       {data && !loading ? (
         <>
-          <p style={{ margin: 0, fontSize: 12, fontWeight: 600, color: "#5c5c5c" }}>
-            Live marketplace data
-            {data.seller_id ? ` · seller ${data.seller_id.slice(0, 12)}…` : ""}
-          </p>
           <div className="alk-kpi-grid">
             <div className="alk-kpi">
               <div className="alk-kpi-label">Orders</div>
               <div className="alk-kpi-value">{formatNum(data.orders.total)}</div>
-              <div className="alk-kpi-hint">Your orders (live)</div>
+              <div className="alk-kpi-hint">Your shop orders</div>
             </div>
             <div className="alk-kpi">
-              <div className="alk-kpi-label">GMV ({currency})</div>
+              <div className="alk-kpi-label">Sales / GMV ({currency})</div>
               <div className="alk-kpi-value">
                 {currency === "GHS" ? formatGhs(gmvPrimary) : formatNum(gmvPrimary)}
               </div>
-              <div className="alk-kpi-hint">Sum of your order totals</div>
+              <div className="alk-kpi-hint">
+                Gross merchandise value — sum of your order totals
+              </div>
             </div>
             <div className="alk-kpi">
               <div className="alk-kpi-label">Offers</div>
@@ -136,14 +147,14 @@ export function SellerAnalyticsDashboard() {
 
           <div className="alk-chart-grid">
             <section className="alk-chart-card" style={{ gridColumn: "1 / -1" }}>
-              <h2>Orders & GMV (30 days)</h2>
+              <h2>Orders & sales (30 days)</h2>
               <p className="alk-chart-sub">
-                Your shop only · bars = orders · area = GMV · live order_seller link
+                Your shop only · bars = orders · yellow = sales total (GMV)
               </p>
               <div className="alk-chart-body" style={{ minHeight: 260 }}>
                 {daySeries.every((d) => d.orders === 0 && d.gmv === 0) ? (
                   <div className="alk-empty">
-                    No orders in the last 14 days for this seller yet.
+                    No orders for your shop in the last 30 days yet.
                   </div>
                 ) : (
                   <ResponsiveContainer width="100%" height={260}>
@@ -206,7 +217,7 @@ export function SellerAnalyticsDashboard() {
                         yAxisId="gmv"
                         type="monotone"
                         dataKey="gmv"
-                        name={`GMV (${currency})`}
+                        name={`Sales GMV (${currency})`}
                         stroke={CHART.yellow}
                         strokeWidth={2}
                         fill="url(#sellerGmv)"

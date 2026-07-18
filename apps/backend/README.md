@@ -85,8 +85,37 @@ that password for anything beyond local lab use.
 
 1. Register at **http://localhost:9000/seller/register** (creates a **member**)
 2. Create seller/store in the vendor panel (often `pending_approval`)
-3. In **Admin**, approve the seller
-4. In **Seller hub**, add stock, products, shipping, offers
+3. In **Admin** → **Seller queue** (or `POST /admin/sellers/:id/approve`), approve the seller  
+   - Reject application = Mercur **suspend** with reason `[code] text`
+4. In **Seller hub**, finish setup (stock location + Ghana shipping) until readiness is **active**  
+   - Poll: `GET /vendor/alkemart/onboarding/status`
+5. List products (`proposed`) → Admin **Product review** confirm → offers
+
+ADR: `docs/architecture/2026-07-18-seller-onboarding-product-quality-pipeline.md`
+
+### Lab helpers
+
+```bash
+# From monorepo root (prefers Linux worktree for medusa exec):
+bun run lab:bootstrap
+
+# Or manually from packages/api:
+bunx medusa exec ./src/scripts/ensure-lab-commerce.ts   # also seeds Ghana categories
+bunx medusa exec ./src/scripts/ensure-ghana-categories.ts
+bunx medusa exec ./src/scripts/reindex-search.ts        # when MEILISEARCH_HOST set
+
+# Smoke routes (API must be up):
+API=http://localhost:9000 PK=$VITE_MEDUSA_PUBLISHABLE_KEY bun run smoke:onboarding
+```
+
+| Endpoint | Role |
+|----------|------|
+| `GET /vendor/alkemart/onboarding/status` | Seller readiness poll |
+| `POST /vendor/alkemart/products/:id/propose` | Submit for review |
+| `GET /admin/alkemart/moderation/*` | Seller / product queues |
+| `GET /store/alkemart/catalog` | Buyer published+offer list |
+
+Image derivatives run every 5 minutes when Redis workers are up (`sharp` in dependencies). Without keys, email notifications **log only**.
 
 Plain-English guide: `docs/architecture/2026-07-17-mercur-admin-seller-explained.md`  
 Vendor API runbook: `docs/architecture/2026-07-16-mercur-vendor-rbac-catalog-runbook.md`

@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router"
 import { Button } from "@/components/ui/button"
+import { Illustration } from "@/components/illustration"
 import { getMercurVendorUrl } from "@/lib/env"
 
 export const Route = createFileRoute("/sell")({
@@ -7,9 +8,7 @@ export const Route = createFileRoute("/sell")({
 })
 
 /**
- * Production-style “Sell on alkemart” entry.
- * Sellers register/log in on Seller Hub (separate app) — same pattern as Jumia Vendor Center.
- * No third-party product names in the UI.
+ * “Sell on alkemart” — merchant pitch with brand illustrations.
  */
 function SellPage() {
   let sellerHub = ""
@@ -27,43 +26,46 @@ function SellPage() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-10 pb-8">
-      <header className="space-y-4 border-b border-border pb-8">
-        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-          For merchants
-        </p>
-        <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
-          Sell on alkemart
-          <span className="text-primary">.</span>
-        </h1>
-        <p className="max-w-xl text-base leading-relaxed text-muted-foreground">
-          Open a shop, upload products, set delivery options, and reach buyers
-          across Ghana. You manage inventory and orders in{" "}
-          <strong className="text-foreground">Seller Hub</strong> — customers
-          shop on this website.
-        </p>
-        <div className="flex flex-wrap gap-3 pt-2">
-          {registerUrl ? (
-            <Button asChild className="min-h-11 rounded-none px-6">
-              <a href={registerUrl} target="_blank" rel="noopener noreferrer">
-                Open a seller account
-              </a>
-            </Button>
-          ) : (
-            <Button className="min-h-11 rounded-none" disabled>
-              Seller Hub not configured
-            </Button>
-          )}
-          {loginUrl ? (
-            <Button
-              asChild
-              variant="outline"
-              className="min-h-11 rounded-none px-6"
-            >
-              <a href={loginUrl} target="_blank" rel="noopener noreferrer">
-                Seller Hub login
-              </a>
-            </Button>
-          ) : null}
+      <header className="grid items-center gap-8 border-b border-border pb-10 sm:grid-cols-[1fr_auto]">
+        <div className="space-y-4">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+            For merchants
+          </p>
+          <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
+            Sell on alkemart
+            <span className="text-primary">.</span>
+          </h1>
+          <p className="max-w-xl text-base leading-relaxed text-muted-foreground">
+            Open a shop in <strong className="text-foreground">Seller Hub</strong>.
+            Buyers find you on this website.
+          </p>
+          <div className="flex flex-wrap gap-3 pt-2">
+            {registerUrl ? (
+              <Button asChild className="min-h-11 rounded-none px-6">
+                <a href={registerUrl} target="_blank" rel="noopener noreferrer">
+                  Open a seller account
+                </a>
+              </Button>
+            ) : (
+              <Button className="min-h-11 rounded-none" disabled>
+                Seller Hub unavailable
+              </Button>
+            )}
+            {loginUrl ? (
+              <Button
+                asChild
+                variant="outline"
+                className="min-h-11 rounded-none px-6"
+              >
+                <a href={loginUrl} target="_blank" rel="noopener noreferrer">
+                  Seller Hub login
+                </a>
+              </Button>
+            ) : null}
+          </div>
+        </div>
+        <div className="flex items-center justify-center rounded-3xl bg-[#faf8f2] p-6 sm:p-8">
+          <Illustration name="authSeller" size="lg" priority />
         </div>
       </header>
 
@@ -71,37 +73,44 @@ function SellPage() {
         <Step
           n="1"
           title="Register"
-          body="Create your seller login in Seller Hub. Use a business email you check often."
+          body="Create a Seller Hub account with a business email you check often."
+          art="shoppingSale"
         />
         <Step
           n="2"
-          title="Set up shop"
-          body="Add your store name, location, and shipping. Wait for platform approval if required."
+          title="Get approved"
+          body="Open your shop (pending), then wait for alkemart ops to approve. Add Ghana address, stock location, and delivery after approval."
+          art="doorstepDelivery"
         />
         <Step
           n="3"
           title="List & sell"
-          body="Upload products and prices. When buyers order on alkemart, you fulfill from Seller Hub."
+          body="Add clear photos and titles, submit for review, set a GHS offer and stock. Buyers pay COD (or MoMo when enabled)."
+          art="cashOnDelivery"
         />
       </section>
 
-      <section className="border border-border bg-card p-5 sm:p-6">
-        <h2 className="text-lg font-bold tracking-tight">How it works</h2>
-        <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
-          <li>
-            <strong className="text-foreground">This website</strong> — buyers
-            browse, cart, and pay (e.g. cash on delivery).
-          </li>
-          <li>
-            <strong className="text-foreground">Seller Hub</strong> — you upload
-            products, stock, shipping, and handle orders (like Vendor Center on
-            large marketplaces).
-          </li>
-          <li>
-            <strong className="text-foreground">Admin</strong> — alkemart ops
-            approve shops and manage the platform (not for sellers).
-          </li>
-        </ul>
+      <section className="grid gap-4 rounded-3xl border border-border bg-card p-5 sm:grid-cols-2 sm:p-6">
+        <div className="flex justify-center rounded-2xl bg-[#faf8f2] p-4 ring-1 ring-border/60">
+          <Illustration name="cashOnDelivery" size="md" />
+        </div>
+        <div className="flex flex-col justify-center space-y-3">
+          <h2 className="text-lg font-bold tracking-tight">How it works</h2>
+          <ul className="space-y-2 text-sm text-muted-foreground">
+            <li>
+              <strong className="text-foreground">This website</strong> — buyers
+              browse, cart, and pay (e.g. cash on delivery).
+            </li>
+            <li>
+              <strong className="text-foreground">Seller Hub</strong> — you
+              upload products, stock, shipping, and handle orders.
+            </li>
+            <li>
+              <strong className="text-foreground">Admin</strong> — platform ops
+              approve shops (not for sellers).
+            </li>
+          </ul>
+        </div>
       </section>
 
       <section className="border border-border bg-muted/30 p-5 text-sm text-muted-foreground">
@@ -116,10 +125,9 @@ function SellPage() {
       </section>
 
       {!sellerHub ? (
-        <p className="text-xs text-destructive">
-          Set the seller hub URL in storefront env (
-          <code className="text-foreground">VITE_MERCUR_VENDOR_URL</code>
-          ) so buttons can open the live Seller Hub.
+        <p className="text-sm text-muted-foreground">
+          Seller Hub is temporarily unavailable. Please try again later or
+          contact support.
         </p>
       ) : null}
 
@@ -129,16 +137,24 @@ function SellPage() {
         </Link>
         {" · "}
         <Link to="/partners" className="font-semibold underline">
-          Partners &amp; ops
+          Partners
         </Link>
       </p>
     </div>
   )
 }
 
-function Step(props: { n: string; title: string; body: string }) {
+function Step(props: {
+  n: string
+  title: string
+  body: string
+  art: "doorstepDelivery" | "shoppingSale" | "cashOnDelivery"
+}) {
   return (
-    <div className="border border-border bg-card p-4">
+    <div className="flex flex-col border border-border bg-card p-4">
+      <div className="mb-3 flex justify-center rounded-xl bg-[#faf8f2] py-3 ring-1 ring-border/50">
+        <Illustration name={props.art} size="sm" />
+      </div>
       <div className="flex h-8 w-8 items-center justify-center bg-primary text-sm font-bold text-primary-foreground">
         {props.n}
       </div>

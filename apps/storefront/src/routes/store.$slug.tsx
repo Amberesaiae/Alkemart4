@@ -120,11 +120,12 @@ function StorePage() {
 
       {vendorQ.isError ? (
         <EmptyState
+          illustration="marketplace"
           title="Store not found"
           description={
             vendorQ.error instanceof Error
               ? vendorQ.error.message
-              : "No seller for this slug from the API."
+              : "We could not find this seller."
           }
           actionLabel="Sellers"
           actionTo="/sellers"
@@ -164,8 +165,9 @@ function StorePage() {
 
       {vendor && !productsQ.isLoading && filtered.length === 0 ? (
         <EmptyState
-          title="No products linked to this seller"
-          description="Seller exists, but product list did not include matching seller fields."
+          illustration="emptyCatalog"
+          title="No products from this seller yet"
+          description="This shop is open, but has no listings in the catalog right now."
           actionLabel="All products"
           actionTo="/"
         />

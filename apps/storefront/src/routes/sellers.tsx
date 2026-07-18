@@ -65,10 +65,7 @@ function SellersPage() {
           Sellers
         </h1>
         <p className="max-w-xl text-sm text-muted-foreground">
-          {sellers[0]?.source === "catalog"
-            ? "Derived from product seller fields when a vendor list is unavailable."
-            : "Sellers returned by the store API."}{" "}
-          Nothing is invented when the list is empty.
+          Shops selling on alkemart. Open a store to see their products.
         </p>
       </header>
 
@@ -90,8 +87,9 @@ function SellersPage() {
 
       {!loading && sellers.length === 0 ? (
         <EmptyState
-          title="No sellers to show"
-          description="The vendor list endpoint returned none, and product rows had no seller handles."
+          illustration="marketplace"
+          title="No sellers to show yet"
+          description="When shops open on alkemart, they will appear here."
           actionLabel="Browse products"
           actionTo="/"
         />

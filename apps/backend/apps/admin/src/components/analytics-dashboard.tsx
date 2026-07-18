@@ -134,32 +134,18 @@ export function AnalyticsDashboard({ title, subtitle, statsUrl, mode }: Props) {
 
       {data && !loading ? (
         <>
-          <p
-            style={{
-              margin: 0,
-              fontSize: 12,
-              fontWeight: 600,
-              color: "#5c5c5c",
-              letterSpacing: "0.02em",
-            }}
-          >
-            Live data from Medusa/Mercur Postgres
-            {data.source ? ` · source=${data.source}` : ""}
-            {data.scope ? ` · scope=${data.scope}` : ""}
-          </p>
-
           <AlkKpiGrid>
             <AlkKpi
               label="Orders"
               value={formatNum(data.orders.total)}
-              hint="All-time count (live graph)"
+              hint="All-time marketplace orders"
             />
             <AlkKpi
-              label={`GMV (${currency})`}
+              label={`Sales / GMV (${currency})`}
               value={
                 currency === "GHS" ? formatGhs(gmvPrimary) : formatNum(gmvPrimary)
               }
-              hint="Sum of live order totals"
+              hint="Gross merchandise value — total of order amounts"
             />
             {mode === "admin" ? (
               <>
@@ -179,7 +165,7 @@ export function AnalyticsDashboard({ title, subtitle, statsUrl, mode }: Props) {
                       </span>
                     </>
                   }
-                  hint="Open / total (live)"
+                  hint="Open / total shops"
                 />
                 <AlkKpi
                   label="Products"
@@ -192,7 +178,7 @@ export function AnalyticsDashboard({ title, subtitle, statsUrl, mode }: Props) {
                 <AlkKpi
                   label="Offers"
                   value={formatNum(data.offers.total)}
-                  hint="Your live sellables"
+                  hint="Items buyers can purchase"
                 />
                 <AlkKpi
                   label="Catalog"
@@ -206,11 +192,14 @@ export function AnalyticsDashboard({ title, subtitle, statsUrl, mode }: Props) {
           <div className="alk-chart-grid">
             <AlkChartCard
               wide
-              title="Orders & GMV (30 days)"
-              subtitle="Daily order count (bars) and GMV line · from live marketplace orders"
+              title="Orders & sales (30 days)"
+              subtitle="Bars = order count · yellow = sales total (GMV)"
             >
               {daySeries.every((d) => d.orders === 0 && d.gmv === 0) ? (
-                <AlkEmpty>No orders in this window yet.</AlkEmpty>
+                <AlkEmpty>
+                  No orders in this window yet. New storefront sales will appear
+                  here automatically.
+                </AlkEmpty>
               ) : (
                 <ResponsiveContainer width="100%" height={260}>
                   <AreaChart
@@ -275,7 +264,7 @@ export function AnalyticsDashboard({ title, subtitle, statsUrl, mode }: Props) {
                       yAxisId="gmv"
                       type="monotone"
                       dataKey="gmv"
-                      name={`GMV (${currency})`}
+                      name={`Sales GMV (${currency})`}
                       stroke={CHART.yellow}
                       strokeWidth={2}
                       fill="url(#gmvFill)"
@@ -287,7 +276,7 @@ export function AnalyticsDashboard({ title, subtitle, statsUrl, mode }: Props) {
 
             <AlkChartCard
               title="Orders by status"
-              subtitle="Distribution · not a funnel claim"
+              subtitle="How orders are progressing"
             >
               {statusData.length === 0 ? (
                 <AlkEmpty>No status breakdown yet.</AlkEmpty>
@@ -328,7 +317,7 @@ export function AnalyticsDashboard({ title, subtitle, statsUrl, mode }: Props) {
               )}
             </AlkChartCard>
 
-            <AlkChartCard title="Catalog mix" subtitle="Live catalog counts from Postgres">
+            <AlkChartCard title="Catalog mix" subtitle="Products, sellers, and offers">
               {mixData.length === 0 ? (
                 <AlkEmpty>No catalog data.</AlkEmpty>
               ) : (

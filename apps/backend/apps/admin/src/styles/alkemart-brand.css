@@ -168,6 +168,176 @@ a[href*="mercurjs.com"] {
   background: transparent !important;
 }
 
+/* —— Split login: full-bleed art | spacious form —— */
+[data-testid="login-page"].alk-login-split {
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  min-height: 100vh !important;
+  min-height: 100dvh !important;
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  align-items: stretch !important;
+  gap: 0 !important;
+  background: #ffffff !important;
+}
+@media (min-width: 960px) {
+  [data-testid="login-page"].alk-login-split {
+    grid-template-columns: minmax(0, 1.08fr) minmax(28rem, 0.92fr) !important;
+  }
+}
+
+/*
+ * Illustration side: continuous cream + large transparent art.
+ * No card, no cover-crop, no hard corners — art floats on same bg.
+ */
+.alk-login-art-panel {
+  display: none;
+  position: relative;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow: hidden;
+  background: #faf8f2 !important;
+  padding: 2.5rem 2rem 2rem !important;
+  margin: 0 !important;
+  box-sizing: border-box !important;
+}
+@media (min-width: 960px) {
+  .alk-login-art-panel {
+    display: flex !important;
+  }
+}
+/* Soft glow behind art (same hue family as cream) */
+.alk-login-art-panel::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 52%;
+  width: min(70vmin, 36rem);
+  height: min(70vmin, 36rem);
+  transform: translate(-50%, -50%);
+  border-radius: 9999px;
+  background: rgba(245, 197, 24, 0.22);
+  filter: blur(56px);
+  pointer-events: none;
+  z-index: 0;
+}
+.alk-login-art-brand {
+  position: relative;
+  z-index: 2;
+  flex: 0 0 auto;
+  font-weight: 800;
+  font-size: 1.5rem;
+  letter-spacing: -0.04em;
+  color: #141414;
+  margin: 0 0 0.35rem 0;
+  align-self: flex-start;
+}
+.alk-login-art-brand .alk-dot {
+  color: #f5c518;
+}
+.alk-login-art-caption {
+  position: relative;
+  z-index: 2;
+  flex: 0 0 auto;
+  margin: 0 0 auto 0;
+  max-width: 14rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: rgba(20, 20, 20, 0.6);
+  line-height: 1.4;
+  align-self: flex-start;
+}
+/* Large, free art — object-contain so transparent edges dissolve into cream */
+.alk-login-art-img {
+  position: relative !important;
+  z-index: 1;
+  display: block !important;
+  width: min(92%, 38rem) !important;
+  height: auto !important;
+  max-height: min(78vh, 38rem) !important;
+  margin: auto !important;
+  object-fit: contain !important;
+  object-position: center center !important;
+  user-select: none;
+  pointer-events: none;
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  inset: auto !important;
+}
+/* Hide old nested structure leftovers */
+.alk-login-art-inner,
+.alk-login-art-frame,
+.alk-login-art-title,
+.alk-login-art-desc {
+  display: none !important;
+}
+
+/* Form column — airy, not cramped */
+[data-testid="login-page"].alk-login-split > :not(.alk-login-art-panel) {
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  align-items: center !important;
+  position: relative !important;
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding: 3rem 1.75rem !important;
+  background: #ffffff !important;
+  box-sizing: border-box !important;
+}
+@media (min-width: 960px) {
+  [data-testid="login-page"].alk-login-split > :not(.alk-login-art-panel) {
+    padding: 3.5rem 4rem !important;
+  }
+}
+@media (min-width: 1280px) {
+  [data-testid="login-page"].alk-login-split > :not(.alk-login-art-panel) {
+    padding: 4rem 5.5rem !important;
+  }
+}
+
+/* Form container width + vertical rhythm */
+[data-testid="login-page"].alk-login-split [data-testid="login-container"] {
+  width: 100% !important;
+  max-width: 26rem !important;
+  margin: 0 auto !important;
+  gap: 1.25rem !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+[data-testid="login-page"].alk-login-split form {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 1rem !important;
+  width: 100% !important;
+}
+[data-testid="login-page"].alk-login-split form > * + * {
+  margin-top: 0 !important;
+}
+[data-testid="login-page"].alk-login-split label {
+  margin-bottom: 0.35rem !important;
+  font-size: 0.8125rem !important;
+  font-weight: 600 !important;
+}
+[data-testid="login-page"].alk-login-split input {
+  min-height: 2.75rem !important;
+  padding: 0.65rem 0.85rem !important;
+  font-size: 0.9375rem !important;
+  border-radius: 0.65rem !important;
+}
+[data-testid="login-page"].alk-login-split button[type="submit"] {
+  min-height: 2.85rem !important;
+  margin-top: 0.35rem !important;
+  border-radius: 0.65rem !important;
+  font-size: 0.9375rem !important;
+  font-weight: 700 !important;
+}
+
 /* Wordmark lockup under the mark */
 .alk-login-brand {
   display: flex;
@@ -370,29 +540,17 @@ a[href*="mercurjs.com"] {
 }
 
 /* —— Kill residual Medusa / Mercur shell brand —— */
-/* Sidebar store name often rendered as "Medusa Store" */
-aside [data-testid="sidebar-store-name"],
-[data-testid="sidebar-store-name"],
-aside span:has(+ [data-testid="sidebar-user-menu-name"]) {
-  /* keep structure */
+/* No letter monogram icons (M / a / A) — wordmark + logo.svg only */
+aside [class*="rounded"][class*="bg-ui-bg-component"]:has(> span:only-child),
+aside [class*="rounded"]:has(> span:only-child):not(:has(img)):not(:has(svg)),
+[data-alk-hide-monogram="1"] {
+  display: none !important;
 }
 
-/* Replace known shell label via attribute when present */
-[data-testid="sidebar"] a[href="/"] span,
-aside a[href="/"] {
-  /* logo link */
-}
-
-/* Hide default monogram "M" avatar squares in chrome (not analytics) */
-aside [class*="rounded"][class*="bg-ui-bg-component"]:has(> span:only-child) {
-  background: #141414 !important;
-  color: #f5c518 !important;
-}
-
-/* Force sidebar header text if it literally says Medusa */
-/* JS-less: hide store name text node containers that match via title attr */
 [title="Medusa Store"],
-[aria-label="Medusa Store"] {
+[aria-label="Medusa Store"],
+[title="Mercur"],
+[aria-label="Mercur"] {
   font-size: 0 !important;
 }
 [title="Medusa Store"]::after,
@@ -404,13 +562,55 @@ aside [class*="rounded"][class*="bg-ui-bg-component"]:has(> span:only-child) {
   color: var(--alkemart-black);
 }
 
-/* —— Navigation hierarchy (best-effort shell hooks) —— */
+/* Hide vendor marketing / path leaks in UI */
+a[href*="medusajs"],
+a[href*="mercurjs"],
+a[href*="mercur.dev"] {
+  display: none !important;
+}
+
+/* Ghana v1: silence modules that don't fit COD/MoMo marketplace yet */
+aside a[href*="/campaigns"],
+aside a[href*="/price-lists"],
+aside a[href*="/promotions"],
+aside a[href*="/payouts"],
+aside a[href*="/customer-groups"],
+aside a[href*="/reservations"],
+aside a[href*="/collections"],
+aside a[href*="/categories"],
+nav a[href*="/campaigns"],
+nav a[href*="/price-lists"],
+nav a[href*="/promotions"],
+nav a[href*="/payouts"],
+nav a[href*="/customer-groups"],
+nav a[href*="/reservations"],
+nav a[href*="/collections"],
+nav a[href*="/categories"] {
+  display: none !important;
+}
+
+/* Hide technical dumps (stacks, absolute paths) if they surface */
+[data-alk-hidden-tech],
+pre:has(:is(code)):empty {
+  display: none !important;
+}
+
+/* —— Sidebar / shell (native size — restored) —— */
+aside,
+nav[class*="sidebar"],
+[data-testid="sidebar"],
+[class*="Sidebar"] {
+  background: var(--alkemart-surface, var(--alkemart-white, #fff)) !important;
+  border-color: var(--alkemart-border) !important;
+}
+
 nav a,
 aside a,
 [data-testid="sidebar"] a {
   font-size: 13px !important;
   font-weight: 550 !important;
   border-radius: var(--alkemart-radius-sm) !important;
+  color: var(--alkemart-ink, var(--alkemart-black)) !important;
 }
 
 nav a:hover,
@@ -420,13 +620,19 @@ aside a:hover,
 }
 
 /* Section labels in sidebar */
+/* Section labels in sidebar — more air above groups */
 aside [class*="text-ui-fg-muted"],
-nav [class*="text-ui-fg-muted"] {
+nav [class*="text-ui-fg-muted"],
+aside p[class*="muted"],
+aside span[class*="muted"] {
   font-size: 10px !important;
   font-weight: 700 !important;
   letter-spacing: 0.08em !important;
   text-transform: uppercase !important;
   color: var(--alkemart-subtle) !important;
+  margin-top: 1rem !important;
+  margin-bottom: 0.4rem !important;
+  padding-top: 0.35rem !important;
 }
 
 /* Main content padding rhythm */
@@ -442,24 +648,24 @@ main,
 }
 
 
-/* —— Login typography (brand wordmark already shows alkemart.) —— */
+/* —— Login typography —— */
 [data-testid="login-page"] [data-testid="login-title"],
 body:has([data-testid="login-page"]) h1 {
-  font-size: 1.35rem !important;
-  line-height: 1.3 !important;
+  font-size: 1.85rem !important;
+  line-height: 1.2 !important;
   font-weight: 800 !important;
   letter-spacing: -0.03em !important;
   color: var(--alkemart-black) !important;
-  margin: 0.35rem 0 0 !important;
+  margin: 0.5rem 0 0 !important;
 }
 [data-testid="login-page"] [data-testid="login-hint"],
 body:has([data-testid="login-page"]) h1 + p {
-  font-size: 0.875rem !important;
-  line-height: 1.45 !important;
+  font-size: 0.9375rem !important;
+  line-height: 1.5 !important;
   font-weight: 500 !important;
   color: var(--alkemart-subtle) !important;
-  margin: 0.4rem 0 0 !important;
-  max-width: 16rem;
+  margin: 0.5rem 0 1rem !important;
+  max-width: none !important;
 }
 
 /* If Mercur residual “Welcome to Mercur” still leaks, rewrite once */
@@ -470,8 +676,134 @@ body:has(input[type="password"]) h1:is(
   content: none;
 }
 
-/* Hide default monogram square that is not our brand widget */
-body:has(input[type="password"]) [class*="bg-ui-bg-component"]:has(> span:only-child),
-body:has(input[type="password"]) div[class*="rounded"][class*="bg-"]:has(> span) {
-  /* too aggressive — skip */
+/* Login: hide letter monogram squares (no A / M tiles) */
+[data-testid="login-page"] [class*="bg-ui-bg-component"]:has(> span:only-child),
+[data-testid="login-page"] div[class*="rounded"]:has(> span:only-child):not(:has(img)):not(:has(svg)),
+[data-testid="login-page"] .alk-login-mark {
+  display: none !important;
+}
+
+/* One-shot injects — never stack */
+[data-alk-login-wordmark] ~ [data-alk-login-wordmark],
+[data-alk-markets-onboard="1"] ~ [data-alk-markets-onboard="1"],
+[data-alk-markets-onboard="pending"] {
+  display: none !important;
+}
+
+/* —— Language select (matches Seller Hub AuthLanguageSelect) —— */
+.alk-lang-host {
+  display: flex;
+  justify-content: flex-end;
+  width: 100%;
+  max-width: 26rem;
+  margin: 0 auto 0.5rem;
+  position: relative;
+  z-index: 20;
+}
+.alk-lang-host-overlay {
+  position: absolute;
+  top: 1.25rem;
+  right: 1.5rem;
+  width: auto;
+  margin: 0;
+  z-index: 30;
+}
+[data-testid="login-page"].alk-login-split .alk-lang-host {
+  position: absolute;
+  top: 1.5rem;
+  right: 1.75rem;
+  width: auto;
+  max-width: none;
+  margin: 0;
+}
+.alk-lang-select {
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+.alk-lang-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.55rem;
+  border: none;
+  border-radius: 0.5rem;
+  background: transparent;
+  color: #5c5c5c;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+.alk-lang-trigger:hover {
+  background: rgba(20, 20, 20, 0.05);
+  color: #141414;
+}
+.alk-lang-trigger:focus-visible {
+  outline: 2px solid #f5c518;
+  outline-offset: 2px;
+}
+.alk-lang-label {
+  line-height: 1.2;
+}
+.alk-lang-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  min-width: 11rem;
+  max-height: 300px;
+  overflow-y: auto;
+  padding: 0.35rem;
+  border: 1px solid #e6e6e2;
+  border-radius: 0.65rem;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(20, 20, 20, 0.1);
+  z-index: 50;
+}
+.alk-lang-option {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 0.45rem 0.65rem;
+  border: none;
+  border-radius: 0.4rem;
+  background: transparent;
+  color: #141414;
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+.alk-lang-option:hover {
+  background: #f7f7f5;
+}
+.alk-lang-option.is-active {
+  background: #fff8d6;
+  font-weight: 600;
+}
+
+/* Ops queue buttons (Seller queue / Product review) */
+.alk-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 0.9rem;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: var(--alkemart-yellow, #f5c518);
+  color: var(--alkemart-black, #111);
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+.alk-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.alk-btn-secondary {
+  background: #fff;
+  border-color: #d1d5db;
+  color: #111;
+}
+.alk-btn-secondary:hover:not(:disabled) {
+  background: #f9fafb;
 }

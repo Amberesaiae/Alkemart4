@@ -67,7 +67,8 @@ export default async function seedDemoData({ container }: ExecArgs) {
   const salesChannelModuleService = container.resolve(Modules.SALES_CHANNEL);
   const storeModuleService = container.resolve(Modules.STORE);
 
-  const countries = ["gb", "de", "dk", "se", "fr", "es", "it"];
+  // Ghana-first marketplace (COD / MoMo / GHS)
+  const countries = ["gh"];
 
   logger.info("Seeding store data...");
   const [store] = await storeModuleService.listStores();
@@ -96,11 +97,8 @@ export default async function seedDemoData({ container }: ExecArgs) {
       store_id: store.id,
       supported_currencies: [
         {
-          currency_code: "eur",
+          currency_code: "ghs",
           is_default: true,
-        },
-        {
-          currency_code: "usd",
         },
       ],
     },
@@ -146,8 +144,8 @@ export default async function seedDemoData({ container }: ExecArgs) {
       input: {
         regions: [
           {
-            name: "Europe",
-            currency_code: "eur",
+            name: "Ghana",
+            currency_code: "ghs",
             countries: unassignedCountries,
             payment_providers: ["pp_system_default"],
           },
@@ -156,13 +154,13 @@ export default async function seedDemoData({ container }: ExecArgs) {
     });
     region = regionResult[0];
   } else {
-    // No countries assigned - create full region
+    // No countries assigned - create Ghana region
     const { result: regionResult } = await createRegionsWorkflow(container).run({
       input: {
         regions: [
           {
-            name: "Europe",
-            currency_code: "eur",
+            name: "Ghana",
+            currency_code: "ghs",
             countries,
             payment_providers: ["pp_system_default"],
           },
@@ -337,11 +335,13 @@ export default async function seedDemoData({ container }: ExecArgs) {
         seller_id: demoSeller.id,
         locations: [
           {
-            name: "Demo Store Warehouse",
+            name: "Accra warehouse",
             address: {
-              city: "Berlin",
-              country_code: "DE",
-              address_1: "Alexanderplatz 1",
+              city: "Accra",
+              country_code: "GH",
+              province: "Greater Accra",
+              address_1: "Spintex Road, near Coca-Cola depot",
+              postal_code: "GA-184-1234",
             },
           },
         ],
@@ -374,7 +374,7 @@ export default async function seedDemoData({ container }: ExecArgs) {
     input: {
       location_id: sellerStockLocation.id,
       fulfillment_set_data: {
-        name: "Demo Store delivery",
+        name: "Accra delivery",
         type: "shipping",
       },
     },
@@ -399,7 +399,7 @@ export default async function seedDemoData({ container }: ExecArgs) {
       data: [
         {
           fulfillment_set_id: sellerFulfillmentSetId,
-          name: "Europe",
+          name: "Ghana",
           geo_zones: countries.map((country_code) => ({
             country_code,
             type: "country" as const,
@@ -414,7 +414,9 @@ export default async function seedDemoData({ container }: ExecArgs) {
     await createSellerShippingProfilesWorkflow(container).run({
       input: {
         seller_id: demoSeller.id,
-        shipping_profiles: [{ name: "Demo Store Shipping", type: "default" }],
+        shipping_profiles: [
+          { name: "Ghana courier shipping", type: "default" },
+        ],
       },
     });
   const sellerShippingProfileId = sellerShippingProfiles[0].id;
@@ -424,20 +426,19 @@ export default async function seedDemoData({ container }: ExecArgs) {
       seller_id: demoSeller.id,
       shipping_options: [
         {
-          name: "Standard Shipping",
+          name: "Greater Accra courier",
           price_type: "flat",
           provider_id: "manual_manual",
           service_zone_id: sellerServiceZoneId,
           shipping_profile_id: sellerShippingProfileId,
           type: {
-            label: "Standard",
-            description: "Ship in 2-3 days.",
-            code: "standard",
+            label: "Same / next day Accra",
+            description: "Courier within Greater Accra, typically 1–2 days.",
+            code: "accra_courier",
           },
           prices: [
-            { currency_code: "usd", amount: 10 },
-            { currency_code: "eur", amount: 10 },
-            { region_id: region.id, amount: 10 },
+            { currency_code: "ghs", amount: 25 },
+            { region_id: region.id, amount: 25 },
           ],
           rules: [
             { attribute: "enabled_in_store", value: "true", operator: "eq" },
@@ -445,20 +446,19 @@ export default async function seedDemoData({ container }: ExecArgs) {
           ],
         },
         {
-          name: "Express Shipping",
+          name: "Nationwide Ghana",
           price_type: "flat",
           provider_id: "manual_manual",
           service_zone_id: sellerServiceZoneId,
           shipping_profile_id: sellerShippingProfileId,
           type: {
-            label: "Express",
-            description: "Ship in 24 hours.",
-            code: "express",
+            label: "Nationwide",
+            description: "Bus parcel / courier to other regions, 2–5 days.",
+            code: "nationwide_gh",
           },
           prices: [
-            { currency_code: "usd", amount: 10 },
-            { currency_code: "eur", amount: 10 },
-            { region_id: region.id, amount: 10 },
+            { currency_code: "ghs", amount: 45 },
+            { region_id: region.id, amount: 45 },
           ],
           rules: [
             { attribute: "enabled_in_store", value: "true", operator: "eq" },
@@ -615,10 +615,7 @@ export default async function seedDemoData({ container }: ExecArgs) {
           ],
         },
       ],
-      prices: [
-        { amount: 10, currency_code: "eur" },
-        { amount: 15, currency_code: "usd" },
-      ],
+      prices: [{ amount: 85, currency_code: "ghs" }],
     }))
   );
 

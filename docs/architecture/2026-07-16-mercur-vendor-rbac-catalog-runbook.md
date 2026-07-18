@@ -5,6 +5,30 @@
 | **Date** | 2026-07-16 |
 | **Status** | Live-proven on clean-slate (`localhost:9000`) |
 | **Goal** | Realistic seller path without seed inject of fake catalog rows |
+| **Related** | Onboarding + quality pipeline: `2026-07-18-seller-onboarding-product-quality-pipeline.md` |
+
+---
+
+## Ops surfaces (2026-07-18)
+
+| Surface | URL / path |
+|---------|------------|
+| Seller readiness poll | `GET /vendor/alkemart/onboarding/status` |
+| Admin seller queue UI | `/dashboard/sellers-queue` (or Admin nav **Seller queue**) |
+| Admin product review UI | `/dashboard/product-moderation` (**Product review**) |
+| Admin seller queue API | `GET /admin/alkemart/moderation/sellers` |
+| Admin product queue API | `GET /admin/alkemart/moderation/products` |
+| **Reject application** | Mercur `POST /admin/sellers/:id/suspend` `{ "reason": "[code] text" }` — not a separate reject route |
+| Product reject | Mercur `POST /admin/products/:id/reject` → status **`rejected`** (not draft) |
+| Soft gates | Workflow hooks on product create (proposed) + offer create/update when `ALKEMART_STRICT_PROPOSE_GATES` is not `false` |
+| Search | Meilisearch indexes **sellable** only (`published` + offer + seller open) |
+| Product quality | `GET /vendor/alkemart/products/:id/quality` |
+| Image derivatives | Job `alkemart-process-product-images` every 5m (requires `sharp`) |
+| Ghana categories | `bunx medusa exec ./src/scripts/ensure-ghana-categories.ts` |
+| Buyer catalog (offers only) | `GET /store/alkemart/catalog` — storefront prefers this for home/browse |
+| Soft-gate flags | `ALKEMART_STRICT_PROPOSE_GATES` (default true); `ALKEMART_REQUIRE_CATEGORY_ON_PROPOSE` (default false) |
+| Submit for review | `POST /vendor/alkemart/products/:id/propose` (quality + readiness gates) |
+| Ops summary | `GET /admin/alkemart/moderation/summary` |
 
 ---
 

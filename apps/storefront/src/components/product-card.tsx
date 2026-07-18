@@ -28,7 +28,7 @@ export function ProductCard({ product, className }: ProductCardProps) {
 
   async function onAdd() {
     if (!product.offerId) {
-      setError("No offer from store API")
+      setError("This item is not available to buy yet")
       return
     }
     setPending(true)

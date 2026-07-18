@@ -24,9 +24,9 @@ export default defineConfig(({ mode }) => {
         backendUrl,
         // Display name in login title: "Welcome to {{name}}"
         name: 'alkemart',
-        // Public URL (not filesystem path) — AvatarBox uses this as <img src>.
-        // base is /seller so the asset is served at /seller/logo.svg
-        logo: '/seller/logo.svg',
+        // Wordmark (not favicon mark) — AvatarBox uses this as <img src>.
+        // base is /seller so the asset is at /seller/logo-wordmark.svg
+        logo: '/seller/logo-wordmark.svg',
         enableSellerRegistration: true,
       }),
     ],

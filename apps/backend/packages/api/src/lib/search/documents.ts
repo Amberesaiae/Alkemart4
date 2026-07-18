@@ -74,6 +74,20 @@ export function mapProductToDocument(raw: Loose): SearchProductDocument | null {
     }
   }
 
+  const metaQuality =
+    meta && typeof meta.alkemart === "object" && meta.alkemart
+      ? (meta.alkemart as Loose).quality
+      : null
+  let qualityScore: number | null = null
+  if (metaQuality && typeof metaQuality === "object") {
+    const qs = num((metaQuality as Loose).score)
+    qualityScore = qs
+  }
+
+  // Provisional sellable: refined after offer enrichment / sellable evaluator
+  const sellable =
+    status === "published" && hasOffer && Boolean(sellerId)
+
   return {
     id,
     title: str(raw.title) || "Untitled",
@@ -90,6 +104,9 @@ export function mapProductToDocument(raw: Loose): SearchProductDocument | null {
     min_price: minPrice,
     currency_code: currency,
     has_offer: hasOffer,
+    sellable,
+    in_stock: hasOffer,
+    quality_score: qualityScore,
     tags: tags.map((t) => str(t.value || t.id)).filter(Boolean),
   }
 }
@@ -149,6 +166,16 @@ export function enrichDocsWithOffers(
       }
     }
 
+    const hasGhs =
+      currency?.toLowerCase() === "ghs" ||
+      list.some((o) =>
+        asArray<Loose>(o.prices).some(
+          (p) => str(p.currency_code || p.currencyCode).toLowerCase() === "ghs",
+        ),
+      )
+    const sellable =
+      doc.status === "published" && Boolean(sellerId) && hasGhs && minPrice != null
+
     return {
       ...doc,
       has_offer: true,
@@ -157,6 +184,8 @@ export function enrichDocsWithOffers(
       seller_name: sellerName,
       min_price: minPrice,
       currency_code: currency,
+      sellable,
+      in_stock: true,
     }
   })
 }

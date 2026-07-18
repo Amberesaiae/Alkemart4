@@ -28,6 +28,17 @@ medusaIntegrationTestRunner({
           expect(response.status).toEqual(200)
         })
       })
+
+      describe("GET /store/alkemart/catalog", () => {
+        it("returns catalog envelope with products array", async () => {
+          const response = await api.get("/store/alkemart/catalog?limit=5")
+          expect(response.status).toEqual(200)
+          expect(response.data).toHaveProperty("products")
+          expect(Array.isArray(response.data.products)).toBe(true)
+          expect(response.data).toHaveProperty("filter")
+        })
+      })
     })
   },
 })
+

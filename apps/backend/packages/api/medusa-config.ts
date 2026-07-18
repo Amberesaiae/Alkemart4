@@ -1,3 +1,5 @@
+// Must run before any pg/knex client is constructed (Neon IPv6 hang on some WSL nets)
+import './src/lib/force-ipv4-dns'
 import { loadEnv } from '@medusajs/framework/utils'
 import { withMercur } from '@mercurjs/core'
 import fs from 'fs'
@@ -42,16 +44,35 @@ const alkemartModules: Array<Record<string, unknown>> = [
     resolve: '@medusajs/medusa/file',
     options: {
       providers: [
-        {
-          resolve: '@medusajs/medusa/file-local',
-          id: 'local',
-          options: {
-            // The local provider bakes this into every uploaded file URL.
-            // It must be the publicly reachable origin in production, or
-            // images resolve to localhost and render broken.
-            backend_url: process.env.FILE_BACKEND_URL || 'http://localhost:9000/static',
-          },
-        },
+        process.env.FILE_DRIVER === 's3'
+          ? {
+              // @medusajs/medusa/file-s3 re-exports @medusajs/file-s3
+              resolve: '@medusajs/medusa/file-s3',
+              id: 's3',
+              options: {
+                file_url: process.env.S3_FILE_URL,
+                access_key_id: process.env.S3_ACCESS_KEY_ID,
+                secret_access_key: process.env.S3_SECRET_ACCESS_KEY,
+                region: process.env.S3_REGION || 'auto',
+                bucket: process.env.S3_BUCKET,
+                endpoint: process.env.S3_ENDPOINT,
+                prefix: process.env.S3_PREFIX || 'alkemart/',
+                // R2 / BucketOwnerEnforced: do not send ACL headers
+                acl: false,
+                additional_client_config: {
+                  forcePathStyle: true,
+                },
+              },
+            }
+          : {
+              resolve: '@medusajs/medusa/file-local',
+              id: 'local',
+              options: {
+                // Public origin for uploaded file URLs (lab). Production uses S3/R2.
+                backend_url:
+                  process.env.FILE_BACKEND_URL || 'http://localhost:9000/static',
+              },
+            },
       ],
     },
   },
@@ -79,6 +100,15 @@ module.exports = withMercur({
   projectConfig: {
     databaseUrl: env.DATABASE_URL,
     redisUrl: env.REDIS_URL,
+    // Neon TLS: lab/dev often need relaxed verify; production still uses SSL
+    databaseDriverOptions: {
+      connection: {
+        ssl:
+          process.env.DATABASE_SSL_REJECT_UNAUTHORIZED === 'true'
+            ? { rejectUnauthorized: true }
+            : { rejectUnauthorized: false },
+      },
+    },
     http: {
       storeCors: env.STORE_CORS,
       adminCors: env.ADMIN_CORS,
