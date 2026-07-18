@@ -1,4 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
+import { requireAuth } from "@/lib/route-guards"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { Button } from "@/components/ui/button"
 import { EmptyState } from "@/components/empty-state"
@@ -57,6 +58,10 @@ function AccountPendingComponent() {
 }
 
 export const Route = createFileRoute("/account")({
+  beforeLoad: async () => {
+    const customer = await requireAuth()
+    return { customer }
+  },
   component: AccountPage,
   errorComponent: AccountErrorComponent,
   pendingComponent: AccountPendingComponent,

@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { EmptyState } from "@/components/empty-state"
 import { Price } from "@/components/price"
 import { formInputClassName } from "@/components/form-field"
+import { requireAuth } from "@/lib/route-guards"
 
 function OrdersPendingComponent() {
   return (
@@ -24,6 +25,10 @@ function OrdersPendingComponent() {
 }
 
 export const Route = createFileRoute("/orders")({
+  beforeLoad: async () => {
+    const customer = await requireAuth()
+    return { customer }
+  },
   component: OrdersPage,
   pendingComponent: OrdersPendingComponent,
 })
