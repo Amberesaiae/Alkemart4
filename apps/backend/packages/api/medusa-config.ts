@@ -2,8 +2,11 @@ import { loadEnv } from '@medusajs/framework/utils'
 import { withMercur } from '@mercurjs/core'
 import fs from 'fs'
 import path from 'path'
+import { loadAppEnv } from './src/lib/env'
 
 loadEnv(process.env.NODE_ENV || 'development', process.cwd())
+
+const env = loadAppEnv()
 
 // Resolves where a dashboard app lives:
 // - in the source tree (development): ../../apps/<name>
@@ -54,7 +57,7 @@ const alkemartModules: Array<Record<string, unknown>> = [
   },
 ]
 
-if (process.env.PAYSTACK_SECRET_KEY) {
+if (env.PAYSTACK_SECRET_KEY) {
   alkemartModules.push({
     resolve: '@medusajs/medusa/payment',
     options: {
@@ -63,8 +66,8 @@ if (process.env.PAYSTACK_SECRET_KEY) {
           resolve: './src/modules/paystack',
           id: 'paystack',
           options: {
-            secretKey: process.env.PAYSTACK_SECRET_KEY,
-            publicKey: process.env.PAYSTACK_PUBLIC_KEY,
+            secretKey: env.PAYSTACK_SECRET_KEY,
+            publicKey: env.PAYSTACK_PUBLIC_KEY,
           },
         },
       ],
@@ -74,16 +77,15 @@ if (process.env.PAYSTACK_SECRET_KEY) {
 
 module.exports = withMercur({
   projectConfig: {
-    databaseUrl: process.env.DATABASE_URL,
-    // Medusa reads redisUrl (not REDIS_URL alone) for cache/events/workers
-    redisUrl: process.env.REDIS_URL,
+    databaseUrl: env.DATABASE_URL,
+    redisUrl: env.REDIS_URL,
     http: {
-      storeCors: process.env.STORE_CORS!,
-      adminCors: process.env.ADMIN_CORS!,
-      vendorCors: process.env.VENDOR_CORS!,
-      authCors: process.env.AUTH_CORS!,
-      jwtSecret: process.env.JWT_SECRET || "supersecret",
-      cookieSecret: process.env.COOKIE_SECRET || "supersecret",
+      storeCors: env.STORE_CORS,
+      adminCors: env.ADMIN_CORS,
+      vendorCors: env.VENDOR_CORS,
+      authCors: env.AUTH_CORS,
+      jwtSecret: env.JWT_SECRET,
+      cookieSecret: env.COOKIE_SECRET,
     }
   },
   featureFlags: {
