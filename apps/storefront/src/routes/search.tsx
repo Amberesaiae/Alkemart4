@@ -11,8 +11,14 @@ import {
   type ActiveFilters,
 } from "@/components/search-facets"
 import { searchCatalog } from "@/lib/search"
-import { trackSearchPerformed } from "@/lib/analytics"
+import {
+  trackSearchLandingViewed,
+  trackSearchPerformed,
+  track,
+} from "@/lib/analytics"
 import { PageSeo } from "@/components/page-seo"
+import { POPULAR_SEARCHES } from "@/lib/popular-searches"
+import { listStoreCategories } from "@/lib/products"
 
 function parseList(v: unknown): string[] {
   if (typeof v === "string" && v.trim()) {
@@ -99,6 +105,17 @@ function SearchPage() {
     trackSearchPerformed(q, productsQ.data.estimatedTotalHits)
   }, [q, productsQ.isSuccess, productsQ.data?.estimatedTotalHits])
 
+  const catsQ = useQuery({
+    queryKey: ["store", "categories"],
+    queryFn: () => listStoreCategories(),
+    enabled: !hasQueryOrFilters,
+  })
+
+  useEffect(() => {
+    if (hasQueryOrFilters) return
+    trackSearchLandingViewed()
+  }, [hasQueryOrFilters])
+
   function setSearch(next: {
     q?: string
     category?: string[]
@@ -147,44 +164,93 @@ function SearchPage() {
         path="/search"
         noindex={multiFacet || Boolean(q)}
       />
-      <header className="space-y-4 rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6">
+      <header className="space-y-4 rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
-            Search
+          <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">
+            Search alkemart
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            {engineLabel ??
-              "Search published products. Filters appear after search sync."}
+            {engineLabel ?? "Search products and sellers."}
           </p>
         </div>
-        <form onSubmit={submit} className="flex flex-col gap-2 sm:flex-row">
+        <form onSubmit={submit} className="flex">
           <input
             type="search"
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
-            placeholder="Search products…"
-            className="h-12 min-h-12 flex-1 rounded-xl border border-border bg-muted/40 px-4 text-sm outline-none transition focus:border-primary focus:bg-background focus:ring-2 focus:ring-primary/30"
+            placeholder="Search rice, phones, fashion, shops…"
+            className="h-12 min-h-12 flex-1 border border-border bg-background px-4 text-sm outline-none transition focus:border-foreground focus:ring-1 focus:ring-foreground"
             aria-label="Search products"
             autoFocus
           />
-          <Button type="submit" size="lg" className="min-h-12 rounded-xl px-8">
+          <Button
+            type="submit"
+            size="lg"
+            className="min-h-12 rounded-none border border-l-0 border-border px-8"
+          >
             Search
           </Button>
         </form>
       </header>
 
       {!hasQueryOrFilters ? (
-        <div className="rounded-2xl border border-dashed border-border bg-muted/30 px-5 py-10 text-center">
-          <p className="text-sm text-muted-foreground">
-            Type a query above, or{" "}
+        <div className="space-y-6">
+          <section className="rounded-2xl border border-border bg-card p-5">
+            <h2 className="text-sm font-bold tracking-tight">
+              Popular right now
+            </h2>
+            <p className="mt-1 text-xs text-muted-foreground">
+              One tap — same as the header search, tracked for discovery.
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {POPULAR_SEARCHES.map((term) => (
+                <button
+                  key={term}
+                  type="button"
+                  className="rounded-full border border-border bg-background px-3 py-1.5 text-xs font-semibold transition hover:border-foreground hover:bg-primary hover:text-primary-foreground"
+                  onClick={() => {
+                    track("search_suggestion_clicked", {
+                      query: term,
+                      surface: "search_landing",
+                    })
+                    setSearch({ q: term })
+                  }}
+                >
+                  {term}
+                </button>
+              ))}
+            </div>
+          </section>
+
+          {(catsQ.data?.length ?? 0) > 0 ? (
+            <section className="rounded-2xl border border-border bg-card p-5">
+              <h2 className="text-sm font-bold tracking-tight">
+                Browse departments
+              </h2>
+              <div className="mt-3 grid grid-cols-2 gap-2.5 sm:grid-cols-4 sm:gap-3">
+                {catsQ.data!.slice(0, 8).map((c) => (
+                  <Link
+                    key={c.id}
+                    to="/categories/$slug"
+                    params={{ slug: c.handle || c.id }}
+                    className="border border-border bg-background px-3 py-3 text-sm font-semibold hover:border-foreground"
+                  >
+                    {c.name}
+                  </Link>
+                ))}
+              </div>
+            </section>
+          ) : null}
+
+          <p className="text-center text-sm text-muted-foreground">
+            Or{" "}
             <Link
-              to="/browse/$slug"
+              to="/categories/$slug"
               params={{ slug: "all" }}
-              className="font-semibold underline"
+              className="font-semibold text-foreground underline underline-offset-2"
             >
               browse all products
             </Link>
-            .
           </p>
         </div>
       ) : null}
@@ -218,7 +284,7 @@ function SearchPage() {
               <EmptyState
                 illustration="emptyCatalog"
                 title={q ? `No results for “${q}”` : "No matching products"}
-                description="Try another term, clear filters, or browse the full catalog."
+                description="Try another term or clear filters."
                 actionLabel="Browse all"
                 actionTo="/"
               />
@@ -241,7 +307,7 @@ function SearchPage() {
                 </p>
                 <ProductGridShell>
                   {productsQ.data.products.map((p) => (
-                    <ProductCard key={p.id} product={p} />
+                    <ProductCard key={p.id} product={p} size="tile" />
                   ))}
                 </ProductGridShell>
               </>

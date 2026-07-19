@@ -10,6 +10,7 @@ import {
   completeCartWorkflow,
   createPaymentCollectionForCartWorkflow,
   createPaymentSessionsWorkflow,
+  transferCartCustomerWorkflow,
 } from "@medusajs/medusa/core-flows"
 import {
   ContainerRegistrationKeys,
@@ -42,6 +43,11 @@ export type CheckoutInput = {
   email?: string
   phone?: string
   momoProvider?: MomoProvider
+  /**
+   * When the store request carries a customer JWT, bind the cart so the
+   * resulting order appears under My Orders (W06/W07 P1).
+   */
+  customerId?: string | null
 }
 
 export type CheckoutResult =
@@ -91,6 +97,7 @@ function errorMessage(err: unknown): string {
 type LoadedCart = {
   id: string
   email?: string | null
+  customer_id?: string | null
   total?: number | string | null
   currency_code?: string | null
   shipping_address?: Record<string, unknown> | null
@@ -117,6 +124,7 @@ export async function loadCheckoutCart(
     fields: [
       "id",
       "email",
+      "customer_id",
       "total",
       "currency_code",
       "completed_at",
@@ -139,6 +147,41 @@ export async function loadCheckoutCart(
     throw new CheckoutHttpError(404, `Cart not found: ${cartId}`)
   }
   return cart
+}
+
+/**
+ * Bind cart to authenticated customer when JWT present and cart is unbound.
+ * If cart already belongs to another customer → 403.
+ */
+export async function ensureCartBoundToCustomer(
+  container: MedusaContainer,
+  cart: LoadedCart,
+  customerId?: string | null,
+): Promise<void> {
+  if (!customerId) return
+  const existing = cart.customer_id ? String(cart.customer_id) : ""
+  if (existing && existing !== customerId) {
+    throw new CheckoutHttpError(
+      403,
+      "This cart belongs to another customer. Sign out or use a new cart.",
+    )
+  }
+  if (existing === customerId) return
+
+  try {
+    await transferCartCustomerWorkflow(container).run({
+      input: {
+        id: cart.id,
+        customer_id: customerId,
+      },
+    })
+  } catch (err) {
+    if (err instanceof CheckoutHttpError) throw err
+    throw new CheckoutHttpError(
+      400,
+      errorMessage(err) || "Could not attach cart to customer",
+    )
+  }
 }
 
 /**
@@ -331,7 +374,11 @@ export async function runCodCheckout(
   container: MedusaContainer,
   input: CheckoutInput
 ): Promise<CheckoutResult> {
-  const cart = await loadCheckoutCart(container, input.cartId)
+  let cart = await loadCheckoutCart(container, input.cartId)
+  await ensureCartBoundToCustomer(container, cart, input.customerId)
+  if (input.customerId) {
+    cart = await loadCheckoutCart(container, input.cartId)
+  }
   await requireCartReadyForCheckout(container, cart)
 
   try {
@@ -476,7 +523,11 @@ export async function runMomoCheckout(
     throw new CheckoutHttpError(400, "momo_provider is required for momo")
   }
 
-  const cart = await loadCheckoutCart(container, input.cartId)
+  let cart = await loadCheckoutCart(container, input.cartId)
+  await ensureCartBoundToCustomer(container, cart, input.customerId)
+  if (input.customerId) {
+    cart = await loadCheckoutCart(container, input.cartId)
+  }
   await requireCartReadyForCheckout(container, cart)
 
   // Resume: already paid & completed

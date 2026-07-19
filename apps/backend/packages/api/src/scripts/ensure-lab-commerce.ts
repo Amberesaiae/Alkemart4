@@ -545,10 +545,12 @@ export default async function ensureLabCommerce({ container }: ExecArgs) {
 
   // Best-effort Ghana categories (idempotent). Safe if seed module API differs.
   try {
-    // medusa exec resolves .ts extensions
-    const mod = await import("./ensure-ghana-categories.ts")
-    const ensureCats = mod.default as (args: ExecArgs) => Promise<void>
-    await ensureCats({ container } as ExecArgs)
+    const mod = await import("./ensure-ghana-categories")
+    const ensureCats = (mod as { default?: (args: ExecArgs) => Promise<void> })
+      .default
+    if (ensureCats) {
+      await ensureCats({ container } as ExecArgs)
+    }
   } catch (e) {
     logger.warn(
       `Category seed skipped: ${e instanceof Error ? e.message : String(e)}`,

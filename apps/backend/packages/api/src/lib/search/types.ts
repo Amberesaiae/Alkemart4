@@ -22,6 +22,14 @@ export type SearchProductDocument = {
   in_stock: boolean
   quality_score: number | null
   tags: string[]
+  /**
+   * Ghana location discovery (optional, additive).
+   * Populated from seller address / stock_location when available — never invented.
+   * See docs/architecture/2026-07-19-ghana-mowafer-marketplace-system-audit-and-plan.md §4
+   */
+  seller_city?: string | null
+  seller_province?: string | null
+  service_regions?: string[]
 }
 
 export type SearchFacetDistribution = Record<
@@ -51,5 +59,9 @@ export type SearchQueryInput = {
     has_offer?: boolean
     min_price?: number
     max_price?: number
+    /** Ghana region name e.g. "Greater Accra" — only when indexed */
+    seller_province?: string
+    /** City/town e.g. "Accra" — only when indexed */
+    seller_city?: string
   }
 }

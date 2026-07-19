@@ -60,10 +60,15 @@ function safeProps(props?: Props): Record<string, string | number | boolean> {
       lower.includes("address") ||
       lower.includes("password") ||
       lower.includes("momo") ||
-      lower.includes("token")
+      lower.includes("token") ||
+      lower.includes("order_id") ||
+      lower === "orderid" ||
+      lower.includes("customer")
     ) {
       continue
     }
+    // Never send full Medusa order ids
+    if (typeof v === "string" && /^order_[a-zA-Z0-9]+$/.test(v)) continue
     out[k] = v
   }
   return out
@@ -90,7 +95,33 @@ export const AnalyticsEvents = {
   orderCompleted: "order_completed",
   searchPerformed: "search_performed",
   sellerStoreViewed: "seller_store_viewed",
+  /** Homepage is the primary discovery + analytics surface */
+  homepageViewed: "homepage_viewed",
+  homepageSearchChip: "homepage_search_chip",
+  homepageDepartmentChip: "homepage_department_chip",
+  searchLandingViewed: "search_landing_viewed",
+  searchSuggestionClicked: "search_suggestion_clicked",
 } as const
+
+/** First-page / discovery analytics — call once catalog has settled. */
+export function trackHomepageViewed(p: {
+  productCount: number
+  categoryCount: number
+  sellerCount: number
+  hasFeatured: boolean
+}): void {
+  track(AnalyticsEvents.homepageViewed, {
+    product_count: p.productCount,
+    category_count: p.categoryCount,
+    seller_count: p.sellerCount,
+    has_featured: p.hasFeatured,
+    surface: "storefront_home",
+  })
+}
+
+export function trackSearchLandingViewed(): void {
+  track(AnalyticsEvents.searchLandingViewed, { surface: "search_empty" })
+}
 
 export function trackProductViewed(p: {
   productId: string
@@ -136,18 +167,18 @@ export function trackCheckoutStarted(p: {
   })
 }
 
+/** Never send raw order ids to analytics (privacy). */
 export function trackOrderCompleted(p: {
-  orderId: string
+  orderId?: string
   paymentMethod?: string
   itemCount?: number
   total?: number | null
   currency?: string | null
 }): void {
   track(AnalyticsEvents.orderCompleted, {
-    order_id: p.orderId,
     payment_method: p.paymentMethod ?? "cod",
     item_count: p.itemCount ?? undefined,
-    total: p.total ?? undefined,
+    has_total: p.total != null,
     currency: p.currency ?? undefined,
   })
 }

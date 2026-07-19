@@ -1,0 +1,20 @@
+{
+  "started_at": "2026-07-19T00:35:50.813Z",
+  "hosts": {
+    "API": "http://localhost:9000",
+    "SHOP": "http://localhost:5175",
+    "ADMIN": "http://localhost:7000",
+    "SELLER": "http://localhost:7001"
+  },
+  "phases": {
+    "0_preflight": {
+      "health": 200,
+      "shop": 200,
+      "images": [
+        "ghana-doorstep-delivery.png",
+        "ghana-marketplace.png"
+      ]
+    }
+  },
+  "finished_at": "2026-07-19T00:35:56.922Z"
+}

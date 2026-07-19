@@ -18,7 +18,7 @@ export function NotFoundPage() {
           <Link to="/">Market</Link>
         </Button>
         <Button asChild variant="outline" className="rounded-xl min-h-11">
-          <Link to="/browse/$slug" params={{ slug: "all" }}>
+          <Link to="/categories/$slug" params={{ slug: "all" }}>
             Browse
           </Link>
         </Button>

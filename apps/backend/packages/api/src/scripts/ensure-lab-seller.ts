@@ -7,7 +7,8 @@
  *
  * Seller Hub login uses POST /auth/member/emailpass (not /auth/seller).
  */
-import { ExecArgs, Modules, ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import type { ExecArgs } from "@medusajs/framework/types"
+import { Modules, ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import {
   createSellerAccountWorkflow,
   approveSellerWorkflow,

@@ -25,6 +25,7 @@ import { getSessionCustomer } from "@/lib/auth"
 import { listMyAddresses, type CustomerAddress } from "@/lib/addresses"
 import { EmptyState } from "@/components/empty-state"
 import { TrustStrip } from "@/components/trust-strip"
+import { CheckoutStepper } from "@/components/checkout-stepper"
 import { Skeleton } from "@/components/skeleton"
 import { FormField, FormSelect } from "@/components/form-field"
 import {
@@ -55,7 +56,7 @@ function CheckoutErrorComponent({ error, reset }: { error: Error; reset: () => v
 
 function CheckoutPendingComponent() {
   return (
-    <div className="mx-auto max-w-5xl space-y-6 pb-28" role="status" aria-label="Loading checkout">
+    <div className="mx-auto max-w-5xl space-y-6 pb-8" role="status" aria-label="Loading checkout">
       <Skeleton className="h-10 w-48" />
       <Skeleton className="h-4 w-64" />
       <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
@@ -200,7 +201,7 @@ function CheckoutPage() {
     mutationFn: async () => {
       if (!countryCode || !markets.length) {
         throw new Error(
-          "No operating market — Admin must enable a country on a region",
+          "Checkout is not available for this country yet.",
         )
       }
       if (!marketForCountry(markets, countryCode)) {
@@ -232,6 +233,16 @@ function CheckoutPage() {
     onSuccess: (result) => {
       const cart = cartQ.data
       if (result.status === "payment_pending") {
+        try {
+          if (effectiveEmail) {
+            sessionStorage.setItem(
+              "alkemart.storefront.order_lookup_email",
+              effectiveEmail,
+            )
+          }
+        } catch {
+          /* private mode */
+        }
         void navigate({
           to: "/checkout/pending",
           search: {
@@ -248,10 +259,25 @@ function CheckoutPage() {
         total: cart?.total ?? null,
         currency: cart?.currencyCode ?? null,
       })
+      // Privacy: store email for guest lookup in sessionStorage — never put
+      // email in the URL (history, referrers, analytics).
+      try {
+        if (effectiveEmail) {
+          sessionStorage.setItem(
+            "alkemart.storefront.order_lookup_email",
+            effectiveEmail,
+          )
+        }
+      } catch {
+        /* private mode */
+      }
       void navigate({
         to: "/order/$id",
         params: { id: result.order_id },
-        search: { placed: "1", pay: payMethod },
+        search: {
+          placed: "1",
+          pay: payMethod,
+        },
       })
     },
   })
@@ -273,7 +299,7 @@ function CheckoutPage() {
     !place.isPending
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6 pb-28">
+    <div className="mx-auto max-w-5xl space-y-6 pb-8">
       <header className="space-y-1">
         <nav className="text-xs text-muted-foreground">
           <Link to="/cart" className="hover:underline">
@@ -293,6 +319,12 @@ function CheckoutPage() {
       </header>
 
       {items.length > 0 ? (
+        <div className="rounded-2xl border border-border bg-card px-3 py-4 sm:px-6">
+          <CheckoutStepper current="address" />
+        </div>
+      ) : null}
+
+      {items.length > 0 ? (
         <TrustStrip variant="checkout" className="hidden sm:block" />
       ) : null}
 
@@ -307,7 +339,7 @@ function CheckoutPage() {
         <EmptyState
           illustration="emptyCart"
           title="Cart is empty"
-          description="Add products with an offer before checkout."
+          description="Your cart is empty."
           actionLabel="Browse market"
           actionTo="/"
         />
@@ -390,7 +422,7 @@ function CheckoutPage() {
             ) : (
               <p className="rounded-2xl border border-border bg-muted/30 px-4 py-3 text-xs text-muted-foreground">
                 <Link
-                  to="/signin"
+                  to="/login"
                   search={{ redirect: "/checkout" }}
                   className="font-semibold underline"
                 >
@@ -402,13 +434,16 @@ function CheckoutPage() {
 
             <form
               id="checkout-form"
-              className="space-y-4 rounded-3xl border border-border bg-card p-5 shadow-sm"
+              className="space-y-6 rounded-2xl border border-border bg-card p-5 shadow-sm"
               onSubmit={(e) => {
                 e.preventDefault()
                 place.mutate()
               }}
             >
-              <h2 className="text-base font-bold">Delivery details</h2>
+              <section className="space-y-4" aria-labelledby="checkout-address">
+              <h2 id="checkout-address" className="text-base font-bold">
+                1 · Address details
+              </h2>
               <FormField
                 label="Email"
                 value={email || sessionQ.data?.email || ""}
@@ -474,9 +509,16 @@ function CheckoutPage() {
                   {activeMarket.locale.shipping.hint}
                 </p>
               ) : null}
+              </section>
 
+              <section className="space-y-3" aria-labelledby="checkout-delivery">
+              <h2 id="checkout-delivery" className="text-base font-bold">
+                2 · Delivery method
+              </h2>
               <div className="space-y-2 rounded-2xl border border-border bg-muted/20 p-4 text-sm">
-                <p className="font-bold">Shipping options</p>
+                <p className="font-semibold text-muted-foreground">
+                  Available options
+                </p>
                 {shippingQ.isLoading ? (
                   <p className="text-xs text-muted-foreground">Loading…</p>
                 ) : null}
@@ -511,8 +553,13 @@ function CheckoutPage() {
                 ) : null}
               </div>
 
+              </section>
+
+              <section className="space-y-3" aria-labelledby="checkout-payment">
+              <h2 id="checkout-payment" className="text-base font-bold">
+                3 · Payment method
+              </h2>
               <div className="space-y-3 rounded-2xl border border-border bg-muted/20 p-4 text-sm">
-                <p className="font-bold">Payment</p>
                 <label
                   className={cn(
                     "flex cursor-pointer items-start gap-3 rounded-xl border p-3",
@@ -579,6 +626,7 @@ function CheckoutPage() {
                   </>
                 ) : null}
               </div>
+              </section>
 
               {place.isError ? (
                 <p className="text-sm text-destructive" role="alert">
@@ -591,7 +639,7 @@ function CheckoutPage() {
               <Button
                 type="submit"
                 size="lg"
-                className="hidden min-h-12 w-full rounded-xl md:inline-flex"
+                className="hidden min-h-12 w-full rounded-full font-bold md:inline-flex"
                 disabled={!canSubmit}
               >
                 {place.isPending
@@ -600,12 +648,12 @@ function CheckoutPage() {
                     : "Placing order…"
                   : payMethod === "momo"
                     ? "Pay with Mobile Money"
-                    : "Place order"}
+                    : "Confirm order"}
               </Button>
             </form>
           </div>
 
-          <aside className="h-max space-y-4 rounded-3xl border border-border bg-card p-5 shadow-sm lg:sticky lg:top-24">
+          <aside className="h-max space-y-4 rounded-2xl border border-border bg-card p-5 shadow-sm lg:sticky lg:top-24">
             <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               Order summary
             </p>

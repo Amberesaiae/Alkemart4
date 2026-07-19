@@ -15,7 +15,8 @@ import {
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
 import { updateStoresStep } from "@medusajs/medusa/core-flows"
-import { ExecArgs, Modules, ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import type { ExecArgs } from "@medusajs/framework/types"
+import { Modules, ContainerRegistrationKeys } from "@medusajs/framework/utils"
 
 const updateStoreCurrencies = createWorkflow(
   "ensure-ghana-store-currencies",

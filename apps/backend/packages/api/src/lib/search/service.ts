@@ -1,11 +1,15 @@
 import {
   ensureProductsIndex,
   getIndexUid,
-  getMeiliClient,
-  getProductsIndex,
+  getMeiliClientAsync,
+  getProductsIndexAsync,
   isSearchEnabled,
 } from "./client"
-import { enrichDocsWithOffers, mapProductToDocument } from "./documents"
+import {
+  enrichDocsWithOffers,
+  enrichDocsWithSellerAddresses,
+  mapProductToDocument,
+} from "./documents"
 import type {
   SearchProductDocument,
   SearchQueryInput,
@@ -104,6 +108,37 @@ export async function fetchProductsForIndex(
   if (offers.length) {
     docs = enrichDocsWithOffers(docs, offers)
   }
+
+  // Seller location from seller_address (Ghana discovery facets)
+  try {
+    const sellerIds = [
+      ...new Set(docs.map((d) => d.seller_id).filter(Boolean) as string[]),
+    ]
+    if (sellerIds.length) {
+      const { data: addrData } = await query.graph({
+        entity: "seller_address",
+        fields: ["id", "seller_id", "city", "province", "country_code"],
+        filters: { seller_id: sellerIds },
+      })
+      const addrs = Array.isArray(addrData)
+        ? addrData
+        : addrData
+          ? [addrData]
+          : []
+      if (addrs.length) {
+        docs = enrichDocsWithSellerAddresses(
+          docs,
+          addrs as Record<string, unknown>[],
+        )
+      }
+    }
+  } catch (e) {
+    console.warn(
+      "[search] seller_address graph unavailable",
+      e instanceof Error ? e.message : e,
+    )
+  }
+
   return docs
 }
 
@@ -155,9 +190,9 @@ export async function listPublishedSitemapEntries(
 export async function upsertProductDocuments(
   docs: SearchProductDocument[],
 ): Promise<number> {
-  const index = getProductsIndex()
-  if (!index) return 0
   await ensureProductsIndex()
+  const index = await getProductsIndexAsync()
+  if (!index) return 0
 
   const sellable = docs.filter(
     (d) => d.sellable && d.status === "published" && d.has_offer,
@@ -180,7 +215,7 @@ export async function upsertProductDocuments(
 }
 
 export async function deleteProductDocuments(ids: string[]): Promise<void> {
-  const index = getProductsIndex()
+  const index = await getProductsIndexAsync()
   if (!index || !ids.length) return
   await index.deleteDocuments(ids)
 }
@@ -194,7 +229,7 @@ export async function reindexAllProducts(
   await ensureProductsIndex()
   const docs = await fetchProductsForIndex(query)
   // Wipe + replace so deleted products leave the index
-  const index = getProductsIndex()!
+  const index = (await getProductsIndexAsync())!
   const sellable = docs.filter(
     (d) => d.sellable && d.status === "published" && d.has_offer,
   )
@@ -230,6 +265,14 @@ function buildFilterExpression(input?: SearchQueryInput["filters"]): string {
   if (typeof input?.max_price === "number" && Number.isFinite(input.max_price)) {
     parts.push(`min_price <= ${input.max_price}`)
   }
+  if (input?.seller_province?.trim()) {
+    parts.push(
+      `seller_province = "${escapeFilter(input.seller_province.trim())}"`,
+    )
+  }
+  if (input?.seller_city?.trim()) {
+    parts.push(`seller_city = "${escapeFilter(input.seller_city.trim())}"`)
+  }
 
   return parts.join(" AND ")
 }
@@ -258,7 +301,8 @@ export async function searchProducts(
     }
   }
 
-  const index = getProductsIndex()
+  await ensureProductsIndex()
+  const index = await getProductsIndexAsync()
   if (!index) {
     return {
       hits: [],
@@ -272,8 +316,6 @@ export async function searchProducts(
     }
   }
 
-  await ensureProductsIndex()
-
   const filter = buildFilterExpression(input.filters)
   const result = await index.search(q, {
     limit,
@@ -282,6 +324,8 @@ export async function searchProducts(
     facets: [
       "category_handles",
       "seller_handle",
+      "seller_city",
+      "seller_province",
       "has_offer",
       "currency_code",
     ],
@@ -316,7 +360,7 @@ export async function searchHealth(): Promise<{
       reachable: false,
     }
   }
-  const c = getMeiliClient()
+  const c = await getMeiliClientAsync()
   try {
     await c!.health()
     return {

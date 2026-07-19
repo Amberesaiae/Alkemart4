@@ -4,7 +4,7 @@ import { getSessionCustomer } from "./auth"
 export async function requireAuth() {
   const customer = await getSessionCustomer()
   if (!customer) {
-    throw redirect({ to: "/signin", search: { redirect: location.pathname } })
+    throw redirect({ to: "/login", search: { redirect: location.pathname } })
   }
   return customer
 }

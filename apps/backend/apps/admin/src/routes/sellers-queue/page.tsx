@@ -134,54 +134,42 @@ export default function SellersQueuePage() {
 
   function SellerCard({ s, showReject }: { s: SellerRow; showReject?: boolean }) {
     return (
-      <div className="alk-kpi" style={{ textAlign: "left" }}>
-        <div
-          style={{
-            display: "flex",
-            flexWrap: "wrap",
-            gap: 8,
-            justifyContent: "space-between",
-            alignItems: "baseline",
-          }}
-        >
-          <strong style={{ fontSize: "1.05rem" }}>
+      <div className="alk-panel">
+        <div className="alk-row-between">
+          <strong className="alk-card-title">
             {s.name || s.handle || s.id}
           </strong>
-          <span style={{ fontSize: 12, opacity: 0.75 }}>
+          <span className="alk-muted">
             {s.status}
             {s.phase ? ` · ${s.phase}` : ""}
           </span>
         </div>
-        <div style={{ fontSize: 13, marginTop: 6, opacity: 0.85 }}>
+        <p className="alk-muted">
           {s.email || "—"} · @{s.handle || "—"}
-        </div>
+        </p>
         {s.status_reason ? (
-          <div style={{ fontSize: 12, marginTop: 6, color: "#9a3412" }}>
-            {s.status_reason}
+          <p className="alk-status is-error">{s.status_reason}</p>
+        ) : null}
+        {showReject ? (
+          <div className="alk-panel-footer">
+            <button
+              type="button"
+              className="alk-btn"
+              disabled={busy === s.id}
+              onClick={() => void approve(s.id)}
+            >
+              Approve
+            </button>
+            <button
+              type="button"
+              className="alk-btn alk-btn-secondary"
+              disabled={busy === s.id}
+              onClick={() => void reject(s.id)}
+            >
+              Reject application
+            </button>
           </div>
         ) : null}
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 12 }}>
-          {showReject ? (
-            <>
-              <button
-                type="button"
-                className="alk-btn"
-                disabled={busy === s.id}
-                onClick={() => void approve(s.id)}
-              >
-                Approve
-              </button>
-              <button
-                type="button"
-                className="alk-btn alk-btn-secondary"
-                disabled={busy === s.id}
-                onClick={() => void reject(s.id)}
-              >
-                Reject application
-              </button>
-            </>
-          ) : null}
-        </div>
       </div>
     )
   }
@@ -191,7 +179,7 @@ export default function SellersQueuePage() {
       <AlkPageHeader
         badge="alkemart · ops"
         title="Seller applications"
-        description="Approve shops or reject via Mercur suspend with a reason code. Lifecycle stays on Mercur — this is the ops queue."
+        description="Review new seller applications. Approve to open the shop, or reject with a clear reason the seller can act on."
         meta={
           <button type="button" className="alk-btn alk-btn-secondary" onClick={() => void load()}>
             Refresh
@@ -202,55 +190,62 @@ export default function SellersQueuePage() {
       {loading ? <AlkEmpty>Loading seller queue…</AlkEmpty> : null}
       {error ? <AlkError>{error}</AlkError> : null}
       {flash ? (
-        <div className="alk-banner" style={{ marginBottom: 12 }}>
+        <div className="alk-banner">
           <strong>{flash}</strong>
         </div>
       ) : null}
 
-      <div className="alk-kpi" style={{ textAlign: "left", marginBottom: 16 }}>
-        <div className="alk-kpi-label">Reject reason (for “Reject application”)</div>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 8 }}>
-          <select
-            value={reasonCode}
-            onChange={(e) => setReasonCode(e.target.value)}
-            style={{ minWidth: 160, padding: 8 }}
-          >
-            {codes.map((c) => (
-              <option key={c.code} value={c.code}>
-                {c.label}
-              </option>
-            ))}
-          </select>
-          <input
-            type="text"
-            placeholder="Optional notes"
-            value={reasonText}
-            onChange={(e) => setReasonText(e.target.value)}
-            style={{ flex: 1, minWidth: 200, padding: 8 }}
-          />
+      <div className="alk-panel">
+        <h3 className="alk-section-title">Reject reason</h3>
+        <p className="alk-muted">Used when you reject an application.</p>
+        <div className="alk-form-grid">
+          <label className="alk-field">
+            <span className="alk-field-label">Reason code</span>
+            <select
+              className="alk-select"
+              value={reasonCode}
+              onChange={(e) => setReasonCode(e.target.value)}
+            >
+              {codes.map((c) => (
+                <option key={c.code} value={c.code}>
+                  {c.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="alk-field">
+            <span className="alk-field-label">Notes (optional)</span>
+            <input
+              className="alk-input"
+              type="text"
+              placeholder="Optional notes for the seller"
+              value={reasonText}
+              onChange={(e) => setReasonText(e.target.value)}
+            />
+          </label>
         </div>
       </div>
 
-      <h2 style={{ fontSize: "1rem", margin: "16px 0 8px" }}>
+      <h2 className="alk-section-title">
         Pending approval ({pending.length})
       </h2>
       {!loading && pending.length === 0 ? (
         <AlkEmpty>No sellers waiting for approval.</AlkEmpty>
       ) : (
-        <div style={{ display: "grid", gap: 12 }}>
+        <div className="alk-stack">
           {pending.map((s) => (
             <SellerCard key={s.id} s={s} showReject />
           ))}
         </div>
       )}
 
-      <h2 style={{ fontSize: "1rem", margin: "24px 0 8px" }}>
+      <h2 className="alk-section-title">
         Rejected applications ({rejected.length})
       </h2>
       {!loading && rejected.length === 0 ? (
         <AlkEmpty>No rejected applications.</AlkEmpty>
       ) : (
-        <div style={{ display: "grid", gap: 12 }}>
+        <div className="alk-stack">
           {rejected.map((s) => (
             <SellerCard key={s.id} s={s} />
           ))}

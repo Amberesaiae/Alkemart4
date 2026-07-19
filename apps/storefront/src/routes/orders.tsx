@@ -1,7 +1,7 @@
 import { useState } from "react"
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
 import { useQuery } from "@tanstack/react-query"
-import { formatOrderLabel, listMyOrders } from "@/lib/orders"
+import { formatOrderLabel, listMyOrders, maskOrderId } from "@/lib/orders"
 import { getSessionCustomer } from "@/lib/auth"
 import { listRecentOrderIds } from "@/lib/recent-orders"
 import { Skeleton } from "@/components/skeleton"
@@ -9,33 +9,21 @@ import { Button } from "@/components/ui/button"
 import { EmptyState } from "@/components/empty-state"
 import { Price } from "@/components/price"
 import { formInputClassName } from "@/components/form-field"
-import { requireAuth } from "@/lib/route-guards"
 
-function OrdersPendingComponent() {
-  return (
-    <div className="mx-auto max-w-2xl space-y-8" role="status" aria-label="Loading orders">
-      <Skeleton className="h-28 w-full rounded-3xl" />
-      <div className="space-y-3">
-        <Skeleton className="h-24 w-full rounded-2xl" />
-        <Skeleton className="h-24 w-full rounded-2xl" />
-        <Skeleton className="h-24 w-full rounded-2xl" />
-      </div>
-    </div>
-  )
-}
-
+/**
+ * Orders — production RBAC fix (2026-07-19):
+ * - Guest MAY open this page (lookup by order id) — ACCESS-AND-RBAC contract.
+ * - Account order list requires session (API still enforces JWT).
+ * Previously requireAuth on beforeLoad blocked guest lookup (auth wall / joke UX).
+ */
 export const Route = createFileRoute("/orders")({
-  beforeLoad: async () => {
-    const customer = await requireAuth()
-    return { customer }
-  },
   component: OrdersPage,
-  pendingComponent: OrdersPendingComponent,
 })
 
 function OrdersPage() {
   const navigate = useNavigate()
   const [lookupId, setLookupId] = useState("")
+  const [lookupEmail, setLookupEmail] = useState("")
   const [recentIds] = useState(() => listRecentOrderIds())
 
   const session = useQuery({
@@ -48,9 +36,20 @@ function OrdersPage() {
     enabled: Boolean(session.data),
   })
 
-  function goToOrder(raw: string) {
+  function goToOrder(raw: string, email?: string) {
     const id = raw.trim()
     if (!id) return
+    // Privacy: never put email in the URL
+    try {
+      if (email?.trim()) {
+        sessionStorage.setItem(
+          "alkemart.storefront.order_lookup_email",
+          email.trim(),
+        )
+      }
+    } catch {
+      /* private mode */
+    }
     void navigate({
       to: "/order/$id",
       params: { id },
@@ -61,13 +60,15 @@ function OrdersPage() {
   return (
     <div className="mx-auto max-w-2xl space-y-8">
       <header className="space-y-2 rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6">
-        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-          Account
+        <p className="type-sm font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+          Orders
         </p>
-        <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Orders</h1>
-        <p className="text-sm text-muted-foreground">
-          Signed-in order history, or look up a guest order with the id from
-          checkout.
+        <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
+          Track orders
+        </h1>
+        <p className="type-sm text-muted-foreground">
+          Sign in for account history, or look up a guest order with your
+          reference and checkout email.
         </p>
       </header>
 
@@ -75,29 +76,39 @@ function OrdersPage() {
         <div>
           <h2 className="text-base font-bold">Find an order</h2>
           <p className="mt-1 text-xs text-muted-foreground">
-            Paste the order id from your confirmation page.
+            Use the reference from your confirmation. Guests also need the
+            checkout email (not shown in the link).
           </p>
         </div>
         <form
-          className="flex flex-col gap-2 sm:flex-row"
+          className="flex flex-col gap-2"
           onSubmit={(e) => {
             e.preventDefault()
-            goToOrder(lookupId)
+            goToOrder(lookupId, lookupEmail)
           }}
         >
           <input
             type="text"
             value={lookupId}
             onChange={(e) => setLookupId(e.target.value)}
-            placeholder="order_…"
-            className={formInputClassName("font-mono")}
-            aria-label="Order id"
+            placeholder="Order reference"
+            className={formInputClassName()}
+            aria-label="Order reference"
             autoComplete="off"
             spellCheck={false}
           />
+          <input
+            type="email"
+            value={lookupEmail}
+            onChange={(e) => setLookupEmail(e.target.value)}
+            placeholder="Checkout email"
+            className={formInputClassName()}
+            aria-label="Checkout email"
+            autoComplete="email"
+          />
           <Button
             type="submit"
-            className="min-h-11 shrink-0 rounded-xl px-6"
+            className="min-h-11 shrink-0 rounded-xl px-6 sm:self-start"
             disabled={!lookupId.trim()}
           >
             Open
@@ -113,10 +124,10 @@ function OrdersPage() {
                 <li key={rid}>
                   <button
                     type="button"
-                    className="w-full rounded-xl border border-border bg-muted/20 px-3 py-2.5 text-left font-mono text-xs transition hover:border-primary/40 hover:bg-muted/40"
+                    className="w-full rounded-xl border border-border bg-muted/20 px-3 py-2.5 text-left text-sm font-medium transition hover:border-primary/40 hover:bg-muted/40"
                     onClick={() => goToOrder(rid)}
                   >
-                    {rid}
+                    {maskOrderId(rid)}
                   </button>
                 </li>
               ))}
@@ -129,9 +140,9 @@ function OrdersPage() {
         <EmptyState
           illustration="emptyOrders"
           title="Sign in for account orders"
-          description="Orders linked to your customer appear here after you sign in. Guest checkouts stay available via the order id above."
+          description="Sign in to see your orders. Guests can look up by order id."
           actionLabel="Sign in"
-          actionTo="/signin"
+          actionTo="/login"
           actionSearch={{ redirect: "/orders" }}
         />
       ) : null}
@@ -160,7 +171,7 @@ function OrdersPage() {
             <EmptyState
               illustration="emptyOrders"
               title="No orders yet"
-              description="When you place a COD order while signed in, it will show up here."
+              description="Orders you place while signed in show here."
               actionLabel="Browse market"
               actionTo="/"
             />

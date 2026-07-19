@@ -21,6 +21,7 @@ Related deep dives (do not duplicate here):
 | Panel branding | `2026-07-17-alkemart-panel-branding.md` |
 | Buyer access | `apps/storefront/docs/ACCESS-AND-RBAC.md` |
 | Historical gap map | `2026-07-16-e2e-architecture-gap-map.md` |
+| **Live E2E bake-in matrix (2026-07-19)** | `2026-07-19-LIVE-E2E.md` |
 | Mode B COD freeze | `2026-07-16-mode-b-lab-demo-freeze.md` |
 | MoMo / Paystack | `2026-07-15-paystack-ghana-integration.md` |
 | Commercial spine (money) | `2026-07-13-alkemart-architecture-and-commercial-spine.md` |
@@ -429,13 +430,22 @@ rsync -a --exclude node_modules --exclude dist \
 # Health
 curl -s http://localhost:9000/health
 
+# Automated gates (see 2026-07-19-LIVE-E2E.md)
+bun run smoke:unit:api    # pure unit (WSL API worktree)
+bun run smoke:catalog     # catalog strategy + cache
+bun run smoke:ui          # surface smoke
+bun run smoke:rbac        # multi-vendor Playwright
+bun run smoke:live        # Mode B human shell (COD + isolation)
+bun run smoke:all         # onboarding + catalog + ui + rbac
+bun run smoke:all:deep    # unit + live + smoke:all
+
 # Admin (lab)
 open http://localhost:9000/dashboard
 # admin@alkemart.local / supersecret
 
 # Seller (lab)
 open http://localhost:9000/seller
-# member.tema@alkemart.local / VendorPass123!
+# seller@alkemart.local / supersecret  (or member.tema@… if fixture kept)
 
 # Buyer
 open http://localhost:5175

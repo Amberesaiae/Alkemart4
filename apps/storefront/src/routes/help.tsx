@@ -1,8 +1,7 @@
 import { useState } from "react"
 import { createFileRoute, Link } from "@tanstack/react-router"
-import { Icon } from "@/components/icon"
+import { IconSafe, type IconId } from "@/design/icons"
 import { Illustration } from "@/components/illustration"
-import type { IconKey } from "@/lib/icons"
 import { getMercurVendorUrl } from "@/lib/env"
 import { cn } from "@/lib/utils"
 
@@ -13,39 +12,39 @@ export const Route = createFileRoute("/help")({
 const FAQ = [
   {
     q: "How do I pay?",
-    a: "Cash on delivery is available at checkout: pay the rider when your order arrives. Where Mobile Money is offered, choose your network (MTN, Telecel, or AirtelTigo) and approve the prompt on your phone.",
+    a: "Cash on delivery — pay the rider. MoMo (MTN, Telecel, AirtelTigo) when enabled.",
   },
   {
     q: "How does delivery work?",
-    a: "Each seller sets their own delivery options. At checkout you will see the options available for your cart and delivery address. Fees are shown only when the seller provides them.",
+    a: "Sellers set delivery. Options and fees show at checkout.",
   },
   {
     q: "Why are items grouped by seller?",
-    a: "Alkemart is a multi-vendor marketplace. Your cart may include items from more than one shop. Each group is fulfilled by that seller according to their delivery options.",
+    a: "Each shop fulfills its own items. Carts can mix sellers.",
   },
   {
     q: "Where do I see my orders?",
-    a: "Sign in and open Orders for your account history. If you checked out as a guest, use the order id from your confirmation page under Find an order.",
+    a: "Sign in → Orders. Guests: look up the order id from confirmation.",
   },
   {
-    q: "How do I find a guest order later?",
-    a: "Copy the order id or link on the confirmation page. On Orders, paste the id under Find an order. Recent ids may also be saved on this device after you open an order.",
+    q: "How do I find a guest order?",
+    a: "Use the order id on the confirmation page under Find an order.",
   },
   {
-    q: "How do I sell on alkemart?",
-    a: "Use Sell on alkemart or Partners to open Seller Hub. This website is for shopping; sellers manage products and orders in Seller Hub.",
+    q: "How do I sell?",
+    a: "Open Seller Hub via Sell or Partners. This site is for shopping.",
   },
   {
-    q: "What can a signed-in customer do that a guest cannot?",
-    a: "Saved addresses, profile updates, and full order history. Guests can still browse, checkout with cash on delivery, and look up an order with the confirmation id.",
+    q: "Sign in vs guest?",
+    a: "Sign-in: addresses, profile, order history. Guests: browse, COD, order lookup.",
   },
   {
-    q: "Something went wrong with an order",
-    a: "Open the order detail, copy the order id, and contact support with that reference.",
+    q: "Order problem?",
+    a: "Open the order, copy the id, contact support with that reference.",
   },
   {
-    q: "Why is a product missing a price or Add to cart?",
-    a: "Some listings are still being set up by the seller. When pricing and availability are ready, Add to cart will appear.",
+    q: "No price or Add to cart?",
+    a: "The seller is still setting up that listing.",
   },
 ] as const
 
@@ -80,17 +79,17 @@ function HelpPage() {
 
       <ul className="grid gap-3 sm:grid-cols-3">
         <HelpHighlight
-          icon="money"
+          icon="cod"
           title="Payments"
           body="COD and Mobile Money when available."
         />
         <HelpHighlight
-          icon="delivery-truck"
+          icon="truck"
           title="Delivery"
           body="Options come from each seller at checkout."
         />
         <HelpHighlight
-          icon="order"
+          icon="package"
           title="Orders"
           body="Sign in for history, or use your order id."
         />
@@ -133,13 +132,13 @@ function HelpPage() {
       <div className="grid gap-2 rounded-3xl border border-border bg-muted/30 p-5 sm:grid-cols-2">
         <QuickLink to="/orders" label="Your orders" />
         <QuickLink to="/account" label="Account & addresses" />
-        <QuickLink to="/sellers" label="Sellers" />
+        <QuickLink to="/shops" label="Sellers" />
         <QuickLink to="/cart" label="Cart" />
         <Link
-          to="/partners"
+          to="/sell"
           className="rounded-none border border-border bg-card px-4 py-3 text-sm font-semibold hover:border-foreground"
         >
-          Partners →
+          Sell →
         </Link>
         {sellUrl ? (
           <a
@@ -166,7 +165,7 @@ function QuickLink({
   to,
   label,
 }: {
-  to: "/orders" | "/account" | "/sellers" | "/cart"
+  to: "/orders" | "/account" | "/shops" | "/cart"
   label: string
 }) {
   return (
@@ -180,7 +179,7 @@ function QuickLink({
 }
 
 function HelpHighlight(props: {
-  icon: IconKey
+  icon: IconId
   title: string
   body: string
 }) {
@@ -188,7 +187,7 @@ function HelpHighlight(props: {
     <li className="rounded-2xl border border-border bg-card p-4 text-center shadow-sm">
       <div className="mb-2 flex justify-center">
         <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/15">
-          <Icon name={props.icon} size="md" />
+          <IconSafe name={props.icon} size={28} />
         </div>
       </div>
       <p className="text-sm font-bold text-foreground">{props.title}</p>

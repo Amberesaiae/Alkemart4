@@ -75,7 +75,7 @@ export default async function ensureGhanaCategories({ container }: ExecArgs) {
     ) => Promise<unknown>
   }
   try {
-    productModule = container.resolve(Modules.PRODUCT) as typeof productModule
+    productModule = container.resolve(Modules.PRODUCT) as unknown as typeof productModule
   } catch {
     logger.error("Product module unavailable")
     return

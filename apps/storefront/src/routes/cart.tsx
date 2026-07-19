@@ -66,9 +66,11 @@ function CartPage() {
     (groups.length > 1 && groups.some((g) => g.seller?.name))
 
   return (
-    <div className="space-y-6 pb-28 md:pb-8">
+    <div className="space-y-6 pb-8">
       <header className="space-y-1">
-        <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Cart</h1>
+        <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">
+          Cart
+        </h1>
         <p className="text-sm text-muted-foreground">
           {itemCount > 0
             ? `${itemCount} item${itemCount === 1 ? "" : "s"}${
@@ -109,7 +111,7 @@ function CartPage() {
         <EmptyState
           illustration="emptyCart"
           title="Your cart is empty"
-          description="Browse the market and add products from local sellers."
+          description="Add products from the catalog."
           actionLabel="Browse market"
           actionTo="/"
         />
@@ -119,16 +121,16 @@ function CartPage() {
         <div className="grid gap-8 lg:grid-cols-[1fr_300px]">
           <div className="space-y-6">
             {multiSeller ? (
-              <p className="rounded-2xl border border-primary/20 bg-primary/10 px-4 py-3 text-xs leading-relaxed text-foreground">
-                Marketplace cart: items may ship from different sellers.
-                Shipping methods attach at checkout from each seller’s options.
+              <p className="rounded-2xl border border-primary/30 bg-primary/15 px-4 py-3 text-xs leading-relaxed text-foreground">
+                Items in this cart come from more than one seller. Shipping
+                options are chosen per seller at checkout.
               </p>
             ) : null}
 
             {groups.map((group) => (
               <section
                 key={group.key}
-                className="space-y-3 rounded-3xl border border-border bg-card p-4 shadow-sm sm:p-5"
+                className="space-y-3 rounded-2xl border border-border bg-card p-4 shadow-sm sm:p-5"
               >
                 <div className="flex flex-wrap items-center gap-2 border-b border-border pb-3">
                   {group.seller?.name ? (
@@ -172,7 +174,7 @@ function CartPage() {
             ))}
           </div>
 
-          <aside className="h-max space-y-4 rounded-3xl border border-border bg-card p-5 shadow-sm lg:sticky lg:top-24">
+          <aside className="h-max space-y-4 rounded-2xl border border-border bg-card p-5 shadow-sm lg:sticky lg:top-24">
             <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               Order summary
             </p>
@@ -180,26 +182,26 @@ function CartPage() {
               amount={cart?.total}
               currencyCode={cart?.currencyCode}
               size="lg"
-              className="text-2xl"
+              className="text-2xl font-bold"
             />
             <p className="text-xs leading-relaxed text-muted-foreground">
               Shipping calculated at checkout from seller options. Cash on
-              delivery.
+              delivery available.
             </p>
             <Button
               asChild
               size="lg"
-              className="hidden min-h-12 w-full rounded-xl md:inline-flex"
+              className="hidden min-h-12 w-full rounded-full font-bold md:inline-flex"
             >
-              <Link to="/checkout">Checkout (COD)</Link>
+              <Link to="/checkout">Place order</Link>
             </Button>
             <Button
               asChild
               size="lg"
               variant="outline"
-              className="min-h-11 w-full rounded-xl"
+              className="min-h-11 w-full rounded-full"
             >
-              <Link to="/browse/$slug" params={{ slug: "all" }}>
+              <Link to="/categories/$slug" params={{ slug: "all" }}>
                 Continue shopping
               </Link>
             </Button>
@@ -208,18 +210,22 @@ function CartPage() {
       ) : null}
 
       {items.length > 0 ? (
-        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/95 p-3 backdrop-blur md:hidden">
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card p-3 md:hidden">
           <div className="mx-auto flex max-w-6xl items-center gap-3">
             <div className="min-w-0 flex-1 text-sm">
-              <span className="text-muted-foreground">Subtotal </span>
+              <span className="text-muted-foreground">Total </span>
               <Price
                 amount={cart?.total}
                 currencyCode={cart?.currencyCode}
                 size="sm"
               />
             </div>
-            <Button asChild size="lg" className="min-h-11 shrink-0 rounded-xl">
-              <Link to="/checkout">Checkout</Link>
+            <Button
+              asChild
+              size="lg"
+              className="min-h-11 shrink-0 rounded-full font-bold"
+            >
+              <Link to="/checkout">Place order</Link>
             </Button>
           </div>
         </div>

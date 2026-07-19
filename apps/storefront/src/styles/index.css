@@ -3,13 +3,21 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* Alkemart tokens — yellow / white / black (theme only, not commerce data) */
+/**
+ * Design tokens — Mowafer (see src/design/tokens.ts).
+ * Semantic colors only; no one-off hex in components.
+ */
 
 @theme inline {
-  --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-    sans-serif;
-  --radius-md: 10px;
+  --font-sans: "Montserrat", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", sans-serif;
+  /* Mowafer-soft radii — cards use md (12), tiles lg (16) */
+  --radius-sm: 8px;
+  --radius-md: 12px;
   --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-2xl: 20px;
+  --radius-3xl: 24px;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -24,21 +32,25 @@
 }
 
 :root {
-  --primary: #f5c518;
-  --primary-foreground: #1a1a1a;
-  --background: #fafafa;
-  --foreground: #141414;
+  --primary: #febf31;
+  --primary-foreground: #3c3c3b;
+  --background: #f0f0f0;
+  --foreground: #3c3c3b;
   --card: #ffffff;
-  --card-foreground: #141414;
-  --muted: #f0f0f0;
-  --muted-foreground: #5a5a5a;
-  --border: #e8e8e8;
-  --destructive: #c62828;
-  --ring: #f5c518;
+  --card-foreground: #3c3c3b;
+  --muted: #f5f5f5;
+  --muted-foreground: #8a8a8a;
+  --border: #ebebeb;
+  --destructive: #f0295a;
+  --ring: #febf31;
 }
 
 * {
   border-color: var(--border);
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
@@ -47,17 +59,69 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans);
+  font-size: 1rem; /* 16px base — Mowafer */
+  line-height: 1.5;
+  font-weight: 400;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
 
-/* Focus-visible for keyboard users */
+/**
+ * Mowafer type roles (prefer these over ad-hoc text-xs / text-[10px]).
+ * Floor is 14px (.type-sm).
+ */
+.type-sm {
+  font-size: 0.875rem; /* 14 */
+  line-height: 1.45;
+}
+.type-base {
+  font-size: 1rem;
+  line-height: 1.5;
+}
+.type-lg {
+  font-size: 1.125rem;
+  line-height: 1.4;
+}
+.type-section {
+  font-size: 1.25rem;
+  line-height: 1.25;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+@media (min-width: 640px) {
+  .type-section {
+    font-size: 1.5rem;
+  }
+}
+.type-band {
+  font-size: 1.25rem;
+  line-height: 1.2;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+@media (min-width: 640px) {
+  .type-band {
+    font-size: 1.5rem;
+  }
+}
+
+/* Full-viewport app root (no nested page-card canvas) */
+#root {
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+html,
+body {
+  min-height: 100%;
+  margin: 0;
+}
+
 :focus-visible {
   outline: 2px solid var(--ring);
   outline-offset: 2px;
 }
 
-/* Reduce motion for sticky bars etc. */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -67,4 +131,149 @@ body {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* Utility: hide scrollbars on icon rails while keeping scroll */
+.scrollbar-none {
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
+/* ─── Brand wordmark tracking (no inline style) ─── */
+.brand-wordmark {
+  letter-spacing: -0.04em;
+}
+.brand-period {
+  color: var(--primary);
+}
+
+/* ─── Department themes (imgi_11 / imgi_12 Categories panel) ───
+ * Apply theme-* on a parent; children use .dept-panel / .dept-soft.
+ * Never set backgroundColor via style={} in components.
+ */
+.theme-dept-electronics {
+  --dept-bg: #50d1c8;
+  --dept-fg: #ffffff;
+  --dept-soft: #e6faf8;
+}
+.theme-dept-food {
+  --dept-bg: #febf31;
+  --dept-fg: #3c3c3b;
+  --dept-soft: #fff8e0;
+}
+.theme-dept-pet {
+  --dept-bg: #f0295a;
+  --dept-fg: #ffffff;
+  --dept-soft: #fde8ee;
+}
+.theme-dept-beverages {
+  --dept-bg: #9ac63b;
+  --dept-fg: #ffffff;
+  --dept-soft: #f0f8e0;
+}
+.theme-dept-personal {
+  --dept-bg: #f5a3c7;
+  --dept-fg: #3c3c3b;
+  --dept-soft: #fdeef5;
+}
+.theme-dept-baby {
+  --dept-bg: #3b82f6;
+  --dept-fg: #ffffff;
+  --dept-soft: #e8f1fe;
+}
+.theme-dept-fashion {
+  --dept-bg: #7c6cf0;
+  --dept-fg: #ffffff;
+  --dept-soft: #eeecfd;
+}
+.theme-dept-home {
+  --dept-bg: #f0295a;
+  --dept-fg: #ffffff;
+  --dept-soft: #fde8ee;
+}
+.theme-dept-default {
+  --dept-bg: #50d1c8;
+  --dept-fg: #ffffff;
+  --dept-soft: #e6faf8;
+}
+
+.dept-panel {
+  background-color: var(--dept-bg);
+  color: var(--dept-fg);
+}
+.dept-soft {
+  background-color: var(--dept-soft);
+  color: var(--foreground);
+}
+
+/* Brands / Sellers — Mowafer dark gray panel */
+.brands-panel {
+  background-color: #5a5a5a;
+  color: #ffffff;
+}
+
+/* Delivery band glow (replaces inline radial-gradient) */
+.delivery-glow {
+  background: radial-gradient(
+    ellipse 60% 80% at 85% 50%,
+    rgba(254, 191, 49, 0.2),
+    transparent 55%
+  );
+}
+
+/* Mosaic photo scrims (replaces inline linear-gradient) */
+.mosaic-scrim-tall {
+  background: linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 0.35) 0%,
+    rgba(0, 0, 0, 0.12) 38%,
+    rgba(0, 0, 0, 0.03) 62%,
+    transparent 100%
+  );
+}
+.mosaic-scrim-short {
+  background: linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 0.28) 0%,
+    rgba(0, 0, 0, 0.08) 55%,
+    transparent 100%
+  );
+}
+
+/* PLP filter strip card */
+.listing-filter-strip {
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  background: var(--card);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+}
+
+/* PLP hero */
+.listing-hero {
+  border-radius: var(--radius-lg);
+  background: var(--card);
+  border: 1px solid var(--border);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+}
+.listing-hero-ground {
+  background: radial-gradient(
+    ellipse at center,
+    rgba(254, 191, 49, 0.35) 0%,
+    rgba(254, 191, 49, 0.12) 45%,
+    transparent 72%
+  );
+}
+
+/* Icon slot — size via CSS variables (no style={{width,height}}) */
+.icon-slot {
+  width: var(--icon-size, 22px);
+  height: var(--icon-size, 22px);
+}
+
+/* Seller store hero (dark board — no inline gradient) */
+.store-hero {
+  background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+  color: #ffffff;
 }

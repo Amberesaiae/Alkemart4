@@ -93,6 +93,20 @@ export function loadAppEnv(raw: NodeJS.ProcessEnv = process.env): AppEnv {
     assertProductionCors("ADMIN_CORS", parsed.data.ADMIN_CORS)
     assertProductionCors("VENDOR_CORS", parsed.data.VENDOR_CORS)
     assertProductionCors("AUTH_CORS", parsed.data.AUTH_CORS)
+    // RBAC / soft-gate kill-switches — refuse lab shortcuts in production
+    if (
+      parsed.data.ALKEMART_STRICT_PROPOSE_GATES === "false" ||
+      parsed.data.ALKEMART_STRICT_PROPOSE_GATES === "0"
+    ) {
+      throw new Error(
+        "ALKEMART_STRICT_PROPOSE_GATES must not be false in production (seller propose readiness)",
+      )
+    }
+    if (process.env.PAYSTACK_WEBHOOK_RELAXED === "true") {
+      throw new Error(
+        "PAYSTACK_WEBHOOK_RELAXED must not be true in production (unsigned webhooks)",
+      )
+    }
   }
   return parsed.data
 }

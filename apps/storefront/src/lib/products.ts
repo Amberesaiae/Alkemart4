@@ -20,6 +20,20 @@ export type StoreProductCard = {
   currencyCode?: string | null
   /** Seller identity if store API returns it — omit when missing. */
   seller?: SellerRef | null
+  /**
+   * Frontend homepage demo seed only — not from Medusa.
+   * Cards must not invent offers; add-to-cart stays disabled.
+   */
+  demo?: boolean
+  /** Browse slug when demo product is clicked instead of PDP */
+  demoCategory?: string
+  /**
+   * Mowafer tiny category line above title (“Televisions”, “Mobile Phones”).
+   * Demo seed or API metadata only — never invented in the card.
+   */
+  categoryLabel?: string | null
+  /** 0–5 star rating when known (demo / reviews API). */
+  rating?: number | null
 }
 
 type VariantSlice = {
@@ -152,19 +166,38 @@ export function preferSellableProducts<T extends { offerId?: string | null }>(
   return products
 }
 
+type CatalogQuery = {
+  limit: number
+  offset?: number
+  sellerHandle?: string
+  categoryHandle?: string
+}
+
 /**
  * Prefer Alkemart catalog (published + offer) when no category/search filters.
+ * Supports server-side seller_handle / category_handle.
  * Falls back to Medusa product.list with client-side offer filter.
  */
-async function listFromAlkemartCatalog(limit: number): Promise<{
+async function listFromAlkemartCatalog(opts: CatalogQuery): Promise<{
   products: StoreProductCard[]
   count: number
 } | null> {
   try {
     const base = getBackendUrl()
     const pk = getPublishableKey()
+    const params = new URLSearchParams()
+    params.set("limit", String(opts.limit))
+    if (opts.offset && opts.offset > 0) {
+      params.set("offset", String(opts.offset))
+    }
+    if (opts.sellerHandle?.trim()) {
+      params.set("seller_handle", opts.sellerHandle.trim())
+    }
+    if (opts.categoryHandle?.trim()) {
+      params.set("category_handle", opts.categoryHandle.trim())
+    }
     const res = await fetch(
-      `${base}/store/alkemart/catalog?limit=${encodeURIComponent(String(limit))}`,
+      `${base}/store/alkemart/catalog?${params.toString()}`,
       {
         headers: {
           Accept: "application/json",
@@ -181,6 +214,9 @@ async function listFromAlkemartCatalog(limit: number): Promise<{
         thumbnail?: string | null
         description?: string | null
         offer_id?: string | null
+        category_label?: string | null
+        min_price?: number | null
+        currency_code?: string | null
         seller?: {
           id?: string | null
           name?: string | null
@@ -198,8 +234,9 @@ async function listFromAlkemartCatalog(limit: number): Promise<{
         thumbnail: p.thumbnail ?? null,
         description: p.description ?? null,
         offerId: p.offer_id ?? null,
-        amount: null,
-        currencyCode: null,
+        amount: p.min_price != null ? Number(p.min_price) : null,
+        currencyCode: p.currency_code ?? null,
+        categoryLabel: p.category_label?.trim() || null,
         seller: p.seller?.name
           ? {
               id: p.seller.id ?? null,
@@ -208,8 +245,14 @@ async function listFromAlkemartCatalog(limit: number): Promise<{
             }
           : null,
       }))
-    if (!products.length) return null
-    // Prices still need region calculated_price — enrich via product.list ids if needed
+    // Empty list is valid when seller/category filter matches nothing
+    if (
+      !products.length &&
+      !opts.sellerHandle?.trim() &&
+      !opts.categoryHandle?.trim()
+    ) {
+      return null
+    }
     return { products, count: data.count ?? products.length }
   } catch {
     return null
@@ -219,6 +262,7 @@ async function listFromAlkemartCatalog(limit: number): Promise<{
 /**
  * List published store products for the configured region.
  * Optional categoryId from product-categories API — never invent category ids.
+ * sellerHandle / categoryHandle use server catalog filters (no client invent).
  */
 export async function listStoreProducts(opts?: {
   limit?: number
@@ -226,6 +270,10 @@ export async function listStoreProducts(opts?: {
   /** Medusa category id from API, not a display slug invented in UI */
   categoryId?: string
   q?: string
+  /** Open seller handle — server catalog filter */
+  sellerHandle?: string
+  /** Product category handle — server catalog filter */
+  categoryHandle?: string
 }): Promise<{
   products: StoreProductCard[]
   count: number
@@ -234,16 +282,26 @@ export async function listStoreProducts(opts?: {
   const { regionId } = commerceContext()
   const limit = opts?.limit ?? 24
   const offset = opts?.offset ?? 0
+  const sellerHandle = opts?.sellerHandle?.trim() || undefined
+  const categoryHandle = opts?.categoryHandle?.trim() || undefined
 
   const useCatalog =
     !opts?.categoryId?.trim() &&
     !opts?.q?.trim() &&
-    offset === 0 &&
+    (offset === 0 || Boolean(sellerHandle || categoryHandle)) &&
     useAlkemartCatalog()
 
   if (useCatalog) {
-    const catalog = await listFromAlkemartCatalog(limit)
-    if (catalog?.products.length) {
+    const catalog = await listFromAlkemartCatalog({
+      limit,
+      offset,
+      sellerHandle,
+      categoryHandle,
+    })
+    if (catalog) {
+      if (!catalog.products.length) {
+        return { products: [], count: catalog.count }
+      }
       // Hydrate prices from product.list for the catalog ids (region-aware)
       try {
         const ids = catalog.products.map((p) => p.id)
@@ -266,6 +324,11 @@ export async function listStoreProducts(opts?: {
             ...full,
             offerId: full.offerId || p.offerId,
             seller: full.seller || p.seller,
+            // Preserve catalog taxonomy — product.list may omit categories
+            categoryLabel: p.categoryLabel || full.categoryLabel || null,
+            // Prefer region calculated_price; fall back to catalog min_price
+            amount: full.amount ?? p.amount,
+            currencyCode: full.currencyCode ?? p.currencyCode,
           }
         })
         return {
@@ -362,6 +425,71 @@ export type StoreCategory = {
  * Related products: prefer same seller when API provided seller identity.
  * Falls back to other catalog products (same list API). Never invents products.
  */
+/**
+ * Peer offers for multi-seller comparison (Mowafer "Other Prices / Retailers").
+ * Never invents sellers or prices — only API rows with product_id match.
+ */
+export type PeerOffer = {
+  offerId: string
+  productId?: string | null
+  seller: SellerRef
+  amount?: number | null
+  currencyCode?: string | null
+}
+
+export async function listPeerOffersForProduct(
+  productId: string,
+): Promise<PeerOffer[]> {
+  const pid = productId.trim()
+  if (!pid) return []
+  try {
+    const base = getBackendUrl()
+    const pk = getPublishableKey()
+    // Server-scoped peer list (not client filter of global /store/offers)
+    const res = await fetch(
+      `${base}/store/alkemart/offers?product_id=${encodeURIComponent(pid)}&limit=20`,
+      {
+        headers: {
+          Accept: "application/json",
+          "x-publishable-api-key": pk,
+        },
+      },
+    )
+    if (!res.ok) return []
+    const data = (await res.json()) as {
+      offers?: {
+        id?: string
+        offer_id?: string
+        product_id?: string
+        amount?: number | null
+        currency_code?: string | null
+        seller?: { id?: string; name?: string; handle?: string } | null
+      }[]
+    }
+    const out: PeerOffer[] = []
+    for (const o of data.offers ?? []) {
+      const offerId = o.offer_id || o.id
+      if (!offerId) continue
+      const name = o.seller?.name?.trim()
+      if (!name) continue
+      out.push({
+        offerId,
+        productId: o.product_id ?? pid,
+        seller: {
+          id: o.seller?.id ?? null,
+          name,
+          handle: o.seller?.handle ?? null,
+        },
+        amount: o.amount != null ? Number(o.amount) : null,
+        currencyCode: o.currency_code ?? null,
+      })
+    }
+    return out
+  } catch {
+    return []
+  }
+}
+
 export async function listRelatedProducts(opts: {
   excludeProductId: string
   sellerId?: string | null

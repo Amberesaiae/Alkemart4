@@ -13,7 +13,7 @@ export default function ProductQualityBanner() {
   return (
     <AlkBanner
       title="Listing quality tips"
-      body="Before submitting for review: clear title (8+ characters), description, and at least one JPEG/PNG/WebP image. Proposed products need a quality score of 40+. Finish shop setup (location + Ghana delivery) first — check the readiness banner above."
+      body="Before submitting for review: clear title (8+ characters), short description, and at least one phone photo (JPEG/PNG/WebP). Score needs 40+. Finish Ghana delivery setup first (pack address + fee) — see the banner above."
     />
   )
 }

@@ -5,8 +5,38 @@
 
 const FAKE_PUBLISHABLE_KEY = "pk_default"
 
-function isProd(): boolean {
+export function isProd(): boolean {
   return import.meta.env.PROD === true
+}
+
+function flagEnabled(name: string, defaultOn: boolean): boolean {
+  const raw = (import.meta.env[name] as string | undefined)?.trim()
+  if (raw == null || raw === "") return defaultOn
+  if (raw === "0" || raw === "false" || raw === "no" || raw === "off") return false
+  return raw === "1" || raw === "true" || raw === "yes" || raw === "on"
+}
+
+/**
+ * Lab-only: surface Admin / ops links on the public shop.
+ * Production default: never show Admin on buyer chrome.
+ * Set VITE_SHOW_ADMIN_LINK=1 only for internal lab builds.
+ */
+export function showAdminLinkOnShop(): boolean {
+  if (!isProd()) {
+    return flagEnabled("VITE_SHOW_ADMIN_LINK", true)
+  }
+  return flagEnabled("VITE_SHOW_ADMIN_LINK", false)
+}
+
+/**
+ * Public “sell with us” entry (/sell + Seller Hub) is OK on production.
+ * Ops map (/partners with Admin) is lab-only unless flagged.
+ */
+export function showOpsPartnersPage(): boolean {
+  if (!isProd()) {
+    return flagEnabled("VITE_SHOW_OPS_PARTNERS", true)
+  }
+  return flagEnabled("VITE_SHOW_OPS_PARTNERS", false)
 }
 
 /** Required Vite env. Throws if missing or obviously fake. */
@@ -62,7 +92,13 @@ export function getMercurVendorUrl(): string {
   return v ?? ""
 }
 
+/**
+ * Admin panel URL for lab/ops tooling only.
+ * Never used in production shop chrome — Admin is invitation-only at its own host
+ * (e.g. https://api…/dashboard). Do not set VITE_MERCUR_ADMIN_URL on public Vercel.
+ */
 export function getMercurAdminUrl(): string {
+  if (!showAdminLinkOnShop()) return ""
   const v = (import.meta.env.VITE_MERCUR_ADMIN_URL as string | undefined)?.trim()
   return v ?? ""
 }
@@ -74,13 +110,6 @@ export function getMercurAdminUrl(): string {
 export function isMomoLabEnabled(): boolean {
   const v = (import.meta.env.VITE_FEATURE_MOMO_LAB as string | undefined)?.trim()
   return v === "1" || v === "true" || v === "yes"
-}
-
-function flagEnabled(name: string, defaultOn: boolean): boolean {
-  const raw = (import.meta.env[name] as string | undefined)?.trim()
-  if (raw == null || raw === "") return defaultOn
-  if (raw === "0" || raw === "false" || raw === "no" || raw === "off") return false
-  return raw === "1" || raw === "true" || raw === "yes" || raw === "on"
 }
 
 /**

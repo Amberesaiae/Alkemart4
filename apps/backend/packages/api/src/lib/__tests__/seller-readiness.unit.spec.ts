@@ -107,7 +107,9 @@ describe("buildSellerReadiness", () => {
     const r = buildSellerReadiness(base, incomplete)
     expect(r.phase).toBe("setup_incomplete")
     expect(r.can_create_offers).toBe(false)
-    expect(r.next_action?.code).toBe("add_gh_shipping")
+    expect(r.next_action?.code).toBe("ghana_quick_setup")
+    expect(r.quick_setup_available).toBe(true)
+    expect(r.checklist_labels.stock_location).toMatch(/pack/i)
     expect(r.poll_after_seconds).toBe(20)
   })
 

@@ -1,26 +1,30 @@
-import { createFileRoute, Link } from "@tanstack/react-router"
+import { createFileRoute, Link, Navigate } from "@tanstack/react-router"
 import { Button } from "@/components/ui/button"
 import { Illustration } from "@/components/illustration"
 import type { IllustrationKey } from "@/lib/illustrations"
-import { getMercurAdminUrl, getMercurVendorUrl } from "@/lib/env"
+import {
+  getMercurVendorUrl,
+  showOpsPartnersPage,
+} from "@/lib/env"
 
 export const Route = createFileRoute("/partners")({
   component: PartnersPage,
 })
 
 /**
- * Public role gateway — shop vs Seller Hub vs Admin with illustrations.
+ * Lab/ops role map — Admin is never linked on production shop.
+ * Production: redirect to /sell (seller entry only).
+ * Lab: seller + shopper cards (no public Admin card).
  */
 function PartnersPage() {
+  // Production buyer surface: no ops map with admin
+  if (!showOpsPartnersPage()) {
+    return <Navigate to="/sell" />
+  }
+
   let vendorUrl = ""
-  let adminUrl = ""
   try {
     vendorUrl = getMercurVendorUrl()
-  } catch {
-    /* optional */
-  }
-  try {
-    adminUrl = getMercurAdminUrl()
   } catch {
     /* optional */
   }
@@ -34,27 +38,27 @@ function PartnersPage() {
     <div className="mx-auto max-w-3xl space-y-8">
       <header className="space-y-2 border-b border-border pb-6">
         <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-          Roles
+          Sell
         </p>
         <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
           Partners
         </h1>
         <p className="max-w-xl text-sm text-muted-foreground">
-          Shoppers, sellers, and admins each use a separate login.
+          Sellers use Seller Hub. Shoppers use this website.
         </p>
       </header>
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4 md:grid-cols-1">
         <RoleCard
           kicker="Seller"
           title="Sell on alkemart"
           illustration="authSeller"
-          body="Register in Seller Hub, get approved, finish Ghana delivery setup, then list products with photos and GHS offers."
-          authNote="Seller Hub only — not the shopper sign-in."
+          body="Register in Seller Hub, get approved, set Ghana delivery, then list products."
+          authNote="Seller Hub only — not shopper sign-in."
           bullets={[
-            "Register shop (pending approval)",
-            "Ops approve → stock location & GH shipping",
-            "Submit products for review · fulfill orders",
+            "Register shop",
+            "Ghana delivery setup after approval",
+            "List products · fulfill orders",
           ]}
           primaryHref={sellerRegister || vendorUrl}
           primaryLabel={
@@ -66,27 +70,7 @@ function PartnersPage() {
           hint={
             vendorUrl
               ? undefined
-              : "Seller Hub is temporarily unavailable. Try again later or contact support."
-          }
-        />
-        <RoleCard
-          kicker="Admin"
-          title="Platform admin"
-          illustration="authAdmin"
-          body="Approve sellers, review product proposals, and manage markets. Invitation-only — no public signup."
-          authNote="Separate from shopper and seller logins."
-          bullets={[
-            "Seller queue · product review",
-            "Operating markets",
-            "Platform settings",
-          ]}
-          primaryHref={adminUrl}
-          primaryLabel={adminUrl ? "Open Admin" : "Admin unavailable"}
-          disabled={!adminUrl}
-          hint={
-            adminUrl
-              ? "Use the credentials issued by your team."
-              : "Admin is temporarily unavailable. Contact your platform administrator."
+              : "Seller Hub unavailable. Try again later."
           }
         />
       </div>
@@ -98,39 +82,19 @@ function PartnersPage() {
             Shoppers sign in here
           </h2>
           <p className="text-sm text-muted-foreground">
-            Orders and addresses on this website — not Seller Hub.
+            Orders and addresses on this website.
           </p>
           <Button asChild className="mt-2 rounded-none">
-            <Link to="/signin" search={{}}>
+            <Link to="/login" search={{}}>
               Customer sign in
             </Link>
           </Button>
         </div>
       </section>
 
-      <section className="space-y-3 border border-border bg-card p-5">
-        <h2 className="text-base font-bold">Getting started as a seller</h2>
-        <ol className="list-decimal space-y-2 pl-5 text-sm text-muted-foreground">
-          <li>Register in Seller Hub with a business email you check often.</li>
-          <li>Complete your store profile and delivery options.</li>
-          <li>Wait for platform approval if required.</li>
-          <li>List products — they appear for buyers on this site.</li>
-          <li>Fulfil orders from Seller Hub when customers check out here.</li>
-        </ol>
-      </section>
-
-      <p className="text-sm text-muted-foreground">
-        <Link to="/" className="font-semibold text-foreground underline">
-          ← Back to shop
-        </Link>
-        {" · "}
-        <Link to="/sell" className="font-semibold text-foreground underline">
-          Sell on alkemart
-        </Link>
-        {" · "}
-        <Link to="/help" className="font-semibold text-foreground underline">
-          Help
-        </Link>
+      <p className="text-center text-sm text-muted-foreground">
+        Platform admin is invitation-only at a separate secured URL — not linked
+        from the shop.
       </p>
     </div>
   )
@@ -139,6 +103,7 @@ function PartnersPage() {
 function RoleCard(props: {
   kicker: string
   title: string
+  illustration: IllustrationKey
   body: string
   authNote: string
   bullets: string[]
@@ -148,57 +113,60 @@ function RoleCard(props: {
   secondaryLabel?: string
   disabled?: boolean
   hint?: string
-  illustration: IllustrationKey
 }) {
   return (
-    <article className="flex flex-col border border-border bg-card p-5">
-      <div className="mb-4 flex justify-center rounded-2xl bg-[#faf8f2] py-6">
-        <Illustration name={props.illustration} size="md" />
-      </div>
-      <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-        {props.kicker}
-      </p>
-      <h2 className="mt-1 text-xl font-bold tracking-tight">{props.title}</h2>
-      <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-        {props.body}
-      </p>
-      <p className="mt-2 text-xs text-muted-foreground">{props.authNote}</p>
-      <ul className="mt-3 list-disc space-y-1 pl-4 text-sm text-muted-foreground">
-        {props.bullets.map((b) => (
-          <li key={b}>{b}</li>
-        ))}
-      </ul>
-      {props.hint ? (
-        <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
-          {props.hint}
-        </p>
-      ) : null}
-      <div className="mt-4 flex flex-col gap-2">
-        {props.disabled || !props.primaryHref ? (
-          <Button type="button" className="rounded-none" disabled>
-            {props.primaryLabel}
-          </Button>
-        ) : (
-          <Button asChild className="rounded-none">
-            <a
-              href={props.primaryHref}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
+    <article className="flex flex-col gap-4 rounded-3xl border border-border bg-card p-5 shadow-sm sm:flex-row sm:items-start sm:gap-6 sm:p-6">
+      <Illustration
+        name={props.illustration}
+        size="md"
+        className="mx-0 shrink-0"
+      />
+      <div className="min-w-0 flex-1 space-y-3">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            {props.kicker}
+          </p>
+          <h2 className="text-xl font-bold tracking-tight">{props.title}</h2>
+          <p className="mt-1 text-sm text-muted-foreground">{props.body}</p>
+          <p className="mt-1 text-xs font-medium text-foreground/70">
+            {props.authNote}
+          </p>
+        </div>
+        <ul className="list-disc space-y-1 pl-5 text-sm text-muted-foreground">
+          {props.bullets.map((b) => (
+            <li key={b}>{b}</li>
+          ))}
+        </ul>
+        <div className="flex flex-wrap gap-2 pt-1">
+          {props.primaryHref && !props.disabled ? (
+            <Button asChild className="rounded-none">
+              <a
+                href={props.primaryHref}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {props.primaryLabel}
+              </a>
+            </Button>
+          ) : (
+            <Button className="rounded-none" disabled>
               {props.primaryLabel}
-            </a>
-          </Button>
-        )}
-        {props.secondaryHref && props.secondaryLabel ? (
-          <Button asChild variant="outline" className="rounded-none">
-            <a
-              href={props.secondaryHref}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              {props.secondaryLabel}
-            </a>
-          </Button>
+            </Button>
+          )}
+          {props.secondaryHref && props.secondaryLabel ? (
+            <Button asChild variant="outline" className="rounded-none">
+              <a
+                href={props.secondaryHref}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {props.secondaryLabel}
+              </a>
+            </Button>
+          ) : null}
+        </div>
+        {props.hint ? (
+          <p className="text-xs text-muted-foreground">{props.hint}</p>
         ) : null}
       </div>
     </article>

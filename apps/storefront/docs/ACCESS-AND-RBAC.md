@@ -3,61 +3,64 @@
 This app (`apps/storefront`) is the **buyer** surface only. Multi-role admin/vendor
 RBAC is **not** re-implemented here; it lives in Mercur.
 
+**Production audit (2026-07-19):**  
+`docs/architecture/2026-07-19-rbac-workflow-production-audit.md`  
+**Verdict: not production-ready** for guest order integrity + checkout↔account bind.
+
 ## Roles
 
 | Role | Where | Screens / workflows |
 |------|--------|---------------------|
-| **Guest** | Storefront | Browse, search, PDP, cart, COD checkout, order-by-id, help |
-| **Customer** (signed-in) | Storefront | Guest + account, profile update, saved addresses, account order list |
-| **Seller / vendor** | Mercur Seller Hub (`VITE_MERCUR_VENDOR_URL`) | Catalog, offers, shipping, fulfillments |
-| **Admin / ops** | Mercur Admin (`VITE_MERCUR_ADMIN_URL`) | Regions, users, platform config |
-| **Support** | Mercur / future ops tools | Not in buyer SPA |
+| **Guest** | Storefront | Browse, search, PDP, cart, COD checkout, **order lookup**, help |
+| **Customer** (signed-in) | Storefront | Guest + account, profile, addresses, account order list |
+| **Seller / vendor** | Mercur Seller Hub (`VITE_MERCUR_VENDOR_URL`) | Catalog, offers, shipping, fulfill |
+| **Admin / ops** | Mercur Admin (`VITE_MERCUR_ADMIN_URL`) | Approve sellers/products, regions |
+| **Support** | Mercur / future | Not in buyer SPA |
 
-Legacy Express CASL roles (`buyer`, `vendor_owner`, `admin`, …) apply to the
-archived dual-home stack, not this greenfield buyer SPA.
+Legacy Express CASL roles (`buyer`, `vendor_owner`, `admin`, …) apply only to
+`archive/` — not this stack.
 
-## Buyer workflows (storefront)
+## Buyer workflows
 
-| Workflow | Status |
-|----------|--------|
-| Catalog browse / search / PDP | Implemented |
-| Cart + offer_id lines | Implemented |
-| COD checkout + shipping attach | Implemented (Mode B) |
-| Guest order find-by-id | Implemented |
-| Register / login / logout | Implemented |
-| Cart transfer on login | Best-effort if SDK supports it |
-| Profile name/phone update | Implemented |
-| Saved addresses + default | Implemented |
-| Account order list | Implemented |
-| MoMo / Paystack charge | **Not** in SPA (spine separate) |
-| Disputes / chat / returns | **Not** buyer SPA (ops) |
-| Seller onboarding | Mercur only |
-| Admin moderation | Mercur only |
+| Workflow | Status | Notes |
+|----------|--------|--------|
+| Catalog / search / PDP | OK | Public + publishable key |
+| Cart + offer_id | OK | Guest cart_id capability |
+| COD checkout | Mode B | Server does not require JWT |
+| Guest order lookup | **Fixed** | `/orders` no longer requires login for lookup UI |
+| Guest order PII policy | **GAP** | Server retrieve policy must be proven (IDOR vs 401) |
+| Register / login | OK | JWT in localStorage (XSS risk) |
+| Cart transfer on login | **GAP** | Not reliably implemented |
+| Checkout → My Orders | **GAP** | Ghana checkout does not bind customer_id |
+| Profile / addresses | OK | Customer JWT |
+| Account order list | OK when bound | JWT |
+| Seller / admin panels | Out of SPA | Deep links only |
 
 ## Enforcement model
 
-- Store API + publishable key for public store routes.
-- Customer JWT for `/account`, addresses, customer order list.
-- Guest may still open `/order/$id` if the API allows retrieve by id.
-- No local hardcoding of roles or “fake admin” UI.
+| Layer | Real? |
+|-------|--------|
+| SPA `requireAuth` | UX redirect only (`/account`) |
+| Customer store APIs | Real JWT |
+| Guest cart / checkout | cart_id + publishable key |
+| Seller / admin APIs | Different actors — buyer JWT denied |
 
 ## Intentionally out of storefront scope
 
-Do not add SPA admin panels, vendor dashboards, or dual-home CASL screens here.
-Link out to Mercur for Sell / Admin via **`/partners`** and footer Partners.
+- SPA `/admin/*` or seller dashboards  
+- CASL staff matrix  
+- Trusting `customer.metadata.roles` for privileges  
 
-## Ops plan
+## Ops panels (local)
 
-See monorepo ADR: `docs/architecture/2026-07-16-ops-rbac-surfaces.md`  
-
-**Master E2E handbook:** `docs/architecture/2026-07-17-complete-e2e-architecture-procedures.md`
-
-| Local panel | Path |
-|-------------|------|
+| Panel | Path |
+|-------|------|
 | API | `http://localhost:9000` |
 | Admin | `http://localhost:9000/dashboard` |
 | Seller | `http://localhost:9000/seller` |
-| Seller register | `http://localhost:9000/seller/register` |
 
-Vendor API actor is **`member`** (not customer JWT). Full catalog path:
-`docs/architecture/2026-07-16-mercur-vendor-rbac-catalog-runbook.md`.
+Vendor API actor is **`member`** (not customer JWT).
+
+## Production sign-off checklist
+
+See §8 in `2026-07-19-rbac-workflow-production-audit.md`.

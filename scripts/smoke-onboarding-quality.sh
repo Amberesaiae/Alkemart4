@@ -33,10 +33,23 @@ code=$(curl -s -o /dev/null -w "%{http_code}" "$API/health" || true)
 check "GET /health" "$code" "200"
 
 if [[ -n "$PK" ]]; then
-  code=$(curl -s -o /dev/null -w "%{http_code}" \
+  body=$(curl -s -w "\n%{http_code}" \
     -H "x-publishable-api-key: $PK" \
-    "$API/store/alkemart/catalog?limit=5" || true)
+    "$API/store/alkemart/catalog?limit=5" || echo -e "\n000")
+  code=$(echo "$body" | tail -n1)
+  json=$(echo "$body" | sed '$d')
   check "GET /store/alkemart/catalog" "$code" "200"
+  if [[ "$code" == "200" ]]; then
+    echo "$json" | python3 -c "
+import sys,json
+d=json.load(sys.stdin)
+ps=d.get('products') or []
+strat=d.get('strategy')
+assert strat=='light_ids_then_heavy_page', strat
+assert not ps or all(p.get('offer_id') for p in ps), 'missing offer_id'
+print(f'  OK  catalog contract strategy={strat} n={len(ps)} cache={d.get(\"cache\")}')
+" && pass=$((pass + 1)) || { echo "  FAIL catalog contract"; fail=$((fail + 1)); }
+  fi
 else
   echo "  SKIP store catalog (set PK or VITE_MEDUSA_PUBLISHABLE_KEY)"
 fi

@@ -13,6 +13,8 @@ type EmptyStateProps = {
   className?: string
   /** Optional story illustration (curated catalog) */
   illustration?: IllustrationKey
+  /** Optional path params for file routes like /categories/$slug */
+  actionParams?: Record<string, string>
 }
 
 export function EmptyState({
@@ -21,13 +23,14 @@ export function EmptyState({
   actionLabel,
   actionTo,
   actionSearch,
+  actionParams,
   className,
   illustration: art,
 }: EmptyStateProps) {
   return (
     <div
       className={cn(
-        "rounded-3xl border border-dashed border-border bg-card px-6 py-12 text-center shadow-sm sm:py-14",
+        "border border-dashed border-border bg-card px-6 py-12 text-center sm:py-14",
         className,
       )}
     >
@@ -43,8 +46,12 @@ export function EmptyState({
         </p>
       ) : null}
       {actionLabel && actionTo ? (
-        <Button asChild className="mt-5 min-h-11 rounded-xl" size="sm">
-          <Link to={actionTo as "/"} search={actionSearch as never}>
+        <Button asChild className="mt-5 min-h-11 rounded-none" size="sm">
+          <Link
+            to={actionTo as "/"}
+            params={actionParams as never}
+            search={actionSearch as never}
+          >
             {actionLabel}
           </Link>
         </Button>

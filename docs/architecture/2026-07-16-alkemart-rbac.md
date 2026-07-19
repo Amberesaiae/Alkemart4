@@ -1,41 +1,31 @@
-# Alkemart RBAC (Medusa path)
+# Alkemart RBAC — SUPERSEDED
 
 | Field | Value |
 |-------|--------|
-| **Date** | 2026-07-16 |
-| **Status** | In progress — vertical slice shipped |
-| **Source of truth** | Medusa `customer_role` table via `customerRoles` module |
+| **Date** | 2026-07-16 (original) · **superseded 2026-07-19** |
+| **Status** | **OBSOLETE** — do not use for production security review |
 
-## Principle
+## Why this doc is wrong
 
-Server enforces authorization. SPA CASL is for UI only.
+The original draft assumed:
 
-## Roles
+- Express dual-home stack + CASL `@workspace/abilities`
+- Medusa `customer_role` table as SoT
+- SPA `useGetMe` + role matrix for staff UI
 
-`buyer` | `vendor_owner` | `vendor_staff` | `admin` | `support_agent`
+**None of that is live.** Clean-slate architecture is:
 
-Shape: `{ role, vendorId }` where `vendorId` is Medusa marketplace vendor id (string) or Express integer (legacy).
+| Surface | Actor | App |
+|---------|--------|-----|
+| Buyer | `customer` (or guest) | `apps/storefront` |
+| Seller | `member` + `x-seller-id` | Mercur `/seller` |
+| Admin | `user` | Mercur `/dashboard` |
 
-## Endpoints
+Customer `metadata.roles` is **not** authorization (and is now ignored by `/store/alkemart/me`).
 
-| Method | Path | Auth | Notes |
-|--------|------|------|--------|
-| GET | `/store/alkemart/me` | customer JWT | Customer + roles from DB |
-| (next) | `/admin/alkemart/roles` | admin ability | Assign/revoke — PR4 |
+## Read instead
 
-## Bootstrap admin
-
-```bash
-# Customer must exist (SPA signup first)
-cd alkemart-medusa/apps/backend
-ALKEMART_BOOTSTRAP_ADMIN_EMAIL=you@example.com npx medusa exec ./src/scripts/bootstrap-admin-role.ts
-```
-
-## SPA
-
-- `useGetMe` / `requireAuthBeforeLoad` call `/store/alkemart/me`
-- Roles normalized via `@workspace/abilities` `normalizeAuthUserRoles`
-
-## Shared matrix
-
-`lib/abilities/src/index.ts` — `defineAbilitiesFor`
+1. **`docs/architecture/2026-07-19-rbac-workflow-production-audit.md`** — full production audit + fix plan  
+2. **`docs/architecture/2026-07-16-ops-rbac-surfaces.md`** — three-door ops principle  
+3. **`apps/storefront/docs/ACCESS-AND-RBAC.md`** — buyer SPA contract  
+4. **`e2e/tests/rbac-multivendor.live.spec.ts`** — live actor isolation tests  

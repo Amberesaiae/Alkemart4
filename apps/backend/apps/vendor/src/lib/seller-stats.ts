@@ -163,7 +163,7 @@ async function loadSellerStatsFromLists(
 
   try {
     const raw = (await getJson(
-      `${base}/vendor/products?limit=200&fields=id,status`,
+      `${base}/vendor/alkemart/products?limit=100`,
     )) as { products?: { status?: string }[]; count?: number }
     const list = Array.isArray(raw.products) ? raw.products : []
     for (const p of list) {

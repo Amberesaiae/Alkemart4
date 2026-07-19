@@ -93,6 +93,36 @@ function dedupeMarkers(attr: string) {
   })
 }
 
+/**
+ * Sidebar: only hide pure letter monogram tiles (M/a/A), never restyle layout.
+ * scrubTextNode already renames Medusa/Mercur → alkemart.
+ */
+function fixSidebarBrand() {
+  document
+    .querySelectorAll("aside, [data-testid='sidebar']")
+    .forEach((root) => {
+      if (!(root instanceof HTMLElement)) return
+      // Only walk the top header strip (first ~80px of sidebar), not whole nav
+      root.querySelectorAll("span, div").forEach((el) => {
+        if (!(el instanceof HTMLElement) || !isLeaf(el)) return
+        if (el.closest("nav a, form, input, [role='listbox']")) return
+        const t = (el.textContent || "").replace(/\s+/g, "").trim()
+        if (!/^(M|a|A)$/.test(t)) return
+        const rect = el.getBoundingClientRect()
+        // Must be small tile near top of sidebar
+        if (rect.width < 16 || rect.width > 44 || rect.height < 16 || rect.height > 44)
+          return
+        if (rect.top > 120) return
+        const box =
+          (el.closest('[class*="rounded"]') as HTMLElement | null) || el
+        // Never hide something that contains a nav link
+        if (box.querySelector("a[href], nav, svg")) return
+        box.style.display = "none"
+        box.setAttribute("data-alk-hide-monogram", "1")
+      })
+    })
+}
+
 function scrubShell() {
   document
     .querySelectorAll("aside *, nav *, header *, main *, [data-testid], body *")
@@ -108,6 +138,7 @@ function scrubShell() {
       .replace(/mercur/gi, "alkemart")
   }
 
+  fixSidebarBrand()
   hidePathLeaks()
   preferGhsCurrencySelects()
   dedupeMarkers("data-alk-login-wordmark")

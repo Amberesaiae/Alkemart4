@@ -1,8 +1,11 @@
 import { cn } from "@/lib/utils"
 
-/** Shared catalog grid — card and skeleton must use the same columns. */
+/**
+ * Canonical product grid — always 4 columns from sm up.
+ * Mobile: 2 (readable thumbs). Never 3 or 5.
+ */
 export const PRODUCT_GRID_CLASS =
-  "grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5"
+  "grid grid-cols-2 gap-2.5 sm:grid-cols-4 sm:gap-3"
 
 export function ProductGridShell({
   children,

@@ -10,25 +10,34 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SigninRouteImport } from './routes/signin'
+import { Route as ShopsRouteImport } from './routes/shops'
 import { Route as SellersRouteImport } from './routes/sellers'
 import { Route as SellRouteImport } from './routes/sell'
 import { Route as SearchRouteImport } from './routes/search'
 import { Route as PartnersRouteImport } from './routes/partners'
 import { Route as OrdersRouteImport } from './routes/orders'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as HelpRouteImport } from './routes/help'
 import { Route as CheckoutRouteImport } from './routes/checkout'
 import { Route as CartRouteImport } from './routes/cart'
 import { Route as AccountRouteImport } from './routes/account'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as StoreSlugRouteImport } from './routes/store.$slug'
+import { Route as ShopsSlugRouteImport } from './routes/shops.$slug'
 import { Route as ProductIdRouteImport } from './routes/product.$id'
 import { Route as OrderIdRouteImport } from './routes/order.$id'
 import { Route as CheckoutPendingRouteImport } from './routes/checkout.pending'
+import { Route as CategoriesSlugRouteImport } from './routes/categories.$slug'
 import { Route as BrowseSlugRouteImport } from './routes/browse.$slug'
 
 const SigninRoute = SigninRouteImport.update({
   id: '/signin',
   path: '/signin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ShopsRoute = ShopsRouteImport.update({
+  id: '/shops',
+  path: '/shops',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SellersRoute = SellersRouteImport.update({
@@ -54,6 +63,11 @@ const PartnersRoute = PartnersRouteImport.update({
 const OrdersRoute = OrdersRouteImport.update({
   id: '/orders',
   path: '/orders',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const HelpRoute = HelpRouteImport.update({
@@ -86,6 +100,11 @@ const StoreSlugRoute = StoreSlugRouteImport.update({
   path: '/store/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ShopsSlugRoute = ShopsSlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => ShopsRoute,
+} as any)
 const ProductIdRoute = ProductIdRouteImport.update({
   id: '/product/$id',
   path: '/product/$id',
@@ -101,6 +120,11 @@ const CheckoutPendingRoute = CheckoutPendingRouteImport.update({
   path: '/pending',
   getParentRoute: () => CheckoutRoute,
 } as any)
+const CategoriesSlugRoute = CategoriesSlugRouteImport.update({
+  id: '/categories/$slug',
+  path: '/categories/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const BrowseSlugRoute = BrowseSlugRouteImport.update({
   id: '/browse/$slug',
   path: '/browse/$slug',
@@ -113,16 +137,20 @@ export interface FileRoutesByFullPath {
   '/cart': typeof CartRoute
   '/checkout': typeof CheckoutRouteWithChildren
   '/help': typeof HelpRoute
+  '/login': typeof LoginRoute
   '/orders': typeof OrdersRoute
   '/partners': typeof PartnersRoute
   '/search': typeof SearchRoute
   '/sell': typeof SellRoute
   '/sellers': typeof SellersRoute
+  '/shops': typeof ShopsRouteWithChildren
   '/signin': typeof SigninRoute
   '/browse/$slug': typeof BrowseSlugRoute
+  '/categories/$slug': typeof CategoriesSlugRoute
   '/checkout/pending': typeof CheckoutPendingRoute
   '/order/$id': typeof OrderIdRoute
   '/product/$id': typeof ProductIdRoute
+  '/shops/$slug': typeof ShopsSlugRoute
   '/store/$slug': typeof StoreSlugRoute
 }
 export interface FileRoutesByTo {
@@ -131,16 +159,20 @@ export interface FileRoutesByTo {
   '/cart': typeof CartRoute
   '/checkout': typeof CheckoutRouteWithChildren
   '/help': typeof HelpRoute
+  '/login': typeof LoginRoute
   '/orders': typeof OrdersRoute
   '/partners': typeof PartnersRoute
   '/search': typeof SearchRoute
   '/sell': typeof SellRoute
   '/sellers': typeof SellersRoute
+  '/shops': typeof ShopsRouteWithChildren
   '/signin': typeof SigninRoute
   '/browse/$slug': typeof BrowseSlugRoute
+  '/categories/$slug': typeof CategoriesSlugRoute
   '/checkout/pending': typeof CheckoutPendingRoute
   '/order/$id': typeof OrderIdRoute
   '/product/$id': typeof ProductIdRoute
+  '/shops/$slug': typeof ShopsSlugRoute
   '/store/$slug': typeof StoreSlugRoute
 }
 export interface FileRoutesById {
@@ -150,16 +182,20 @@ export interface FileRoutesById {
   '/cart': typeof CartRoute
   '/checkout': typeof CheckoutRouteWithChildren
   '/help': typeof HelpRoute
+  '/login': typeof LoginRoute
   '/orders': typeof OrdersRoute
   '/partners': typeof PartnersRoute
   '/search': typeof SearchRoute
   '/sell': typeof SellRoute
   '/sellers': typeof SellersRoute
+  '/shops': typeof ShopsRouteWithChildren
   '/signin': typeof SigninRoute
   '/browse/$slug': typeof BrowseSlugRoute
+  '/categories/$slug': typeof CategoriesSlugRoute
   '/checkout/pending': typeof CheckoutPendingRoute
   '/order/$id': typeof OrderIdRoute
   '/product/$id': typeof ProductIdRoute
+  '/shops/$slug': typeof ShopsSlugRoute
   '/store/$slug': typeof StoreSlugRoute
 }
 export interface FileRouteTypes {
@@ -170,16 +206,20 @@ export interface FileRouteTypes {
     | '/cart'
     | '/checkout'
     | '/help'
+    | '/login'
     | '/orders'
     | '/partners'
     | '/search'
     | '/sell'
     | '/sellers'
+    | '/shops'
     | '/signin'
     | '/browse/$slug'
+    | '/categories/$slug'
     | '/checkout/pending'
     | '/order/$id'
     | '/product/$id'
+    | '/shops/$slug'
     | '/store/$slug'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -188,16 +228,20 @@ export interface FileRouteTypes {
     | '/cart'
     | '/checkout'
     | '/help'
+    | '/login'
     | '/orders'
     | '/partners'
     | '/search'
     | '/sell'
     | '/sellers'
+    | '/shops'
     | '/signin'
     | '/browse/$slug'
+    | '/categories/$slug'
     | '/checkout/pending'
     | '/order/$id'
     | '/product/$id'
+    | '/shops/$slug'
     | '/store/$slug'
   id:
     | '__root__'
@@ -206,16 +250,20 @@ export interface FileRouteTypes {
     | '/cart'
     | '/checkout'
     | '/help'
+    | '/login'
     | '/orders'
     | '/partners'
     | '/search'
     | '/sell'
     | '/sellers'
+    | '/shops'
     | '/signin'
     | '/browse/$slug'
+    | '/categories/$slug'
     | '/checkout/pending'
     | '/order/$id'
     | '/product/$id'
+    | '/shops/$slug'
     | '/store/$slug'
   fileRoutesById: FileRoutesById
 }
@@ -225,13 +273,16 @@ export interface RootRouteChildren {
   CartRoute: typeof CartRoute
   CheckoutRoute: typeof CheckoutRouteWithChildren
   HelpRoute: typeof HelpRoute
+  LoginRoute: typeof LoginRoute
   OrdersRoute: typeof OrdersRoute
   PartnersRoute: typeof PartnersRoute
   SearchRoute: typeof SearchRoute
   SellRoute: typeof SellRoute
   SellersRoute: typeof SellersRoute
+  ShopsRoute: typeof ShopsRouteWithChildren
   SigninRoute: typeof SigninRoute
   BrowseSlugRoute: typeof BrowseSlugRoute
+  CategoriesSlugRoute: typeof CategoriesSlugRoute
   OrderIdRoute: typeof OrderIdRoute
   ProductIdRoute: typeof ProductIdRoute
   StoreSlugRoute: typeof StoreSlugRoute
@@ -244,6 +295,13 @@ declare module '@tanstack/react-router' {
       path: '/signin'
       fullPath: '/signin'
       preLoaderRoute: typeof SigninRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/shops': {
+      id: '/shops'
+      path: '/shops'
+      fullPath: '/shops'
+      preLoaderRoute: typeof ShopsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/sellers': {
@@ -279,6 +337,13 @@ declare module '@tanstack/react-router' {
       path: '/orders'
       fullPath: '/orders'
       preLoaderRoute: typeof OrdersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/help': {
@@ -323,6 +388,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StoreSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/shops/$slug': {
+      id: '/shops/$slug'
+      path: '/$slug'
+      fullPath: '/shops/$slug'
+      preLoaderRoute: typeof ShopsSlugRouteImport
+      parentRoute: typeof ShopsRoute
+    }
     '/product/$id': {
       id: '/product/$id'
       path: '/product/$id'
@@ -343,6 +415,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/checkout/pending'
       preLoaderRoute: typeof CheckoutPendingRouteImport
       parentRoute: typeof CheckoutRoute
+    }
+    '/categories/$slug': {
+      id: '/categories/$slug'
+      path: '/categories/$slug'
+      fullPath: '/categories/$slug'
+      preLoaderRoute: typeof CategoriesSlugRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/browse/$slug': {
       id: '/browse/$slug'
@@ -366,19 +445,32 @@ const CheckoutRouteWithChildren = CheckoutRoute._addFileChildren(
   CheckoutRouteChildren,
 )
 
+interface ShopsRouteChildren {
+  ShopsSlugRoute: typeof ShopsSlugRoute
+}
+
+const ShopsRouteChildren: ShopsRouteChildren = {
+  ShopsSlugRoute: ShopsSlugRoute,
+}
+
+const ShopsRouteWithChildren = ShopsRoute._addFileChildren(ShopsRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AccountRoute: AccountRoute,
   CartRoute: CartRoute,
   CheckoutRoute: CheckoutRouteWithChildren,
   HelpRoute: HelpRoute,
+  LoginRoute: LoginRoute,
   OrdersRoute: OrdersRoute,
   PartnersRoute: PartnersRoute,
   SearchRoute: SearchRoute,
   SellRoute: SellRoute,
   SellersRoute: SellersRoute,
+  ShopsRoute: ShopsRouteWithChildren,
   SigninRoute: SigninRoute,
   BrowseSlugRoute: BrowseSlugRoute,
+  CategoriesSlugRoute: CategoriesSlugRoute,
   OrderIdRoute: OrderIdRoute,
   ProductIdRoute: ProductIdRoute,
   StoreSlugRoute: StoreSlugRoute,

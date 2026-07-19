@@ -133,12 +133,42 @@ function mapOrder(raw: Record<string, unknown>): StoreOrder {
 }
 
 /** Prefer display_id; otherwise short lab-style ref from API id (not a formal receipt). */
-export function formatOrderLabel(order: StoreOrder): string {
+/**
+ * Buyer-facing order label — never dump raw system ids in chrome.
+ * Prefer display_id (#1234); otherwise short ref from id tail.
+ */
+export function formatOrderLabel(order: Pick<StoreOrder, "id" | "displayId">): string {
   if (order.displayId != null && Number.isFinite(order.displayId)) {
-    return `#${order.displayId}`
+    return `Order #${order.displayId}`
   }
-  const tail = order.id.replace(/^order_/, "").slice(-6).toUpperCase()
-  return `Ref · ${tail}`
+  return `Order ${maskOrderId(order.id)}`
+}
+
+/** Short professional ref for lists / recent — no full order_… strings. */
+export function maskOrderId(orderId: string): string {
+  const raw = orderId.trim()
+  if (!raw) return "····"
+  const tail = raw.replace(/^order_/i, "").slice(-6).toUpperCase()
+  return `···${tail}`
+}
+
+/** Mask email for display (privacy) — a***@domain.com */
+export function maskEmail(email: string): string {
+  const e = email.trim()
+  const at = e.indexOf("@")
+  if (at < 1) return "···"
+  const local = e.slice(0, at)
+  const domain = e.slice(at + 1)
+  const head = local.charAt(0)
+  return `${head}***@${domain}`
+}
+
+/** Support reference copy — full id only when user explicitly copies. */
+export function orderSupportReference(order: Pick<StoreOrder, "id" | "displayId">): string {
+  if (order.displayId != null && Number.isFinite(order.displayId)) {
+    return `Order #${order.displayId}`
+  }
+  return order.id
 }
 
 export function formatAddressLines(addr: OrderAddress): string[] {
@@ -189,12 +219,73 @@ export async function listMyOrders(): Promise<StoreOrder[]> {
   return list.map((o) => mapOrder(o))
 }
 
-export async function getOrder(orderId: string): Promise<StoreOrder> {
+/**
+ * Retrieve order:
+ * 1) If customer JWT → Medusa order retrieve (owner-scoped when API enforces)
+ * 2) Else or on failure → POST /store/alkemart/orders/lookup with email
+ */
+export async function getOrder(
+  orderId: string,
+  opts?: { email?: string | null },
+): Promise<StoreOrder> {
   const id = orderId.trim()
   if (!id) throw new Error("order id required")
   const sdk = getMedusaClient()
-  const { order } = await sdk.store.order.retrieve(id, {
-    fields: ORDER_DETAIL_FIELDS,
-  } as never)
-  return mapOrder(order as unknown as Record<string, unknown>)
+  const token = await sdk.client.getToken()
+
+  if (token) {
+    try {
+      const { order } = await sdk.store.order.retrieve(id, {
+        fields: ORDER_DETAIL_FIELDS,
+      } as never)
+      return mapOrder(order as unknown as Record<string, unknown>)
+    } catch {
+      /* fall through to email lookup when provided */
+    }
+  }
+
+  const email = opts?.email?.trim()
+  if (!email) {
+    throw new Error(
+      token
+        ? "Order not found for this account. Try looking up with the checkout email."
+        : "Enter the email used at checkout to view this order.",
+    )
+  }
+
+  return lookupOrderByEmail(id, email)
+}
+
+/** Guest-safe lookup — server requires email match (no PII without proof). */
+export async function lookupOrderByEmail(
+  orderId: string,
+  email: string,
+): Promise<StoreOrder> {
+  const { getBackendUrl, getPublishableKey } = await import("./env")
+  const base = getBackendUrl()
+  const pk = getPublishableKey()
+  const res = await fetch(`${base}/store/alkemart/orders/lookup`, {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      "x-publishable-api-key": pk,
+    },
+    body: JSON.stringify({
+      order_id: orderId.trim(),
+      email: email.trim(),
+    }),
+  })
+  if (!res.ok) {
+    const data = (await res.json().catch(() => ({}))) as { error?: string }
+    throw new Error(
+      data.error ||
+        (res.status === 404
+          ? "Order not found for that id and email"
+          : `Lookup failed (${res.status})`),
+    )
+  }
+  const data = (await res.json()) as { order?: Record<string, unknown> }
+  if (!data.order) throw new Error("Order not found for that id and email")
+  return mapOrder(data.order)
 }

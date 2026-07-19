@@ -1,12 +1,14 @@
 /**
  * GET /store/ghana-checkout/status?cart_id=…
  * SPA poll while MoMo pending (USSD / pay offline).
+ * Rate-limited per cart_id (abuse of open poll endpoint).
  */
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import {
   CheckoutHttpError,
   getMomoCheckoutStatus,
 } from "../../../../lib/ghana-checkout"
+import { checkRateLimit } from "../../../../lib/simple-rate-limit"
 
 export async function GET(req: MedusaRequest, res: MedusaResponse) {
   const cartId = String(
@@ -17,6 +19,19 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
 
   if (!cartId) {
     res.status(400).json({ error: "cart_id query parameter is required" })
+    return
+  }
+
+  const rl = checkRateLimit({
+    key: `momo-status:${cartId}`,
+    limit: 30,
+    windowMs: 60_000,
+  })
+  if (!rl.ok) {
+    res.setHeader("Retry-After", String(rl.retryAfterSec))
+    res.status(429).json({
+      error: "Too many status polls for this cart. Try again shortly.",
+    })
     return
   }
 

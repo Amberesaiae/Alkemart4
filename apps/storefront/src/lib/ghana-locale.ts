@@ -21,6 +21,21 @@ export const GHANA_REGIONS = [
   "Western North",
 ] as const
 
+/** Major cities for discovery location filter (PLP / search). */
+export const GHANA_MAJOR_CITIES = [
+  "Accra",
+  "Kumasi",
+  "Tamale",
+  "Takoradi",
+  "Cape Coast",
+  "Tema",
+  "Sunyani",
+  "Ho",
+  "Koforidua",
+  "Wa",
+  "Bolgatanga",
+] as const
+
 export const GHANA_ADDRESS_COPY = {
   phoneLabel: "Mobile number",
   phonePlaceholder: "024 123 4567",

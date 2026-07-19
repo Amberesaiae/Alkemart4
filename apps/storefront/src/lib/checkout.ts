@@ -1,6 +1,12 @@
 import { getBackendUrl, getPublishableKey } from "./env"
 import { getMedusaClient } from "./medusa"
-import { clearLocalCartId, ensureCartId, getLocalCartId, retrieveCart } from "./cart"
+import {
+  clearLocalCartId,
+  ensureCartId,
+  getLocalCartId,
+  retrieveCart,
+  transferLocalCartToCustomer,
+} from "./cart"
 import { flattenShippingOptions } from "./shipping"
 
 export type CheckoutAddress = {
@@ -97,6 +103,9 @@ export async function prepareCartForCod(input: {
   const cartId = await ensureCartId()
   const sdk = getMedusaClient()
 
+  // If buyer is signed in, attach cart to customer before complete
+  await transferLocalCartToCustomer()
+
   await sdk.store.cart.update(cartId, {
     email,
     shipping_address: {
@@ -115,7 +124,7 @@ export async function prepareCartForCod(input: {
   const options = await listCartShippingOptions(cartId)
   if (!options.length) {
     throw new Error(
-      "No delivery options are available for this cart. Please try another address or contact the seller.",
+      "No delivery options for this address. Try another or contact the seller.",
     )
   }
 

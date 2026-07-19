@@ -127,6 +127,18 @@ curl -s -X POST http://localhost:9000/admin/products/$PRODUCT_ID/confirm \
 | Product ↔ sales channel | `POST /vendor/sales-channels/:id/products` `{ "add": ["prod_…"] }` |
 | Product ↔ seller (store list filter) | `POST /admin/products/:id/sellers` `{ "add": ["sel_…"] }` |
 
+### Seller product list isolation (Alkemart)
+
+Mercur’s default vendor product list **includes** published products with **no** `product_seller` row (shared master catalog). That is wrong for exclusive multi-vendor Ghana shops.
+
+| Layer | Behavior |
+|-------|----------|
+| Mercur default | `owned OR (published AND not restricted to other sellers)` |
+| **Alkemart** | Middleware `applyStrictSellerProductFilter` on `GET /vendor/products` → **only** `product_seller` for this seller **or** authored products |
+| Create | Hook `product-created-link-seller` always writes `product_seller` for the creating seller |
+
+See `docs/architecture/2026-07-19-seller-product-isolation.md`. E2E: `e2e/tests/rbac-multivendor.live.spec.ts` phase 1 + `scripts/live-e2e-human-flows.sh`.
+
 Offer body (GHS major units):
 
 ```json

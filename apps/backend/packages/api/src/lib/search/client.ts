@@ -1,5 +1,6 @@
-import { Meilisearch } from "meilisearch"
 import type { SearchProductDocument } from "./types"
+
+// Dynamic import avoids CJS/ESM interop issues under Medusa's ts-node compile
 
 /**
  * Meilisearch JS SDK v0.50+ exports `Meilisearch` (not `MeiliSearch`).
@@ -50,19 +51,42 @@ export function getSearchApiKey(): string {
 }
 
 let client: MeiliClient | null = null
+let clientPromise: Promise<MeiliClient | null> | null = null
 
-export function getMeiliClient(): MeiliClient | null {
+async function createMeiliClient(): Promise<MeiliClient | null> {
   if (!isSearchEnabled()) return null
-  if (client) return client
-  client = new Meilisearch({
+  const { Meilisearch } = await import("meilisearch")
+  return new Meilisearch({
     host: getSearchHost(),
     apiKey: getSearchApiKey() || undefined,
   }) as unknown as MeiliClient
+}
+
+/** Sync accessor — returns cached client or null if not yet loaded. Prefer getMeiliClientAsync. */
+export function getMeiliClient(): MeiliClient | null {
   return client
+}
+
+export async function getMeiliClientAsync(): Promise<MeiliClient | null> {
+  if (!isSearchEnabled()) return null
+  if (client) return client
+  if (!clientPromise) {
+    clientPromise = createMeiliClient().then((c) => {
+      client = c
+      return c
+    })
+  }
+  return clientPromise
 }
 
 export function getProductsIndex(): MeiliIndex | null {
   const c = getMeiliClient()
+  if (!c) return null
+  return c.index(INDEX_UID)
+}
+
+export async function getProductsIndexAsync(): Promise<MeiliIndex | null> {
+  const c = await getMeiliClientAsync()
   if (!c) return null
   return c.index(INDEX_UID)
 }
@@ -73,7 +97,7 @@ export function getIndexUid(): string {
 
 /** Create index + facet/searchable settings (idempotent). */
 export async function ensureProductsIndex(): Promise<boolean> {
-  const c = getMeiliClient()
+  const c = await getMeiliClientAsync()
   if (!c) return false
 
   try {
@@ -98,6 +122,8 @@ export async function ensureProductsIndex(): Promise<boolean> {
       "category_handles",
       "seller_id",
       "seller_handle",
+      "seller_city",
+      "seller_province",
       "has_offer",
       "sellable",
       "in_stock",
@@ -120,6 +146,8 @@ export async function ensureProductsIndex(): Promise<boolean> {
       "seller_id",
       "seller_handle",
       "seller_name",
+      "seller_city",
+      "seller_province",
       "min_price",
       "currency_code",
       "has_offer",

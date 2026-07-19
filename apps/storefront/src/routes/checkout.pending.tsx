@@ -1,5 +1,6 @@
 /**
  * Mobile Money pending screen — polls checkout status until complete/fail.
+ * Privacy: no email in URL; no raw cart_id dump in UI.
  */
 import { useEffect, useState } from "react"
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
@@ -7,6 +8,7 @@ import { useQuery } from "@tanstack/react-query"
 import { Button } from "@/components/ui/button"
 import { pollMomoCheckoutStatus } from "@/lib/checkout"
 import { PageSeo } from "@/components/page-seo"
+import { maskOrderId } from "@/lib/orders"
 
 export const Route = createFileRoute("/checkout/pending")({
   validateSearch: (s: Record<string, unknown>) => ({
@@ -40,7 +42,10 @@ function MomoPendingPage() {
       void navigate({
         to: "/order/$id",
         params: { id: d.order_id },
-        search: { placed: "1", pay: "momo" },
+        search: {
+          placed: "1",
+          pay: "momo",
+        },
       })
     }
     if (d.status === "failed") {
@@ -54,7 +59,7 @@ function MomoPendingPage() {
     return (
       <div className="mx-auto max-w-lg space-y-4 py-12 text-center">
         <PageSeo title="Payment pending" noindex path="/checkout/pending" />
-        <p className="text-sm text-muted-foreground">Missing cart reference.</p>
+        <p className="text-sm text-muted-foreground">Missing payment session.</p>
         <Button asChild>
           <Link to="/cart">Back to cart</Link>
         </Button>
@@ -73,64 +78,44 @@ function MomoPendingPage() {
           Confirm payment on your phone
         </h1>
         <p className="text-sm text-muted-foreground">
-          Approve the MoMo prompt on your phone. This page updates when payment
-          is confirmed.
+          Approve the MoMo prompt. This page updates when payment is confirmed.
         </p>
       </header>
 
-      <div className="rounded-3xl border border-border bg-card p-6 shadow-sm space-y-3 text-sm">
+      <div className="space-y-3 rounded-3xl border border-border bg-card p-6 text-sm shadow-sm">
         {ref ? (
-          <p>
-            <span className="text-muted-foreground">Reference · </span>
-            <span className="font-mono text-xs">{ref}</span>
+          <p className="text-muted-foreground">
+            Reference ·{" "}
+            <span className="font-medium text-foreground">
+              {maskOrderId(ref)}
+            </span>
           </p>
         ) : null}
-        <p>
-          <span className="text-muted-foreground">Cart · </span>
-          <span className="font-mono text-xs">{cartId}</span>
-        </p>
         <p className="text-muted-foreground">
           Status:{" "}
           <span className="font-semibold text-foreground">
             {failed
-              ? "failed"
-              : statusQ.data?.status ??
-                (statusQ.isLoading ? "checking…" : "pending")}
+              ? "Failed"
+              : statusQ.data?.status === "completed"
+                ? "Confirmed"
+                : statusQ.isFetching
+                  ? "Waiting…"
+                  : "Pending"}
           </span>
         </p>
-        {statusQ.data &&
-        statusQ.data.status === "payment_pending" &&
-        "provider_status" in statusQ.data &&
-        statusQ.data.provider_status ? (
-          <p className="text-xs text-muted-foreground">
-            Provider: {statusQ.data.provider_status}
+        {failed ? (
+          <p className="text-sm text-destructive" role="alert">
+            {failed}
           </p>
         ) : null}
       </div>
 
-      {failed ? (
-        <div
-          role="alert"
-          className="rounded-2xl border border-destructive/40 bg-destructive/5 p-4 text-sm"
-        >
-          <p className="font-semibold text-destructive">Payment not completed</p>
-          <p className="text-muted-foreground">{failed}</p>
-          <Button asChild className="mt-3" variant="outline">
-            <Link to="/checkout">Try again</Link>
-          </Button>
-        </div>
-      ) : (
-        <p className="text-center text-xs text-muted-foreground animate-pulse">
-          Waiting for payment confirmation…
-        </p>
-      )}
-
-      <div className="flex justify-center gap-3">
+      <div className="flex flex-wrap justify-center gap-2">
         <Button asChild variant="outline">
-          <Link to="/cart">Cart</Link>
+          <Link to="/cart">Back to cart</Link>
         </Button>
-        <Button type="button" variant="outline" onClick={() => void statusQ.refetch()}>
-          Check now
+        <Button asChild>
+          <Link to="/help">Help</Link>
         </Button>
       </div>
     </div>

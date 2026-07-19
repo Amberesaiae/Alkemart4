@@ -24,6 +24,12 @@ function parseFilters(raw: unknown): SearchQueryInput["filters"] {
   if (typeof o.has_offer === "boolean") filters.has_offer = o.has_offer
   if (typeof o.min_price === "number") filters.min_price = o.min_price
   if (typeof o.max_price === "number") filters.max_price = o.max_price
+  if (typeof o.seller_city === "string" && o.seller_city.trim()) {
+    filters.seller_city = o.seller_city.trim()
+  }
+  if (typeof o.seller_province === "string" && o.seller_province.trim()) {
+    filters.seller_province = o.seller_province.trim()
+  }
 
   // Query-string style: category_handles=a,b
   if (typeof o.category_handles === "string" && o.category_handles.trim()) {
@@ -82,6 +88,14 @@ function parseInput(req: MedusaRequest): SearchQueryInput {
       max_price:
         typeof req.query?.max_price === "string"
           ? Number(req.query.max_price)
+          : undefined,
+      seller_city:
+        typeof req.query?.seller_city === "string"
+          ? req.query.seller_city
+          : undefined,
+      seller_province:
+        typeof req.query?.seller_province === "string"
+          ? req.query.seller_province
           : undefined,
     })
 

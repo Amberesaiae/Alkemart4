@@ -1,38 +1,38 @@
 {
   "login": {
     "title": "Seller sign in",
-    "hint": "Products, offers, and orders for your shop.",
+    "hint": "Manage products, prices in GH\u20b5, and orders for your Ghana shop.",
     "forgotPassword": "Forgot password? <0>Reset</0>",
-    "sessionExpired": "Your session expired — sign in again."
+    "sessionExpired": "Your session expired \u2014 sign in again."
   },
   "invite": {
-    "title": "Create a seller account",
-    "hint": "Register once, then open your shop. Ops may need to approve before you list products.",
+    "title": "Open your shop on alkemart",
+    "hint": "Register once. After approval, tell us where you pack orders and set a delivery fee \u2014 no UK warehouse steps.",
     "backToLogin": "Already registered? Sign in",
     "createAccount": "Create seller account"
   },
   "resetPassword": {
     "title": "Reset password",
-    "hint": "Enter the email you used for Seller Hub.",
+    "hint": "Enter the email or number you used for Seller Hub.",
     "backToLogin": "Back to sign in"
   },
   "onboarding": {
     "wizard": {
       "store": {
-        "currency": "Currency (use GHS for Ghana)"
+        "currency": "Currency \u2014 use GHS (Ghana cedi)"
       },
       "address": {
-        "title": "Shop / warehouse address (Ghana)",
-        "name": "Location name"
+        "title": "Where you pack orders (Ghana)",
+        "name": "Pack-from name (e.g. My shop \u2014 Madina)"
       },
       "validation": {
         "currencyRequired": "Choose GHS for Ghana sales",
-        "countryRequired": "Choose Ghana (GH) as country"
+        "countryRequired": "Choose Ghana as country"
       }
     }
   },
   "fields": {
-    "phone": "Ghana mobile (optional)"
+    "phone": "Ghana mobile (024\u2026 / +233\u2026)"
   },
   "customFields": {
     "title": "Custom Fields",

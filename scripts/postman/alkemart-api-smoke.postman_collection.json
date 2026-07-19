@@ -1,0 +1,269 @@
+{
+  "info": {
+    "name": "Alkemart API smoke (production readiness)",
+    "description": "Layer 2 — API contract / auth boundaries / catalog.\nRun: newman run scripts/postman/alkemart-api-smoke.postman_collection.json -e scripts/postman/alkemart-local.postman_environment.json\nOr: bun run smoke:api",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://127.0.0.1:9000" },
+    { "key": "publishableKey", "value": "" },
+    { "key": "memberToken", "value": "" },
+    { "key": "sellerId", "value": "" },
+    { "key": "adminToken", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Public",
+      "item": [
+        {
+          "name": "GET /health",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/health"
+          }
+        },
+        {
+          "name": "GET /store/alkemart/catalog",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "if (!pm.environment.get('publishableKey') && !pm.collectionVariables.get('publishableKey')) {",
+                  "  console.log('SKIP: set publishableKey');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const pk = pm.environment.get('publishableKey') || pm.collectionVariables.get('publishableKey');",
+                  "if (!pk) {",
+                  "  pm.test.skip('catalog skipped — no publishableKey', () => {});",
+                  "  return;",
+                  "}",
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "const j = pm.response.json();",
+                  "pm.test('has products array', () => {",
+                  "  pm.expect(j).to.have.property('products');",
+                  "  pm.expect(j.products).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-publishable-api-key",
+                "value": "{{publishableKey}}"
+              },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "url": "{{baseUrl}}/store/alkemart/catalog?limit=5"
+          }
+        },
+        {
+          "name": "GET /store/alkemart/markets",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const pk = pm.environment.get('publishableKey') || pm.collectionVariables.get('publishableKey');",
+                  "if (!pk) {",
+                  "  pm.test.skip('markets skipped — no publishableKey', () => {});",
+                  "  return;",
+                  "}",
+                  "pm.test('status 200', () => pm.response.to.have.status(200));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-publishable-api-key",
+                "value": "{{publishableKey}}"
+              }
+            ],
+            "url": "{{baseUrl}}/store/alkemart/markets"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auth boundaries (must fail open)",
+      "item": [
+        {
+          "name": "GET /vendor/alkemart/onboarding/status unauth",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('401 or 403', () => {",
+                  "  pm.expect([401, 403]).to.include(pm.response.code);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/vendor/alkemart/onboarding/status"
+          }
+        },
+        {
+          "name": "GET /admin/alkemart/moderation/summary unauth",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('401 or 403', () => {",
+                  "  pm.expect([401, 403]).to.include(pm.response.code);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/admin/alkemart/moderation/summary"
+          }
+        },
+        {
+          "name": "GET /admin/alkemart/moderation/sellers unauth",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('401 or 403', () => {",
+                  "  pm.expect([401, 403]).to.include(pm.response.code);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/admin/alkemart/moderation/sellers"
+          }
+        },
+        {
+          "name": "GET /admin/alkemart/moderation/products unauth",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('401 or 403', () => {",
+                  "  pm.expect([401, 403]).to.include(pm.response.code);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/admin/alkemart/moderation/products"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Authenticated (optional — set tokens)",
+      "item": [
+        {
+          "name": "GET onboarding/status authed",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const t = pm.environment.get('memberToken') || pm.collectionVariables.get('memberToken');",
+                  "const s = pm.environment.get('sellerId') || pm.collectionVariables.get('sellerId');",
+                  "if (!t || !s) {",
+                  "  pm.test.skip('set memberToken + sellerId', () => {});",
+                  "  return;",
+                  "}",
+                  "pm.test('status 200', () => pm.response.to.have.status(200));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{memberToken}}"
+              },
+              { "key": "x-seller-id", "value": "{{sellerId}}" }
+            ],
+            "url": "{{baseUrl}}/vendor/alkemart/onboarding/status"
+          }
+        },
+        {
+          "name": "GET moderation/summary authed",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const t = pm.environment.get('adminToken') || pm.collectionVariables.get('adminToken');",
+                  "if (!t) {",
+                  "  pm.test.skip('set adminToken', () => {});",
+                  "  return;",
+                  "}",
+                  "pm.test('status 200', () => pm.response.to.have.status(200));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/admin/alkemart/moderation/summary"
+          }
+        }
+      ]
+    }
+  ]
+}

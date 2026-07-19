@@ -7,9 +7,7 @@ import { listOperatingMarkets } from "./markets"
 export async function listRegionCountryCodes(): Promise<string[]> {
   const { markets } = await listOperatingMarkets()
   if (!markets.length) {
-    throw new Error(
-      "No operating countries. In Admin → Settings → Regions, attach a country to a region.",
-    )
+    throw new Error("No delivery countries are available yet.")
   }
   return markets.map((m) => m.country_code)
 }

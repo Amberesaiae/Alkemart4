@@ -33,8 +33,9 @@ type HookInput = {
   products?: HookProduct[]
 }
 
-createProductsWorkflow.hooks.validate(
-  async ({ input, products }: HookInput, { container }) => {
+// Mercur workflow hook typing is loose across package versions
+;(createProductsWorkflow.hooks as { validate: (fn: unknown) => void }).validate(
+  async ({ input, products }: HookInput, { container }: { container: { resolve: (k: string) => unknown } }) => {
     const list = products ?? input?.products ?? []
     const proposed = list.filter(
       (p) => (p.status || "").toLowerCase() === "proposed",

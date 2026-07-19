@@ -73,19 +73,19 @@ function SellPage() {
         <Step
           n="1"
           title="Register"
-          body="Create a Seller Hub account with a business email you check often."
+          body="Create a Seller Hub account with a business email."
           art="shoppingSale"
         />
         <Step
           n="2"
           title="Get approved"
-          body="Open your shop (pending), then wait for alkemart ops to approve. Add Ghana address, stock location, and delivery after approval."
+          body="Wait for approval, then set Ghana address and delivery."
           art="doorstepDelivery"
         />
         <Step
           n="3"
           title="List & sell"
-          body="Add clear photos and titles, submit for review, set a GHS offer and stock. Buyers pay COD (or MoMo when enabled)."
+          body="Photos, GHS price, stock. Buyers pay COD or MoMo."
           art="cashOnDelivery"
         />
       </section>
@@ -98,16 +98,12 @@ function SellPage() {
           <h2 className="text-lg font-bold tracking-tight">How it works</h2>
           <ul className="space-y-2 text-sm text-muted-foreground">
             <li>
-              <strong className="text-foreground">This website</strong> — buyers
-              browse, cart, and pay (e.g. cash on delivery).
+              <strong className="text-foreground">Shop</strong> — buyers browse
+              and checkout.
             </li>
             <li>
-              <strong className="text-foreground">Seller Hub</strong> — you
-              upload products, stock, shipping, and handle orders.
-            </li>
-            <li>
-              <strong className="text-foreground">Admin</strong> — platform ops
-              approve shops (not for sellers).
+              <strong className="text-foreground">Seller Hub</strong> — products,
+              stock, orders.
             </li>
           </ul>
         </div>
@@ -116,28 +112,23 @@ function SellPage() {
       <section className="border border-border bg-muted/30 p-5 text-sm text-muted-foreground">
         <h2 className="font-bold text-foreground">Already a customer?</h2>
         <p className="mt-1">
-          Shopper login and seller login are separate. Buying uses{" "}
-          <Link to="/signin" search={{}} className="font-semibold underline">
+          Buying:{" "}
+          <Link to="/login" search={{}} className="font-semibold underline">
             Sign in
-          </Link>{" "}
-          here; selling uses Seller Hub only.
+          </Link>
+          . Selling: Seller Hub only.
         </p>
       </section>
 
       {!sellerHub ? (
         <p className="text-sm text-muted-foreground">
-          Seller Hub is temporarily unavailable. Please try again later or
-          contact support.
+          Seller Hub unavailable. Try again later.
         </p>
       ) : null}
 
       <p className="text-sm">
         <Link to="/" className="font-semibold underline">
           ← Back to shop
-        </Link>
-        {" · "}
-        <Link to="/partners" className="font-semibold underline">
-          Partners
         </Link>
       </p>
     </div>

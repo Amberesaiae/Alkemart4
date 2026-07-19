@@ -53,6 +53,13 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
   }
 
   const body = parsed.data
+  // Optional customer bind — store may send JWT; guest checkout remains allowed
+  // Medusa attaches auth_context after authenticate; not on base MedusaRequest types
+  const auth = (req as MedusaRequest & {
+    auth_context?: { actor_id?: string }
+  }).auth_context
+  const customerId =
+    typeof auth?.actor_id === "string" ? auth.actor_id : null
 
   try {
     const result = await runGhanaCheckout(req.scope, {
@@ -61,6 +68,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
       email: body.email,
       phone: body.phone,
       momoProvider: body.momo_provider,
+      customerId,
     })
 
     if (result.status === "payment_pending") {

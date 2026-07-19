@@ -125,7 +125,7 @@ function AccountPage() {
     mutationFn: () => {
       if (!countryCode || !marketForCountry(markets, countryCode)) {
         throw new Error(
-          "Country must be an operating market (Admin → Regions)",
+          "This country is not available for delivery yet.",
         )
       }
       const body: AddressInput = {
@@ -172,7 +172,7 @@ function AccountPage() {
     mutationFn: () => logout(),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["store"] })
-      void navigate({ to: "/signin", search: {} })
+      void navigate({ to: "/login", search: {} })
     },
   })
 
@@ -204,9 +204,9 @@ function AccountPage() {
         <EmptyState
           illustration="authBuyer"
           title="Sign in required"
-          description="Manage your profile and saved addresses after you sign in."
+          description="Sign in to manage profile and addresses."
           actionLabel="Sign in"
-          actionTo="/signin"
+          actionTo="/login"
           actionSearch={{ redirect: "/account" }}
         />
       </div>

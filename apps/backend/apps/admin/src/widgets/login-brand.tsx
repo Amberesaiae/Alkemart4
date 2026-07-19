@@ -11,7 +11,7 @@ export const config = defineWidgetConfig({
  */
 export default function LoginBrand() {
   return (
-    <div className="alk-login-brand" data-login-logo="1">
+    <div className="alk-login-brand" data-login-logo="1" data-alk-login-wordmark="1">
       <div className="alk-login-wordmark">
         alkemart<span className="alk-dot">.</span>
       </div>

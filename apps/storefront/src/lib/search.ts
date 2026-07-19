@@ -39,6 +39,13 @@ export type SearchFilters = {
   has_offer?: boolean
   min_price?: number
   max_price?: number
+  /**
+   * Ghana discovery location (optional).
+   * Only effective when Meili indexes seller_province / seller_city.
+   * Never invent matches client-side from empty index.
+   */
+  seller_province?: string
+  seller_city?: string
 }
 
 function hitToCard(h: SearchHit): StoreProductCard {

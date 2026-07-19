@@ -249,6 +249,25 @@ export function getLocalCartId(): string | null {
   return readStoredCartId()
 }
 
+/**
+ * Attach the local guest cart to the signed-in customer.
+ * POST /store/carts/:id/customer (Medusa transferCartCustomerWorkflow).
+ * Non-fatal on failure — login/checkout still proceed.
+ */
+export async function transferLocalCartToCustomer(): Promise<boolean> {
+  const cartId = readStoredCartId()
+  if (!cartId) return false
+  const sdk = getMedusaClient()
+  const token = await sdk.client.getToken()
+  if (!token) return false
+  try {
+    await sdk.store.cart.transferCart(cartId)
+    return true
+  } catch {
+    return false
+  }
+}
+
 export function formatMoney(
   amount: number | null | undefined,
   currencyCode: string | null | undefined,

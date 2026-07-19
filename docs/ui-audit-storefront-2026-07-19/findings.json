@@ -1,0 +1,131 @@
+[
+  {
+    "journey": "01-home",
+    "path": "/",
+    "title": "Market · alkemart",
+    "h2s": [
+      "Last Offers",
+      "How alkemart works",
+      "We Will Deliver Your Order All Over Ghana!",
+      "Advertise With Us"
+    ],
+    "logoText": "alkemart.",
+    "englishInPage": 0,
+    "headerNavHome": 0,
+    "screenshots": {
+      "view": "/mnt/c/src/Alkemart4/docs/ui-audit-storefront-2026-07-19/01-home-viewport.png",
+      "full": "/mnt/c/src/Alkemart4/docs/ui-audit-storefront-2026-07-19/01-home-full.png"
+    }
+  },
+  {
+    "journey": "02-browse-all",
+    "path": "/browse/all",
+    "title": "All products · alkemart",
+    "h1": "All products",
+    "h2s": [
+      "Filters"
+    ],
+    "logoText": "alkemart.",
+    "englishInPage": 0,
+    "headerNavHome": 0,
+    "screenshots": {
+      "view": "/mnt/c/src/Alkemart4/docs/ui-audit-storefront-2026-07-19/02-browse-all-viewport.png",
+      "full": "/mnt/c/src/Alkemart4/docs/ui-audit-storefront-2026-07-19/02-browse-all-full.png"
+    }
+  },
+  {
+    "journey": "03-browse-electronics",
+    "path": "/browse/phones-electronics",
+    "title": "Phones & Electronics · alkemart",
+    "h1": "Phones & Electronics",
+    "h2s": [
+      "Filters"
+    ],
+    "logoText": "alkemart.",
+    "englishInPage": 0,
+    "headerNavHome": 0,
+    "screenshots": {
+      "view": "/mnt/c/src/Alkemart4/docs/ui-audit-storefront-2026-07-19/03-browse-electronics-viewport.png",
+      "full": "/mnt/c/src/Alkemart4/docs/ui-audit-storefront-2026-07-19/03-browse-electronics-full.png"
+    }
+  },
+  {
+    "journey": "04-cart",
+    "path": "/cart",
+    "title": "Cart · alkemart",
+    "h1": "Cart",
+    "h2s": [],
+    "logoText": "alkemart.",
+    "englishInPage": 0,
+    "headerNavHome": 0,
+    "screenshots": {
+      "view": "/mnt/c/src/Alkemart4/docs/ui-audit-storefront-2026-07-19/04-cart-viewport.png",
+      "full": "/mnt/c/src/Alkemart4/docs/ui-audit-storefront-2026-07-19/04-cart-full.png"
+    }
+  },
+  {
+    "journey": "05-checkout",
+    "path": "/checkout",
+    "title": "Checkout · alkemart",
+    "h1": "Checkout",
+    "h2s": [],
+    "logoText": "alkemart.",
+    "englishInPage": 0,
+    "headerNavHome": 0,
+    "screenshots": {
+      "view": "/mnt/c/src/Alkemart4/docs/ui-audit-storefront-2026-07-19/05-checkout-viewport.png",
+      "full": "/mnt/c/src/Alkemart4/docs/ui-audit-storefront-2026-07-19/05-checkout-full.png"
+    }
+  },
+  {
+    "journey": "06-help",
+    "path": "/help",
+    "title": "Help · alkemart",
+    "h1": "Help",
+    "h2s": [],
+    "logoText": "alkemart.",
+    "englishInPage": 0,
+    "headerNavHome": 0,
+    "screenshots": {
+      "view": "/mnt/c/src/Alkemart4/docs/ui-audit-storefront-2026-07-19/06-help-viewport.png",
+      "full": "/mnt/c/src/Alkemart4/docs/ui-audit-storefront-2026-07-19/06-help-full.png"
+    }
+  },
+  {
+    "journey": "07-signin",
+    "path": "/signin",
+    "title": "Sign in · alkemart",
+    "h1": "Welcome back",
+    "h2s": [
+      "Sign in to manage orders and saved addresses"
+    ],
+    "englishInPage": 0,
+    "headerNavHome": 0,
+    "screenshots": {
+      "view": "/mnt/c/src/Alkemart4/docs/ui-audit-storefront-2026-07-19/07-signin-viewport.png",
+      "full": "/mnt/c/src/Alkemart4/docs/ui-audit-storefront-2026-07-19/07-signin-full.png"
+    }
+  },
+  {
+    "journey": "08-search",
+    "path": "/search",
+    "title": "Search · alkemart",
+    "h1": "Search alkemart",
+    "h2s": [
+      "Popular right now",
+      "Browse departments"
+    ],
+    "logoText": "alkemart.",
+    "englishInPage": 0,
+    "headerNavHome": 0,
+    "screenshots": {
+      "view": "/mnt/c/src/Alkemart4/docs/ui-audit-storefront-2026-07-19/08-search-viewport.png",
+      "full": "/mnt/c/src/Alkemart4/docs/ui-audit-storefront-2026-07-19/08-search-full.png"
+    }
+  },
+  {
+    "journey": "09-product",
+    "path": "http://127.0.0.1:5175/product/golden-palm-oil-1l",
+    "h1": "Golden Palm Cooking Oil 1L"
+  }
+]

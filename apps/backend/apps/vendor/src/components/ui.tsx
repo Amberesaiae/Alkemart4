@@ -112,6 +112,64 @@ export function AlkBanner({
   )
 }
 
+export function AlkPanel({
+  title,
+  children,
+  footer,
+}: {
+  title?: string
+  children: ReactNode
+  footer?: ReactNode
+}) {
+  return (
+    <div className="alk-panel">
+      {title ? <h3 className="alk-section-title">{title}</h3> : null}
+      <div className="alk-stack">{children}</div>
+      {footer ? <div className="alk-panel-footer">{footer}</div> : null}
+    </div>
+  )
+}
+
+export function AlkField({
+  label,
+  children,
+  hint,
+}: {
+  label: string
+  children: ReactNode
+  hint?: string
+}) {
+  return (
+    <label className="alk-field">
+      <span className="alk-field-label">{label}</span>
+      {children}
+      {hint ? <span className="alk-field-hint">{hint}</span> : null}
+    </label>
+  )
+}
+
+export function AlkButton({
+  children,
+  variant = "primary",
+  type = "button",
+  disabled,
+  onClick,
+}: {
+  children: ReactNode
+  variant?: "primary" | "secondary"
+  type?: "button" | "submit"
+  disabled?: boolean
+  onClick?: () => void
+}) {
+  const cls =
+    variant === "secondary" ? "alk-btn alk-btn-secondary" : "alk-btn"
+  return (
+    <button type={type} className={cls} disabled={disabled} onClick={onClick}>
+      {children}
+    </button>
+  )
+}
+
 export function AlkEmpty({ children }: { children: ReactNode }) {
   return <div className="alk-empty">{children}</div>
 }

@@ -127,7 +127,7 @@ export default function ProductModerationPage() {
       <AlkPageHeader
         badge="alkemart · ops"
         title="Product review"
-        description="Proposed listings from sellers. Confirm publishes; reject sets status rejected (Mercur); request-changes keeps proposed."
+        description="Review proposed listings. Confirm to publish, request changes so the seller can fix, or reject with a clear reason."
         meta={
           <button type="button" className="alk-btn alk-btn-secondary" onClick={() => void load()}>
             Refresh
@@ -138,92 +138,75 @@ export default function ProductModerationPage() {
       {loading ? <AlkEmpty>Loading proposed products…</AlkEmpty> : null}
       {error ? <AlkError>{error}</AlkError> : null}
       {flash ? (
-        <div className="alk-banner" style={{ marginBottom: 12 }}>
+        <div className="alk-banner">
           <strong>{flash}</strong>
         </div>
       ) : null}
 
-      <div className="alk-kpi" style={{ textAlign: "left", marginBottom: 16 }}>
-        <div className="alk-kpi-label">
-          Message for reject / request changes
-        </div>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 8 }}>
-          <select
-            value={reasonCode}
-            onChange={(e) => setReasonCode(e.target.value)}
-            style={{ minWidth: 160, padding: 8 }}
-          >
-            {codes.map((c) => (
-              <option key={c.code} value={c.code}>
-                {c.label}
-              </option>
-            ))}
-          </select>
-          <input
-            type="text"
-            placeholder="Optional notes"
-            value={reasonText}
-            onChange={(e) => setReasonText(e.target.value)}
-            style={{ flex: 1, minWidth: 200, padding: 8 }}
-          />
+      <div className="alk-panel">
+        <h3 className="alk-section-title">Message for reject / request changes</h3>
+        <div className="alk-form-grid">
+          <label className="alk-field">
+            <span className="alk-field-label">Reason code</span>
+            <select
+              className="alk-select"
+              value={reasonCode}
+              onChange={(e) => setReasonCode(e.target.value)}
+            >
+              {codes.map((c) => (
+                <option key={c.code} value={c.code}>
+                  {c.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="alk-field">
+            <span className="alk-field-label">Notes (optional)</span>
+            <input
+              className="alk-input"
+              type="text"
+              placeholder="Optional notes for the seller"
+              value={reasonText}
+              onChange={(e) => setReasonText(e.target.value)}
+            />
+          </label>
         </div>
       </div>
 
       {!loading && items.length === 0 ? (
         <AlkEmpty>No products awaiting review.</AlkEmpty>
       ) : (
-        <div style={{ display: "grid", gap: 12 }}>
+        <div className="alk-stack">
           {items.map((p) => (
-            <div key={p.id} className="alk-kpi" style={{ textAlign: "left" }}>
-              <div
-                style={{
-                  display: "flex",
-                  gap: 12,
-                  alignItems: "flex-start",
-                }}
-              >
+            <div key={p.id} className="alk-panel">
+              <div className="alk-media-row">
                 {p.thumbnail ? (
                   <img
+                    className="alk-thumb"
                     src={p.thumbnail}
                     alt=""
                     width={64}
                     height={64}
-                    style={{
-                      objectFit: "cover",
-                      borderRadius: 8,
-                      background: "#f3f4f6",
-                    }}
                   />
                 ) : (
-                  <div
-                    style={{
-                      width: 64,
-                      height: 64,
-                      borderRadius: 8,
-                      background: "#f3f4f6",
-                    }}
-                  />
+                  <div className="alk-thumb alk-thumb-empty" aria-hidden />
                 )}
-                <div style={{ flex: 1 }}>
-                  <strong style={{ fontSize: "1.05rem" }}>
-                    {p.title || p.id}
-                  </strong>
-                  <div style={{ fontSize: 13, opacity: 0.8, marginTop: 4 }}>
+                <div>
+                  <strong className="alk-card-title">{p.title || p.id}</strong>
+                  <p className="alk-muted">
                     {p.seller?.name || p.seller?.handle || "Unknown seller"}
                     {p.quality
                       ? ` · quality ${p.quality.score} (${p.quality.band})`
                       : ""}
-                  </div>
+                  </p>
                   {p.quality?.blocking?.length ? (
-                    <div style={{ fontSize: 12, color: "#9a3412", marginTop: 4 }}>
+                    <p className="alk-status is-error">
                       {p.quality.blocking.join(" · ")}
-                    </div>
+                    </p>
                   ) : null}
                 </div>
               </div>
-              <div
-                style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 12 }}
-              >
+              <div className="alk-panel-footer">
                 <button
                   type="button"
                   className="alk-btn"

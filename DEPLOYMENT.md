@@ -101,6 +101,17 @@ Express-era `neondb` is reference only.
 7. Host storefront static build with CORS matching `STORE_CORS`.
 8. Point Paystack webhooks at `POST /hooks/paystack`.
 
+## Testing (prod readiness)
+
+See **`docs/testing-production-readiness.md`**.
+
+| Command | Layer |
+|---------|--------|
+| `bun run smoke:onboarding` | API bash smoke |
+| `bun run smoke:api` | Postman/Newman collection |
+| `bun run smoke:ui` | Playwright surface smoke (`e2e/`) |
+| `bun run smoke:all` | All three (servers must be up) |
+
 ## Seller go-live path (ops)
 
 1. Seller registers at `/seller/register` → shop `pending_approval`

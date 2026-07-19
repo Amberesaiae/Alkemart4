@@ -189,3 +189,38 @@ export function enrichDocsWithOffers(
     }
   })
 }
+
+/**
+ * Apply seller_address city/province onto documents by seller_id.
+ * Never invents location — only address rows present in graph.
+ */
+export function enrichDocsWithSellerAddresses(
+  docs: SearchProductDocument[],
+  addresses: Loose[],
+): SearchProductDocument[] {
+  const bySeller = new Map<
+    string,
+    { city: string | null; province: string | null }
+  >()
+  for (const a of addresses) {
+    const sid = str(a.seller_id)
+    if (!sid) continue
+    // First non-empty wins (primary address convention)
+    if (bySeller.has(sid)) continue
+    const city = str(a.city) || null
+    const province = str(a.province) || null
+    if (!city && !province) continue
+    bySeller.set(sid, { city, province })
+  }
+
+  return docs.map((doc) => {
+    if (!doc.seller_id) return doc
+    const loc = bySeller.get(doc.seller_id)
+    if (!loc) return doc
+    return {
+      ...doc,
+      seller_city: loc.city,
+      seller_province: loc.province,
+    }
+  })
+}

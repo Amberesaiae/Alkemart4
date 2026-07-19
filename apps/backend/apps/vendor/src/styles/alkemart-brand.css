@@ -90,7 +90,7 @@ a[class*="text-ui-fg-interactive"] {
   color: var(--alkemart-black) !important;
 }
 
-/* —— Sidebar / shell (best-effort class hooks) —— */
+/* Sidebar base (detailed brand-row rules further below) */
 aside,
 nav[class*="sidebar"],
 [data-testid="sidebar"],
@@ -99,10 +99,9 @@ nav[class*="sidebar"],
   border-color: var(--alkemart-border) !important;
 }
 
-/* Active nav item → soft yellow */
-[aria-current="page"],
-a[aria-current="page"],
-button[aria-current="page"] {
+aside a[aria-current="page"],
+nav a[aria-current="page"],
+[data-testid="sidebar"] a[aria-current="page"] {
   background-color: var(--alkemart-yellow-soft) !important;
   color: var(--alkemart-black) !important;
   border-radius: var(--alkemart-radius-sm);
@@ -740,9 +739,7 @@ body:has([data-alk-login-art-brand]) .h-dvh.w-dvw [data-alk-login-wordmark] {
 }
 
 /* —— Kill residual Medusa / Mercur shell brand —— */
-/* No letter monogram icons (M / a / A) — wordmark + logo.svg only */
-aside [class*="rounded"][class*="bg-ui-bg-component"]:has(> span:only-child),
-aside [class*="rounded"]:has(> span:only-child):not(:has(img)):not(:has(svg)),
+/* Only hide monograms we explicitly mark (JS). Broad :has() rules broke nav icons. */
 [data-alk-hide-monogram="1"] {
   display: none !important;
 }
@@ -790,7 +787,7 @@ nav a[href*="/categories"] {
   display: none !important;
 }
 
-/* —— Sidebar / shell (native size — restored) —— */
+/* —— Sidebar / shell (safe — do not restyle entire first-child tree) —— */
 aside,
 nav[class*="sidebar"],
 [data-testid="sidebar"],
@@ -814,20 +811,25 @@ aside a:hover,
   background-color: var(--alkemart-muted) !important;
 }
 
-/* Section labels in sidebar */
-/* Section labels in sidebar — more air above groups */
-aside [class*="text-ui-fg-muted"],
-nav [class*="text-ui-fg-muted"],
-aside p[class*="muted"],
-aside span[class*="muted"] {
+/* Active page only on real sidebar links */
+aside a[aria-current="page"],
+nav a[aria-current="page"],
+[data-testid="sidebar"] a[aria-current="page"] {
+  background-color: var(--alkemart-yellow-soft) !important;
+  color: var(--alkemart-black) !important;
+  font-weight: 600 !important;
+}
+
+/* Section group labels only (nav muted), light spacing */
+aside nav [class*="text-ui-fg-muted"],
+[data-testid="sidebar"] nav [class*="text-ui-fg-muted"] {
   font-size: 10px !important;
   font-weight: 700 !important;
   letter-spacing: 0.08em !important;
   text-transform: uppercase !important;
   color: var(--alkemart-subtle) !important;
-  margin-top: 1rem !important;
-  margin-bottom: 0.4rem !important;
-  padding-top: 0.35rem !important;
+  margin-top: 0.65rem !important;
+  margin-bottom: 0.25rem !important;
 }
 
 /* Main content padding rhythm */
@@ -901,3 +903,245 @@ body:has([data-testid="login-page"]) h1 + p {
   cursor: pointer;
 }
 .alk-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+/* =====================================================================
+ * Shared panel primitives — Admin + Seller Hub (keep identical)
+ * Forms, buttons, checklists, cards used by alkemart extensions
+ * ===================================================================== */
+
+.alk-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.alk-panel {
+  background: var(--alkemart-surface);
+  border: 1px solid var(--alkemart-border);
+  border-radius: var(--alkemart-radius);
+  padding: 1rem 1.1rem;
+  box-shadow: var(--alkemart-shadow);
+  margin-bottom: 0.75rem;
+}
+
+.alk-panel-footer {
+  margin-top: 0.85rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.alk-section-title {
+  margin: 0 0 0.35rem;
+  font-size: 0.95rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--alkemart-black);
+}
+
+.alk-muted {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: var(--alkemart-subtle);
+}
+
+.alk-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: 0.75rem;
+}
+
+.alk-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.alk-field-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--alkemart-subtle);
+}
+
+.alk-field-hint {
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: var(--alkemart-subtle);
+}
+
+.alk-input,
+.alk-select,
+.alk-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 2.5rem;
+  padding: 0.5rem 0.7rem;
+  border: 1px solid var(--alkemart-border);
+  border-radius: var(--alkemart-radius-sm);
+  background: var(--alkemart-white);
+  color: var(--alkemart-black);
+  font-size: 0.875rem;
+  font-weight: 500;
+  font-family: inherit;
+}
+
+.alk-input:focus,
+.alk-select:focus,
+.alk-textarea:focus {
+  outline: 2px solid var(--alkemart-yellow);
+  outline-offset: 1px;
+  border-color: var(--alkemart-yellow-hover);
+}
+
+.alk-textarea {
+  min-height: 4.5rem;
+  resize: vertical;
+}
+
+.alk-checklist {
+  list-style: none;
+  margin: 0;
+  padding: 0.65rem 0.85rem;
+  border: 1px solid var(--alkemart-border);
+  border-radius: var(--alkemart-radius-sm);
+  background: var(--alkemart-muted);
+}
+
+.alk-checklist li {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+  padding: 0.3rem 0;
+  font-size: 0.8125rem;
+  color: var(--alkemart-subtle);
+  line-height: 1.35;
+}
+
+.alk-checklist li.is-done {
+  color: var(--alkemart-black);
+  font-weight: 600;
+}
+
+.alk-checklist .alk-check-mark {
+  flex: 0 0 1rem;
+  font-weight: 800;
+  color: var(--alkemart-black);
+}
+
+/* Buttons — primary yellow, secondary outline (both panels) */
+.alk-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  min-height: 2.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: var(--alkemart-radius-sm);
+  border: 1px solid transparent;
+  background: var(--alkemart-yellow);
+  color: var(--alkemart-black);
+  font-weight: 700;
+  font-size: 0.875rem;
+  font-family: inherit;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.alk-btn:hover:not(:disabled) {
+  background: var(--alkemart-yellow-hover);
+}
+
+.alk-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.alk-btn-secondary {
+  background: var(--alkemart-white);
+  border-color: var(--alkemart-border);
+  color: var(--alkemart-black);
+}
+
+.alk-btn-secondary:hover:not(:disabled) {
+  background: var(--alkemart-muted);
+}
+
+.alk-status {
+  font-size: 0.8rem;
+  color: var(--alkemart-subtle);
+}
+
+.alk-status.is-error {
+  color: #8b1e1e;
+}
+
+.alk-status.is-ok {
+  color: #166534;
+}
+
+/* Login wordmark — same lockup both panels */
+.alk-login-brand {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  gap: 6px !important;
+  margin: 0 0 1.25rem !important;
+  width: 100% !important;
+}
+.alk-login-wordmark {
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif !important;
+  font-weight: 800 !important;
+  font-size: 1.5rem !important;
+  letter-spacing: -0.04em !important;
+  line-height: 1 !important;
+  color: #141414 !important;
+}
+.alk-login-wordmark .alk-dot {
+  color: #f5c518 !important;
+}
+.alk-login-role {
+  font-size: 0.6875rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.12em !important;
+  text-transform: uppercase !important;
+  color: #5c5c5c !important;
+}
+
+.alk-row-between {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.75rem;
+  justify-content: space-between;
+  align-items: baseline;
+}
+.alk-card-title {
+  font-size: 1.05rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--alkemart-black);
+}
+
+
+.alk-media-row {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+}
+.alk-thumb {
+  width: 64px;
+  height: 64px;
+  object-fit: cover;
+  border-radius: var(--alkemart-radius-sm);
+  background: var(--alkemart-muted);
+  flex: 0 0 64px;
+}
+.alk-thumb-empty {
+  border: 1px dashed var(--alkemart-border);
+}
+

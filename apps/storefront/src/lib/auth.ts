@@ -1,4 +1,5 @@
 import { getMedusaClient } from "./medusa"
+import { transferLocalCartToCustomer } from "./cart"
 
 export type SessionCustomer = {
   id: string
@@ -33,20 +34,8 @@ export async function login(email: string, password: string): Promise<SessionCus
   if (typeof result !== "string") {
     throw new Error("Authentication requires additional steps")
   }
-  // Attach guest cart to customer when API supports it
-  try {
-    const cartId = localStorage.getItem("alkemart.storefront.cart_id")
-    if (cartId) {
-      const transfer = (
-        sdk.store.cart as { transferCart?: (id: string) => Promise<unknown> }
-      ).transferCart
-      if (typeof transfer === "function") {
-        await transfer.call(sdk.store.cart, cartId)
-      }
-    }
-  } catch {
-    /* non-fatal */
-  }
+  // P1: bind guest cart → customer so My Orders works after checkout
+  await transferLocalCartToCustomer()
   const me = await getSessionCustomer()
   if (!me) throw new Error("Login succeeded but customer session is empty")
   return me

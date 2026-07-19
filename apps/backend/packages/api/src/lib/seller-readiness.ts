@@ -35,11 +35,15 @@ export type SellerReadiness = {
   approved_at: string | null
   phase: SellerReadinessPhase
   checklist: SellerChecklist
+  /** Seller-facing labels for checklist keys (Ghana plain English). */
+  checklist_labels: Record<keyof SellerChecklist, string>
   setup_complete: boolean
   can_propose_products: boolean
   can_create_offers: boolean
   reason_code: string | null
   next_action: { code: string; label: string } | null
+  /** Prefer one-tap Ghana setup instead of raw Mercur location/shipping screens. */
+  quick_setup_available: boolean
   poll_after_seconds: number
 }
 
@@ -140,6 +144,18 @@ export function isChecklistComplete(c: SellerChecklist): boolean {
   )
 }
 
+/**
+ * Ghana-facing labels for checklist keys (hide UK/EU ops jargon).
+ * Keys stay technical for code; labels are what sellers see.
+ */
+export const CHECKLIST_LABELS: Record<keyof SellerChecklist, string> = {
+  profile: "Shop name and Ghana contact details",
+  stock_location: "Where you pack orders (shop or house)",
+  sales_channel_link: "Shop linked so buyers can see your stock",
+  shipping_profile: "How you send goods (courier / delivery)",
+  gh_shipping_option: "Delivery price for Ghana (e.g. Accra / nationwide)",
+}
+
 export function nextActionFor(
   phase: SellerReadinessPhase,
   checklist: SellerChecklist,
@@ -148,57 +164,50 @@ export function nextActionFor(
     case "pending_approval":
       return {
         code: "wait_approval",
-        label: "Wait for alkemart to approve your shop",
+        label:
+          "We're reviewing your shop — usually within a day. You'll get an email when you're approved.",
       }
     case "rejected":
       return {
         code: "fix_application",
-        label: "Update your shop details and contact support to re-apply",
+        label:
+          "Your application needs a fix. Update your shop details and WhatsApp or email support to re-apply.",
       }
     case "suspended":
       return {
         code: "contact_support",
-        label: "Your shop is suspended — contact support",
+        label: "Your shop is paused — contact alkemart support to reopen.",
       }
     case "terminated":
       return {
         code: "terminated",
-        label: "This shop is closed",
+        label: "This shop is closed.",
       }
     case "active":
       return {
         code: "list_products",
-        label: "List your first product with a GHS offer",
+        label:
+          "Add your first product with photos and a GH₵ price. Buyers pay cash on delivery or MoMo.",
       }
     case "setup_incomplete":
       if (!checklist.profile) {
         return {
           code: "complete_profile",
-          label: "Complete shop name, handle, email, and Ghana address",
+          label:
+            "Add shop name, phone/email, and where you are in Ghana (city + area).",
         }
       }
-      if (!checklist.stock_location) {
+      // Remaining spine steps collapse to one pragmatic action for sellers
+      if (
+        !checklist.stock_location ||
+        !checklist.sales_channel_link ||
+        !checklist.shipping_profile ||
+        !checklist.gh_shipping_option
+      ) {
         return {
-          code: "add_stock_location",
-          label: "Add a stock location (warehouse or shop)",
-        }
-      }
-      if (!checklist.sales_channel_link) {
-        return {
-          code: "link_sales_channel",
-          label: "Link your stock location to the storefront sales channel",
-        }
-      }
-      if (!checklist.shipping_profile) {
-        return {
-          code: "add_shipping_profile",
-          label: "Create a shipping profile",
-        }
-      }
-      if (!checklist.gh_shipping_option) {
-        return {
-          code: "add_gh_shipping",
-          label: "Add a delivery option that covers Ghana",
+          code: "ghana_quick_setup",
+          label:
+            "Tell us where you pack orders and set a delivery fee (GH₵) — we set up the rest for Ghana.",
         }
       }
       return null
@@ -234,6 +243,16 @@ export function buildSellerReadiness(
     setup_complete &&
     phase === "active"
 
+  const next = nextActionFor(phase, checklist)
+  const quick_setup_available =
+    mercur === "open" &&
+    phase === "setup_incomplete" &&
+    checklist.profile &&
+    (!checklist.stock_location ||
+      !checklist.sales_channel_link ||
+      !checklist.shipping_profile ||
+      !checklist.gh_shipping_option)
+
   return {
     seller_id: seller.id,
     mercur_status: mercur,
@@ -241,11 +260,13 @@ export function buildSellerReadiness(
     approved_at: isoDate(seller.approved_at),
     phase,
     checklist,
+    checklist_labels: { ...CHECKLIST_LABELS },
     setup_complete,
     can_propose_products: canOps,
     can_create_offers: canOps,
     reason_code: metaReasonCode(seller),
-    next_action: nextActionFor(phase, checklist),
+    next_action: next,
+    quick_setup_available,
     poll_after_seconds: phase === "active" ? 0 : 20,
   }
 }

@@ -69,7 +69,7 @@ export function MarketAddressFields({
       <div className="space-y-3">
         {countryField}
         <p className="text-sm text-destructive">
-          No operating market. Admin must attach a country to a region.
+          Delivery is not available for this country yet.
         </p>
       </div>
     )
