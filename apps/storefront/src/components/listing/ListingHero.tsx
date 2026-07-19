@@ -1,9 +1,9 @@
 import { cn } from "@/lib/utils"
 
 type Props = {
-  /** e.g. "All products" or department name */
+  /** Single clean page title, e.g. "All products" or "Food & groceries" */
   title: string
-  /** Second line emphasis */
+  /** @deprecated unused — kept for call-site compat */
   accent?: string
   body?: string
   /** Category / department photo */
@@ -13,13 +13,13 @@ type Props = {
 }
 
 /**
- * PLP hero — concise copy + category photography in a framed cutout.
- * Art sources: public/images/categories/* (same set as home mosaic).
+ * PLP hero — one professional title + optional short body + category photo.
+ * No multi-line marketing slogans in the H1 (avoids tab titles like
+ * "… from Ghana sellers").
  */
 export function ListingHero({
   title,
-  accent = "in one place",
-  body = "Multi-seller prices. Compare and buy on alkemart.",
+  body,
   imageSrc,
   imageAlt = "",
   className,
@@ -33,15 +33,8 @@ export function ListingHero({
       aria-label="Department intro"
     >
       <div className="max-w-lg space-y-2">
-        <h1 className="text-xl font-extrabold leading-tight tracking-tight sm:text-2xl lg:text-[1.65rem]">
-          <span className="block text-foreground">{title}</span>
-          <span className="relative mt-0.5 inline-block text-foreground">
-            {accent}
-            <span
-              className="absolute -bottom-0.5 left-0 h-0.5 w-full rounded-full bg-primary"
-              aria-hidden
-            />
-          </span>
+        <h1 className="text-xl font-extrabold leading-tight tracking-tight text-foreground sm:text-2xl lg:text-[1.65rem]">
+          {title}
         </h1>
         {body ? (
           <p className="max-w-md text-sm leading-snug text-muted-foreground">
@@ -86,7 +79,6 @@ export function ListingHero({
 export function listingHeroArt(slug: string): string | null {
   const s = slug.toLowerCase()
   if (s === "all" || !s) {
-    // “All products” uses marketplace-wide food/electronics blend feel → electronics pack shot
     return "/images/categories/electronics-source.jpg"
   }
   if (/pet|animal|dog|cat/.test(s)) return "/images/categories/pets-source.jpg"
@@ -104,14 +96,19 @@ export function listingHeroTitle(
   isAll: boolean,
 ): string {
   if (isAll) return "All products"
-  return departmentName
+  const name = departmentName?.trim() || "Products"
+  return name
 }
 
-export function listingHeroAccent(isAll: boolean): string {
-  return isAll ? "you want, one place" : "from Ghana sellers"
+/** @deprecated accent removed from hero — returns empty */
+export function listingHeroAccent(_isAll?: boolean): string {
+  return ""
 }
 
 export function listingHeroBody(isAll: boolean, departmentName: string): string {
-  if (isAll) return "Browse multi-seller offers across the market."
-  return `${departmentName} — compare offers and prices.`
+  if (isAll) return "Compare multi-seller prices on alkemart."
+  const name = departmentName?.trim()
+  return name
+    ? `Shop ${name.toLowerCase()} — compare offers and prices.`
+    : "Compare multi-seller prices on alkemart."
 }

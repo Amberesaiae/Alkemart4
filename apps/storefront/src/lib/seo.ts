@@ -5,7 +5,7 @@
 
 const SITE = "alkemart"
 const DEFAULT_DESC =
-  "Buy from Ghana sellers on alkemart — multi-vendor marketplace with cash on delivery."
+  "alkemart — multi-vendor marketplace. Compare prices, shop with cash on delivery."
 
 export function siteName(): string {
   return SITE

@@ -301,8 +301,8 @@ function BrowsePage() {
         title={title}
         description={
           isAll
-            ? "Browse products from Ghana sellers on alkemart."
-            : `Browse ${title} on alkemart.`
+            ? "Browse products and compare multi-seller prices on alkemart."
+            : `Browse ${title} on alkemart — compare multi-seller offers.`
         }
         path={`/categories/${slug}`}
         noindex={sellerFilters.length > 0 || Boolean(search.sort)}

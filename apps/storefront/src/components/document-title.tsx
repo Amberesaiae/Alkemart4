@@ -22,7 +22,7 @@ const ROUTES: {
   {
     match: (p) => p.startsWith("/categories"),
     title: "Categories",
-    description: "Browse products from Ghana sellers on alkemart.",
+    description: "Browse products and compare multi-seller prices on alkemart.",
   },
   { match: (p) => p.startsWith("/product/"), title: "Product" },
   { match: (p) => p.startsWith("/shops/"), title: "Shop" },
