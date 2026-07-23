@@ -1,9 +1,25 @@
 import { defineMiddlewares, authenticate } from "@medusajs/medusa"
+import type { MedusaRequest, MedusaResponse, MedusaNextFunction } from "@medusajs/medusa"
 import { validateVendorUploads } from "./middlewares/validate-vendor-uploads"
 import { applyStrictSellerProductFilter } from "./middlewares/strict-seller-products"
 
+/** Redirect bare root → admin dashboard (makes the Replit preview useful). */
+const redirectRootToDashboard = (
+  _req: MedusaRequest,
+  res: MedusaResponse,
+  _next: MedusaNextFunction,
+) => {
+  res.redirect(302, "/dashboard")
+}
+
 export default defineMiddlewares({
   routes: [
+    // ── Dev convenience ─────────────────────────────────────────────────────
+    {
+      matcher: "/",
+      methods: ["GET"],
+      middlewares: [redirectRootToDashboard],
+    },
     /**
      * Exclusive multi-vendor: after Mercur's shared-catalog filter, restrict
      * GET /vendor/products to this seller only (product_seller + authored).

@@ -1,27 +1,18 @@
 kind = "web"
-previewPath = "/"
-title = "Alkemart"
+previewPath = "/legacy-alkemart"
+title = "Alkemart (archived)"
 version = "1.0.0"
 id = "artifacts/alkemart"
 router = "path"
 
 [[services]]
 name = "web"
-paths = [ "/" ]
+paths = [ "/legacy-alkemart" ]
 localPort = 24668
 
 [services.development]
-run = "pnpm --filter @workspace/alkemart run dev"
-
-[services.production]
-build = [ "pnpm", "--filter", "@workspace/alkemart", "run", "build" ]
-serve = "static"
-publicDir = "artifacts/alkemart/dist/public"
-
-[[services.production.rewrites]]
-from = "/*"
-to = "/index.html"
+run = "echo 'archived'"
 
 [services.env]
 PORT = "24668"
-BASE_PATH = "/"
+BASE_PATH = "/legacy-alkemart"

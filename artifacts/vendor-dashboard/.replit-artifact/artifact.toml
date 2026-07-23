@@ -1,0 +1,18 @@
+kind = "web"
+previewPath = "/seller"
+title = "Vendor Dashboard"
+version = "1.0.0"
+id = "artifacts/vendor-dashboard"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/seller" ]
+localPort = 3002
+
+[services.development]
+run = "cd /home/runner/workspace/Alkemart4/apps/backend/apps/ghana-vendor && bun run dev"
+
+[services.env]
+PORT = "3002"
+BASE_PATH = "/seller"

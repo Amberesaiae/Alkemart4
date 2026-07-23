@@ -1,2 +1,3 @@
 - [Dashboard Rebuild](dashboard-rebuild.md) — vendor (port 3002 /seller/) + admin (port 3001 /dashboard/) built from scratch; bun install per-app; host:true required
+- [Dashboard Preview Routing](dashboard-preview-routing.md) — artifact UUID IDs required for proxy routing; absolute run paths; vendor base must match previewPath prefix; root artifact is catch-all
 - [Production Stack](production-stack.md) — Railway (API) + Neon + Vercel + Tigris/B2; AT SMS + Meta WA; PWA; fly.toml fixed to production
