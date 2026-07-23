@@ -19,6 +19,7 @@ export default defineConfig({
   },
   server: {
     host: true,
+    allowedHosts: true,
     port: 3002,
     proxy: {
       '/vendor': 'http://localhost:9000',

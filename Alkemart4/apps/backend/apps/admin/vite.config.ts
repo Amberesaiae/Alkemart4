@@ -14,6 +14,7 @@ export default defineConfig({
   plugins: [TanStackRouterVite({ target: 'react', autoCodeSplitting: true }), react(), tailwindcss()],
   server: {
     host: true,
+    allowedHosts: true,
     port: 3001,
     proxy: {
       '/admin': 'http://localhost:9000',
