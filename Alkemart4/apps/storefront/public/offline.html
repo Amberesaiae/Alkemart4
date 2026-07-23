@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en-GH">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#febf31" />
+  <title>Offline — Alkemart</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Montserrat', system-ui, sans-serif;
+      background: #1a1a1a;
+      color: #ffffff;
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+      text-align: center;
+      gap: 1.5rem;
+    }
+    .logo {
+      font-size: 2rem;
+      font-weight: 900;
+      color: #febf31;
+      letter-spacing: -0.04em;
+    }
+    .icon {
+      font-size: 4rem;
+      line-height: 1;
+    }
+    h1 { font-size: 1.5rem; font-weight: 800; }
+    p  { color: #aaaaaa; font-size: 0.95rem; line-height: 1.6; max-width: 28ch; }
+    button {
+      margin-top: 0.5rem;
+      background: #febf31;
+      color: #1a1a1a;
+      border: none;
+      padding: 0.875rem 2.5rem;
+      border-radius: 9999px;
+      font-weight: 800;
+      font-size: 0.95rem;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    button:active { opacity: 0.85; }
+  </style>
+</head>
+<body>
+  <div class="logo">alkemart</div>
+  <div class="icon">📶</div>
+  <h1>No internet connection</h1>
+  <p>Check your data or Wi-Fi and try again. Cached pages will still load.</p>
+  <button onclick="location.reload()">Try again</button>
+</body>
+</html>

@@ -6,7 +6,7 @@
 # Cost note: shared-cpu-1x @ 2GB is usually enough for Medusa; scale up if OOM.
 
 app = 'alkemart-api'
-primary_region = 'lhr'  # London — reasonable for GH/EU/US mix; change if needed
+primary_region = 'jnb'  # Johannesburg — ~40ms to Ghana vs ~120ms from London (lhr)
 
 [build]
   dockerfile = 'Dockerfile'
@@ -15,10 +15,10 @@ primary_region = 'lhr'  # London — reasonable for GH/EU/US mix; change if need
     MERCUR_BACKEND_URL = 'https://alkemart-api.fly.dev'
 
 [env]
-  NODE_ENV = 'development'
+  NODE_ENV = 'production'
   PORT = '9000'
   # Non-secrets only. Secrets → fly secrets set
-  FILE_DRIVER = 'local'
+  FILE_DRIVER = 's3'
   STORE_CORS = 'https://alkemart-storefront.vercel.app'
   # AUTH/ADMIN/VENDOR CORS set via secrets or redeploy after domain known
 
