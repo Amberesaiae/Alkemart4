@@ -1,0 +1,45 @@
+{
+  "started_at": "2026-07-19T00:36:33.455Z",
+  "hosts": {
+    "API": "http://localhost:9000",
+    "SHOP": "http://localhost:5175",
+    "ADMIN": "http://localhost:7000",
+    "SELLER": "http://localhost:7001"
+  },
+  "phases": {
+    "0_preflight": {
+      "health": 200,
+      "shop": 200,
+      "images": [
+        "ghana-doorstep-delivery.png",
+        "ghana-marketplace.png"
+      ]
+    },
+    "1_api_rbac": {
+      "admin_email": "admin@alkemart.local",
+      "seller_email": "seller@alkemart.local",
+      "buyer_email": "live.buyer.1784421396184@alkemart.local",
+      "stores": [
+        {
+          "id": "sel_01KXR2HNRH4RF6BANREHSW98Q6",
+          "name": "Alkemart Lab Shop"
+        },
+        {
+          "id": "sel_01KXR6600053Z3W1KZSEX38484",
+          "name": "Lamp Store"
+        }
+      ],
+      "multi_store": true,
+      "denies": {
+        "seller_to_admin": 401,
+        "buyer_to_vendor": 401,
+        "open_admin": 401
+      },
+      "allows": {
+        "admin_moderation": 200,
+        "seller_onboarding": 200
+      }
+    }
+  },
+  "finished_at": "2026-07-19T00:36:58.708Z"
+}

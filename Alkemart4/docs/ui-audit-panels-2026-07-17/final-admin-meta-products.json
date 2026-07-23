@@ -1,0 +1,29 @@
+{
+  "title": "alkemart Admin",
+  "hasMedusa": false,
+  "hasAlkBanner": false,
+  "hasAlkPage": false,
+  "kpi": 0,
+  "storeLabel": [
+    "Search⌘K",
+    "Search",
+    "Search",
+    "⌘K",
+    "Orders",
+    "Orders",
+    "Orders",
+    "Products",
+    "Products",
+    "Products",
+    "Products",
+    "Products",
+    "Products",
+    "Products",
+    "Offers",
+    "Offers",
+    "Offers",
+    "Offers",
+    "Collections",
+    "Collections"
+  ]
+}

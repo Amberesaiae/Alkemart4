@@ -1,0 +1,5 @@
+[install]
+# Prefer workspace protocol resolution
+exact = false
+
+[install.scopes]

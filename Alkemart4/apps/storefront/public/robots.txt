@@ -1,0 +1,15 @@
+# alkemart storefront — SPA
+User-agent: *
+Allow: /
+
+# Buyer private / transactional
+Disallow: /account
+Disallow: /cart
+Disallow: /checkout
+Disallow: /orders
+Disallow: /order/
+Disallow: /login
+Disallow: /signin
+
+# Sitemap (absolute production origin)
+Sitemap: https://alkemart-storefront.vercel.app/sitemap.xml

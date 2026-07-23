@@ -1,0 +1,30 @@
+{
+  "title": "alkemart Admin",
+  "h1": "Platform analytics",
+  "hasMedusa": true,
+  "hasAlkBanner": false,
+  "hasAlkPage": true,
+  "kpi": 0,
+  "storeLabel": [
+    "MMedusa Store",
+    "M",
+    "M",
+    "Medusa Store",
+    "Medusa Store",
+    "Search⌘K",
+    "Search",
+    "Search",
+    "⌘K",
+    "Orders",
+    "Orders",
+    "Orders",
+    "Products",
+    "Products",
+    "Products",
+    "Inventory",
+    "Inventory",
+    "Inventory",
+    "Customers",
+    "Customers"
+  ]
+}

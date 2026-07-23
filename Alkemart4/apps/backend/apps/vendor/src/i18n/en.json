@@ -1,0 +1,91 @@
+{
+  "login": {
+    "title": "Seller sign in",
+    "hint": "Products, stock, and orders.",
+    "forgotPassword": "Forgot password? <0>Reset</0>",
+    "sessionExpired": "Session expired — sign in again."
+  },
+  "invite": {
+    "title": "Open your shop on alkemart",
+    "hint": "Register once. After approval: pack address + fee.",
+    "backToLogin": "Already registered? Sign in",
+    "createAccount": "Create seller account"
+  },
+  "resetPassword": {
+    "title": "Reset password",
+    "hint": "Seller Hub email.",
+    "backToLogin": "Back to sign in"
+  },
+  "actions": {
+    "back": "Back",
+    "continue": "Continue",
+    "skip": "Skip for now"
+  },
+  "onboarding": {
+    "step": "Step {{current}} / {{total}}",
+    "wizard": {
+      "stepOf": "Step {{current}} of {{total}}",
+      "steps": {
+        "store": "Shop",
+        "address": "Pack address",
+        "company": "Business",
+        "payment": "Payouts"
+      },
+      "store": {
+        "title": "Shop details",
+        "name": "Shop name",
+        "email": "Shop email",
+        "handle": "Shop URL handle",
+        "handleTooltip": "Public shop link. Blank = from name.",
+        "handlePlaceholder": "my-shop",
+        "currency": "Currency — GHS",
+        "selectCurrency": "Select GHS",
+        "currencyHint": "GHS. Locked after create."
+      },
+      "address": {
+        "title": "Pack address (Ghana)",
+        "name": "Pack-from name",
+        "namePlaceholder": "My shop — Madina",
+        "address": "Street / area / landmark",
+        "address2": "Extra directions (optional)",
+        "postalCode": "GhanaPostGPS (optional)",
+        "city": "City / town",
+        "country": "Country",
+        "state": "Region"
+      },
+      "company": {
+        "title": "Business (optional)",
+        "subtitle": "Skip if sole trader.",
+        "corporateName": "Registered name",
+        "registrationNumber": "Registration number",
+        "taxId": "TIN / Tax ID"
+      },
+      "payment": {
+        "title": "Payouts (optional)",
+        "subtitle": "Can skip for now.",
+        "accountName": "Account name",
+        "accountNumber": "Account number",
+        "achRoutingNumber": "Routing number",
+        "iban": "IBAN",
+        "swiftBic": "SWIFT / BIC"
+      },
+      "skip": "Skip for now",
+      "validation": {
+        "nameRequired": "Enter a shop name",
+        "emailInvalid": "Enter a valid email",
+        "currencyRequired": "Choose GHS for Ghana sales",
+        "countryRequired": "Choose Ghana as country",
+        "accountNameRequired": "Enter an account name"
+      }
+    }
+  },
+  "fields": {
+    "phone": "Mobile (024…)",
+    "email": "Email",
+    "name": "Name",
+    "address": "Address",
+    "city": "City / town",
+    "country": "Country",
+    "postalCode": "Postal / GPS (optional)"
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "name": "@alkemart/e2e",
+  "private": true,
+  "version": "0.0.0",
+  "scripts": {
+    "test": "playwright test",
+    "test:ui": "playwright test --ui",
+    "test:rbac": "playwright test tests/rbac-multivendor.live.spec.ts --workers=1",
+    "test:rbac:headed": "playwright test tests/rbac-multivendor.live.spec.ts --workers=1 --headed --project=chromium",
+    "test:smoke": "playwright test tests/surfaces.smoke.spec.ts",
+    "test:smoke:headed": "playwright test tests/surfaces.smoke.spec.ts --headed",
+    "test:catalog": "playwright test tests/catalog-performance.live.spec.ts --workers=1",
+    "test:live": "playwright test --workers=1",
+    "install:browsers": "playwright install chromium"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.52.0"
+  }
+}

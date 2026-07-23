@@ -1,0 +1,24 @@
+# alkemart
+
+> Multi-vendor marketplace for Ghana — compare multi-seller prices and shop with cash on delivery.
+
+## Site
+- Home: https://alkemart-storefront.vercel.app/
+- About: https://alkemart-storefront.vercel.app/about
+- Contact: https://alkemart-storefront.vercel.app/contact
+- Catalog: https://alkemart-storefront.vercel.app/categories/all
+- Shops: https://alkemart-storefront.vercel.app/shops
+- Help: https://alkemart-storefront.vercel.app/help
+- Privacy: https://alkemart-storefront.vercel.app/privacy
+- Sell: https://alkemart-storefront.vercel.app/sell
+- Partners: https://alkemart-storefront.vercel.app/partners
+- Sitemap: https://alkemart-storefront.vercel.app/sitemap.xml
+
+## API
+- Health: https://alkemart-api-production.up.railway.app/health
+- Admin: https://alkemart-api-production.up.railway.app/dashboard
+- Seller: https://alkemart-api-production.up.railway.app/seller
+
+## Notes
+- Buyer storefront is a Vite SPA on Vercel.
+- Commerce API is Medusa/Mercur on Railway with Neon Postgres.

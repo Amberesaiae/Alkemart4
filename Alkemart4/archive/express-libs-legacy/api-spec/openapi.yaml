@@ -1,0 +1,2498 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: API specification
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: catalog
+    description: Categories, vendors and products
+  - name: cart
+    description: Shopping cart operations
+  - name: auth
+    description: Authentication, sessions and roles
+  - name: vendor
+    description: Vendor dashboard operations (own shop and products)
+  - name: homepage
+    description: Homepage section configuration (public read, admin write)
+  - name: admin
+    description: Admin panel operations (vendors, disputes) — admin/support_agent only
+  - name: orders
+    description: Checkout and order visibility for buyers, vendors and admins
+  - name: conversations
+    description: Support conversations and messages, for buyers/vendors and admin/support_agent
+  - name: images
+    description: Image upload, technical validation and admin moderation pipeline
+  - name: addresses
+    description: Buyer delivery address book
+  - name: settlements
+    description: Vendor settlement generation and payment tracking
+  - name: webhooks
+    description: External webhook receivers (Paystack)
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      description: Returns server health status
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  /categories:
+    get:
+      operationId: listCategories
+      tags: [catalog]
+      summary: List categories
+      responses:
+        "200":
+          description: List of categories
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CategoryList"
+
+  /products:
+    get:
+      operationId: listProducts
+      tags: [catalog]
+      summary: List products
+      parameters:
+        - name: categorySlug
+          in: query
+          schema: { type: string }
+        - name: tag
+          in: query
+          schema: { type: string }
+        - name: search
+          in: query
+          schema: { type: string }
+        - name: vendorSlug
+          in: query
+          schema: { type: string }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 24 }
+        - name: offset
+          in: query
+          schema: { type: integer, default: 0 }
+      responses:
+        "200":
+          description: List of products
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProductList"
+
+  /products/{id}:
+    get:
+      operationId: getProduct
+      tags: [catalog]
+      summary: Get a single product with vendor info
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Product detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProductDetail"
+        "404":
+          description: Not found
+
+  /vendors/{slug}:
+    get:
+      operationId: getVendor
+      tags: [catalog]
+      summary: Get a vendor's public storefront info by slug
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Vendor storefront info
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VendorSummary"
+        "404":
+          description: Not found
+
+  /vendor/shop:
+    get:
+      operationId: getVendorShop
+      tags: [vendor]
+      summary: Get the current user's own vendor shop info
+      responses:
+        "200":
+          description: The caller's vendor shop
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VendorSummary"
+        "401":
+          description: Authentication required
+        "403":
+          description: Forbidden
+        "404":
+          description: No vendor shop for this user
+
+  /vendor/products:
+    get:
+      operationId: listVendorProducts
+      tags: [vendor]
+      summary: List the current user's own vendor products (all statuses)
+      responses:
+        "200":
+          description: List of the vendor's products
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProductList"
+        "401":
+          description: Authentication required
+        "403":
+          description: Forbidden
+    post:
+      operationId: createVendorProduct
+      tags: [vendor]
+      summary: Create a new product for the current user's own vendor shop
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateVendorProductInput"
+      responses:
+        "200":
+          description: Created product
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Product"
+        "400":
+          description: Invalid input
+        "401":
+          description: Authentication required
+        "403":
+          description: Forbidden
+
+  /vendor/products/{id}:
+    patch:
+      operationId: updateVendorProduct
+      tags: [vendor]
+      summary: Update one of the current user's own vendor products
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateVendorProductInput"
+      responses:
+        "200":
+          description: Updated product
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Product"
+        "401":
+          description: Authentication required
+        "403":
+          description: Forbidden
+        "404":
+          description: Not found
+    delete:
+      operationId: deleteVendorProduct
+      tags: [vendor]
+      summary: Delete one of the current user's own vendor products
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "204":
+          description: Deleted
+        "401":
+          description: Authentication required
+        "403":
+          description: Forbidden
+        "404":
+          description: Not found
+
+  /vendor/orders:
+    get:
+      operationId: listVendorOrders
+      tags: [orders]
+      summary: List order line items for the current user's own vendor(s)
+      responses:
+        "200":
+          description: The vendor's order line items, newest order first
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VendorOrderItemList"
+        "401":
+          description: Authentication required
+        "403":
+          description: Forbidden
+
+  /vendor/analytics:
+    get:
+      operationId: getVendorAnalytics
+      tags: [orders]
+      summary: Sales/order/stock analytics for the current user's own vendor(s)
+      responses:
+        "200":
+          description: Vendor analytics summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VendorAnalytics"
+        "401":
+          description: Authentication required
+        "403":
+          description: Forbidden
+
+  /checkout:
+    post:
+      operationId: checkout
+      tags: [orders]
+      summary: Convert the current session's cart into a real order
+      description: |
+        For `momo` orders, first charges the buyer's mobile money wallet
+        through Paystack for the quoted cart total; the order is only
+        created if that charge succeeds. For `cash_on_delivery` orders, no
+        charge is attempted and the order is confirmed immediately with a
+        `cod_pending` payment event. Either way, runs the checkout workflow
+        in a single DB transaction: validates the cart is non-empty and the
+        address belongs to the caller, reserves inventory per line item
+        (rejecting on insufficient available stock), optionally validates
+        and applies a promotion code to the order total, creates the order +
+        order items + a fulfillment record per vendor + a payment event,
+        clears the cart, then emits an `order.placed` domain event on
+        success.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CheckoutInput"
+      responses:
+        "200":
+          description: The created order
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+        "400":
+          description: Cart is empty, the promotion code is invalid/expired/not met, or the address does not belong to the caller
+        "401":
+          description: Authentication required
+        "402":
+          description: The mobile money charge was declined, not approved, or could not be completed
+        "409":
+          description: Insufficient stock for one or more items
+
+  /addresses:
+    get:
+      operationId: listMyAddresses
+      tags: [addresses]
+      summary: List the current buyer's saved delivery addresses, default first
+      responses:
+        "200":
+          description: The current user's addresses
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AddressList"
+        "401":
+          description: Authentication required
+    post:
+      operationId: createMyAddress
+      tags: [addresses]
+      summary: Save a new delivery address for the current buyer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAddressInput"
+      responses:
+        "200":
+          description: Created address
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Address"
+        "400":
+          description: Invalid input
+        "401":
+          description: Authentication required
+
+  /addresses/{id}:
+    patch:
+      operationId: updateMyAddress
+      tags: [addresses]
+      summary: Update one of the current buyer's own addresses
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateAddressInput"
+      responses:
+        "200":
+          description: Updated address
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Address"
+        "400":
+          description: Invalid input
+        "401":
+          description: Authentication required
+        "403":
+          description: Forbidden
+        "404":
+          description: Not found
+    delete:
+      operationId: deleteMyAddress
+      tags: [addresses]
+      summary: Remove one of the current buyer's own addresses
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "204":
+          description: Deleted
+        "401":
+          description: Authentication required
+        "403":
+          description: Forbidden
+        "404":
+          description: Not found
+        "409":
+          description: Address is referenced by an existing order and cannot be deleted
+
+  /addresses/{id}/default:
+    post:
+      operationId: setDefaultMyAddress
+      tags: [addresses]
+      summary: Mark one of the current buyer's own addresses as the default
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Updated address
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Address"
+        "401":
+          description: Authentication required
+        "403":
+          description: Forbidden
+        "404":
+          description: Not found
+
+  /admin/promotions:
+    get:
+      operationId: listAdminPromotions
+      tags: [admin]
+      summary: List all promotions (admin only)
+      responses:
+        "200":
+          description: All promotions, newest first
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PromotionList"
+        "401":
+          description: Authentication required
+        "403":
+          description: Forbidden
+    post:
+      operationId: createAdminPromotion
+      tags: [admin]
+      summary: Create a new code-based promotion (admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePromotionInput"
+      responses:
+        "200":
+          description: Created promotion
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Promotion"
+        "400":
+          description: Invalid input, or the code is already in use
+        "401":
+          description: Authentication required
+        "403":
+          description: Forbidden
+
+  /admin/promotions/{id}:
+    patch:
+      operationId: updateAdminPromotion
+      tags: [admin]
+      summary: Update a promotion (e.g. deactivate, extend, change usage limit) (admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdatePromotionInput"
+      responses:
+        "200":
+          description: Updated promotion
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Promotion"
+        "400":
+          description: Invalid input
+        "401":
+          description: Authentication required
+        "403":
+          description: Forbidden
+        "404":
+          description: Not found
+    delete:
+      operationId: deleteAdminPromotion
+      tags: [admin]
+      summary: Delete a promotion (admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "204":
+          description: Deleted
+        "401":
+          description: Authentication required
+        "403":
+          description: Forbidden
+        "404":
+          description: Not found
+
+  /vendor/orders/{orderId}/fulfillment:
+    patch:
+      operationId: updateVendorOrderFulfillment
+      tags: [orders]
+      summary: Advance the fulfillment status for the caller's own vendor line items on an order
+      description: |
+        Only forward transitions are allowed (unfulfilled -> packed -> shipped
+        -> delivered). Emits a `fulfillment.status_changed` domain event on
+        each successful transition.
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateFulfillmentStatusInput"
+      responses:
+        "200":
+          description: Updated fulfillment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Fulfillment"
+        "400":
+          description: Invalid or out-of-order status transition
+        "401":
+          description: Authentication required
+        "403":
+          description: Forbidden
+        "404":
+          description: No fulfillment record for this vendor on this order
+
+  /orders:
+    get:
+      operationId: listMyOrders
+      tags: [orders]
+      summary: List the current buyer's own orders, newest first
+      responses:
+        "200":
+          description: The current user's orders
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrderList"
+        "401":
+          description: Authentication required
+
+  /orders/{id}:
+    get:
+      operationId: getOrder
+      tags: [orders]
+      summary: Get a single order the caller can access (own order, own vendor's line items, or admin/support_agent)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Order detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+        "401":
+          description: Authentication required
+        "403":
+          description: Forbidden
+        "404":
+          description: Not found
+
+  /orders/{id}/cancel:
+    post:
+      operationId: cancelMyOrder
+      tags: [orders]
+      summary: Cancel a confirmed order (buyer only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: The updated (cancelled) order
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+        "401":
+          description: Authentication required
+        "403":
+          description: Forbidden — caller is not the order owner
+        "404":
+          description: Order not found
+        "409":
+          description: Order is not in a cancellable status
+
+  /disputes:
+    post:
+      operationId: createMyDispute
+      tags: [orders]
+      summary: Open a dispute for a confirmed or fulfilled order (buyer only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateDisputeInput"
+      responses:
+        "200":
+          description: The created dispute
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Dispute"
+        "400":
+          description: Invalid input
+        "401":
+          description: Authentication required
+        "403":
+          description: Forbidden — caller is not the order owner or order status is not disputable
+        "404":
+          description: Order not found
+        "409":
+          description: Order cannot be disputed in its current status
+
+  /notifications:
+    get:
+      operationId: listMyNotifications
+      tags: [orders]
+      summary: List the current user's own notifications, newest first
+      responses:
+        "200":
+          description: The current user's notifications
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotificationList"
+        "401":
+          description: Authentication required
+
+  /notifications/{id}/read:
+    post:
+      operationId: markNotificationRead
+      tags: [orders]
+      summary: Mark one of the current user's own notifications as read
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Updated notification
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Notification"
+        "401":
+          description: Authentication required
+        "403":
+          description: Forbidden
+        "404":
+          description: Not found
+
+  /admin/orders:
+    get:
+      operationId: listAdminOrders
+      tags: [orders]
+      summary: List all orders (admin/support_agent only)
+      responses:
+        "200":
+          description: All orders, newest first
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrderList"
+        "401":
+          description: Authentication required
+        "403":
+          description: Forbidden
+
+  /cart:
+    get:
+      operationId: getCart
+      tags: [cart]
+      summary: Get the current session's cart
+      responses:
+        "200":
+          description: Current cart
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CartSummary"
+
+  /cart/items:
+    post:
+      operationId: addCartItem
+      tags: [cart]
+      summary: Add an item to the cart (or increment qty if present)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CartItemInput"
+      responses:
+        "200":
+          description: Updated cart
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CartSummary"
+
+  /cart/items/{id}:
+    patch:
+      operationId: updateCartItem
+      tags: [cart]
+      summary: Update cart item quantity
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CartItemUpdate"
+      responses:
+        "200":
+          description: Updated cart
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CartSummary"
+    delete:
+      operationId: removeCartItem
+      tags: [cart]
+      summary: Remove an item from the cart
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Updated cart
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CartSummary"
+
+  /auth/signup:
+    post:
+      operationId: signup
+      tags: [auth]
+      summary: Create a new account and start a session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SignupInput"
+      responses:
+        "200":
+          description: Created account
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthUser"
+        "409":
+          description: Email already registered
+
+  /auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      summary: Log in with email and password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginInput"
+      responses:
+        "200":
+          description: Logged in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthUser"
+        "401":
+          description: Invalid credentials
+        "404":
+          description: No account for this email
+
+  /auth/logout:
+    post:
+      operationId: logout
+      tags: [auth]
+      summary: End the current session
+      responses:
+        "204":
+          description: Logged out
+
+  /auth/me:
+    get:
+      operationId: getMe
+      tags: [auth]
+      summary: Get the current authenticated user, if any
+      responses:
+        "200":
+          description: Current user session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthSession"
+
+  /auth/profile:
+    patch:
+      operationId: updateMyProfile
+      tags: [auth]
+      summary: Update the current user's profile (name, phone, market prefs)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateProfileInput"
+      responses:
+        "200":
+          description: Updated user profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthUser"
+        "400":
+          description: Invalid input
+        "401":
+          description: Authentication required
+
+  /auth/password:
+    post:
+      operationId: changeMyPassword
+      tags: [auth]
+      summary: Change the current user's password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChangePasswordInput"
+      responses:
+        "204":
+          description: Password updated
+        "400":
+          description: Invalid input
+        "401":
+          description: Authentication required or wrong current password
+
+  /auth/forgot-password:
+    post:
+      operationId: forgotPassword
+      tags: [auth]
+      summary: Request a password reset email
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ForgotPasswordInput"
+      responses:
+        "200":
+          description: If an account exists, a reset email has been sent
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string }
+        "400":
+          description: Invalid input
+
+  /auth/reset-password:
+    post:
+      operationId: resetPassword
+      tags: [auth]
+      summary: Reset password using a token from the email
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ResetPasswordInput"
+      responses:
+        "204":
+          description: Password has been reset
+        "400":
+          description: Invalid or expired token
+
+  /homepage/sections:
+    get:
+      operationId: listHomepageSections
+      tags: [homepage]
+      summary: List enabled homepage sections in render order (public)
+      responses:
+        "200":
+          description: Enabled homepage sections, ordered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HomepageSectionList"
+
+  /admin/homepage/sections:
+    get:
+      operationId: listAdminHomepageSections
+      tags: [homepage]
+      summary: List all homepage sections, including disabled ones (admin only)
+      responses:
+        "200":
+          description: All homepage sections, ordered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HomepageSectionList"
+        "401":
+          description: Authentication required
+        "403":
+          description: Forbidden
+    patch:
+      operationId: updateAdminHomepageSections
+      tags: [homepage]
+      summary: Bulk update homepage section order, enabled state and config (admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateHomepageSectionsInput"
+      responses:
+        "200":
+          description: Full updated list of homepage sections, ordered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HomepageSectionList"
+        "400":
+          description: Invalid input
+        "401":
+          description: Authentication required
+        "403":
+          description: Forbidden
+
+  /admin/vendors:
+    get:
+      operationId: listAdminVendors
+      tags: [admin]
+      summary: List all vendors (admin/support_agent only)
+      responses:
+        "200":
+          description: All vendors
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminVendorList"
+        "401":
+          description: Authentication required
+        "403":
+          description: Forbidden
+
+  /admin/vendors/{id}:
+    patch:
+      operationId: updateAdminVendorStatus
+      tags: [admin]
+      summary: Update a vendor's status (active/suspended) (admin/support_agent only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateVendorStatusInput"
+      responses:
+        "200":
+          description: Updated vendor
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminVendor"
+        "400":
+          description: Invalid input
+        "401":
+          description: Authentication required
+        "403":
+          description: Forbidden
+        "404":
+          description: Not found
+
+  /admin/disputes:
+    get:
+      operationId: listAdminDisputes
+      tags: [admin]
+      summary: List disputes needing attention (admin/support_agent only)
+      responses:
+        "200":
+          description: Disputes queue
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DisputeList"
+        "401":
+          description: Authentication required
+        "403":
+          description: Forbidden
+
+  /admin/disputes/{id}:
+    patch:
+      operationId: updateAdminDispute
+      tags: [admin]
+      summary: Update a dispute's status/note (view/status-only — no financial actions) (admin/support_agent only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateDisputeInput"
+      responses:
+        "200":
+          description: Updated dispute
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Dispute"
+        "400":
+          description: Invalid input
+        "401":
+          description: Authentication required
+        "403":
+          description: Forbidden
+        "404":
+          description: Not found
+
+  /admin/analytics:
+    get:
+      operationId: getAdminAnalytics
+      tags: [admin]
+      summary: Marketplace-wide sales/order/dispute/fulfillment analytics (admin/support_agent only)
+      responses:
+        "200":
+          description: Admin analytics summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminAnalytics"
+        "401":
+          description: Authentication required
+        "403":
+          description: Forbidden
+
+  /admin/conversations:
+    get:
+      operationId: listAdminConversations
+      tags: [admin]
+      summary: List all support conversations, most recent first (admin/support_agent only)
+      responses:
+        "200":
+          description: All conversations
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConversationSummaryList"
+        "401":
+          description: Authentication required
+        "403":
+          description: Forbidden
+    post:
+      operationId: createAdminConversation
+      tags: [admin]
+      summary: Open a new conversation with a specific buyer or vendor user (admin/support_agent only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminCreateConversationInput"
+      responses:
+        "200":
+          description: The conversation (existing open one reused, or newly created)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConversationSummary"
+        "400":
+          description: Invalid input
+        "401":
+          description: Authentication required
+        "403":
+          description: Forbidden
+        "404":
+          description: Target user not found
+
+  /conversations/me:
+    get:
+      operationId: listMyConversations
+      tags: [conversations]
+      summary: List the current user's own support conversations
+      responses:
+        "200":
+          description: The current user's conversations
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConversationList"
+        "401":
+          description: Authentication required
+    post:
+      operationId: createMyConversation
+      tags: [conversations]
+      summary: Start (or reuse an open) support conversation for the current user, with a first message
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateConversationInput"
+      responses:
+        "200":
+          description: The conversation (existing open one reused, or newly created)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Conversation"
+        "400":
+          description: Invalid input
+        "401":
+          description: Authentication required
+
+  /conversations/{id}/messages:
+    get:
+      operationId: listConversationMessages
+      tags: [conversations]
+      summary: List messages in a conversation the caller can access (own conversation, or admin/support_agent)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Messages, oldest first
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageList"
+        "401":
+          description: Authentication required
+        "403":
+          description: Forbidden
+        "404":
+          description: Not found
+    post:
+      operationId: createConversationMessage
+      tags: [conversations]
+      summary: Post a message to a conversation the caller can access (own conversation, or admin/support_agent)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateMessageInput"
+      responses:
+        "200":
+          description: The created message
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Message"
+        "400":
+          description: Invalid input
+        "401":
+          description: Authentication required
+        "403":
+          description: Forbidden
+        "404":
+          description: Not found
+
+  /images/uploads/request-url:
+    post:
+      operationId: requestImageUploadUrl
+      tags: [images]
+      summary: Request a presigned URL for an image upload (vendor or admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UploadUrlRequest"
+      responses:
+        "200":
+          description: Presigned upload URL generated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UploadUrlResponse"
+        "400":
+          description: Missing, invalid, or disallowed file metadata
+        "401":
+          description: Authentication required
+        "403":
+          description: Forbidden
+
+  /images:
+    post:
+      operationId: registerImage
+      tags: [images]
+      summary: Register an uploaded image for technical validation and moderation
+      description: |
+        Call after the file has been PUT to the presigned URL. The server
+        downloads the object and runs authoritative format/resolution/size
+        checks; failing uploads are auto-rejected, passing uploads are queued
+        for admin moderation.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterImageInput"
+      responses:
+        "200":
+          description: The created image record (status reflects automated checks)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Image"
+        "400":
+          description: Invalid input
+        "401":
+          description: Authentication required
+        "403":
+          description: Forbidden
+
+  /images/mine:
+    get:
+      operationId: listMyImages
+      tags: [images]
+      summary: List images uploaded by / scoped to the current vendor
+      responses:
+        "200":
+          description: The caller's images (all statuses)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ImageList"
+        "401":
+          description: Authentication required
+        "403":
+          description: Forbidden
+
+  /admin/images:
+    get:
+      operationId: listAdminImages
+      tags: [images]
+      summary: List all images for moderation (admin only)
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            $ref: "#/components/schemas/ImageStatus"
+      responses:
+        "200":
+          description: Images matching the filter, newest first
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ImageList"
+        "401":
+          description: Authentication required
+        "403":
+          description: Forbidden
+
+  /admin/images/{id}/approve:
+    post:
+      operationId: approveAdminImage
+      tags: [images]
+      summary: Approve a pending image (admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: The approved image
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Image"
+        "401":
+          description: Authentication required
+        "403":
+          description: Forbidden
+        "404":
+          description: Not found
+
+  /admin/images/{id}/reject:
+    post:
+      operationId: rejectAdminImage
+      tags: [images]
+      summary: Reject a pending image with a reason (admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RejectImageInput"
+      responses:
+        "200":
+          description: The rejected image
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Image"
+        "401":
+          description: Authentication required
+        "403":
+          description: Forbidden
+        "404":
+          description: Not found
+
+  /admin/settlements:
+    get:
+      operationId: listAdminSettlements
+      tags: [settlements]
+      summary: List vendor settlements (admin)
+      parameters:
+        - name: status
+          in: query
+          schema: { type: string, enum: [ready, paid, void] }
+        - name: vendorId
+          in: query
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Settlements list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SettlementList"
+        "401":
+          description: Authentication required
+        "403":
+          description: Forbidden
+
+  /vendor/settlements:
+    get:
+      operationId: listVendorSettlements
+      tags: [settlements]
+      summary: List settlements for the authenticated vendor
+      parameters:
+        - name: status
+          in: query
+          schema: { type: string, enum: [ready, paid, void] }
+      responses:
+        "200":
+          description: Vendor settlements list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SettlementList"
+        "401":
+          description: Authentication required
+        "403":
+          description: Forbidden
+
+  /admin/settlements/generate:
+    post:
+      operationId: generateSettlement
+      tags: [settlements]
+      summary: Generate a settlement for a vendor+period (idempotent, deliver-only lines)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GenerateSettlementInput"
+      responses:
+        "200":
+          description: Settlement generated (or existing settlement returned if already exists)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Settlement"
+        "400":
+          description: Invalid input
+        "401":
+          description: Authentication required
+        "403":
+          description: Forbidden
+
+  /admin/settlements/{id}/mark-paid:
+    post:
+      operationId: markSettlementPaid
+      tags: [settlements]
+      summary: Mark a settlement as paid (admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MarkSettlementPaidInput"
+      responses:
+        "200":
+          description: Settlement marked as paid
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Settlement"
+        "401":
+          description: Authentication required
+        "403":
+          description: Forbidden
+        "404":
+          description: Settlement not found
+
+  /webhooks/paystack:
+    post:
+      operationId: receivePaystackWebhook
+      tags: [webhooks]
+      summary: Receive Paystack webhook events (HMAC signature verified)
+      description: |
+        Raw body endpoint for Paystack webhook delivery.
+        Signature is verified using the PAYSTACK_SECRET_KEY HMAC-SHA512.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Raw Paystack webhook event payload
+      responses:
+        "200":
+          description: Webhook received and processed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WebhookResponse"
+        "400":
+          description: Invalid signature or payload
+        "500":
+          description: Processing error
+
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+
+    Category:
+      type: object
+      required: [id, slug, name, sortOrder]
+      properties:
+        id: { type: integer }
+        slug: { type: string }
+        name: { type: string }
+        parentId: { type: ["integer", "null"] }
+        iconKey: { type: ["string", "null"] }
+        sortOrder: { type: integer }
+
+    CategoryList:
+      type: array
+      items:
+        $ref: "#/components/schemas/Category"
+
+    VendorSummary:
+      type: object
+      required: [id, slug, name, ratingAvgX100, ratingCount, badgeTopSeller, badgeFastShipper]
+      properties:
+        id: { type: integer }
+        slug: { type: string }
+        name: { type: string }
+        ratingAvgX100: { type: integer }
+        ratingCount: { type: integer }
+        badgeTopSeller: { type: boolean }
+        badgeFastShipper: { type: boolean }
+        bio: { type: ["string", "null"] }
+        logoImageUrl: { type: ["string", "null"] }
+        bannerImageUrl: { type: ["string", "null"] }
+
+    UpdateVendorProductInput:
+      type: object
+      properties:
+        title: { type: string, minLength: 1 }
+        pricePesewas: { type: integer, minimum: 0 }
+        stock: { type: integer, minimum: 0 }
+        isActive: { type: boolean }
+
+    CreateVendorProductInput:
+      type: object
+      required: [categoryId, title, pricePesewas]
+      properties:
+        categoryId: { type: integer }
+        title: { type: string, minLength: 1 }
+        brand: { type: string }
+        description: { type: string }
+        pricePesewas: { type: integer, minimum: 0 }
+        compareAtPesewas: { type: integer, minimum: 0 }
+        stock: { type: integer, minimum: 0, default: 0 }
+        tag: { type: string }
+
+    HomepageSectionType:
+      type: string
+      enum:
+        [
+          announcement_yellow,
+          hero,
+          product_rail,
+          feature_grid,
+          deals_grid,
+          category_row,
+          bento_grid,
+          video_grid,
+          hero_split,
+          express_band,
+        ]
+
+    HomepageSection:
+      type: object
+      required: [id, type, sortOrder, enabled, config]
+      properties:
+        id: { type: integer }
+        type:
+          $ref: "#/components/schemas/HomepageSectionType"
+        sortOrder: { type: integer }
+        enabled: { type: boolean }
+        config:
+          type: object
+          additionalProperties: true
+        imageUrl: { type: ["string", "null"] }
+
+    HomepageSectionList:
+      type: object
+      required: [items, total]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/HomepageSection"
+        total: { type: integer }
+
+    UpdateHomepageSectionsInput:
+      type: object
+      required: [sections]
+      properties:
+        sections:
+          type: array
+          items:
+            type: object
+            required: [id]
+            properties:
+              id: { type: integer }
+              sortOrder: { type: integer }
+              enabled: { type: boolean }
+              config:
+                type: object
+                additionalProperties: true
+
+    Product:
+      type: object
+      required:
+        [
+          id,
+          vendorId,
+          categoryId,
+          slug,
+          title,
+          pricePesewas,
+          stock,
+          ratingAvgX100,
+          ratingCount,
+          isActive,
+        ]
+      properties:
+        id: { type: integer }
+        vendorId: { type: integer }
+        categoryId: { type: integer }
+        slug: { type: string }
+        title: { type: string }
+        brand: { type: ["string", "null"] }
+        description: { type: ["string", "null"] }
+        pricePesewas: { type: integer }
+        compareAtPesewas: { type: ["integer", "null"] }
+        stock: { type: integer }
+        tag: { type: ["string", "null"] }
+        ratingAvgX100: { type: integer }
+        ratingCount: { type: integer }
+        isActive: { type: boolean }
+        imageUrl: { type: ["string", "null"] }
+
+    ProductList:
+      type: object
+      required: [items, total]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Product"
+        total: { type: integer }
+
+    ProductDetail:
+      allOf:
+        - $ref: "#/components/schemas/Product"
+        - type: object
+          required: [vendor]
+          properties:
+            vendor:
+              $ref: "#/components/schemas/VendorSummary"
+
+    OrderStatus:
+      type: string
+      enum: [pending, confirmed, fulfilled, cancelled]
+
+    OrderPaymentMethod:
+      type: string
+      enum: [momo, cash_on_delivery]
+
+    MomoProvider:
+      type: string
+      enum: [mtn, vodafone, airteltigo]
+
+    OrderItem:
+      type: object
+      required: [id, orderId, productId, vendorId, titleSnapshot, pricePesewasSnapshot, qty, subtotalPesewas]
+      properties:
+        id: { type: integer }
+        orderId: { type: integer }
+        productId: { type: integer }
+        vendorId: { type: integer }
+        titleSnapshot: { type: string }
+        pricePesewasSnapshot: { type: integer }
+        qty: { type: integer }
+        subtotalPesewas: { type: integer }
+
+    Order:
+      type: object
+      required: [id, buyerUserId, status, subtotalPesewas, discountPesewas, totalPesewas, createdAt, items, fulfillments]
+      properties:
+        id: { type: integer }
+        buyerUserId: { type: integer }
+        status:
+          $ref: "#/components/schemas/OrderStatus"
+        subtotalPesewas: { type: integer }
+        discountPesewas: { type: integer }
+        promotionCode: { type: ["string", "null"] }
+        totalPesewas: { type: integer }
+        addressId: { type: ["integer", "null"] }
+        paymentMethod:
+          oneOf:
+            - $ref: "#/components/schemas/OrderPaymentMethod"
+            - type: "null"
+        address:
+          description: The delivery address snapshot for this order, when available
+          oneOf:
+            - $ref: "#/components/schemas/Address"
+            - type: "null"
+        createdAt: { type: string, format: date-time }
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/OrderItem"
+        fulfillments:
+          type: array
+          items:
+            $ref: "#/components/schemas/Fulfillment"
+
+    OrderList:
+      type: object
+      required: [items, total]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Order"
+        total: { type: integer }
+
+    VendorOrderItem:
+      allOf:
+        - $ref: "#/components/schemas/OrderItem"
+        - type: object
+          required: [orderStatus, orderCreatedAt, fulfillmentStatus]
+          properties:
+            orderStatus:
+              $ref: "#/components/schemas/OrderStatus"
+            orderCreatedAt: { type: string, format: date-time }
+            fulfillmentStatus:
+              $ref: "#/components/schemas/FulfillmentStatus"
+
+    CheckoutInput:
+      type: object
+      required: [addressId, paymentMethod]
+      properties:
+        promoCode: { type: string, minLength: 1 }
+        addressId: { type: integer }
+        paymentMethod:
+          $ref: "#/components/schemas/OrderPaymentMethod"
+        momoPhone:
+          description: Required when paymentMethod is "momo" — the wallet phone number to charge, e.g. "0244000000"
+          type: string
+          minLength: 9
+        momoProvider:
+          description: Required when paymentMethod is "momo"
+          $ref: "#/components/schemas/MomoProvider"
+
+    Address:
+      type: object
+      required: [id, buyerUserId, fullName, phone, line1, city, isDefault, createdAt]
+      properties:
+        id: { type: integer }
+        buyerUserId: { type: integer }
+        label: { type: ["string", "null"] }
+        fullName: { type: string }
+        phone: { type: string }
+        line1: { type: string }
+        city: { type: string }
+        region: { type: ["string", "null"] }
+        digitalAddress: { type: ["string", "null"] }
+        countryCode: { type: string, description: "ISO 3166-1 alpha-2", default: "GH" }
+        isDefault: { type: boolean }
+        createdAt: { type: string, format: date-time }
+
+    AddressList:
+      type: object
+      required: [items, total]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Address"
+        total: { type: integer }
+
+    CreateAddressInput:
+      type: object
+      required: [fullName, phone, line1, city]
+      properties:
+        label: { type: string }
+        fullName: { type: string, minLength: 1 }
+        phone: { type: string, minLength: 9 }
+        line1: { type: string, minLength: 1 }
+        city: { type: string, minLength: 1 }
+        region: { type: string }
+        digitalAddress: { type: string }
+        countryCode: { type: string, minLength: 2, maxLength: 2 }
+        isDefault: { type: boolean }
+
+    UpdateAddressInput:
+      type: object
+      properties:
+        label: { type: string }
+        fullName: { type: string, minLength: 1 }
+        phone: { type: string, minLength: 9 }
+        line1: { type: string, minLength: 1 }
+        city: { type: string, minLength: 1 }
+        region: { type: string }
+        digitalAddress: { type: string }
+        countryCode: { type: string, minLength: 2, maxLength: 2 }
+        isDefault: { type: boolean }
+
+    PromotionDiscountType:
+      type: string
+      enum: [percentage, fixed]
+
+    Promotion:
+      type: object
+      required: [id, code, discountType, value, isActive, createdAt]
+      properties:
+        id: { type: integer }
+        code: { type: string }
+        discountType:
+          $ref: "#/components/schemas/PromotionDiscountType"
+        value: { type: integer }
+        isActive: { type: boolean }
+        startsAt: { type: ["string", "null"], format: date-time }
+        endsAt: { type: ["string", "null"], format: date-time }
+        minOrderPesewas: { type: ["integer", "null"] }
+        usageLimit: { type: ["integer", "null"] }
+        createdAt: { type: string, format: date-time }
+
+    PromotionList:
+      type: object
+      required: [items, total]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Promotion"
+        total: { type: integer }
+
+    CreatePromotionInput:
+      type: object
+      required: [code, discountType, value]
+      properties:
+        code: { type: string, minLength: 1 }
+        discountType:
+          $ref: "#/components/schemas/PromotionDiscountType"
+        value: { type: integer, minimum: 1 }
+        startsAt: { type: string, format: date-time }
+        endsAt: { type: string, format: date-time }
+        minOrderPesewas: { type: integer, minimum: 0 }
+        usageLimit: { type: integer, minimum: 1 }
+
+    UpdatePromotionInput:
+      type: object
+      properties:
+        isActive: { type: boolean }
+        endsAt: { type: ["string", "null"], format: date-time }
+        minOrderPesewas: { type: ["integer", "null"], minimum: 0 }
+        usageLimit: { type: ["integer", "null"], minimum: 1 }
+
+    FulfillmentStatus:
+      type: string
+      enum: [unfulfilled, packed, shipped, delivered]
+
+    Fulfillment:
+      type: object
+      required: [id, orderId, vendorId, status]
+      properties:
+        id: { type: integer }
+        orderId: { type: integer }
+        vendorId: { type: integer }
+        status:
+          $ref: "#/components/schemas/FulfillmentStatus"
+        packedAt: { type: ["string", "null"], format: date-time }
+        shippedAt: { type: ["string", "null"], format: date-time }
+        deliveredAt: { type: ["string", "null"], format: date-time }
+
+    UpdateFulfillmentStatusInput:
+      type: object
+      required: [status]
+      properties:
+        status:
+          $ref: "#/components/schemas/FulfillmentStatus"
+
+    VendorOrderItemList:
+      type: object
+      required: [items, total]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/VendorOrderItem"
+        total:
+          type: integer
+
+    AnalyticsRevenuePoint:
+      type: object
+      required: [date, revenuePesewas, orderCount]
+      properties:
+        date: { type: string, format: date }
+        revenuePesewas: { type: integer }
+        orderCount: { type: integer }
+
+    AnalyticsOrderStatusCount:
+      type: object
+      required: [status, count]
+      properties:
+        status:
+          $ref: "#/components/schemas/OrderStatus"
+        count: { type: integer }
+
+    AnalyticsFulfillmentStatusCount:
+      type: object
+      required: [status, count]
+      properties:
+        status:
+          $ref: "#/components/schemas/FulfillmentStatus"
+        count: { type: integer }
+
+    AdminAnalyticsTopVendor:
+      type: object
+      required: [vendorId, name, revenuePesewas, orderCount]
+      properties:
+        vendorId: { type: integer }
+        name: { type: string }
+        revenuePesewas: { type: integer }
+        orderCount: { type: integer }
+
+    AdminAnalytics:
+      type: object
+      required:
+        [revenueSeries, orderStatusBreakdown, topVendors, fulfillmentStatusBreakdown, openDisputeCount, totalDisputeCount]
+      properties:
+        revenueSeries:
+          type: array
+          items:
+            $ref: "#/components/schemas/AnalyticsRevenuePoint"
+        orderStatusBreakdown:
+          type: array
+          items:
+            $ref: "#/components/schemas/AnalyticsOrderStatusCount"
+        topVendors:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdminAnalyticsTopVendor"
+        fulfillmentStatusBreakdown:
+          type: array
+          items:
+            $ref: "#/components/schemas/AnalyticsFulfillmentStatusCount"
+        openDisputeCount: { type: integer }
+        totalDisputeCount: { type: integer }
+
+    VendorAnalyticsTopProduct:
+      type: object
+      required: [productId, title, unitsSold, revenuePesewas]
+      properties:
+        productId: { type: integer }
+        title: { type: string }
+        unitsSold: { type: integer }
+        revenuePesewas: { type: integer }
+
+    VendorAnalyticsLowStockProduct:
+      type: object
+      required: [productId, title, stock]
+      properties:
+        productId: { type: integer }
+        title: { type: string }
+        stock: { type: integer }
+
+    VendorAnalytics:
+      type: object
+      required: [revenueSeries, orderStatusBreakdown, topProducts, lowStockProducts]
+      properties:
+        revenueSeries:
+          type: array
+          items:
+            $ref: "#/components/schemas/AnalyticsRevenuePoint"
+        orderStatusBreakdown:
+          type: array
+          items:
+            $ref: "#/components/schemas/AnalyticsOrderStatusCount"
+        topProducts:
+          type: array
+          items:
+            $ref: "#/components/schemas/VendorAnalyticsTopProduct"
+        lowStockProducts:
+          type: array
+          items:
+            $ref: "#/components/schemas/VendorAnalyticsLowStockProduct"
+
+    NotificationType:
+      type: string
+      enum: [order.confirmed, order.new_for_vendor, fulfillment.shipped, fulfillment.delivered]
+
+    Notification:
+      type: object
+      required: [id, userId, type, data, isRead, createdAt]
+      properties:
+        id: { type: integer }
+        userId: { type: integer }
+        type:
+          $ref: "#/components/schemas/NotificationType"
+        data:
+          type: object
+          additionalProperties: true
+        isRead: { type: boolean }
+        createdAt: { type: string, format: date-time }
+
+    NotificationList:
+      type: object
+      required: [items, total]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Notification"
+        total: { type: integer }
+
+    CartItemInput:
+      type: object
+      required: [productId, qty]
+      properties:
+        productId: { type: integer }
+        qty: { type: integer, minimum: 1 }
+
+    CartItemUpdate:
+      type: object
+      required: [qty]
+      properties:
+        qty: { type: integer, minimum: 1 }
+
+    CartLine:
+      type: object
+      required: [id, productId, qty, product]
+      properties:
+        id: { type: integer }
+        productId: { type: integer }
+        qty: { type: integer }
+        product:
+          $ref: "#/components/schemas/Product"
+
+    CartSummary:
+      type: object
+      required: [id, items, subtotalPesewas]
+      properties:
+        id: { type: integer }
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/CartLine"
+        subtotalPesewas: { type: integer }
+
+    UserRoleAssignment:
+      type: object
+      required: [role, vendorId]
+      properties:
+        role:
+          type: string
+          enum: [buyer, vendor_owner, vendor_staff, admin, support_agent]
+        vendorId: { type: ["integer", "null"] }
+
+    AuthUser:
+      type: object
+      required: [id, email, phone, firstName, lastName, roles]
+      properties:
+        id: { type: integer }
+        email: { type: string }
+        phone: { type: ["string", "null"] }
+        firstName: { type: ["string", "null"] }
+        lastName: { type: ["string", "null"] }
+        countryCode: { type: ["string", "null"], description: "ISO 3166-1 alpha-2" }
+        preferredCurrency: { type: ["string", "null"], description: "ISO 4217" }
+        locale: { type: ["string", "null"], description: "BCP 47 locale" }
+        roles:
+          type: array
+          items:
+            $ref: "#/components/schemas/UserRoleAssignment"
+
+    AuthSession:
+      type: object
+      required: [user]
+      properties:
+        user:
+          anyOf:
+            - $ref: "#/components/schemas/AuthUser"
+            - type: "null"
+
+    SignupInput:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string, minLength: 8 }
+        firstName: { type: string }
+        lastName: { type: string }
+        phone: { type: string }
+        countryCode: { type: string, minLength: 2, maxLength: 2 }
+        preferredCurrency: { type: string, minLength: 3, maxLength: 3 }
+        locale: { type: string }
+
+    LoginInput:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string }
+
+    VendorStatus:
+      type: string
+      enum: [active, suspended]
+
+    AdminVendor:
+      type: object
+      required: [id, slug, name, status, ratingAvgX100, ratingCount, commissionBps]
+      properties:
+        id: { type: integer }
+        slug: { type: string }
+        name: { type: string }
+        status:
+          $ref: "#/components/schemas/VendorStatus"
+        ratingAvgX100: { type: integer }
+        ratingCount: { type: integer }
+        commissionBps: { type: integer }
+        bio: { type: ["string", "null"] }
+        ownerUserId: { type: ["integer", "null"] }
+
+    AdminVendorList:
+      type: object
+      required: [items, total]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdminVendor"
+        total: { type: integer }
+
+    UpdateVendorStatusInput:
+      type: object
+      properties:
+        status:
+          $ref: "#/components/schemas/VendorStatus"
+        commissionBps:
+          type: integer
+          minimum: 0
+          maximum: 10000
+          description: Vendor commission in basis points (700 = 7%). Admin only.
+
+    DisputeStatus:
+      type: string
+      enum: [open, resolved_buyer, resolved_seller]
+
+    Dispute:
+      type: object
+      required: [id, orderId, subject, status, createdAt, updatedAt]
+      properties:
+        id: { type: integer }
+        orderId: { type: integer }
+        vendorId: { type: ["integer", "null"] }
+        buyerUserId: { type: ["integer", "null"] }
+        subject: { type: string }
+        status:
+          $ref: "#/components/schemas/DisputeStatus"
+        note: { type: ["string", "null"] }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+        order:
+          description: The linked order's items, payment status, and fulfillment status, for support agents resolving this dispute
+          oneOf:
+            - $ref: "#/components/schemas/DisputeOrder"
+            - type: "null"
+
+    DisputeOrder:
+      type: object
+      required: [id, status, totalPesewas, items, fulfillments, paymentEvents]
+      properties:
+        id: { type: integer }
+        status:
+          $ref: "#/components/schemas/OrderStatus"
+        totalPesewas: { type: integer }
+        paymentMethod:
+          oneOf:
+            - $ref: "#/components/schemas/OrderPaymentMethod"
+            - type: "null"
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/OrderItem"
+        fulfillments:
+          type: array
+          items:
+            $ref: "#/components/schemas/Fulfillment"
+        paymentEvents:
+          type: array
+          items:
+            $ref: "#/components/schemas/OrderPaymentEvent"
+
+    OrderPaymentEventType:
+      type: string
+      enum: [paid, refunded, failed, cod_pending]
+
+    OrderPaymentEvent:
+      type: object
+      required: [id, orderId, type, amountPesewas, createdAt]
+      properties:
+        id: { type: integer }
+        orderId: { type: integer }
+        type:
+          $ref: "#/components/schemas/OrderPaymentEventType"
+        amountPesewas: { type: integer }
+        provider: { type: ["string", "null"] }
+        providerReference: { type: ["string", "null"] }
+        note: { type: ["string", "null"] }
+        createdAt: { type: string, format: date-time }
+
+    DisputeList:
+      type: object
+      required: [items, total]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Dispute"
+        total: { type: integer }
+
+    UpdateDisputeInput:
+      type: object
+      properties:
+        status:
+          $ref: "#/components/schemas/DisputeStatus"
+        note: { type: string }
+
+    UpdateProfileInput:
+      type: object
+      properties:
+        firstName: { type: string }
+        lastName: { type: string }
+        phone: { type: string }
+        countryCode: { type: string, minLength: 2, maxLength: 2 }
+        preferredCurrency: { type: string, minLength: 3, maxLength: 3 }
+        locale: { type: string }
+
+    ChangePasswordInput:
+      type: object
+      required: [currentPassword, newPassword]
+      properties:
+        currentPassword: { type: string, minLength: 1 }
+        newPassword: { type: string, minLength: 8 }
+
+    ForgotPasswordInput:
+      type: object
+      required: [email]
+      properties:
+        email: { type: string, format: email }
+
+    ResetPasswordInput:
+      type: object
+      required: [token, newPassword]
+      properties:
+        token: { type: string, minLength: 1 }
+        newPassword: { type: string, minLength: 8 }
+
+    CreateDisputeInput:
+      type: object
+      required: [orderId, subject]
+      properties:
+        orderId: { type: integer }
+        subject: { type: string, minLength: 1, maxLength: 120 }
+        note: { type: string }
+
+    ConversationStatus:
+      type: string
+      enum: [open, closed]
+
+    Conversation:
+      type: object
+      required: [id, userId, subject, status, createdAt, lastMessageAt]
+      properties:
+        id: { type: integer }
+        userId: { type: integer }
+        subject: { type: string }
+        status:
+          $ref: "#/components/schemas/ConversationStatus"
+        createdAt: { type: string, format: date-time }
+        lastMessageAt: { type: string, format: date-time }
+
+    ConversationList:
+      type: array
+      items:
+        $ref: "#/components/schemas/Conversation"
+
+    ConversationSummary:
+      allOf:
+        - $ref: "#/components/schemas/Conversation"
+        - type: object
+          required: [customerEmail, customerName]
+          properties:
+            customerEmail: { type: string }
+            customerName: { type: ["string", "null"] }
+
+    ConversationSummaryList:
+      type: array
+      items:
+        $ref: "#/components/schemas/ConversationSummary"
+
+    Message:
+      type: object
+      required: [id, conversationId, senderId, body, createdAt]
+      properties:
+        id: { type: integer }
+        conversationId: { type: integer }
+        senderId: { type: integer }
+        body: { type: string }
+        createdAt: { type: string, format: date-time }
+
+    MessageList:
+      type: array
+      items:
+        $ref: "#/components/schemas/Message"
+
+    CreateConversationInput:
+      type: object
+      required: [subject, message]
+      properties:
+        subject: { type: string, minLength: 1 }
+        message: { type: string, minLength: 1 }
+
+    AdminCreateConversationInput:
+      type: object
+      required: [userId, subject]
+      properties:
+        userId: { type: integer }
+        subject: { type: string, minLength: 1 }
+
+    CreateMessageInput:
+      type: object
+      required: [body]
+      properties:
+        body: { type: string, minLength: 1 }
+
+    UploadUrlRequest:
+      type: object
+      required: [name, size, contentType]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          description: Original file name.
+        size:
+          type: integer
+          minimum: 1
+          description: File size in bytes.
+        contentType:
+          type: string
+          minLength: 1
+          description: MIME type of the file (e.g. `image/jpeg`).
+
+    UploadUrlResponse:
+      type: object
+      required: [uploadURL, objectPath]
+      properties:
+        uploadURL:
+          type: string
+          format: uri
+          description: Presigned GCS URL for PUT upload.
+        objectPath:
+          type: string
+          description: Normalized object path (e.g. `/objects/uploads/uuid`). Store this in your database.
+        metadata:
+          $ref: "#/components/schemas/UploadUrlRequest"
+
+    ImageTargetType:
+      type: string
+      enum: [product, vendor_logo, vendor_banner, homepage_section]
+
+    ImageStatus:
+      type: string
+      enum: [pending, approved, rejected]
+
+    RegisterImageInput:
+      type: object
+      required: [objectPath, targetType]
+      properties:
+        objectPath: { type: string, minLength: 1 }
+        targetType:
+          $ref: "#/components/schemas/ImageTargetType"
+        targetId: { type: ["integer", "null"] }
+
+    RejectImageInput:
+      type: object
+      required: [reason]
+      properties:
+        reason: { type: string, minLength: 1 }
+
+    Image:
+      type: object
+      required: [id, ownerUserId, vendorId, targetType, targetId, objectPath, status, rejectionReason, width, height, sizeBytes, contentType, createdAt]
+      properties:
+        id: { type: integer }
+        ownerUserId: { type: integer }
+        vendorId: { type: ["integer", "null"] }
+        targetType:
+          $ref: "#/components/schemas/ImageTargetType"
+        targetId: { type: ["integer", "null"] }
+        objectPath: { type: string }
+        imageUrl: { type: string }
+        status:
+          $ref: "#/components/schemas/ImageStatus"
+        rejectionReason: { type: ["string", "null"] }
+        width: { type: ["integer", "null"] }
+        height: { type: ["integer", "null"] }
+        sizeBytes: { type: ["integer", "null"] }
+        contentType: { type: ["string", "null"] }
+        createdAt: { type: string, format: date-time }
+
+    ImageList:
+      type: object
+      required: [items, total]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Image"
+        total: { type: integer }
+
+    SettlementStatus:
+      type: string
+      enum: [ready, paid, void]
+
+    Settlement:
+      type: object
+      required: [id, vendorId, periodStart, periodEnd, grossPesewas, commissionPesewas, netPesewas, status, createdAt]
+      properties:
+        id: { type: integer }
+        vendorId: { type: integer }
+        periodStart: { type: string, format: date-time }
+        periodEnd: { type: string, format: date-time }
+        grossPesewas: { type: integer }
+        commissionPesewas: { type: integer }
+        netPesewas: { type: integer }
+        status:
+          $ref: "#/components/schemas/SettlementStatus"
+        paidAt: { type: ["string", "null"], format: date-time }
+        paidByUserId: { type: ["integer", "null"] }
+        note: { type: ["string", "null"] }
+        createdAt: { type: string, format: date-time }
+
+    SettlementLine:
+      type: object
+      required: [id, settlementId, orderId, orderItemId, itemSubtotalPesewas, commissionBpsSnapshot, commissionPesewas, netPesewas]
+      properties:
+        id: { type: integer }
+        settlementId: { type: integer }
+        orderId: { type: integer }
+        orderItemId: { type: integer }
+        itemSubtotalPesewas: { type: integer }
+        commissionBpsSnapshot: { type: integer }
+        commissionPesewas: { type: integer }
+        netPesewas: { type: integer }
+
+    SettlementList:
+      type: object
+      required: [items, total]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Settlement"
+        total: { type: integer }
+
+    GenerateSettlementInput:
+      type: object
+      required: [vendorId, periodStart, periodEnd]
+      properties:
+        vendorId: { type: integer }
+        periodStart: { type: string, format: date-time }
+        periodEnd: { type: string, format: date-time }
+
+    MarkSettlementPaidInput:
+      type: object
+      properties:
+        note: { type: string }
+
+    WebhookResponse:
+      type: object
+      required: [received]
+      properties:
+        received: { type: boolean }

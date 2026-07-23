@@ -1,0 +1,10 @@
+Orders
+Products
+Inventory
+Customers
+Promotions
+Price Lists
+Stores
+Payouts
+Analytics
+Settings

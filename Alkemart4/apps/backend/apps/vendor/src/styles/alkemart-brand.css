@@ -1,0 +1,2098 @@
+/**
+ * Alkemart Seller Hub — thorough theme (yellow / white / black).
+ * Themes Mercur shell without forking core routes.
+ */
+
+:root {
+  /* ── Brand tokens ── */
+  --alkemart-yellow: #f5c518;
+  --alkemart-yellow-hover: #e0b400;
+  --alkemart-yellow-pressed: #c9a200;
+  --alkemart-yellow-soft: #fff8d6;
+  --alkemart-black: #141414;
+  --alkemart-ink: #0a0a0a;
+  --alkemart-white: #ffffff;
+  --alkemart-bg: #f7f7f5;
+  --alkemart-surface: #ffffff;
+  --alkemart-muted: #f0f0ee;
+  --alkemart-border: #e6e6e2;
+  --alkemart-subtle: #2a2a2a;
+  --alkemart-radius: 12px;
+  --alkemart-radius-sm: 8px;
+  --alkemart-shadow: 0 1px 2px rgba(20, 20, 20, 0.06),
+    0 8px 24px rgba(20, 20, 20, 0.04);
+
+  /* ── Shell surface / backgrounds ── */
+  --bg-base: #f7f7f5;
+  --bg-base-hover: #f0f0ee;
+  --bg-base-pressed: #e6e6e2;
+  --bg-subtle: #ffffff;
+  --bg-subtle-hover: #f7f7f5;
+  --bg-subtle-pressed: #f0f0ee;
+  --bg-component: #ffffff;
+  --bg-component-hover: #f7f7f5;
+  --bg-component-pressed: #f0f0ee;
+  --bg-field: #ffffff;
+  --bg-field-hover: #f7f7f5;
+  --bg-field-component: #ffffff;
+  --bg-field-component-hover: #f7f7f5;
+  --bg-disabled: #f0f0ee;
+  --bg-overlay: rgba(0, 0, 0, 0.4);
+
+  /* ── Foreground / text ── */
+  --fg-base: #141414;
+  --fg-subtle: #2a2a2a;
+  --fg-muted: #3d3d3d;
+  --fg-disabled: #9e9e9e;
+  --fg-error: #b91c1c;
+  --fg-interactive: #141414;
+  --fg-interactive-hover: #000000;
+  --fg-on-color: #141414;
+  --fg-on-inverted: #ffffff;
+
+  /* ── Borders ── */
+  --border-base: #e6e6e2;
+  --border-strong: #d4d4d0;
+  --border-interactive: #141414;
+  --border-error: #e8b4b4;
+  --border-danger: #c41e3a;
+  --border-transparent: transparent;
+  --border-highlight: #f0d86a;
+
+  /* ── Interactive (primary accent) ── */
+  --bg-interactive: #f5c518;
+  --bg-highlight: #fff8d6;
+  --bg-highlight-hover: #fff0a0;
+
+  /* ── Buttons ── */
+  --button-inverted: #f5c518;
+  --button-inverted-hover: #e0b400;
+  --button-inverted-pressed: #c9a200;
+  --button-inverted-foreground: #141414;
+  --button-neutral: #141414;
+  --button-neutral-hover: #2a2a2a;
+  --button-neutral-pressed: #0a0a0a;
+  --button-neutral-foreground: #ffffff;
+  --button-danger: #dc2626;
+  --button-danger-hover: #b91c1c;
+  --button-danger-pressed: #991b1b;
+  --button-transparent: transparent;
+  --button-transparent-hover: rgba(20, 20, 20, 0.05);
+  --button-transparent-pressed: rgba(20, 20, 20, 0.1);
+
+  /* ── Focus / active rings ── */
+  --borders-focus: #141414;
+  --borders-interactive-with-focus: #141414;
+  --borders-interactive-with-active: #141414;
+  --borders-interactive-with-shadow: #141414;
+  --borders-base: #e6e6e2;
+  --borders-error: #b91c1c;
+
+  /* ── Elevation (shadows) ── */
+  --elevation-card-rest: 0 1px 2px rgba(20, 20, 20, 0.06);
+  --elevation-card-hover: 0 1px 2px rgba(20, 20, 20, 0.06),
+    0 8px 24px rgba(20, 20, 20, 0.04);
+  --elevation-flyout: 0 4px 16px rgba(20, 20, 20, 0.1);
+  --elevation-modal: 0 8px 32px rgba(20, 20, 20, 0.12);
+  --elevation-tooltip: 0 2px 8px rgba(20, 20, 20, 0.08);
+
+  /* ── Tags (status badges) ── */
+  --tag-blue-bg: #fff8d6;
+  --tag-blue-text: #141414;
+  --tag-blue-border: #f0d86a;
+  --tag-green-bg: #e8f7ee;
+  --tag-green-text: #166534;
+  --tag-green-border: #b7e0c4;
+  --tag-red-bg: #fde8e8;
+  --tag-red-text: #b91c1c;
+  --tag-red-border: #e8b4b4;
+  --tag-orange-bg: #fff4db;
+  --tag-orange-text: #92400e;
+  --tag-orange-border: #f0d86a;
+  --tag-neutral-bg: #f0f0ee;
+  --tag-neutral-text: #141414;
+  --tag-neutral-border: #e6e6e2;
+
+  /* ── Contrast surfaces (sidebar etc) ── */
+  --contrast-bg-base: #141414;
+  --contrast-bg-base-hover: #2a2a2a;
+  --contrast-bg-base-pressed: #0a0a0a;
+  --contrast-bg-subtle: #2a2a2a;
+  --contrast-border-base: #2a2a2a;
+  --contrast-fg-primary: #ffffff;
+  --contrast-fg-secondary: #9e9e9e;
+
+  /* ── Button focus rings ── */
+  --buttons-inverted: #f5c518;
+  --buttons-inverted-focus: #f5c518;
+  --buttons-neutral: #141414;
+  --buttons-neutral-focus: #141414;
+  --buttons-danger: #dc2626;
+  --buttons-danger-focus: #dc2626;
+}
+
+html,
+body,
+#root {
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+  background: var(--alkemart-bg) !important;
+  color: var(--alkemart-black) !important;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* —— Primary actions —— */
+button[class*="bg-ui-button-inverted"],
+a[class*="bg-ui-button-inverted"],
+.bg-ui-button-inverted {
+  background-color: var(--alkemart-yellow) !important;
+  color: var(--alkemart-black) !important;
+  border-color: transparent !important;
+  font-weight: 600 !important;
+  border-radius: var(--alkemart-radius-sm) !important;
+}
+
+button[class*="bg-ui-button-inverted"]:hover,
+a[class*="bg-ui-button-inverted"]:hover {
+  background-color: var(--alkemart-yellow-hover) !important;
+}
+
+button[class*="bg-ui-button-neutral"],
+.bg-ui-button-neutral {
+  background-color: var(--alkemart-black) !important;
+  color: var(--alkemart-white) !important;
+  border-radius: var(--alkemart-radius-sm) !important;
+}
+
+*:focus-visible {
+  outline: 2px solid var(--alkemart-black) !important;
+  outline-offset: 2px;
+}
+
+/* Mobile: remove blue tap flash, prevent text selection on interactive */
+button,
+a,
+[role="tab"],
+[role="button"] {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* —— Links —— */
+a.text-ui-fg-interactive,
+.text-ui-fg-interactive,
+a[class*="text-ui-fg-interactive"] {
+  color: var(--alkemart-black) !important;
+}
+
+/* Sidebar base (detailed brand-row rules further below) */
+aside,
+nav[class*="sidebar"],
+[data-testid="sidebar"],
+[class*="Sidebar"] {
+  background: var(--alkemart-white) !important;
+  border-color: var(--alkemart-border) !important;
+}
+
+aside a[aria-current="page"],
+nav a[aria-current="page"],
+[data-testid="sidebar"] a[aria-current="page"] {
+  background-color: var(--alkemart-yellow-soft) !important;
+  color: var(--alkemart-black) !important;
+  border-radius: var(--alkemart-radius-sm);
+  font-weight: 600 !important;
+}
+
+/* Cards / surfaces */
+[class*="shadow-elevation"],
+[class*="bg-ui-bg-base"],
+.bg-ui-bg-base {
+  border-radius: var(--alkemart-radius) !important;
+}
+
+/* Tables */
+table thead th {
+  font-size: 12px !important;
+  letter-spacing: 0.04em !important;
+  text-transform: uppercase !important;
+  color: var(--alkemart-subtle) !important;
+  font-weight: 700 !important;
+}
+
+/*
+ * Global form / main contrast — Mercur text-ui-fg-subtle is often too pale.
+ * Scope: main content only (not sidebar section labels).
+ */
+main .text-ui-fg-subtle,
+main .txt-compact-small.text-ui-fg-subtle,
+main [class*="text-ui-fg-subtle"],
+[data-testid="main"] .text-ui-fg-subtle,
+.bg-ui-bg-base .text-ui-fg-subtle:not(aside *):not([data-testid="sidebar"] *) {
+  color: #2a2a2a !important;
+  opacity: 1 !important;
+}
+
+main .text-ui-fg-muted,
+main [class*="text-ui-fg-muted"]:not(aside *),
+.bg-ui-bg-base .text-ui-fg-muted:not(aside *):not([data-testid="sidebar"] *) {
+  color: #3d3d3d !important;
+  opacity: 1 !important;
+}
+
+/* Auth screens: titles, hints, labels always readable on cream/white */
+.h-dvh.w-dvw .text-ui-fg-subtle,
+.h-dvh.w-dvw .text-ui-fg-muted,
+.h-dvh.w-dvw label,
+[data-testid="login-page"] .text-ui-fg-subtle,
+[data-testid="login-page"] .text-ui-fg-muted,
+[data-testid="login-page"] label,
+[data-testid="login-page"] h1,
+[data-testid="login-page"] h2,
+.h-dvh.w-dvw h1,
+.h-dvh.w-dvw h2 {
+  color: #141414 !important;
+  opacity: 1 !important;
+}
+.h-dvh.w-dvw .text-ui-fg-subtle,
+[data-testid="login-page"] .text-ui-fg-subtle {
+  color: #2a2a2a !important;
+  font-weight: 600 !important;
+}
+
+/* Login / auth — always light (never dark-mode shell) */
+html:has([data-testid="login-page"]),
+html:has(.h-dvh.w-dvw),
+body:has([data-testid="login-page"]),
+body:has(.h-dvh.w-dvw),
+body:has([data-login-logo]) {
+  color-scheme: light !important;
+  background: #f7f7f5 !important;
+  color: #141414 !important;
+}
+
+[data-testid="login-page"],
+main:has(form[action*="login"]),
+body:has([data-login-logo]),
+.h-dvh.w-dvw {
+  background: #ffffff !important;
+  color: #141414 !important;
+}
+
+/* Mercur form column often uses bg-ui-bg-base — force white on auth */
+.h-dvh.w-dvw > div,
+.h-dvh.w-dvw > div.bg-ui-bg-base,
+.h-dvh.w-dvw [class*="bg-ui-bg-base"],
+.h-dvh.w-dvw [class*="bg-ui-bg-subtle"],
+[data-testid="login-page"] [class*="bg-ui-bg-base"],
+[data-testid="login-page"] [class*="bg-ui-bg-subtle"],
+[data-testid="login-page"] [class*="bg-ui-bg-field"] {
+  background-color: #ffffff !important;
+  color: #141414 !important;
+  border-color: #e6e6e2 !important;
+}
+
+.h-dvh.w-dvw input,
+.h-dvh.w-dvw textarea,
+.h-dvh.w-dvw select,
+[data-testid="login-page"] input,
+[data-testid="login-page"] textarea,
+[data-testid="login-page"] select {
+  background-color: #ffffff !important;
+  color: #141414 !important;
+  border-color: #e6e6e2 !important;
+}
+
+/* Register / secondary CTAs distinct from primary Sign in (yellow) */
+.h-dvh.w-dvw a[href*="register"],
+[data-testid="login-page"] a[href*="register"] {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-height: 2.75rem !important;
+  padding: 0 1.25rem !important;
+  margin-top: 0.5rem !important;
+  border-radius: 9999px !important;
+  border: 2px solid #141414 !important;
+  background: #ffffff !important;
+  color: #141414 !important;
+  font-weight: 700 !important;
+  text-decoration: none !important;
+}
+.h-dvh.w-dvw button[type="submit"],
+[data-testid="login-page"] button[type="submit"] {
+  background-color: #f5c518 !important;
+  color: #141414 !important;
+  border-color: transparent !important;
+  font-weight: 700 !important;
+  border-radius: 9999px !important;
+}
+
+[data-testid="login-page"] a[href*="medusajs"],
+[data-testid="login-page"] a[href*="mercur"],
+a[href*="medusajs.com"],
+a[href*="mercurjs.com"] {
+  display: none !important;
+}
+
+/* Hide default logo art when our brand widget is present */
+[data-login-logo] > *:first-child:not(:only-child) {
+  display: none !important;
+}
+
+/* Login mark — quiet Mercur AvatarBox chrome, crisp square mark */
+[data-testid="login-page"] .alk-login-mark,
+[data-testid="login-page"] [data-alk-logo-sized="1"] {
+  background: transparent !important;
+  box-shadow: none !important;
+  overflow: hidden;
+}
+[data-testid="login-page"] .alk-login-mark::after,
+[data-testid="login-page"] [class*="rounded-xl"]::after {
+  display: none !important;
+  content: none !important;
+}
+[data-testid="login-page"] img[alt="alkemart"] {
+  object-fit: contain !important;
+  border-radius: 14px !important;
+  background: transparent !important;
+}
+
+/*
+ * Vendor AuthLayout: form left | art right (native).
+ * Style the built-in art panel — cream seamless + large contain.
+ */
+.alk-seller-auth-art-panel,
+.h-dvh.w-dvw > div.relative.hidden.flex-1,
+div.relative.hidden.flex-1.overflow-hidden.lg\:flex {
+  position: relative !important;
+  background: #faf8f2 !important;
+}
+.alk-seller-auth-art-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: min(70vmin, 36rem);
+  height: min(70vmin, 36rem);
+  border-radius: 9999px;
+  background: rgba(245, 197, 24, 0.22);
+  filter: blur(56px);
+  pointer-events: none;
+  z-index: 0;
+}
+img.alk-seller-auth-art,
+.h-dvh.w-dvw img[src*="auth-seller"],
+.h-dvh.w-dvw img[src*="onboarding"],
+div.relative.hidden.flex-1 img {
+  position: relative !important;
+  z-index: 1 !important;
+  width: min(88%, 36rem) !important;
+  height: auto !important;
+  max-height: min(78vh, 36rem) !important;
+  margin: auto !important;
+  object-fit: contain !important;
+  object-position: center !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+/* Form column more air */
+.h-dvh.w-dvw > div.bg-ui-bg-base {
+  padding-left: 2rem !important;
+  padding-right: 2rem !important;
+}
+@media (min-width: 1024px) {
+  .h-dvh.w-dvw > div.bg-ui-bg-base {
+    padding-left: 3.5rem !important;
+    padding-right: 3.5rem !important;
+  }
+  .h-dvh.w-dvw > div.bg-ui-bg-base > div.flex-1 {
+    max-width: 26rem !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    width: 100% !important;
+  }
+}
+
+/* —— Split login: full-bleed art | spacious form —— */
+[data-testid="login-page"].alk-login-split {
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  min-height: 100vh !important;
+  min-height: 100dvh !important;
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  align-items: stretch !important;
+  gap: 0 !important;
+  background: #ffffff !important;
+}
+@media (min-width: 960px) {
+  [data-testid="login-page"].alk-login-split {
+    grid-template-columns: minmax(0, 1.08fr) minmax(28rem, 0.92fr) !important;
+  }
+}
+
+/*
+ * Illustration side: continuous cream + large transparent art.
+ * No card, no cover-crop, no hard corners — art floats on same bg.
+ */
+.alk-login-art-panel {
+  display: none;
+  position: relative;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow: hidden;
+  background: #faf8f2 !important;
+  padding: 2.5rem 2rem 2rem !important;
+  margin: 0 !important;
+  box-sizing: border-box !important;
+}
+@media (min-width: 960px) {
+  .alk-login-art-panel {
+    display: flex !important;
+  }
+}
+/* Soft glow behind art (same hue family as cream) */
+.alk-login-art-panel::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 52%;
+  width: min(70vmin, 36rem);
+  height: min(70vmin, 36rem);
+  transform: translate(-50%, -50%);
+  border-radius: 9999px;
+  background: rgba(245, 197, 24, 0.22);
+  filter: blur(56px);
+  pointer-events: none;
+  z-index: 0;
+}
+.alk-login-art-brand {
+  position: relative;
+  z-index: 2;
+  flex: 0 0 auto;
+  font-weight: 800;
+  font-size: 1.5rem;
+  letter-spacing: -0.04em;
+  color: #141414;
+  margin: 0 0 0.35rem 0;
+  align-self: flex-start;
+}
+.alk-login-art-brand .alk-dot {
+  color: #f5c518;
+}
+.alk-login-art-caption {
+  position: relative;
+  z-index: 2;
+  flex: 0 0 auto;
+  margin: 0 0 auto 0;
+  max-width: 14rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: rgba(20, 20, 20, 0.6);
+  line-height: 1.4;
+  align-self: flex-start;
+}
+/* Large, free art — object-contain so transparent edges dissolve into cream */
+.alk-login-art-img {
+  position: relative !important;
+  z-index: 1;
+  display: block !important;
+  width: min(92%, 38rem) !important;
+  height: auto !important;
+  max-height: min(78vh, 38rem) !important;
+  margin: auto !important;
+  object-fit: contain !important;
+  object-position: center center !important;
+  user-select: none;
+  pointer-events: none;
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  inset: auto !important;
+}
+/* Hide old nested structure leftovers */
+.alk-login-art-inner,
+.alk-login-art-frame,
+.alk-login-art-title,
+.alk-login-art-desc {
+  display: none !important;
+}
+
+/* Form column — airy, not cramped */
+[data-testid="login-page"].alk-login-split > :not(.alk-login-art-panel) {
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  align-items: center !important;
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding: 3rem 1.75rem !important;
+  background: #ffffff !important;
+  box-sizing: border-box !important;
+}
+@media (min-width: 960px) {
+  [data-testid="login-page"].alk-login-split > :not(.alk-login-art-panel) {
+    padding: 3.5rem 4rem !important;
+  }
+}
+@media (min-width: 1280px) {
+  [data-testid="login-page"].alk-login-split > :not(.alk-login-art-panel) {
+    padding: 4rem 5.5rem !important;
+  }
+}
+
+/* Form container width + vertical rhythm */
+[data-testid="login-page"].alk-login-split [data-testid="login-container"] {
+  width: 100% !important;
+  max-width: 26rem !important;
+  margin: 0 auto !important;
+  gap: 1.25rem !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+[data-testid="login-page"].alk-login-split form {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 1rem !important;
+  width: 100% !important;
+}
+[data-testid="login-page"].alk-login-split form > * + * {
+  margin-top: 0 !important;
+}
+[data-testid="login-page"].alk-login-split label {
+  margin-bottom: 0.35rem !important;
+  font-size: 0.8125rem !important;
+  font-weight: 600 !important;
+}
+[data-testid="login-page"].alk-login-split input {
+  min-height: 2.75rem !important;
+  padding: 0.65rem 0.85rem !important;
+  font-size: 0.9375rem !important;
+  border-radius: 0.65rem !important;
+}
+[data-testid="login-page"].alk-login-split button[type="submit"] {
+  min-height: 2.85rem !important;
+  margin-top: 0.35rem !important;
+  border-radius: 0.65rem !important;
+  font-size: 0.9375rem !important;
+  font-weight: 700 !important;
+}
+
+/* Wordmark lockup — HTML text, matches admin + storefront */
+.alk-login-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 0 0 1.25rem;
+  width: 100%;
+}
+.alk-login-wordmark {
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+  font-weight: 800;
+  font-size: 1.5rem;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  color: #141414;
+}
+.alk-login-wordmark .alk-dot,
+.alk-login-art-brand .alk-dot {
+  color: #f5c518;
+}
+.alk-login-role {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #4a4a4a;
+}
+
+/* Art-side brand (same as admin art panel) */
+.alk-login-art-brand-wrap {
+  position: absolute;
+  z-index: 3;
+  top: 2rem;
+  left: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  pointer-events: none;
+}
+.alk-login-art-brand {
+  font-weight: 800;
+  font-size: 1.5rem;
+  letter-spacing: -0.04em;
+  color: #141414;
+  line-height: 1;
+}
+.alk-login-art-caption {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: rgba(20, 20, 20, 0.6);
+  line-height: 1.4;
+}
+
+/* Hide logo images + empty wrappers — HTML wordmark on art panel only */
+img[data-alk-hide-logo="1"],
+[data-alk-hide-logo-wrap="1"],
+[data-testid="login-page"] img[src*="logo"],
+[data-testid="login-container"] img[src*="logo"],
+.h-dvh.w-dvw img[src*="logo"],
+.alk-auth-logo-wordmark,
+img.alk-auth-logo-wordmark,
+.alk-auth-logo-mark {
+  display: none !important;
+}
+
+/* Empty rounded avatar box left after hiding logo img */
+.h-dvh.w-dvw [class*="rounded"][class*="overflow"]:has(img[data-alk-hide-logo]),
+.h-dvh.w-dvw [class*="rounded-xl"]:has(> img[src*="logo"]),
+.h-dvh.w-dvw [class*="rounded-lg"]:has(> img[src*="logo"]),
+.h-dvh.w-dvw div:has(> img[src*="logo-wordmark"]),
+.h-dvh.w-dvw div:has(> img[src*="logo.svg"]) {
+  display: none !important;
+}
+
+/* Never surface developer dumps on auth */
+[data-alk-hidden-tech="1"],
+[data-testid="login-page"] pre,
+[data-testid="login-page"] code {
+  display: none !important;
+}
+
+/* —— Seller auth footer: one calm line (like admin) —— */
+.alk-auth-footer {
+  margin-top: 1.25rem;
+  width: 100%;
+  max-width: 26rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+.alk-auth-footer-inline {
+  margin: 0;
+  text-align: center;
+  font-size: 0.875rem;
+  color: var(--alkemart-subtle);
+}
+.alk-auth-footer-link {
+  font-weight: 700;
+  color: var(--alkemart-black) !important;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.alk-auth-footer-block {
+  display: none; /* legacy card footer removed */
+}
+
+/* Hide noise we mark as duplicate marketing */
+[data-alk-auth-noise="1"] {
+  display: none !important;
+}
+
+/* Native Mercur “forgot / create account” lines — calm spacing */
+.alk-auth-native-register {
+  font-weight: 600 !important;
+}
+.alk-auth-native-reset {
+  font-size: 0.8125rem !important;
+}
+
+/* Login page title + single subtitle — match admin calm hierarchy */
+[data-testid="login-page"] h1,
+[data-testid="login-container"] h1,
+.h-dvh.w-dvw h1 {
+  font-size: 1.5rem !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.03em !important;
+  margin: 0.25rem 0 0.35rem !important;
+  text-align: left !important;
+  color: #141414 !important;
+}
+[data-testid="login-page"] h1 + p,
+[data-testid="login-container"] h1 + p,
+.h-dvh.w-dvw h1 + p {
+  font-size: 0.875rem !important;
+  color: var(--alkemart-subtle) !important;
+  text-align: left !important;
+  max-width: 22rem !important;
+  margin: 0 0 0.75rem !important;
+  line-height: 1.45 !important;
+}
+
+/* Form column: hide default Mercur avatar/logo wrappers above title */
+.h-dvh.w-dvw [data-testid="login-container"] > div:has(img[src*="logo"]),
+.h-dvh.w-dvw form ~ div:has(img[src*="logo"]),
+.h-dvh.w-dvw .alk-login-brand:has(+ *),
+/* When art brand is present, hide any form-side brand residue */
+body:has([data-alk-login-art-brand]) .h-dvh.w-dvw .alk-login-brand,
+body:has([data-alk-login-art-brand]) .h-dvh.w-dvw [data-login-logo],
+body:has([data-alk-login-art-brand]) .h-dvh.w-dvw [data-alk-login-wordmark] {
+  display: none !important;
+}
+
+/* Empty square leftover from AvatarBox after logo hide */
+.h-dvh.w-dvw div[class*="rounded"]:has(> img[data-alk-hide-logo]),
+.h-dvh.w-dvw div[class*="rounded"][data-alk-hide-logo-wrap],
+.h-dvh.w-dvw [data-alk-hide-logo-wrap="1"] {
+  display: none !important;
+}
+
+/* Desktop: form column should not show a second brand (art panel owns it) */
+@media (min-width: 1024px) {
+  .h-dvh.w-dvw > div.bg-ui-bg-base .alk-login-brand,
+  .h-dvh.w-dvw > div.bg-ui-bg-base [data-login-logo],
+  .h-dvh.w-dvw > div.bg-ui-bg-base [data-alk-login-wordmark],
+  .h-dvh.w-dvw > div.bg-ui-bg-base .alk-login-role {
+    display: none !important;
+  }
+}
+
+/* Alkemart analytics page helpers */
+.alk-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1.5rem 1.25rem 3rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.alk-page-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-bottom: 0.25rem;
+  border-bottom: 1px solid var(--alkemart-border);
+}
+
+.alk-page-header h1 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--alkemart-black);
+}
+
+.alk-page-header p {
+  margin: 0.35rem 0 0;
+  font-size: 0.875rem;
+  color: var(--alkemart-subtle);
+}
+
+.alk-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.75rem;
+}
+
+.alk-kpi {
+  background: var(--alkemart-surface);
+  border: 1px solid var(--alkemart-border);
+  border-radius: var(--alkemart-radius);
+  padding: 1rem 1.1rem;
+  box-shadow: var(--alkemart-shadow);
+}
+
+.alk-kpi-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--alkemart-subtle);
+}
+
+.alk-kpi-value {
+  margin-top: 0.35rem;
+  font-size: 1.65rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--alkemart-black);
+  font-variant-numeric: tabular-nums;
+}
+
+.alk-kpi-hint {
+  margin-top: 0.25rem;
+  font-size: 0.75rem;
+  color: var(--alkemart-subtle);
+}
+
+.alk-chart-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1rem;
+}
+
+.alk-chart-card {
+  background: var(--alkemart-surface);
+  border: 1px solid var(--alkemart-border);
+  border-radius: var(--alkemart-radius);
+  padding: 1rem 1rem 0.5rem;
+  box-shadow: var(--alkemart-shadow);
+  min-height: 280px;
+  display: flex;
+  flex-direction: column;
+}
+
+.alk-chart-card h2 {
+  margin: 0 0 0.25rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.alk-chart-card .alk-chart-sub {
+  margin: 0 0 0.75rem;
+  font-size: 0.75rem;
+  color: var(--alkemart-subtle);
+}
+.alk-chart-wide {
+  grid-column: 1 / -1;
+}
+
+.alk-chart-body {
+  flex: 1;
+  min-height: 200px;
+  width: 100%;
+}
+
+.alk-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  background: var(--alkemart-yellow);
+  color: var(--alkemart-black);
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.alk-empty {
+  padding: 2rem 1rem;
+  text-align: center;
+  color: var(--alkemart-subtle);
+  font-size: 0.875rem;
+}
+
+.alk-error {
+  border: 1px solid #f5c2c2;
+  background: #fff5f5;
+  color: #8b1e1e;
+  border-radius: var(--alkemart-radius);
+  padding: 0.85rem 1rem;
+  font-size: 0.875rem;
+}
+
+/* ── Compact action banner — single-line, yellow accent, clickable ── */
+.alk-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 0.85rem;
+  min-height: 2.75rem;
+  border-radius: var(--alkemart-radius-sm);
+  border: 1px solid var(--alkemart-yellow);
+  border-left: 3px solid var(--alkemart-yellow);
+  background: var(--alkemart-yellow-soft);
+  margin-bottom: 0.65rem;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.alk-banner:hover {
+  background: #fff0a0;
+}
+.alk-banner-success {
+  border-color: #b7e0c4;
+  border-left-color: #166534;
+  background: #e8f7ee;
+}
+.alk-banner-success:hover {
+  background: #d4f0de;
+}
+.alk-banner-danger {
+  border-color: #e8b4b4;
+  border-left-color: #b91c1c;
+  background: #fde8e8;
+}
+.alk-banner-danger:hover {
+  background: #fbd4d4;
+}
+.alk-banner-warning {
+  border-color: var(--alkemart-yellow);
+  border-left-color: var(--alkemart-yellow-hover);
+  background: var(--alkemart-yellow-soft);
+}
+.alk-banner-warning:hover {
+  background: #fff0a0;
+}
+.alk-banner-info,
+.alk-banner-default {
+  border-color: var(--alkemart-yellow);
+  border-left-color: var(--alkemart-yellow);
+  background: var(--alkemart-yellow-soft);
+}
+.alk-banner-text {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.15rem 0.5rem;
+}
+.alk-banner-title {
+  font-weight: 700;
+  font-size: 0.875rem;
+  color: var(--alkemart-black);
+  white-space: nowrap;
+}
+.alk-banner-body {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--alkemart-subtle);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: 1;
+  line-height: 1.4;
+}
+.alk-banner-actions {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+}
+.alk-banner a,
+.alk-link {
+  font-weight: 700;
+  color: var(--alkemart-black);
+  text-decoration: none;
+  min-height: 2.75rem;
+  display: inline-flex;
+  align-items: center;
+}
+.alk-badge-spaced {
+  margin-bottom: 0.5rem;
+}
+.alk-chart-card-wide {
+  grid-column: 1 / -1;
+}
+.alk-onboarding {
+  margin-bottom: 0.5rem;
+}
+.alk-checklist-wrap {
+  margin-bottom: 0.25rem;
+}
+.alk-checklist-progress {
+  margin: 0 0 0.4rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--alkemart-black);
+}
+.alk-panel-footer-flush {
+  margin-top: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+/* Screen reader only */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.alk-page-meta {
+  font-size: 12px;
+  color: var(--alkemart-subtle);
+}
+
+/* —— Kill residual Medusa / Mercur shell brand —— */
+/* Only hide monograms we explicitly mark (JS). Broad :has() rules broke nav icons. */
+[data-alk-hide-monogram="1"] {
+  display: none !important;
+}
+
+[title="Medusa Store"],
+[aria-label="Medusa Store"],
+[title="Mercur"],
+[aria-label="Mercur"] {
+  font-size: 0 !important;
+}
+[title="Medusa Store"]::after,
+[aria-label="Medusa Store"]::after {
+  content: "alkemart";
+  font-size: 14px !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.03em;
+  color: var(--alkemart-black);
+}
+
+a[href*="medusajs"],
+a[href*="mercurjs"],
+a[href*="mercur.dev"] {
+  display: none !important;
+}
+
+/* Ghana v1: silence non-core seller modules */
+aside a[href*="/campaigns"],
+aside a[href*="/price-lists"],
+aside a[href*="/promotions"],
+aside a[href*="/payouts"],
+aside a[href*="/customer-groups"],
+aside a[href*="/collections"],
+aside a[href*="/categories"],
+nav a[href*="/campaigns"],
+nav a[href*="/price-lists"],
+nav a[href*="/promotions"],
+nav a[href*="/payouts"],
+nav a[href*="/customer-groups"],
+nav a[href*="/collections"],
+nav a[href*="/categories"] {
+  display: none !important;
+}
+
+[data-alk-hidden-tech] {
+  display: none !important;
+}
+
+/* —— Sidebar / shell (safe — do not restyle entire first-child tree) —— */
+aside,
+nav[class*="sidebar"],
+[data-testid="sidebar"],
+[class*="Sidebar"] {
+  background: var(--alkemart-surface, var(--alkemart-white, #fff)) !important;
+  border-color: var(--alkemart-border) !important;
+}
+
+nav a,
+aside a,
+[data-testid="sidebar"] a {
+  font-size: 13px !important;
+  font-weight: 550 !important;
+  border-radius: var(--alkemart-radius-sm) !important;
+  color: var(--alkemart-ink, var(--alkemart-black)) !important;
+}
+
+nav a:hover,
+aside a:hover,
+[data-testid="sidebar"] a:hover {
+  background-color: var(--alkemart-muted) !important;
+}
+
+/* Active page only on real sidebar links */
+aside a[aria-current="page"],
+nav a[aria-current="page"],
+[data-testid="sidebar"] a[aria-current="page"] {
+  background-color: var(--alkemart-yellow-soft) !important;
+  color: var(--alkemart-black) !important;
+  font-weight: 600 !important;
+}
+
+/* Section group labels only (nav muted), light spacing */
+aside nav [class*="text-ui-fg-muted"],
+[data-testid="sidebar"] nav [class*="text-ui-fg-muted"] {
+  font-size: 0.75rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.08em !important;
+  text-transform: uppercase !important;
+  color: var(--alkemart-subtle) !important;
+  margin-top: 0.65rem !important;
+  margin-bottom: 0.25rem !important;
+}
+
+/* Main content padding rhythm */
+main,
+[class*="main-content"],
+[data-testid="main-content"] {
+  background: var(--alkemart-bg) !important;
+}
+
+/* Consistent card chrome on list pages */
+[class*="divide-y"] > * {
+  border-color: var(--alkemart-border) !important;
+}
+
+
+/* —— Login typography —— */
+[data-testid="login-page"] [data-testid="login-title"],
+body:has([data-testid="login-page"]) h1 {
+  font-size: 1.85rem !important;
+  line-height: 1.2 !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.03em !important;
+  color: var(--alkemart-black) !important;
+  margin: 0.5rem 0 0 !important;
+}
+[data-testid="login-page"] [data-testid="login-hint"],
+body:has([data-testid="login-page"]) h1 + p {
+  font-size: 0.9375rem !important;
+  line-height: 1.5 !important;
+  font-weight: 500 !important;
+  color: var(--alkemart-subtle) !important;
+  margin: 0.5rem 0 1rem !important;
+  max-width: none !important;
+}
+
+/* Login: hide letter monogram squares (no A / M tiles) */
+[data-testid="login-page"] [class*="bg-ui-bg-component"]:has(> span:only-child),
+[data-testid="login-page"] div[class*="rounded"]:has(> span:only-child):not(:has(img)):not(:has(svg)),
+[data-testid="login-page"] .alk-login-mark {
+  display: none !important;
+}
+
+/* Onboarding market tip — never stack */
+[data-alk-markets-onboard="pending"] {
+  display: none !important;
+}
+/* If a race left multiples, hide all but the first filled tip */
+[data-alk-markets-onboard="1"] ~ [data-alk-markets-onboard="1"] {
+  display: none !important;
+}
+
+/* One-shot injects — never stack */
+[data-alk-login-wordmark] ~ [data-alk-login-wordmark],
+[data-alk-markets-onboard="1"] ~ [data-alk-markets-onboard="1"],
+[data-alk-markets-onboard="pending"] {
+  display: none !important;
+}
+
+/* Product quality / propose CTA */
+/* =====================================================================
+ * Shared panel primitives — Admin + Seller Hub (keep identical)
+ * Forms, buttons, checklists, cards used by alkemart extensions
+ * ===================================================================== */
+
+.alk-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.alk-panel {
+  background: var(--alkemart-surface);
+  border: 1px solid var(--alkemart-border);
+  border-radius: var(--alkemart-radius);
+  padding: 1rem 1.1rem;
+  box-shadow: var(--alkemart-shadow);
+  margin-bottom: 0.75rem;
+}
+
+.alk-panel-footer {
+  margin-top: 0.85rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.alk-section-title {
+  margin: 0 0 0.35rem;
+  font-size: 0.95rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--alkemart-black);
+}
+
+.alk-muted {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.45;
+  color: var(--alkemart-subtle);
+  opacity: 1;
+}
+
+.alk-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: 0.75rem;
+}
+
+.alk-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.alk-field-label {
+  font-size: 0.8125rem; /* ≥13px — avoid 11px labels on mobile */
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--alkemart-black);
+}
+
+.alk-field-hint {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--alkemart-subtle);
+  line-height: 1.4;
+  opacity: 1;
+}
+
+.alk-input,
+.alk-select,
+.alk-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 2.75rem; /* 44px touch target */
+  padding: 0.55rem 0.75rem;
+  border: 1px solid var(--alkemart-border);
+  border-radius: var(--alkemart-radius-sm);
+  background: var(--alkemart-white);
+  color: var(--alkemart-black);
+  font-size: 1rem; /* 16px — prevents iOS zoom on focus */
+  font-weight: 500;
+  font-family: inherit;
+}
+
+.alk-input:focus,
+.alk-select:focus,
+.alk-textarea:focus,
+.alk-input:focus-visible,
+.alk-select:focus-visible,
+.alk-textarea:focus-visible {
+  outline: 2px solid var(--alkemart-yellow);
+  outline-offset: 2px;
+  border-color: var(--alkemart-yellow-hover);
+}
+
+.alk-textarea {
+  min-height: 4.5rem;
+  resize: vertical;
+}
+
+.alk-checklist {
+  list-style: none;
+  margin: 0;
+  padding: 0.65rem 0.85rem;
+  border: 1px solid var(--alkemart-border);
+  border-radius: var(--alkemart-radius-sm);
+  background: var(--alkemart-muted);
+}
+
+.alk-checklist li {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+  padding: 0.3rem 0;
+  font-size: 0.8125rem;
+  color: var(--alkemart-subtle);
+  line-height: 1.35;
+}
+
+.alk-checklist li.is-done {
+  color: var(--alkemart-black);
+  font-weight: 600;
+}
+
+.alk-checklist .alk-check-mark {
+  flex: 0 0 1rem;
+  font-weight: 800;
+  color: var(--alkemart-black);
+}
+
+/* Buttons — primary yellow, secondary outline, danger (44px min) */
+.alk-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  min-height: 2.75rem;
+  min-width: 2.75rem;
+  padding: 0.55rem 1.1rem;
+  border-radius: var(--alkemart-radius-sm);
+  border: 1px solid transparent;
+  background: var(--alkemart-yellow);
+  color: var(--alkemart-black);
+  font-weight: 700;
+  font-size: 0.9375rem;
+  font-family: inherit;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.alk-btn:hover:not(:disabled) {
+  background: var(--alkemart-yellow-hover);
+}
+
+.alk-btn:focus-visible {
+  outline: 2px solid var(--alkemart-black);
+  outline-offset: 2px;
+}
+
+.alk-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.alk-btn-secondary {
+  background: var(--alkemart-white);
+  border-color: var(--alkemart-border);
+  color: var(--alkemart-black);
+}
+
+.alk-btn-secondary:hover:not(:disabled) {
+  background: var(--alkemart-muted);
+}
+
+.alk-btn-danger {
+  background: var(--alkemart-white);
+  border-color: #c41e3a;
+  color: #8b1e1e;
+}
+
+.alk-btn-danger:hover:not(:disabled) {
+  background: #fde8e8;
+}
+
+.alk-status {
+  font-size: 0.8rem;
+  color: var(--alkemart-subtle);
+}
+
+.alk-status.is-error {
+  color: #8b1e1e;
+}
+
+.alk-status.is-ok {
+  color: #166534;
+}
+
+/* Login wordmark — same lockup both panels */
+.alk-login-brand {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  gap: 6px !important;
+  margin: 0 0 1.25rem !important;
+  width: 100% !important;
+}
+.alk-login-wordmark {
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif !important;
+  font-weight: 800 !important;
+  font-size: 1.5rem !important;
+  letter-spacing: -0.04em !important;
+  line-height: 1 !important;
+  color: #141414 !important;
+}
+.alk-login-wordmark .alk-dot {
+  color: #f5c518 !important;
+}
+.alk-login-role {
+  font-size: 0.75rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.12em !important;
+  text-transform: uppercase !important;
+  color: #4a4a4a !important;
+}
+
+.alk-row-between {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.75rem;
+  justify-content: space-between;
+  align-items: baseline;
+}
+.alk-card-title {
+  font-size: 1.05rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--alkemart-black);
+}
+
+
+.alk-media-row {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+}
+.alk-thumb {
+  width: 64px;
+  height: 64px;
+  object-fit: cover;
+  border-radius: var(--alkemart-radius-sm);
+  background: var(--alkemart-muted);
+  flex: 0 0 64px;
+}
+.alk-thumb-empty {
+  border: 1px dashed var(--alkemart-border);
+}
+
+
+/* =====================================================================
+ * Mobile shell + extensions (phones first) — Admin + Seller Hub
+ * ===================================================================== */
+
+/* Main content: don't fight Mercur chrome; keep horizontal scroll in check */
+@media (max-width: 767px) {
+  .alk-page {
+    max-width: 100%;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0.75rem 0.75rem 5rem;
+    gap: 0.85rem;
+  }
+
+  .alk-page-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.65rem;
+    padding-bottom: 0.65rem;
+  }
+
+  .alk-page-header h1 {
+    font-size: 1.25rem;
+    line-height: 1.25;
+  }
+
+  .alk-page-header p {
+    font-size: 0.875rem;
+  }
+
+  .alk-page-meta {
+    width: 100%;
+  }
+
+  .alk-page-meta .alk-btn {
+    width: 100%;
+  }
+
+  .alk-kpi-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+  }
+
+  .alk-kpi {
+    padding: 0.75rem;
+  }
+
+  .alk-kpi-value {
+    font-size: 1.25rem;
+  }
+
+  .alk-form-grid {
+    grid-template-columns: 1fr;
+    gap: 0.85rem;
+  }
+
+  /* Banner: stays compact single-line on mobile — no stacking override */
+
+  .alk-panel {
+    padding: 0.85rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .alk-panel-footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .alk-panel-footer .alk-btn {
+    width: 100%;
+  }
+
+  .alk-row-between {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .alk-media-row {
+    flex-direction: row;
+    gap: 0.65rem;
+  }
+
+  .alk-thumb {
+    width: 56px;
+    height: 56px;
+    flex-basis: 56px;
+  }
+
+  .alk-chart-card {
+    padding: 0.75rem;
+  }
+
+  .alk-chart-body {
+    min-height: 200px !important;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Mercur native tables / dense grids in main */
+  main table,
+  [class*="Table"] {
+    display: block;
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Avoid horizontal page scroll from wide toolbars */
+  main,
+  [class*="main-content"],
+  [data-testid="main-content"] {
+    max-width: 100vw;
+    overflow-x: clip;
+  }
+}
+
+/* Onboarding card hierarchy */
+.alk-onboarding {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.alk-onboarding .alk-panel {
+  margin-bottom: 0;
+}
+
+.alk-checklist-wrap {
+  background: var(--alkemart-surface);
+  border: 1px solid var(--alkemart-border);
+  border-radius: var(--alkemart-radius);
+  padding: 0.75rem 0.85rem;
+  box-shadow: var(--alkemart-shadow);
+}
+
+.alk-checklist {
+  border: none;
+  background: transparent;
+  padding: 0;
+}
+
+.alk-checklist li {
+  min-height: 2.75rem;
+  align-items: center;
+  padding: 0.4rem 0;
+  font-size: 0.875rem;
+  border-bottom: 1px solid var(--alkemart-border);
+}
+
+.alk-checklist li:last-child {
+  border-bottom: none;
+}
+
+/* Market cards (admin) */
+.alk-market-list {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.alk-market-card {
+  text-align: left;
+  background: var(--alkemart-surface);
+  border: 1px solid var(--alkemart-border);
+  border-radius: var(--alkemart-radius);
+  padding: 1rem;
+  box-shadow: var(--alkemart-shadow);
+}
+
+.alk-market-card-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.alk-market-card-head strong {
+  font-size: 1.05rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--alkemart-black);
+}
+
+.alk-market-code {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--alkemart-subtle);
+}
+
+.alk-market-card p {
+  margin: 0.45rem 0 0;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: var(--alkemart-subtle);
+}
+
+.alk-guidance {
+  margin: 0.5rem 0 0;
+  font-size: 0.875rem;
+  color: var(--alkemart-subtle);
+  max-width: 36rem;
+  line-height: 1.45;
+}
+
+.alk-meta-time {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--alkemart-subtle);
+}
+
+.alk-error-detail {
+  margin-top: 0.5rem;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+}
+
+
+.alk-chart-body-tall { min-height: 260px; }
+.alk-chart-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+  gap: 0.75rem;
+}
+
+
+/* =====================================================================
+ * Mercur native onboarding wizard — contrast + mobile density
+ * (Step indicator + titles were text-ui-fg-subtle / too pale)
+ * ===================================================================== */
+
+/* Wizard form column (left rail) */
+.bg-ui-bg-base.border-r.border-ui-border-base,
+div.flex.w-full.flex-col.lg\:w-\[584px\] {
+  background: #ffffff !important;
+}
+
+/* "Step 1 of 4" — was text-ui-fg-subtle (too faint) */
+.bg-ui-bg-base.border-r .text-ui-fg-subtle,
+div.flex.w-full.flex-col.lg\:w-\[584px\] .text-ui-fg-subtle,
+div.flex.w-full.flex-col.lg\:w-\[584px\] .txt-compact-small.text-ui-fg-subtle {
+  color: #2a2a2a !important;
+  font-weight: 700 !important;
+  font-size: 0.875rem !important;
+  letter-spacing: 0.01em !important;
+  opacity: 1 !important;
+}
+
+/* "Enter your store details" h2 */
+.bg-ui-bg-base.border-r h2,
+div.flex.w-full.flex-col.lg\:w-\[584px\] h2,
+div.flex.w-full.flex-col.lg\:w-\[584px\] .text-ui-fg-base.text-lg {
+  color: #141414 !important;
+  font-weight: 800 !important;
+  font-size: 1.375rem !important;
+  letter-spacing: -0.02em !important;
+  line-height: 1.25 !important;
+  opacity: 1 !important;
+}
+
+/* Back control — keep readable */
+.bg-ui-bg-base.border-r button.txt-compact-small,
+div.flex.w-full.flex-col.lg\:w-\[584px\] button.txt-compact-small {
+  color: #141414 !important;
+  font-weight: 700 !important;
+  min-height: 2.75rem !important;
+  padding: 0.35rem 0.25rem !important;
+}
+
+/* Labels on wizard forms */
+.bg-ui-bg-base.border-r label,
+div.flex.w-full.flex-col.lg\:w-\[584px\] label {
+  color: #1a1a1a !important;
+  font-weight: 600 !important;
+  font-size: 0.875rem !important;
+}
+
+/* Hints under fields — short & readable, not washed out */
+.bg-ui-bg-base.border-r .text-ui-fg-muted,
+div.flex.w-full.flex-col.lg\:w-\[584px\] .text-ui-fg-muted,
+.bg-ui-bg-base.border-r [class*="Hint"],
+div.flex.w-full.flex-col.lg\:w-\[584px\] [class*="hint"] {
+  color: #4a4a4a !important;
+  font-size: 0.8125rem !important;
+  line-height: 1.35 !important;
+  opacity: 1 !important;
+}
+
+/* Inputs: 16px prevent iOS zoom; 44px touch */
+.bg-ui-bg-base.border-r input,
+.bg-ui-bg-base.border-r select,
+.bg-ui-bg-base.border-r textarea,
+div.flex.w-full.flex-col.lg\:w-\[584px\] input,
+div.flex.w-full.flex-col.lg\:w-\[584px\] select,
+div.flex.w-full.flex-col.lg\:w-\[584px\] textarea {
+  min-height: 2.75rem !important;
+  font-size: 1rem !important;
+}
+
+/* Mobile: tighter wizard padding, full width */
+@media (max-width: 1023px) {
+  .bg-ui-bg-base.border-r .p-8,
+  div.flex.w-full.flex-col.lg\:w-\[584px\] .p-8,
+  div.flex.w-full.flex-col.lg\:w-\[584px\] .lg\:px-14,
+  div.flex.w-full.flex-col.lg\:w-\[584px\] > div {
+    padding: 1rem 1rem 5rem !important;
+  }
+
+  .bg-ui-bg-base.border-r h2,
+  div.flex.w-full.flex-col.lg\:w-\[584px\] h2 {
+    font-size: 1.25rem !important;
+  }
+
+  /* Hide long tooltips/hints that wrap badly on phone — keep short copy via i18n */
+  .bg-ui-bg-base.border-r [class*="Tooltip"],
+  div.flex.w-full.flex-col.lg\:w-\[584px\] button[type="button"][aria-label*="tooltip" i] {
+    /* leave tooltips; currency hint shortened in i18n */
+  }
+
+  /* Primary continue full width already; ensure gap */
+  .bg-ui-bg-base.border-r button[type="submit"],
+  div.flex.w-full.flex-col.lg\:w-\[584px\] button[type="submit"] {
+    min-height: 2.85rem !important;
+    font-weight: 700 !important;
+  }
+}
+
+/* Ghana extension zone fields injected under store step */
+[data-zone="onboarding"] .text-ui-fg-subtle,
+[data-zone="onboarding"] .text-ui-fg-muted {
+  color: #3a3a3a !important;
+  font-size: 0.8125rem !important;
+}
+
+/* Alkemart retry button (error boundary) */
+.alk-retry-btn {
+  background: none !important;
+  border: none !important;
+  cursor: pointer !important;
+  text-decoration: underline !important;
+  font: inherit !important;
+  color: var(--alkemart-black) !important;
+}
+
+/* Setup progress bar */
+.alk-progress {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.alk-progress-label {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--alkemart-black);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.alk-progress-track {
+  flex: 1;
+  height: 8px;
+  background: var(--alkemart-muted);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.alk-progress-fill {
+  height: 100%;
+  background: var(--alkemart-yellow);
+  border-radius: 999px;
+  transition: width 0.4s ease;
+}
+
+/* Tabs — Radix-based Medusa tabs */
+[role="tablist"] {
+  display: flex;
+  gap: 0.25rem;
+  flex-wrap: wrap;
+}
+
+[role="tab"] {
+  font-size: 0.8125rem !important;
+  font-weight: 500 !important;
+  padding: 0.4rem 0.85rem !important;
+  min-height: 2.75rem !important;
+  border-radius: 999px !important;
+  border: 1px solid transparent !important;
+  background: transparent !important;
+  color: var(--alkemart-subtle) !important;
+  cursor: pointer !important;
+  transition: all 0.12s ease;
+}
+
+[role="tab"]:hover {
+  color: var(--alkemart-black) !important;
+  background: var(--alkemart-muted) !important;
+}
+
+[role="tab"]:focus-visible {
+  outline: 2px solid var(--alkemart-black) !important;
+  outline-offset: 2px !important;
+}
+
+[role="tab"][data-state="active"],
+[role="tab"][aria-selected="true"] {
+  color: var(--alkemart-black) !important;
+  background: var(--alkemart-yellow) !important;
+  font-weight: 600 !important;
+}
+
+/* Card sizing — prevent oversized Medusa cards */
+[class*="bg-ui-bg-base"][class*="rounded-xl"] {
+  max-width: 100% !important;
+}
+
+[class*="grid"][class*="gap"] > [class*="rounded-xl"] {
+  max-height: fit-content !important;
+}
+
+/* Sidebar mobile — overlay menu */
+@media (max-width: 767px) {
+  aside,
+  [data-testid="sidebar"],
+  nav[class*="sidebar"] {
+    width: 280px !important;
+    max-width: 85vw !important;
+  }
+
+  [data-testid="sidebar"] [class*="h-screen"],
+  aside [class*="h-screen"] {
+    height: 100dvh !important;
+  }
+
+  /* ── Touch: prevent double-tap zoom on all interactive elements ── */
+  button,
+  a,
+  [role="tab"],
+  [role="button"],
+  input,
+  select,
+  textarea {
+    touch-action: manipulation;
+  }
+
+  /* ── Safe area insets for notched phones ── */
+  .alk-page {
+    padding-bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
+    padding-left: calc(0.75rem + env(safe-area-inset-left, 0px));
+    padding-right: calc(0.75rem + env(safe-area-inset-right, 0px));
+  }
+
+  /* Chart cards: use original 280px min-height on mobile for readability */
+
+  /* ── Mercur native inputs: 16px prevents iOS auto-zoom ── */
+  main input,
+  main select,
+  main textarea,
+  [data-testid="main-content"] input,
+  [data-testid="main-content"] select,
+  [data-testid="main-content"] textarea {
+    font-size: 16px !important;
+    min-height: 2.75rem !important;
+  }
+
+  /* ── Mercur native buttons: enforce 44px touch targets ── */
+  main button,
+  [data-testid="main-content"] button {
+    min-height: 2.75rem !important;
+    min-width: 2.75rem !important;
+  }
+
+  /* ── Tab list: horizontal scroll when tabs overflow ── */
+  [role="tablist"] {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    flex-wrap: nowrap;
+    padding-bottom: 0.25rem;
+  }
+
+  [role="tab"] {
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  /* ── Compact Mercur header on mobile ── */
+  header {
+    min-height: 3rem !important;
+    padding-left: 0.75rem !important;
+    padding-right: 0.75rem !important;
+  }
+
+  /* ── Table sticky headers for scroll context ── */
+  main table thead th {
+    position: sticky;
+    top: 0;
+    background: var(--alkemart-surface, #fff);
+    z-index: 1;
+  }
+
+  /* ── Mercur cards: prevent horizontal overflow ── */
+  [class*="bg-ui-bg-base"][class*="rounded-xl"] {
+    max-width: 100% !important;
+    overflow: hidden;
+  }
+
+  /* ── Mercur list items: ensure touch-friendly height ── */
+  main [class*="divide-y"] > * {
+    min-height: 2.75rem;
+    display: flex;
+    align-items: center;
+  }
+
+  /* ── Mercur pagination / action bars: stack on mobile ── */
+  main [class*="flex"][class*="justify-between"] {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+}
+
+/* ── Typography hierarchy ──────────────────────────────────────────── */
+/*  Page title      → 24px 800
+    Section title   → 18px 700   (.alk-panel-title, [data-slot="header"] span)
+    Card title      → 15px 600   (h3, .alk-chart-title)
+    Body / meta     → 13px 400
+    Caption / badge → 11px 500 */
+
+h1 {
+  font-size: 1.5rem !important;
+  font-weight: 800 !important;
+  line-height: 1.2 !important;
+  color: var(--alkemart-black);
+}
+
+h2 {
+  font-size: 1.125rem !important;
+  font-weight: 700 !important;
+  line-height: 1.3 !important;
+  color: var(--alkemart-black);
+}
+
+h3 {
+  font-size: 0.9375rem !important;
+  font-weight: 600 !important;
+  line-height: 1.35 !important;
+  color: var(--alkemart-black);
+}
+
+/* ── Mercur panel titles (e.g. "Orders", "Analytics", "Products") ── */
+.alk-panel-title,
+main [data-slot="header"] span:first-child,
+main [class*="text-lg"][class*="font-semibold"],
+main [class*="text-xl"][class*="font-semibold"] {
+  font-size: 1.125rem !important;
+  font-weight: 700 !important;
+  line-height: 1.3 !important;
+  color: var(--alkemart-black) !important;
+}
+
+/* ── Mercur card / list item titles ── */
+main [class*="text-sm"][class*="font-medium"],
+.alk-chart-title,
+.alk-kpi-label {
+  font-size: 0.8125rem !important;
+  font-weight: 600 !important;
+  line-height: 1.4 !important;
+  color: var(--alkemart-subtle);
+}
+
+/* ── Breadcrumb text: subtle ── */
+main nav[aria-label="breadcrumb"] a,
+main nav[aria-label="breadcrumb"] span {
+  font-size: 0.8125rem !important;
+}
+
+/* ── Table header cells: label emphasis ── */
+main table thead th {
+  font-size: 0.75rem !important;
+  font-weight: 600 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--alkemart-subtle);
+}
+
+/* ── Body / description text ── */
+main p,
+main [class*="text-ui-fg-subtle"] {
+  font-size: 0.875rem !important;
+  line-height: 1.55;
+  color: var(--alkemart-subtle);
+}
+
+/* Ensure all yellows use token */
+[class*="bg-yellow"],
+[class*="text-yellow"],
+[style*="color: #f5c518"],
+[style*="background-color: #f5c518"] {
+  color: var(--alkemart-yellow) !important;
+  background-color: var(--alkemart-yellow) !important;
+}
+
+/* ── Scroll margin: prevent content hidden behind fixed header ── */
+main section,
+.alk-panel,
+.alk-chart-card,
+[id] {
+  scroll-margin-top: 4.5rem;
+}
+
+/* ── Focus ring: all focusable elements get visible ring ── */
+a[href]:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[role="tab"]:focus-visible,
+[role="button"]:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--alkemart-yellow);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* ── Skip-to-content: sr-only link becomes visible on focus ── */
+.skip-to-content {
+  position: absolute;
+  top: -100%;
+  left: 0.5rem;
+  z-index: 9999;
+  padding: 0.5rem 1rem;
+  background: var(--alkemart-yellow);
+  color: var(--alkemart-black);
+  font-weight: 700;
+  border-radius: var(--alkemart-radius-sm);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.skip-to-content:focus {
+  top: 0.5rem;
+}
+
+/* Respect reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

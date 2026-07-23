@@ -1,0 +1,19 @@
+{
+  "login": {
+    "title": "Admin sign in",
+    "hint": "Ops accounts only — invitation or CLI. Not for sellers or shoppers.",
+    "forgotPassword": "Forgot password? <0>Reset</0>",
+    "sessionExpired": "Your session expired — sign in again."
+  },
+  "invite": {
+    "title": "Join the ops team",
+    "hint": "Accept your invite to manage sellers, orders, and markets.",
+    "backToLogin": "Back to sign in",
+    "createAccount": "Create admin account"
+  },
+  "customFields": {
+    "title": "Custom Fields",
+    "description": "Manage your custom fields and configurations",
+    "noFields": "No custom fields configured yet"
+  }
+}

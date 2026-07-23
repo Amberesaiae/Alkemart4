@@ -1,0 +1,28 @@
+# Local Meilisearch for Alkemart product discovery (Phase 2).
+# Usage:
+#   docker compose -f docker-compose.search.yml up -d
+#   # then set MEILISEARCH_HOST / MEILISEARCH_API_KEY on apps/backend
+#
+# UI: http://localhost:7700  (master key required for most ops)
+# Docs: docs/architecture/2026-07-17-data-search-seo-ghana-adaptation-plan.md
+
+services:
+  meilisearch:
+    image: getmeili/meilisearch:v1.14
+    container_name: alkemart-meilisearch
+    ports:
+      - "7700:7700"
+    environment:
+      MEILI_ENV: development
+      MEILI_MASTER_KEY: ${MEILISEARCH_MASTER_KEY:-alkemart_dev_master_key_change_me}
+      MEILI_NO_ANALYTICS: "true"
+    volumes:
+      - alkemart_meili_data:/meili_data
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:7700/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  alkemart_meili_data:

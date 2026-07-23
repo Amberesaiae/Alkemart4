@@ -1,0 +1,107 @@
+{
+  "started_at": "2026-07-19T00:37:16.490Z",
+  "hosts": {
+    "API": "http://localhost:9000",
+    "SHOP": "http://localhost:5175",
+    "ADMIN": "http://localhost:7000",
+    "SELLER": "http://localhost:7001"
+  },
+  "phases": {
+    "0_preflight": {
+      "health": 200,
+      "shop": 200,
+      "images": [
+        "ghana-doorstep-delivery.png",
+        "ghana-marketplace.png"
+      ]
+    },
+    "1_api_rbac": {
+      "admin_email": "admin@alkemart.local",
+      "seller_email": "seller@alkemart.local",
+      "buyer_email": "live.buyer.1784421439162@alkemart.local",
+      "stores": [
+        {
+          "id": "sel_01KXR2HNRH4RF6BANREHSW98Q6",
+          "name": "Alkemart Lab Shop"
+        },
+        {
+          "id": "sel_01KXR6600053Z3W1KZSEX38484",
+          "name": "Lamp Store"
+        }
+      ],
+      "multi_store": true,
+      "denies": {
+        "seller_to_admin": 401,
+        "buyer_to_vendor": 401,
+        "open_admin": 401
+      },
+      "allows": {
+        "admin_moderation": 200,
+        "seller_onboarding": 200
+      }
+    },
+    "2_browser_seller": {
+      "landed": "http://localhost:7001/seller/orders",
+      "multi_vendor_ui": {
+        "hasLab": true,
+        "hasLamp": true
+      },
+      "selected": "Alkemart Lab Shop"
+    },
+    "3_browser_admin": {
+      "landed": "http://localhost:7000/dashboard/orders",
+      "ops_routes": {
+        "http://localhost:7000/dashboard/sellers-queue": 200,
+        "http://localhost:7000/dashboard/product-moderation": 200,
+        "http://localhost:7000/dashboard/orders": 200
+      }
+    },
+    "4_cross_role_browser": {
+      "admin_url_after_seller_session": "http://localhost:7000/dashboard/login",
+      "saw_login_gate": true,
+      "response_status": 200
+    },
+    "5_shop_catalog": {
+      "product_count": 2,
+      "sample": [
+        {
+          "id": "prod_01KXN9GVSNFQWVQZYSKBRA9ATP",
+          "title": "Golden Palm Cooking Oil 1L",
+          "offer_id": "offer_01KXN9KW1HTCNJHD0BP02J75E4"
+        },
+        {
+          "id": "prod_01KXR7HB15G2MJEX62E7H99KA6",
+          "title": "Local Rice 5kg (Lab)",
+          "offer_id": "offer_01KXR7JB9K51R6H5H6C5D75EFY"
+        }
+      ],
+      "has_offer_rows": true
+    },
+    "6_seller_product_image": {
+      "seller_id": "sel_01KXR2HNRH4RF6BANREHSW98Q6",
+      "store_name": "Alkemart Lab Shop",
+      "upload_status": 200,
+      "upload_preview": "{\"files\":[{\"id\":\"1784421502902-ghana-doorstep-delivery.png\",\"url\":\"http://localhost:9000/static/1784421502902-ghana-doorstep-delivery.png\"}]}",
+      "thumbnail": "http://localhost:9000/static/1784421502902-ghana-doorstep-delivery.png",
+      "create_status": 400,
+      "product_id": null,
+      "title": "Ghana Doorstep Bundle 2026-07-19 00:38:20",
+      "note": "create rejected or schema mismatch — see text (still valid audit signal)",
+      "create_preview": "{\"type\":\"invalid_data\",\"message\":\"Invalid request: Unrecognized fields: 'prices, manage_inventory'\"}"
+    },
+    "7_admin_moderation": {
+      "status": 200,
+      "summary": {
+        "pending_sellers": 0,
+        "rejected_applications": 0,
+        "proposed_products": 0,
+        "queues": {
+          "sellers": "/sellers-queue",
+          "products": "/product-moderation"
+        },
+        "generated_at": "2026-07-19T00:38:26.470Z"
+      }
+    }
+  },
+  "finished_at": "2026-07-19T00:38:26.488Z"
+}

@@ -1,0 +1,1 @@
+- [Dashboard Rebuild](dashboard-rebuild.md) — vendor (port 3002 /seller/) + admin (port 3001 /dashboard/) built from scratch; bun install per-app; host:true required

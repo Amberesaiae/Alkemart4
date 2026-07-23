@@ -1,0 +1,15 @@
+- [Restoring a full app from a zip into a pnpm-workspace repl](restore-app-from-zip.md) — verify copied files actually landed (esp. openapi.yaml) before trusting downstream codegen/typecheck.
+- [Drizzle pg error unwrapping](drizzle-pg-error-unwrapping.md) — Postgres error codes (e.g. FK violation 23503) live on `.cause`, not the thrown DrizzleQueryError itself.
+- [Alkemart no self-serve vendor/admin roles](alkemart-no-selfserve-roles.md) — vendor_owner/admin roles and vendor rows must be granted via direct DB insert for testing; no signup flow grants them.
+- [Alkemart Product API shape gotchas](alkemart-product-api-shape.md) — no `sort` param, no `createdAt` on Product; verify against openapi.yaml before assuming fields exist.
+- [Cross-user notification freshness](notification-query-freshness.md) — TanStack Query caches on shared layout components go stale when another user's action creates data; needs polling, not just own-mutation invalidation.
+- [Artifact router requires workspace root](artifact-router-requires-workspace-root.md) — cloned projects nested in a subdirectory get 502s on the shared proxy even though services run fine; move contents to workspace root.
+- [Paystack mobile money charge-before-order pattern](paystack-charge-before-order.md) — charge Paystack outside the DB transaction; only run the order-creating transaction after a `success` status, or a confirmed order can be created for a declined payment.
+- [Stale tsc project-reference dist](stale-tsc-project-reference-dist.md) — cross-package typecheck errors (missing exports/fields) can mean a referenced lib's dist/*.d.ts is stale, not a source bug; rebuild with `tsc -b`.
+- [Testing real Paystack momo charges in sandbox](paystack-test-momo-charges.md) — sandbox rejects arbitrary phone numbers; use Paystack's documented test mobile money numbers (e.g. 0551234987 MTN).
+- [Alkemart admin/vendor analytics endpoints](alkemart-analytics-endpoints.md) — computed on the fly from existing tables; revenue only counts confirmed+fulfilled orders; vendor analytics must stay scoped by vendorIdsFor.
+- [Schema file drifting from live DB column names](schema-vs-live-db-drift.md) — Drizzle schema.ts column strings can silently mismatch the real Postgres column; check information_schema before assuming app code is wrong.
+- [Vendor analytics chart drill-down pattern](vendor-analytics-drilldown.md) — analytics API returns full ISO timestamps, not bare dates; slice before using as an orders filter key.
+- [Alkemart admin authz pattern](alkemart-admin-authz-pattern.md) — support_agent has `read AdminPanel`, not `manage`; vendor mutations need extra isAdmin() guard inside the handler.
+- [Alkemart checkout charge/amount invariant](alkemart-checkout-amount-invariant.md) — pass chargedAmountPesewas into runCheckoutWorkflow; mismatches throw ChargeAmountMismatchError and trigger a refund.
+- [Alkemart promo usage-limit locking](alkemart-promo-race-lock.md) — FOR UPDATE on the promotions row serializes concurrent limit checks; only effective inside a transaction.

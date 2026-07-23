@@ -1,0 +1,1 @@
+export { GHANA_REGIONS_LIST as GHANA_REGIONS, GHANA_MAJOR_CITIES, GHANA_ADDRESS_COPY } from "@alkemart/shared"
