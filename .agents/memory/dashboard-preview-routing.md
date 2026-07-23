@@ -23,6 +23,19 @@ Two Medusa/Mercur dashboards are registered as proper Replit artifacts so the pr
 - **Vite proxy** (vendor → Medusa): `/vendor`, `/admin`, `/auth`, `/store` → `http://localhost:9000`
   - These rules only fire for direct port 3002 access; through the proxy they hit the admin Vite instead
 
+## Proxy stripping behaviour (confirmed)
+
+The **external** Replit proxy (`.spock.replit.dev`) strips the artifact prefix before forwarding to the local port. The **internal** proxy (`127.0.0.1:80`) used by the screenshot tool does NOT strip the prefix. This is why screenshot tests pass but the user's browser sees the "did you mean?" error.
+
+- Screenshot tool: `/seller/` → port 3002 receives `/seller/` → Vite base middleware handles normally ✓  
+- User's browser: `/seller/` → external proxy strips → port 3002 receives `/` → Vite shows "did you mean /seller/?"
+
+### Root fix: serve index.html directly from a Vite plugin
+
+Simple URL rewrite (`req.url = '/seller/'`) inside `configureServer` is undone by Vite's own base middleware which runs after and strips the prefix back to `/`.
+
+The working fix: `enforce: 'pre'` plugin that reads `index.html`, calls `server.transformIndexHtml('/seller/', raw)`, and writes the response directly for root `/` requests — bypassing Vite's base-check entirely. All subsequent asset requests (`/seller/src/main.tsx` etc.) strip the prefix correctly and Vite serves them normally.
+
 ## Key lessons
 
 1. **Artifact ID must be UUID-style** (e.g. `artifacts/admin-panel`), not a legacy path format. Legacy `id = "artifacts/alkemart"` artifacts are not routed by the proxy.
