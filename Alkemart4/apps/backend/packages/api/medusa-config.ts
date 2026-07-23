@@ -111,13 +111,15 @@ module.exports = withMercur({
   projectConfig: {
     databaseUrl: env.DATABASE_URL,
     redisUrl: env.REDIS_URL,
-    // Neon TLS: lab/dev often need relaxed verify; production still uses SSL
+    // Neon TLS: production uses SSL; set DATABASE_NO_SSL=true for local/Replit postgres
     databaseDriverOptions: {
       connection: {
         ssl:
-          process.env.DATABASE_SSL_REJECT_UNAUTHORIZED === 'true'
-            ? { rejectUnauthorized: true }
-            : { rejectUnauthorized: false },
+          process.env.DATABASE_NO_SSL === 'true'
+            ? false
+            : process.env.DATABASE_SSL_REJECT_UNAUTHORIZED === 'true'
+              ? { rejectUnauthorized: true }
+              : { rejectUnauthorized: false },
       },
     },
     http: {

@@ -24,6 +24,18 @@ args = "Vendor Dashboard"
 task = "workflow.run"
 args = "Admin Dashboard"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Medusa Redis"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Medusa Search"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Medusa Backend"
+
 [[workflows.workflow]]
 name = "Vendor Dashboard"
 author = "agent"
@@ -44,6 +56,40 @@ author = "agent"
 task = "shell.exec"
 args = "cd Alkemart4/apps/backend/apps/admin && bun run dev"
 waitForPort = 3001
+
+[workflows.workflow.metadata]
+outputType = "webview"
+
+[[workflows.workflow]]
+name = "Medusa Redis"
+author = "agent"
+
+[workflows.workflow.metadata]
+outputType = "console"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "/nix/store/9f8mvs1gssxandjg0azwjw8jlwzrmcis-redis-6.2.5/bin/redis-server --port 6379 --loglevel warning --bind 127.0.0.1"
+
+[[workflows.workflow]]
+name = "Medusa Search"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "./meilisearch --master-key devmasterkey --no-analytics --http-addr 127.0.0.1:7700"
+
+[workflows.workflow.metadata]
+outputType = "console"
+
+[[workflows.workflow]]
+name = "Medusa Backend"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd Alkemart4/apps/backend/packages/api && bun run dev"
+waitForPort = 9000
 
 [workflows.workflow.metadata]
 outputType = "webview"

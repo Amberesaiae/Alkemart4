@@ -322,6 +322,21 @@ export default async function seedDemoData({ container }: ExecArgs) {
     input: { seller_id: demoSeller.id },
   });
 
+  // Set dispatch address so the seller passes the readiness checklist (address gate)
+  const sellerModuleService = container.resolve("seller") as {
+    updateSellers: (data: unknown) => Promise<unknown>
+  };
+  await sellerModuleService.updateSellers({
+    id: demoSeller.id,
+    address: {
+      address_1: "Spintex Road, near Coca-Cola depot",
+      city: "Accra",
+      country_code: "gh",
+      province: "Greater Accra",
+      postal_code: "GA-184-1234",
+    },
+  });
+
   const { data: members } = await query.graph({
     entity: "member",
     fields: ["id"],
