@@ -9,8 +9,7 @@ const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 60_000, retry: 1 } },
 })
 
-const isDev = import.meta.env.DEV
-const router = createRouter({ routeTree, context: { queryClient }, basepath: isDev ? "/" : "/dashboard" })
+const router = createRouter({ routeTree, context: { queryClient }, basepath: "/dashboard" })
 
 declare module "@tanstack/react-router" {
   interface Register { router: typeof router }
