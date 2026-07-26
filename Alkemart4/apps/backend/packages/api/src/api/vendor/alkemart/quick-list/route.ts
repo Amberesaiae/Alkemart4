@@ -5,8 +5,10 @@
  */
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
+import { MercurModules } from "@mercurjs/types"
 import { createOffersWorkflow } from "@mercurjs/core/workflows"
 import { evaluateSellerReadiness } from "../../../../lib/seller-readiness"
+import { invalidateSellerOwnedProductIds } from "../../../../lib/seller-owned-products-cache"
 
 type SellerReq = MedusaRequest & {
   seller_context?: { seller_id?: string; member_id?: string }
@@ -123,6 +125,24 @@ export async function POST(req: SellerReq, res: MedusaResponse) {
     if (!product?.id) {
       res.status(500).json({ error: "Product creation failed." })
       return
+    }
+
+    const link = req.scope.resolve(ContainerRegistrationKeys.LINK) as {
+      create: (data: unknown) => Promise<unknown>
+    }
+    try {
+      await link.create({
+        [Modules.PRODUCT]: { product_id: product.id },
+        [MercurModules.SELLER]: { seller_id: sellerId },
+      })
+      await invalidateSellerOwnedProductIds(sellerId).catch(() => {})
+    } catch (linkErr) {
+      console.error(
+        "[alkemart] quick-list: product_seller link failed",
+        sellerId,
+        product.id,
+        linkErr instanceof Error ? linkErr.message : linkErr,
+      )
     }
 
     const { data: productData } = await query.graph({
