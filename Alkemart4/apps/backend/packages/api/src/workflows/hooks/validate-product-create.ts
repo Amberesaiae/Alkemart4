@@ -1,9 +1,3 @@
-/**
- * Minimal validate hook for mercur-create-products.
- * Does NOT block based on readiness or quality — those checks belong
- * at propose time only. Products can always be created as draft.
- * If proposed, stamps quality metadata (advisory) and passes.
- */
 import { createProductsWorkflow } from "@mercurjs/core/workflows"
 import {
   scoreProductQuality,
@@ -11,15 +5,15 @@ import {
 } from "../../lib/product-quality"
 
 type HookProduct = {
-  status?: string
-  title?: string
-  description?: string
-  thumbnail?: string
-  images?: Array<{ url?: string } | string>
-  categories?: Array<{ id?: string } | string>
-  category_ids?: string[]
-  seller_ids?: string[]
-  metadata?: Record<string, unknown>
+  status?: string | null
+  title?: string | null
+  description?: string | null
+  thumbnail?: string | null
+  images?: Array<{ url?: string } | string> | null
+  categories?: Array<{ id?: string } | string> | null
+  category_ids?: string[] | null
+  seller_ids?: string[] | null
+  metadata?: Record<string, unknown> | null
 }
 
 type HookInput = {
@@ -30,7 +24,7 @@ type HookInput = {
   products?: HookProduct[]
 }
 
-;(createProductsWorkflow.hooks as { validate: (fn: unknown) => void }).validate(
+createProductsWorkflow.hooks.validate(
   async ({ input, products }: HookInput) => {
     const list = products ?? input?.products ?? []
     const proposed = list.filter(
@@ -38,7 +32,6 @@ type HookInput = {
     )
     if (!proposed.length) return
 
-    // Stamp advisory quality metadata on each proposed product
     for (const p of proposed) {
       try {
         const quality = scoreProductQuality({
@@ -63,7 +56,7 @@ type HookInput = {
           },
         }
       } catch {
-        // Non-fatal — quality stamp is best-effort
+        /* non-fatal */
       }
     }
   },

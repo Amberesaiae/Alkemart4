@@ -1,9 +1,3 @@
-/**
- * Ensure every vendor-created product gets a product_seller row for the
- * creating seller. Mercur only links when product.seller_ids is set; Seller Hub
- * often omits it → products stay "unrestricted" and appear in every shop's list
- * under Mercur's shared-catalog filter.
- */
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { MercurModules } from "@mercurjs/types"
 import { createProductsWorkflow } from "@mercurjs/core/workflows"
@@ -19,105 +13,101 @@ type ProductsCreated = {
   }
 }
 
-;(createProductsWorkflow.hooks as { productsCreated: (fn: unknown) => void })
-  .productsCreated(
-    async (
-      args: ProductsCreated,
-      { container }: { container: { resolve: (k: string) => unknown } },
-    ) => {
-      const list = args.products || []
-      if (!list.length) return
+createProductsWorkflow.hooks.productsCreated(
+  async (
+    args: ProductsCreated,
+    { container }: { container: { resolve: (k: string) => unknown } },
+  ) => {
+    const list = args.products || []
+    if (!list.length) return
 
-      let sellerId =
-        args.additional_data?.seller_id ||
-        args.input?.additional_data?.seller_id ||
-        args.input?.created_by ||
-        args.input?.products?.flatMap((p) => p.seller_ids || []).find(Boolean) ||
-        ""
+    let sellerId =
+      args.additional_data?.seller_id ||
+      args.input?.additional_data?.seller_id ||
+      args.input?.created_by ||
+      args.input?.products?.flatMap((p) => p.seller_ids || []).find(Boolean) ||
+      ""
 
-      const query = container.resolve(ContainerRegistrationKeys.QUERY) as {
-        graph: (args: unknown) => Promise<{ data: unknown }>
-      }
-      const link = container.resolve(ContainerRegistrationKeys.LINK) as {
-        create: (data: unknown) => Promise<unknown>
-      }
+    const query = container.resolve(ContainerRegistrationKeys.QUERY) as {
+      graph: (args: unknown) => Promise<{ data: unknown }>
+    }
+    const link = container.resolve(ContainerRegistrationKeys.LINK) as {
+      create: (data: unknown) => Promise<unknown>
+    }
 
-      if (!sellerId) {
-        try {
-          const ids = list.map((p) => p.id).filter(Boolean) as string[]
-          const { data: actions } = await query.graph({
-            entity: "product_change_action",
-            fields: ["product_id", "product_change.created_by"],
-            filters: { product_id: ids },
-          })
-          const rows = Array.isArray(actions)
-            ? actions
-            : actions
-              ? [actions]
-              : []
-          for (const row of rows) {
-            const cb = (row as { product_change?: { created_by?: string } })
-              ?.product_change?.created_by
-            if (cb) {
-              sellerId = cb
-              break
-            }
-          }
-        } catch {
-          /* continue */
-        }
-      }
-
-      if (!sellerId) {
-        // WARNING: products created without seller context become orphans
-        // — they won't appear in any seller's list but the seller sees "created"
-        const orphanIds = list.map((p) => p.id).filter(Boolean)
-        console.warn(
-          `[alkemart] WARNING: ${orphanIds.length} product(s) created without seller context — orphans:`,
-          orphanIds.join(", "),
-        )
-        return
-      }
-
-      const links: Array<Record<string, { product_id?: string; seller_id?: string }>> =
-        []
-
-      for (const p of list) {
-        if (!p.id) continue
-        try {
-          const { data: existing } = await query.graph({
-            entity: "product_seller",
-            fields: ["product_id", "seller_id"],
-            filters: { product_id: p.id, seller_id: sellerId },
-          })
-          const has = Array.isArray(existing)
-            ? existing.length > 0
-            : Boolean(existing)
-          if (has) continue
-        } catch {
-          /* try create anyway */
-        }
-        links.push({
-          [Modules.PRODUCT]: { product_id: p.id },
-          [MercurModules.SELLER]: { seller_id: sellerId },
-        })
-      }
-
-      if (!links.length) {
-        // Still drop ownership cache so list reflects any concurrent link
-        await invalidateSellerOwnedProductIds(sellerId).catch(() => {})
-        return
-      }
+    if (!sellerId) {
       try {
-        await link.create(links)
-        await invalidateSellerOwnedProductIds(sellerId).catch(() => {})
-      } catch (e) {
-        console.error(
-          "[alkemart] product_seller link failed",
-          sellerId,
-          e instanceof Error ? e.message : e,
-        )
-        await invalidateSellerOwnedProductIds(sellerId).catch(() => {})
+        const ids = list.map((p) => p.id).filter(Boolean) as string[]
+        const { data: actions } = await query.graph({
+          entity: "product_change_action",
+          fields: ["product_id", "product_change.created_by"],
+          filters: { product_id: ids },
+        })
+        const rows = Array.isArray(actions)
+          ? actions
+          : actions
+            ? [actions]
+            : []
+        for (const row of rows) {
+          const cb = (row as { product_change?: { created_by?: string } })
+            ?.product_change?.created_by
+          if (cb) {
+            sellerId = cb
+            break
+          }
+        }
+      } catch {
+        /* continue */
       }
-    },
-  )
+    }
+
+    if (!sellerId) {
+      const orphanIds = list.map((p) => p.id).filter(Boolean)
+      console.warn(
+        `[alkemart] WARNING: ${orphanIds.length} product(s) created without seller context — orphans:`,
+        orphanIds.join(", "),
+      )
+      return
+    }
+
+    const links: Array<Record<string, { product_id?: string; seller_id?: string }>> =
+      []
+
+    for (const p of list) {
+      if (!p.id) continue
+      try {
+        const { data: existing } = await query.graph({
+          entity: "product_seller",
+          fields: ["product_id", "seller_id"],
+          filters: { product_id: p.id, seller_id: sellerId },
+        })
+        const has = Array.isArray(existing)
+          ? existing.length > 0
+          : Boolean(existing)
+        if (has) continue
+      } catch {
+        /* try create anyway */
+      }
+      links.push({
+        [Modules.PRODUCT]: { product_id: p.id },
+        [MercurModules.SELLER]: { seller_id: sellerId },
+      })
+    }
+
+    if (!links.length) {
+      await invalidateSellerOwnedProductIds(sellerId).catch(() => {})
+      return
+    }
+    try {
+      await link.create(links)
+      await invalidateSellerOwnedProductIds(sellerId).catch(() => {})
+    } catch (e) {
+      console.error(
+        "[alkemart] product_seller link failed",
+        sellerId,
+        e instanceof Error ? e.message : e,
+      )
+      await invalidateSellerOwnedProductIds(sellerId).catch(() => {})
+    }
+  },
+)
