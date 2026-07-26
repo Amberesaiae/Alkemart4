@@ -1,0 +1,24 @@
+[build]
+builder = "railpack"
+buildCommand = "TMPDIR=/tmp bun install && bun run build"
+
+[deploy]
+startCommand = "cd packages/api && node ./scripts/start-with-compression.mjs"
+healthcheckPath = "/health"
+healthcheckTimeout = 300
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 5
+
+# Non-secret env vars safe to commit. All secrets go in Railway dashboard.
+[env]
+NODE_ENV = "production"
+PORT = "9000"
+# S3 config: set these in Railway dashboard when Tigris/R2 is added.
+# DO NOT set FILE_DRIVER=local — the backend will crash on restart (env.ts:99-102).
+FILE_DRIVER = "s3"
+# S3_REGION, S3_ENDPOINT, S3_BUCKET, S3_ACCESS_KEY_ID, S3_SECRET_ACCESS_KEY,
+# S3_FILE_URL → Railway dashboard (Variables tab)
+# DATABASE_URL, REDIS_URL, JWT_SECRET, COOKIE_SECRET → Railway dashboard
+# PAYSTACK_SECRET_KEY, RESEND_API_KEY → Railway dashboard
+# AT_API_KEY, AT_USERNAME → Railway dashboard (Africa's Talking SMS/WhatsApp)
+# SENTRY_DSN → Railway dashboard (optional, error tracking)
