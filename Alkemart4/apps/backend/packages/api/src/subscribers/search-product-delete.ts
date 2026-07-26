@@ -1,6 +1,7 @@
 import type { SubscriberArgs, SubscriberConfig } from "@medusajs/framework"
 import { isSearchEnabled } from "../lib/search/client"
 import { deleteProductDocuments } from "../lib/search/service"
+import { logger } from "../lib/logger"
 
 export default async function searchProductDelete({
   event: { data },
@@ -12,11 +13,10 @@ export default async function searchProductDelete({
   try {
     await deleteProductDocuments([id])
   } catch (e) {
-    console.error(
-      "[search] product delete failed",
+    logger.error("[search] product delete failed", {
       id,
-      e instanceof Error ? e.message : e,
-    )
+      error: e instanceof Error ? e.message : String(e),
+    })
   }
 }
 

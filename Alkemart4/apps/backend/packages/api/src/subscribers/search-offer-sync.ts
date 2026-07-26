@@ -8,6 +8,7 @@ import {
   fetchProductsForIndex,
   upsertProductDocuments,
 } from "../lib/search/service"
+import { logger } from "../lib/logger"
 
 export default async function searchOfferSync({
   event: { data },
@@ -43,11 +44,10 @@ export default async function searchOfferSync({
     const docs = await fetchProductsForIndex(query, [productId])
     await upsertProductDocuments(docs)
   } catch (e) {
-    console.error(
-      "[search] offer sync failed",
+    logger.error("[search] offer sync failed", {
       productId,
-      e instanceof Error ? e.message : e,
-    )
+      error: e instanceof Error ? e.message : String(e),
+    })
   }
 }
 

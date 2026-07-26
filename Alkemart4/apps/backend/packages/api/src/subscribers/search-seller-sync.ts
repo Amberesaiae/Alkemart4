@@ -10,6 +10,7 @@ import {
   fetchProductsForIndex,
   upsertProductDocuments,
 } from "../lib/search/service"
+import { logger } from "../lib/logger"
 
 function asList(data: unknown): Record<string, unknown>[] {
   if (Array.isArray(data)) return data as Record<string, unknown>[]
@@ -63,11 +64,10 @@ export default async function searchSellerSync({
     const docs = await fetchProductsForIndex(query, ids)
     await upsertProductDocuments(docs)
   } catch (e) {
-    console.error(
-      "[search] seller sync failed",
+    logger.error("[search] seller sync failed", {
       sellerId,
-      e instanceof Error ? e.message : e,
-    )
+      error: e instanceof Error ? e.message : String(e),
+    })
   }
 }
 

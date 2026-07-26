@@ -38,7 +38,7 @@ export default async function productMediaPending({
     const alk = (meta.alkemart as Record<string, unknown>) || {}
     const media = (alk.media as Record<string, unknown>) || {}
     // Don't thrash ready/skipped on every update unless thumbnail changed path
-    if (media.derivatives_status === "ready" || media.derivatives_status === "skipped") {
+    if (media.derivatives_status === "ready" || media.derivatives_status === "skipped" || media.derivatives_status === "failed") {
       return
     }
 

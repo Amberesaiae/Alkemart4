@@ -5,6 +5,7 @@ import {
   fetchProductsForIndex,
   upsertProductDocuments,
 } from "../lib/search/service"
+import { logger } from "../lib/logger"
 
 /**
  * Keep discovery index in sync when products change.
@@ -26,11 +27,10 @@ export default async function searchProductSync({
     const docs = await fetchProductsForIndex(query, [id])
     await upsertProductDocuments(docs)
   } catch (e) {
-    console.error(
-      "[search] product sync failed",
+    logger.error("[search] product sync failed", {
       id,
-      e instanceof Error ? e.message : e,
-    )
+      error: e instanceof Error ? e.message : String(e),
+    })
   }
 }
 

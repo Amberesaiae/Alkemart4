@@ -4,6 +4,7 @@
  */
 import type { SubscriberArgs, SubscriberConfig } from "@medusajs/framework"
 import { invalidateCatalogCache } from "../lib/catalog-cache"
+import { logger } from "../lib/logger"
 
 export default async function catalogCacheInvalidate({
   event,
@@ -12,11 +13,10 @@ export default async function catalogCacheInvalidate({
   try {
     await invalidateCatalogCache(String(name))
   } catch (e) {
-    console.error(
-      "[catalog-cache] invalidate failed",
-      name,
-      e instanceof Error ? e.message : e,
-    )
+    logger.error("[catalog-cache] invalidate failed", {
+      eventName: name,
+      error: e instanceof Error ? e.message : String(e),
+    })
   }
 }
 
