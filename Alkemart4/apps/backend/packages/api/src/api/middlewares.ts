@@ -1,5 +1,5 @@
-import { defineMiddlewares, authenticate } from "@medusajs/medusa"
-import type { MedusaRequest, MedusaResponse, MedusaNextFunction } from "@medusajs/medusa"
+import { defineMiddlewares, authenticate } from "@medusajs/framework/http"
+import type { MedusaRequest, MedusaResponse, MedusaNextFunction } from "@medusajs/framework/http"
 import { validateVendorUploads } from "./middlewares/validate-vendor-uploads"
 import { applyStrictSellerProductFilter } from "./middlewares/strict-seller-products"
 
