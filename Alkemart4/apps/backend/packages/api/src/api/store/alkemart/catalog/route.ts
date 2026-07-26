@@ -25,13 +25,7 @@ import {
   getCatalogCache,
   setCatalogCache,
 } from "../../../../lib/catalog-cache"
-
-function asList(data: unknown): CatalogOfferRow[] {
-  if (Array.isArray(data)) return data as CatalogOfferRow[]
-  if (data && typeof data === "object") return [data as CatalogOfferRow]
-  return []
-}
-
+import { asList } from "../../../../lib/graph-utils"
 function str(v: unknown): string {
   return typeof v === "string" ? v.trim() : v != null ? String(v).trim() : ""
 }
@@ -134,14 +128,14 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
         fields: LIGHT_OFFER_FIELDS,
         filters,
       })
-      lightRows = asList(light.data)
+      lightRows = asList(light.data) as CatalogOfferRow[]
     } catch {
       // Nested filters may not be supported on all graph backends — fallback unfiltered light
       const light = await query.graph({
         entity: "offer",
         fields: LIGHT_OFFER_FIELDS,
       })
-      lightRows = asList(light.data)
+      lightRows = asList(light.data) as CatalogOfferRow[]
     }
 
     // Client-side safety filter (handles fallback + incomplete graph filters)
@@ -199,7 +193,7 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
           ...filters,
         },
       })
-      heavyRows = asList(heavy.data)
+      heavyRows = asList(heavy.data) as CatalogOfferRow[]
     } catch {
       // product_id + nested filters may conflict — filter by product_id only
       const heavy = await query.graph({
@@ -207,7 +201,7 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
         fields: HEAVY_OFFER_FIELDS,
         filters: { product_id: pageIds },
       })
-      heavyRows = asList(heavy.data)
+      heavyRows = asList(heavy.data) as CatalogOfferRow[]
     }
 
     const cards = accumulateOffersToCards(heavyRows, {

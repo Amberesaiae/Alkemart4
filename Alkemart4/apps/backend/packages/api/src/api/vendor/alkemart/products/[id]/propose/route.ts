@@ -17,18 +17,12 @@ import {
   scoreProductQuality,
   qualityMetadataSnapshot,
 } from "../../../../../../lib/product-quality"
+import { asList } from "../../../../../../lib/graph-utils"
 
 type SellerReq = MedusaRequest & {
   seller_context?: { seller_id?: string }
   session?: { seller_id?: string }
 }
-
-function asList(data: unknown): Record<string, unknown>[] {
-  if (Array.isArray(data)) return data as Record<string, unknown>[]
-  if (data && typeof data === "object") return [data as Record<string, unknown>]
-  return []
-}
-
 const rateLimitBuckets = new Map<string, { count: number; resetAt: number }>()
 const RATE_LIMIT = { max: 10, windowMs: 60_000 }
 

@@ -1,3 +1,5 @@
+import { asList } from "./graph-utils"
+
 /**
  * Seller onboarding readiness — simplified for Ghana context.
  * Only two gates: profile (name + contact) and address (pack location + region).
@@ -61,13 +63,6 @@ export type SellerSnapshot = {
 type QueryService = {
   graph: (args: unknown) => Promise<{ data: unknown }>
 }
-
-function asList(data: unknown): Record<string, unknown>[] {
-  if (Array.isArray(data)) return data as Record<string, unknown>[]
-  if (data && typeof data === "object") return [data as Record<string, unknown>]
-  return []
-}
-
 function str(v: unknown): string {
   return typeof v === "string" ? v.trim() : v != null ? String(v).trim() : ""
 }

@@ -7,13 +7,7 @@ import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { PRODUCT_REASON_CODES } from "../../../../../lib/moderation-reasons"
 import { scoreProductQuality } from "../../../../../lib/product-quality"
-
-function asList(data: unknown): Record<string, unknown>[] {
-  if (Array.isArray(data)) return data as Record<string, unknown>[]
-  if (data && typeof data === "object") return [data as Record<string, unknown>]
-  return []
-}
-
+import { asList } from "../../../../lib/graph-utils"
 export async function GET(req: MedusaRequest, res: MedusaResponse) {
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY) as {
     graph: (args: unknown) => Promise<{ data: unknown }>

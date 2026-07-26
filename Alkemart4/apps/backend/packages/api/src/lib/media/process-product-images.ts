@@ -5,17 +5,11 @@ import type { MedusaContainer } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { processImageBuffer, type ProductMediaMeta } from "./derivatives"
 import { logger } from "../logger"
+import { asList } from "../graph-utils"
 
 type QueryService = {
   graph: (args: unknown) => Promise<{ data: unknown }>
 }
-
-function asList(data: unknown): Record<string, unknown>[] {
-  if (Array.isArray(data)) return data as Record<string, unknown>[]
-  if (data && typeof data === "object") return [data as Record<string, unknown>]
-  return []
-}
-
 async function fetchBinary(url: string): Promise<Buffer | null> {
   try {
     const res = await fetch(url)

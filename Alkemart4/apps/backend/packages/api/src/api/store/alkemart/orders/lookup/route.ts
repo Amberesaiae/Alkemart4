@@ -10,18 +10,12 @@ import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { z } from "zod"
 import { checkRateLimit } from "../../../../../lib/simple-rate-limit"
+import { asList } from "../../../../../lib/graph-utils"
 
 const bodySchema = z.object({
   order_id: z.string().min(1),
   email: z.string().email(),
 })
-
-function asList(data: unknown): Record<string, unknown>[] {
-  if (Array.isArray(data)) return data as Record<string, unknown>[]
-  if (data && typeof data === "object") return [data as Record<string, unknown>]
-  return []
-}
-
 function normEmail(e: string): string {
   return e.trim().toLowerCase()
 }

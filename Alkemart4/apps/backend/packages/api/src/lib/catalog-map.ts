@@ -1,3 +1,5 @@
+import { asList } from "./graph-utils"
+
 /**
  * Pure helpers for /store/alkemart/catalog product mapping + pagination.
  */
@@ -51,13 +53,6 @@ export type CatalogOfferRow = {
     status?: unknown
   } | null
 }
-
-function asList(data: unknown): Record<string, unknown>[] {
-  if (Array.isArray(data)) return data as Record<string, unknown>[]
-  if (data && typeof data === "object") return [data as Record<string, unknown>]
-  return []
-}
-
 function str(v: unknown): string {
   return typeof v === "string" ? v.trim() : v != null ? String(v).trim() : ""
 }

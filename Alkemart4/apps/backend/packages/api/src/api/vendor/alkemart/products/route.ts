@@ -15,17 +15,11 @@ import {
   getCachedOwnedProductIds,
   setCachedOwnedProductIds,
 } from "../../../../lib/seller-owned-products-cache"
+import { asList } from "../../../../lib/graph-utils"
 
 type SellerReq = MedusaRequest & {
   seller_context?: { seller_id?: string }
 }
-
-function asList(data: unknown): Record<string, unknown>[] {
-  if (Array.isArray(data)) return data as Record<string, unknown>[]
-  if (data && typeof data === "object") return [data as Record<string, unknown>]
-  return []
-}
-
 function parseLimitOffset(q: Record<string, unknown> | undefined) {
   const limitRaw = Number(q?.limit ?? 50)
   const offsetRaw = Number(q?.offset ?? 0)

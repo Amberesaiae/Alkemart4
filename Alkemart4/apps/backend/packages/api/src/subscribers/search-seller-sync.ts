@@ -11,13 +11,7 @@ import {
   upsertProductDocuments,
 } from "../lib/search/service"
 import { logger } from "../lib/logger"
-
-function asList(data: unknown): Record<string, unknown>[] {
-  if (Array.isArray(data)) return data as Record<string, unknown>[]
-  if (data && typeof data === "object") return [data as Record<string, unknown>]
-  return []
-}
-
+import { asList } from "../lib/graph-utils"
 export default async function searchSellerSync({
   event,
   container,

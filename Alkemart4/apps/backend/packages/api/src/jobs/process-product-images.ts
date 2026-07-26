@@ -6,13 +6,7 @@ import type { MedusaContainer } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { processProductImages } from "../lib/media/process-product-images"
 import { logger } from "../lib/logger"
-
-function asList(data: unknown): Record<string, unknown>[] {
-  if (Array.isArray(data)) return data as Record<string, unknown>[]
-  if (data && typeof data === "object") return [data as Record<string, unknown>]
-  return []
-}
-
+import { asList } from "../lib/graph-utils"
 export default async function processProductImagesJob(
   container: MedusaContainer,
 ) {

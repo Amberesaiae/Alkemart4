@@ -11,13 +11,7 @@ import {
   evaluateSellerChecklist,
   type SellerSnapshot,
 } from "../../../../../lib/seller-readiness"
-
-function asList(data: unknown): Record<string, unknown>[] {
-  if (Array.isArray(data)) return data as Record<string, unknown>[]
-  if (data && typeof data === "object") return [data as Record<string, unknown>]
-  return []
-}
-
+import { asList } from "../../../../lib/graph-utils"
 export async function GET(req: MedusaRequest, res: MedusaResponse) {
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY) as {
     graph: (args: unknown) => Promise<{ data: unknown }>

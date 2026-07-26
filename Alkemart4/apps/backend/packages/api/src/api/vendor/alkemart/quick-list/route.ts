@@ -9,18 +9,12 @@ import { MercurModules } from "@mercurjs/types"
 import { createOffersWorkflow } from "@mercurjs/core/workflows"
 import { evaluateSellerReadiness } from "../../../../lib/seller-readiness"
 import { invalidateSellerOwnedProductIds } from "../../../../lib/seller-owned-products-cache"
+import { asList } from "../../../../lib/graph-utils"
 
 type SellerReq = MedusaRequest & {
   seller_context?: { seller_id?: string; member_id?: string }
   session?: { seller_id?: string }
 }
-
-function asList(data: unknown): Record<string, unknown>[] {
-  if (Array.isArray(data)) return data as Record<string, unknown>[]
-  if (data && typeof data === "object") return [data as Record<string, unknown>]
-  return []
-}
-
 export async function POST(req: SellerReq, res: MedusaResponse) {
   const sellerId =
     req.seller_context?.seller_id ||

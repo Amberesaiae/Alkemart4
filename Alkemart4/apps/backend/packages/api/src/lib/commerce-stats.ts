@@ -3,17 +3,11 @@
  * Not a warehouse, not mock data — ops snapshot for Admin / Seller Hub.
  */
 import type { SearchProductDocument } from "./search/types"
+import { asList } from "./graph-utils"
 
 type QueryService = {
   graph: (args: unknown) => Promise<{ data: unknown; metadata?: { count?: number } }>
 }
-
-function asList(data: unknown): Record<string, unknown>[] {
-  if (Array.isArray(data)) return data as Record<string, unknown>[]
-  if (data && typeof data === "object") return [data as Record<string, unknown>]
-  return []
-}
-
 /** Coerce Medusa money fields (number | string | BigNumberJSON | nested). */
 export function moneyAmount(v: unknown): number {
   if (v == null) return 0

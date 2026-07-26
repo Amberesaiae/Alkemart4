@@ -5,18 +5,12 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { scoreProductQuality } from "../../../../../../lib/product-quality"
+import { asList } from "../../../../../../lib/graph-utils"
 
 type SellerReq = MedusaRequest & {
   seller_context?: { seller_id?: string }
   session?: { seller_id?: string }
 }
-
-function asList(data: unknown): Record<string, unknown>[] {
-  if (Array.isArray(data)) return data as Record<string, unknown>[]
-  if (data && typeof data === "object") return [data as Record<string, unknown>]
-  return []
-}
-
 export async function GET(req: SellerReq, res: MedusaResponse) {
   const productId = req.params.id
   if (!productId) {

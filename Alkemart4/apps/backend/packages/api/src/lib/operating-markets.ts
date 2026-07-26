@@ -1,3 +1,5 @@
+import { asList } from "./graph-utils"
+
 /**
  * Operating markets — canonical country-gated config for alkemart.
  *
@@ -213,13 +215,6 @@ export type OperatingMarket = {
 type QueryService = {
   graph: (args: unknown) => Promise<{ data: unknown }>
 }
-
-function asList(data: unknown): Record<string, unknown>[] {
-  if (Array.isArray(data)) return data as Record<string, unknown>[]
-  if (data && typeof data === "object") return [data as Record<string, unknown>]
-  return []
-}
-
 /**
  * Build operating markets from Medusa regions (admin-gated countries in operation).
  * Only countries attached to a region appear — that is the foundation gate.
