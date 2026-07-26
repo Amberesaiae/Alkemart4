@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { useState, useRef } from "react"
 import { useUploadImage, useQuickSell } from "../lib/hooks"
-import { Button, Input, Label, Card } from "../components/ui"
+import { Button, Input, Label, Card } from "@workspace/ui"
 import { UploadCloud, Image as ImageIcon, ArrowRight, CheckCircle2, ChevronLeft } from "lucide-react"
 
 export const Route = createFileRoute('/quick-sell')({

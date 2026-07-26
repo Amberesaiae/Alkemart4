@@ -4,7 +4,6 @@ import { useQuery } from "@tanstack/react-query"
 import {
   CategoryMosaic,
   HomeAdvertiseBand,
-  HomeDeliveryBand,
   HomeHowItWorks,
   HomeLastOffers,
 } from "@/components/home"
@@ -147,7 +146,6 @@ function HomePage() {
           </a>
         </p>
       ) : null}
-      <HomeDeliveryBand />
       <HomeHowItWorks />
       <HomeAdvertiseBand ctaHref={sellUrl || undefined} ctaTo="/sell" />
     </div>

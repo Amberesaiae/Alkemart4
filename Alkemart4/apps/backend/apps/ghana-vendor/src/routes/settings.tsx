@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router"
 import { useState, useEffect } from "react"
 import { useSellerProfile, useUpdateProfile, useUpdateAddress, useUpdatePayment } from "../lib/hooks"
-import { Card, Button, Input, Label, Select } from "../components/ui"
+import { Card, Button, Input, Label, Select } from "@workspace/ui"
 import {
   GHANA_REGIONS,
   GHANA_UI,

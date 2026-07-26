@@ -76,6 +76,7 @@ export function AppFooter({ sellUrl = "" }: Props) {
           <FooterLink to="/about">About Us</FooterLink>
           <FooterLink to="/contact">Contact Us</FooterLink>
           <FooterLink to="/help">Help & FAQ</FooterLink>
+          <FooterLink to="/delivery">Delivery</FooterLink>
           <FooterLink to="/privacy">Privacy</FooterLink>
           <FooterLink to="/partners">Partners</FooterLink>
         </FooterCol>

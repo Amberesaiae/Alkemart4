@@ -5,7 +5,7 @@ import { ProductCard } from "@/components/product-card"
 import { ProductGridShell } from "@/components/product-grid"
 import { EmptyState } from "@/components/empty-state"
 import { ProductGridSkeleton } from "@/components/skeleton"
-import { Button } from "@/components/ui/button"
+import { Button } from "@workspace/ui"
 import {
   SearchFacets,
   type ActiveFilters,
@@ -160,7 +160,7 @@ function SearchPage() {
         <div className="flex flex-1 flex-col items-center justify-center px-4">
           <div className="w-full max-w-xl">
             <form onSubmit={submit} role="search" aria-label="Site search" className="relative">
-              <span className="pointer-events-none absolute left-4 sm:left-5 top-1/2 -translate-y-1/2 text-[#1a1a1a]/50">
+              <span className="pointer-events-none absolute left-4 sm:left-5 top-1/2 -translate-y-1/2 text-[ink]/50">
                 <IconSafe name="search" size={22} />
               </span>
               <input
@@ -168,7 +168,7 @@ function SearchPage() {
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
                 placeholder="Search alkemart"
-                className="h-14 sm:h-16 w-full rounded-2xl border-0 bg-white/95 py-2 pl-12 sm:pl-14 pr-6 text-base sm:text-lg text-[#1a1a1a] shadow-lg shadow-black/5 outline-none placeholder:text-[#1a1a1a]/35 focus:ring-2 focus:ring-[#1a1a1a]/20 focus-visible:ring-2 focus-visible:ring-[#1a1a1a]/30"
+                className="h-14 sm:h-16 w-full rounded-2xl border-0 bg-white/95 py-2 pl-12 sm:pl-14 pr-6 text-base sm:text-lg text-[ink] shadow-lg shadow-black/5 outline-none placeholder:text-[ink]/35 focus:ring-2 focus:ring-[ink]/20 focus-visible:ring-2 focus-visible:ring-[ink]/30"
                 aria-label="Search products"
                 autoFocus
                 autoComplete="off"
@@ -180,9 +180,9 @@ function SearchPage() {
               <section className="mt-8 w-full" aria-label="Recent searches">
                 <div className="flex flex-wrap gap-2">
                   {recent.map((term) => (
-                    <span key={term} className="inline-flex items-center gap-1 rounded-xl border border-[#1a1a1a]/15 bg-white/70 px-4 py-2 text-sm text-[#1a1a1a] shadow-sm">
+                    <span key={term} className="inline-flex items-center gap-1 rounded-xl border border-[ink]/15 bg-white/70 px-4 py-2 text-sm text-[ink] shadow-sm">
                       <button type="button" onClick={() => popularClick(term)} className="min-h-11 font-medium">{term}</button>
-                      <button type="button" onClick={() => removeQuery(term)} className="ml-0.5 inline-flex min-h-9 min-w-9 items-center justify-center rounded-lg text-[#1a1a1a]/40 hover:bg-[#1a1a1a]/10 hover:text-[#1a1a1a]" aria-label={`Remove ${term}`}>✕</button>
+                      <button type="button" onClick={() => removeQuery(term)} className="ml-0.5 inline-flex min-h-9 min-w-9 items-center justify-center rounded-lg text-[ink]/40 hover:bg-[ink]/10 hover:text-[ink]" aria-label={`Remove ${term}`}>✕</button>
                     </span>
                   ))}
                 </div>

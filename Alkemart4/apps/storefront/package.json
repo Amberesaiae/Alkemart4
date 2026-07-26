@@ -15,6 +15,8 @@
   },
   "dependencies": {
     "@medusajs/js-sdk": "^2.17.2",
+    "@workspace/ui": "workspace:*",
+    "@alkemart/shared": "workspace:*",
     "@radix-ui/react-avatar": "^1.2.2",
     "@radix-ui/react-slot": "^1.2.4",
     "@sentry/react": "^10.66.0",

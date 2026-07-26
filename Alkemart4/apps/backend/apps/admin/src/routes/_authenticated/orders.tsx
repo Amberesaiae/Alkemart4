@@ -1,8 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router"
 import { useState } from "react"
 import { useOrders } from "../../hooks/use-orders"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../components/ui/Table"
-import { Badge } from "../../components/ui/Badge"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@workspace/ui"
+import { Badge } from "@workspace/ui"
 
 export const Route = createFileRoute("/_authenticated/orders")({
   component: OrdersPage,

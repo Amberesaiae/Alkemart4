@@ -19,7 +19,7 @@ ADR: `docs/architecture/2026-07-16-clean-slate-backend.md`
 apps/backend/
   packages/api/     Medusa + Mercur API (port 9000)
   apps/admin/       Platform admin UI → /dashboard
-  apps/vendor/      Seller UI → /seller
+  apps/ghana-vendor/      Seller UI → /seller
   blocks.json       Mercur block registry config
 ```
 

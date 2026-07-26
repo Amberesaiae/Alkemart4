@@ -2,6 +2,7 @@ import browseArt from "@/assets/illustrations/how-browse.png"
 import compareArt from "@/assets/illustrations/how-compare.png"
 import payArt from "@/assets/illustrations/how-pay.png"
 import deliverArt from "@/assets/illustrations/how-deliver.png"
+import { Link } from "@tanstack/react-router"
 import { cn } from "@/lib/utils"
 
 type Step = {
@@ -43,48 +44,47 @@ type Props = {
   title?: string
 }
 
-/**
- * How it works — same compact strip pattern as HomeDeliveryBand:
- * horizontal [art | copy] rows (not tall image-on-top cards).
- */
 export function HomeHowItWorks({
   className,
   title = "How alkemart works",
 }: Props) {
   return (
     <section
-      className={cn("space-y-3", className)}
+      className={cn("space-y-4 sm:space-y-6", className)}
       aria-labelledby="how-alkemart-works"
     >
       <div className="flex flex-wrap items-end justify-between gap-2">
         <h2 id="how-alkemart-works" className="type-section text-foreground">
           {title}
         </h2>
-        <p className="type-sm font-medium text-muted-foreground">
-          Browse → deliver
-        </p>
+        <Link
+          to="/delivery"
+          className="type-sm font-semibold text-primary underline-offset-2 hover:underline"
+        >
+          Delivery details
+        </Link>
       </div>
 
-      <ol className="grid gap-2.5 sm:grid-cols-2 sm:gap-3">
+      <ol className="grid gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4 lg:gap-5">
         {STEPS.map((step, i) => (
           <li
             key={step.id}
             className={cn(
-              "flex items-center gap-3 rounded-xl border border-border bg-card",
-              "px-3 py-3 shadow-sm sm:gap-4 sm:px-4 sm:py-3.5",
+              "flex items-center gap-4 rounded-xl shadow-sm sm:gap-5",
+              "bg-[var(--footer-bg)] px-4 py-4 sm:px-5 sm:py-5",
+              "shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06)]",
             )}
           >
-            {/* Art plate — same scale language as delivery band */}
             <div
               className={cn(
-                "relative flex shrink-0 items-center justify-center rounded-lg bg-muted/60",
-                "size-14 sm:size-20",
+                "relative flex shrink-0 items-center justify-center rounded-lg",
+                "bg-primary/10 size-16 sm:size-20",
               )}
             >
               <span
                 className={cn(
-                  "absolute -left-1 -top-1 flex items-center justify-center rounded-full bg-primary",
-                  "size-5 text-[0.65rem] font-extrabold text-primary-foreground sm:size-6 sm:text-xs",
+                  "absolute -left-1.5 -top-1.5 flex items-center justify-center rounded-full bg-primary",
+                  "size-6 text-xs font-extrabold text-primary-foreground sm:size-7 sm:text-sm",
                 )}
                 aria-hidden="true"
               >
@@ -95,17 +95,17 @@ export function HomeHowItWorks({
                 alt=""
                 width={80}
                 height={80}
-                className="size-10 object-contain sm:size-14"
+                className="size-11 object-contain sm:size-14"
                 decoding="async"
                 loading="lazy"
               />
             </div>
 
-            <div className="min-w-0 flex-1 space-y-0.5">
-              <h3 className="text-sm font-bold tracking-tight text-foreground sm:text-base">
+            <div className="min-w-0 flex-1 space-y-1">
+              <h3 className="text-base font-bold tracking-tight text-white/90 sm:text-lg">
                 {step.title}
               </h3>
-              <p className="text-xs leading-snug text-muted-foreground sm:type-sm sm:leading-relaxed">
+              <p className="text-sm leading-snug text-white/60 sm:text-base sm:leading-relaxed">
                 {step.body}
               </p>
             </div>

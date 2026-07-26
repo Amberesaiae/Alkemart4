@@ -1,8 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router"
 import { useState } from "react"
 import { useSellers } from "../../hooks/use-sellers"
-import { Button } from "../../components/ui/Button"
-import { Modal } from "../../components/ui/Modal"
+import { Button } from "@workspace/ui"
+import { Modal } from "@workspace/ui"
 
 export const Route = createFileRoute("/_authenticated/sellers-queue")({
   component: SellersQueuePage,

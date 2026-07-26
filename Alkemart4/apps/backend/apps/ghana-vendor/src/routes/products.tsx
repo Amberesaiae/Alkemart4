@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router"
 import { useProducts, useProposeProduct } from "../lib/hooks"
-import { Card, Button, Badge } from "../components/ui"
+import { Card, Button, Badge } from "@workspace/ui"
 import { PlusCircle, Search, MoreVertical, CheckCircle, Clock, AlertCircle } from "lucide-react"
 
 export const Route = createFileRoute('/products')({

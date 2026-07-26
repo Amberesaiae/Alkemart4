@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react"
 import { createFileRoute, Link } from "@tanstack/react-router"
 import { useQuery } from "@tanstack/react-query"
-import { Button } from "@/components/ui/button"
+import { Button } from "@workspace/ui"
 import { Price } from "@/components/price"
 import { SellerChip } from "@/components/seller-chip"
 import { Skeleton } from "@/components/skeleton"

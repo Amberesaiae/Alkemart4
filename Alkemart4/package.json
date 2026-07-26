@@ -34,10 +34,13 @@
   },
   "dependencies": {},
   "workspaces": [
-    "apps/storefront",
     "apps/backend",
+    "apps/backend/apps/admin",
+    "apps/backend/apps/ghana-vendor",
     "packages/shared",
-    "scripts"
+    "packages/ui",
+    "scripts",
+    "apps/storefront"
   ],
   "packageManager": "bun@1.3.14"
 }

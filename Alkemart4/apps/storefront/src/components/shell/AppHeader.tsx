@@ -2,7 +2,7 @@ import { Link, useNavigate, useRouterState } from "@tanstack/react-router"
 import { useRef, useState, useEffect, type FormEvent, type ReactNode } from "react"
 import { IconSafe } from "@/design/icons"
 import { BrandLogo } from "@/components/shell/BrandLogo"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Avatar, AvatarFallback } from "@workspace/ui"
 import { cn } from "@/lib/utils"
 
 export type AppHeaderProps = {

@@ -29,12 +29,15 @@
   --color-border: var(--border);
   --color-destructive: var(--destructive);
   --color-ring: var(--ring);
+  --color-ink: var(--ink);
 }
 
 :root {
-  --primary: #febf31;
+  --primary: #FEBF31;
   /* Dark ink on gold — WCAG AA for bold UI on primary buttons */
   --primary-foreground: #1a1a1a;
+  /* Brand ink — used for logo wordmark, text on light surfaces */
+  --ink: #1a1a1a;
   --background: #f0f0f0;
   --foreground: #2a2a2a;
   --card: #ffffff;
@@ -240,7 +243,7 @@ html {
   --dept-soft: #e6faf8;
 }
 .theme-dept-food {
-  --dept-bg: #febf31;
+  --dept-bg: #FEBF31;
   --dept-fg: #3c3c3b;
   --dept-soft: #fff8e0;
 }
@@ -363,6 +366,12 @@ html {
 .home-band-primary {
   background-color: var(--primary);
   color: var(--primary-foreground);
+}
+
+/* Delivery page — near-black from illustration palette (#080807), gold accents */
+.delivery-page {
+  background-color: #080807;
+  color: #f0f0f0;
 }
 
 .surface-cream {

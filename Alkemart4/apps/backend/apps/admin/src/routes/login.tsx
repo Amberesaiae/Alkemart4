@@ -1,9 +1,9 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { useState } from "react"
 import { useAuth } from "../hooks/use-auth"
-import { Button } from "../components/ui/Button"
-import { Input } from "../components/ui/Input"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/Card"
+import { Button } from "@workspace/ui"
+import { Input } from "@workspace/ui"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@workspace/ui"
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
@@ -31,10 +31,12 @@ function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md shadow-lg border-none">
         <CardHeader className="text-center pb-2">
-          <div className="mx-auto bg-[--ink] w-12 h-12 rounded-lg flex items-center justify-center mb-4">
-            <span className="text-primary text-xl font-bold">●</span>
+          <div className="mx-auto mb-4">
+            <span className="text-3xl font-extrabold tracking-tight text-foreground">
+              alkemart<span className="text-primary">.</span>
+            </span>
           </div>
-          <CardTitle className="text-2xl font-bold tracking-tight">Alkemart Control</CardTitle>
+          <CardTitle className="text-xl font-bold tracking-tight">Ops Login</CardTitle>
           <CardDescription>Sign in to manage the marketplace</CardDescription>
         </CardHeader>
         <CardContent>

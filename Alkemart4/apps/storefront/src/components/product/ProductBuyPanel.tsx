@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router"
-import { Button } from "@/components/ui/button"
+import { Button } from "@workspace/ui"
 import { Price } from "@/components/price"
 import { QtyStepper } from "@/components/qty-stepper"
 import { cn } from "@/lib/utils"

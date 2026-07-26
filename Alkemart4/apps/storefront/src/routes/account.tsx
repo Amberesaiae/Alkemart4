@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
 import { requireAuth } from "@/lib/route-guards"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { Button } from "@/components/ui/button"
+import { Button } from "@workspace/ui"
 import { EmptyState } from "@/components/empty-state"
 import { Skeleton } from "@/components/skeleton"
 import { FormField } from "@/components/form-field"

@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router"
-import { Button } from "@/components/ui/button"
+import { Button } from "@workspace/ui"
 import { Illustration } from "@/components/illustration"
 import { getMercurVendorUrl } from "@/lib/env"
 

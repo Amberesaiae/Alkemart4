@@ -1,8 +1,7 @@
 import { Link, useRouterState } from "@tanstack/react-router"
 import { ChartColumn, Package, Store, ShoppingCart, Globe, LogOut } from "lucide-react"
 import { useAuth } from "../../hooks/use-auth"
-import { cn } from "../../lib/utils"
-import { Button } from "../ui/Button"
+import { cn, Button } from "@workspace/ui"
 
 const NAV_ITEMS = [
   { href: "/analytics", label: "Analytics", icon: ChartColumn },

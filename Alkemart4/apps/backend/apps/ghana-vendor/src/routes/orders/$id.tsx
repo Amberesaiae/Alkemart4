@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useParams } from "@tanstack/react-router"
 import { useState } from "react"
 import { useOrder, useFulfillOrder, useShipOrder, useDeliverOrder } from "../../lib/hooks"
-import { Card, Button, Badge, Input } from "../../components/ui"
+import { Card, Button, Badge, Input } from "@workspace/ui"
 import { ArrowLeft, Box, Truck, CheckCircle2, User, MapPin } from "lucide-react"
 import { format } from "date-fns"
 

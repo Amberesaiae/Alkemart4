@@ -1,9 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router"
 import { useState } from "react"
 import { useProducts } from "../../hooks/use-products"
-import { Button } from "../../components/ui/Button"
-import { Badge } from "../../components/ui/Badge"
-import { Modal } from "../../components/ui/Modal"
+import { Button } from "@workspace/ui"
+import { Badge } from "@workspace/ui"
+import { Modal } from "@workspace/ui"
 
 export const Route = createFileRoute("/_authenticated/product-moderation")({
   component: ProductModerationPage,

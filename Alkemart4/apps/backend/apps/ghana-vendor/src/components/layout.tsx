@@ -1,7 +1,7 @@
 import { Link, useRouterState } from "@tanstack/react-router"
 import { LayoutDashboard, Package, ShoppingBag, Settings, LogOut, Store } from "lucide-react"
 import { useCurrentUser, useLogout } from "../lib/auth"
-import { cn, Button } from "./ui"
+import { cn, Button } from "@workspace/ui"
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const { data: user } = useCurrentUser()
@@ -18,7 +18,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-[100dvh] w-full bg-background flex-col md:flex-row">
       {/* Desktop Sidebar */}
-      <aside className="hidden md:flex w-64 flex-col border-r border-border bg-[#1a1a1a] text-white">
+      <aside className="hidden md:flex w-64 flex-col border-r border-border bg-ink text-white">
         <div className="p-6 border-b border-white/10 flex flex-col items-center text-center gap-3">
           <div className="h-16 w-16 rounded-full bg-primary flex items-center justify-center text-primary-foreground shadow-lg">
             <Store className="h-8 w-8" />
@@ -63,7 +63,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col min-w-0 pb-20 md:pb-0 overflow-y-auto">
-        <div className="md:hidden flex items-center justify-between p-4 bg-[#1a1a1a] text-white sticky top-0 z-20 shadow-sm">
+        <div className="md:hidden flex items-center justify-between p-4 bg-ink text-white sticky top-0 z-20 shadow-sm">
           <div className="flex items-center gap-2">
             <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground">
               <Store className="h-4 w-4" />
@@ -77,7 +77,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
       </main>
 
       {/* Mobile Bottom Tab Bar */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-[#1a1a1a] text-white/70 border-t border-white/10 flex justify-around items-center p-2 pb-safe z-50">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-ink text-white/70 border-t border-white/10 flex justify-around items-center p-2 pb-safe z-50">
         {navItems.map((item) => {
           const isActive = item.to === "/" ? router.location.pathname === "/seller" || router.location.pathname === "/seller/" : router.location.pathname.startsWith(`/seller${item.to}`)
           return (

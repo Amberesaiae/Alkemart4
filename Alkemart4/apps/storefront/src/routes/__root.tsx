@@ -172,7 +172,7 @@ function Shell() {
           Skip to content
         </a>
         {isSearchPage ? (
-          <div className="flex min-h-screen flex-col bg-[#febf31]">
+          <div className="flex min-h-screen flex-col bg-primary">
             <SearchMicroHeader />
             <main id="main" tabIndex={-1} className="flex flex-1 flex-col outline-none">
               <Outlet />

@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { useState } from "react"
 import { useRegister } from "../lib/auth"
-import { Button, Input, Label, Card } from "../components/ui"
+import { Button, Input, Label, Card } from "@workspace/ui"
 
 export const Route = createFileRoute('/register')({
   component: RegisterPage,
@@ -25,10 +25,15 @@ function RegisterPage() {
   }
 
   return (
-    <div className="min-h-[100dvh] flex flex-col bg-[#1a1a1a] items-center justify-center p-4 text-white">
+    <div className="min-h-[100dvh] flex flex-col bg-ink items-center justify-center p-4 text-white">
       <div className="w-full max-w-sm flex flex-col items-center">
         <div className="mb-8 text-center">
-          <h1 className="text-3xl font-black text-white tracking-tight">Claim Your Stall</h1>
+          <div className="mb-4">
+            <span className="text-3xl font-extrabold tracking-tight text-white">
+              alkemart<span className="text-primary">.</span>
+            </span>
+          </div>
+          <h1 className="text-2xl font-black text-white tracking-tight">Claim Your Stall</h1>
           <p className="text-white/60 mt-2 font-medium">Start selling on Alkemart today.</p>
         </div>
 

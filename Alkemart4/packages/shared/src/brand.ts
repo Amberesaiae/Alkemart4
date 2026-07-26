@@ -6,8 +6,8 @@ export const brand = {
   description:
     "Multi-seller marketplace for Ghana — compare prices and pay cash on delivery.",
   faviconSrc: "/logo.svg",
-  primary: "#F5C518",
-  ink: "#141414",
+  primary: "#FEBF31",
+  ink: "#1a1a1a",
 } as const
 
 export type Brand = typeof brand

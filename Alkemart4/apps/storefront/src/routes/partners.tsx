@@ -1,5 +1,5 @@
 import { createFileRoute, Link, Navigate } from "@tanstack/react-router"
-import { Button } from "@/components/ui/button"
+import { Button } from "@workspace/ui"
 import { Illustration } from "@/components/illustration"
 import type { IllustrationKey } from "@/lib/illustrations"
 import {

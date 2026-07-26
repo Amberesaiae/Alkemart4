@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router"
 import { useDashboardStats, useOrders } from "../lib/hooks"
-import { Card, Button, Badge, cn } from "../components/ui"
+import { Card, Button, Badge, cn } from "@workspace/ui"
 import { ArrowRight, Package, TrendingUp, ShoppingBag, Clock, PlusCircle } from "lucide-react"
 import { format } from "date-fns"
 

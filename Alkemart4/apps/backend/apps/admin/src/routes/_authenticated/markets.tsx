@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router"
 import { useMarkets } from "../../hooks/use-markets"
-import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/Card"
+import { Card, CardContent, CardHeader, CardTitle } from "@workspace/ui"
 import { Globe2 } from "lucide-react"
 
 export const Route = createFileRoute("/_authenticated/markets")({

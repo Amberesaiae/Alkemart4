@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react"
 import { createFileRoute, Link } from "@tanstack/react-router"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { Button } from "@/components/ui/button"
+import { Button } from "@workspace/ui"
 import { Price } from "@/components/price"
 import { ProductCard } from "@/components/product-card"
 import { ProductGridShell } from "@/components/product-grid"

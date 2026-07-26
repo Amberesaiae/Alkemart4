@@ -42,15 +42,7 @@ const alkemartModules: Array<Record<string, unknown>> = [
       viteDevServerPort: 7002,
     },
   },
-  // Legacy Mercur vendor panel (full product/offer mgmt) — uncomment to restore
-  // {
-  //   resolve: '@mercurjs/core/modules/vendor-ui',
-  //   options: {
-  //     appDir: dashboardAppDir('vendor'),
-  //     path: '/seller-legacy',
-  //     viteDevServerPort: 7001,
-  //   },
-  // },
+
   {
     resolve: '@medusajs/medusa/file',
     options: {

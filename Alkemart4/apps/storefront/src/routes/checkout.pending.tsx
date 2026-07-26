@@ -5,7 +5,7 @@
 import { useEffect, useState } from "react"
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
 import { useQuery } from "@tanstack/react-query"
-import { Button } from "@/components/ui/button"
+import { Button } from "@workspace/ui"
 import { pollMomoCheckoutStatus } from "@/lib/checkout"
 import { PageSeo } from "@/components/page-seo"
 import { maskOrderId } from "@/lib/orders"

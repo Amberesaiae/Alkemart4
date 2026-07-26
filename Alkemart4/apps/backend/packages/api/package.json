@@ -48,7 +48,6 @@
   },
   "devDependencies": {
     "@acme/admin": "*",
-    "@acme/vendor": "*",
     "@alkemart/ghana-vendor": "*",
     "@medusajs/test-utils": "2.17.2",
     "@swc/core": "^1.7.28",

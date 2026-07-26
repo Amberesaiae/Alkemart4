@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router"
 import { useStats } from "../../hooks/use-stats"
-import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/Card"
+import { Card, CardContent, CardHeader, CardTitle } from "@workspace/ui"
 import { ShoppingCart, DollarSign, Store, Package } from "lucide-react"
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
 
@@ -98,7 +98,7 @@ function AnalyticsPage() {
                   />
                   <Tooltip 
                     contentStyle={{ backgroundColor: 'var(--card)', borderRadius: '8px', border: '1px solid var(--border)' }}
-                    labelFormatter={(val) => new Date(val).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                    labelFormatter={(val) => new Date(String(val)).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
                     formatter={(val: any) => [`₵${Number(val).toLocaleString(undefined, { minimumFractionDigits: 2 })}`, 'Revenue']}
                   />
                   <Area 

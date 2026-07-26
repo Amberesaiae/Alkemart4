@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react"
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { Button } from "@/components/ui/button"
+import { Button } from "@workspace/ui"
 import { FormField } from "@/components/form-field"
 import { login, register } from "@/lib/auth"
 import { cn } from "@/lib/utils"

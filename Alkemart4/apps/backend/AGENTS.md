@@ -16,7 +16,7 @@ It covers the domain model (sellers, products, offers, attributes, commissions, 
 ```
 ├── packages/api/         # Backend API — modules, workflows, links, subscribers
 ├── apps/admin/           # Admin dashboard — operator panel
-├── apps/vendor/          # Vendor portal — seller dashboard
+├── apps/ghana-vendor/    # Vendor portal — seller dashboard
 └── blocks.json           # Block configuration and registry aliases
 ```
 
@@ -32,7 +32,7 @@ It covers the domain model (sellers, products, offers, attributes, commissions, 
 - `blocks.json` — block configuration and registry path aliases
 - `packages/api/medusa-config.ts` — MedusaJS configuration
 - `apps/admin/vite.config.ts` — admin dashboard build config
-- `apps/vendor/vite.config.ts` — vendor portal build config
+- `apps/ghana-vendor/vite.config.ts` — vendor portal build config
 
 ## Getting Started
 
@@ -63,7 +63,7 @@ It covers the domain model (sellers, products, offers, attributes, commissions, 
 ```
 ├── packages/api/         # Backend API — modules, workflows, links, subscribers
 ├── apps/admin/           # Admin dashboard — operator panel
-├── apps/vendor/          # Vendor portal — seller dashboard
+├── apps/ghana-vendor/    # Vendor portal — seller dashboard
 └── blocks.json           # Block configuration and registry aliases
 ```
 
@@ -79,7 +79,7 @@ It covers the domain model (sellers, products, offers, attributes, commissions, 
 - `blocks.json` — block configuration and registry path aliases
 - `packages/api/medusa-config.ts` — MedusaJS configuration
 - `apps/admin/vite.config.ts` — admin dashboard build config
-- `apps/vendor/vite.config.ts` — vendor portal build config
+- `apps/ghana-vendor/vite.config.ts` — vendor portal build config
 
 ## Getting Started
 

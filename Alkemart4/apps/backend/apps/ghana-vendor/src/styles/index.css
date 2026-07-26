@@ -20,11 +20,14 @@
   --color-border: var(--border);
   --color-destructive: var(--destructive);
   --color-ring: var(--ring);
+  --color-ink: var(--ink);
 }
 
 :root {
-  --primary: #febf31;
+  --primary: #FEBF31;
   --primary-foreground: #1a1a1a;
+  /* Brand ink — sidebar, dark surfaces */
+  --ink: #1a1a1a;
   --background: #f0f0f0;
   --foreground: #2a2a2a;
   --card: #ffffff;

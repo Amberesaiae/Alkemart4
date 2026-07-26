@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router"
 import { useState } from "react"
 import { useOrders } from "../../lib/hooks"
-import { Card, Badge, Button } from "../../components/ui"
+import { Card, Badge, Button } from "@workspace/ui"
 import { format } from "date-fns"
 import { Search, Filter, ShoppingBag } from "lucide-react"
 
