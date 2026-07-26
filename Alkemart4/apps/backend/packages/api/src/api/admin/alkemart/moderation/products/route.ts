@@ -7,10 +7,10 @@ import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { PRODUCT_REASON_CODES } from "../../../../../lib/moderation-reasons"
 import { scoreProductQuality } from "../../../../../lib/product-quality"
-import { asList } from "../../../../lib/graph-utils"
+import { asList } from "../../../../../lib/graph-utils"
 export async function GET(req: MedusaRequest, res: MedusaResponse) {
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY) as {
-    graph: (args: unknown) => Promise<{ data: unknown }>
+    graph: (args: unknown) => Promise<{ data: unknown; metadata?: unknown }>
   }
 
   // Pagination: defaults to 50, max 200

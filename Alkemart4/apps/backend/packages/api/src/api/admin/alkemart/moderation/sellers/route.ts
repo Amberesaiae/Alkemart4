@@ -11,7 +11,7 @@ import {
   evaluateSellerChecklist,
   type SellerSnapshot,
 } from "../../../../../lib/seller-readiness"
-import { asList } from "../../../../lib/graph-utils"
+import { asList } from "../../../../../lib/graph-utils"
 export async function GET(req: MedusaRequest, res: MedusaResponse) {
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY) as {
     graph: (args: unknown) => Promise<{ data: unknown }>
