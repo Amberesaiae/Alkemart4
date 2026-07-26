@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router"
-import { Helmet } from "react-helmet-async"
+import { PageSeo } from "@/components/page-seo"
 import deliveryArt from "@/assets/illustrations/ecommerce-delivery-service.png"
 import doorstepArt from "@/assets/illustrations/doorstep-delivery.png"
 import codArt from "@/assets/illustrations/cash-on-delivery.png"
@@ -31,13 +31,11 @@ const DELIVERY_STEPS = [
 function DeliveryPage() {
   return (
     <>
-      <Helmet prioritizeSeoTags>
-        <title>Delivery — alkemart</title>
-        <meta
-          name="description"
-          content="alkemart delivery — cash on delivery across Ghana. Learn how delivery works, what areas we serve, and what it costs."
-        />
-      </Helmet>
+      <PageSeo
+        title="Delivery"
+        description="alkemart delivery — cash on delivery across Ghana. Learn how delivery works, what areas we serve, and what it costs."
+        path="/delivery"
+      />
 
       <div className="delivery-page mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-10 lg:py-14">
         {/* Hero band */}
