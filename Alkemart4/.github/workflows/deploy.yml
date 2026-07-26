@@ -1,0 +1,27 @@
+name: Deploy to Railway
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  ci:
+    name: CI Checks
+    uses: ./.github/workflows/ci.yml
+
+  deploy:
+    name: Deploy Backend
+    needs: ci
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: railwayapp/railway-cli@v2
+        with:
+          token: ${{ secrets.RAILWAY_TOKEN }}
+      - run: railway up --service alkemart-api --env production
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+      - run: railway logs --service alkemart-api --env production --limit 50
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}

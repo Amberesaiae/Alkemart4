@@ -110,14 +110,17 @@ describe("loadAppEnv", () => {
     expect(() => loadAppEnv(prodBase as NodeJS.ProcessEnv)).not.toThrow()
   })
 
-  it("rejects FILE_DRIVER=local in production", () => {
+  it("warns but allows FILE_DRIVER=local in production", () => {
+    const warnSpy = jest.spyOn(console, "warn").mockImplementation()
     const env = {
       ...prodBase,
       FILE_DRIVER: "local",
     }
-    expect(() => loadAppEnv(env as NodeJS.ProcessEnv)).toThrow(
-      /FILE_DRIVER=s3 required/,
+    expect(() => loadAppEnv(env as NodeJS.ProcessEnv)).not.toThrow()
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining("FILE_DRIVER=local"),
     )
+    warnSpy.mockRestore()
   })
 
   it("rejects wildcard CORS in production", () => {

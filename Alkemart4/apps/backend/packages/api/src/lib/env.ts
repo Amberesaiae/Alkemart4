@@ -97,8 +97,8 @@ export function loadAppEnv(raw: NodeJS.ProcessEnv = process.env): AppEnv {
       throw new Error("PAYSTACK_SECRET_KEY required in production")
     }
     if (parsed.data.FILE_DRIVER === "local") {
-      throw new Error(
-        "FILE_DRIVER=s3 required in production — local storage is not supported for multi-replica deployments."
+      console.warn(
+        "WARNING: FILE_DRIVER=local in production — files are stored on local disk. Switch to S3/R2 for multi-replica safety."
       )
     }
     if (parsed.data.FILE_DRIVER === "s3") {

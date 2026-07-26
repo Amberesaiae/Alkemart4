@@ -1,0 +1,14 @@
+[build]
+builder = "railpack"
+buildCommand = "cd apps/backend && TMPDIR=/tmp bun install && bun run build"
+
+[deploy]
+startCommand = "cd apps/backend/packages/api && node ./scripts/start-with-compression.mjs"
+healthcheckPath = "/health"
+healthcheckTimeout = 300
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 5
+
+[env]
+NODE_ENV = "production"
+PORT = "9000"
