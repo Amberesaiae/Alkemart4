@@ -196,6 +196,8 @@ async function loadAllOrders(query: QueryService): Promise<Record<string, unknow
       entity: "order",
       fields: fieldsFull,
       filters: {},
+      skip: 0,
+      take: 10000,
     })
     return asList(data)
   } catch {
@@ -204,6 +206,8 @@ async function loadAllOrders(query: QueryService): Promise<Record<string, unknow
         entity: "order",
         fields: fieldsLite,
         filters: {},
+        skip: 0,
+        take: 10000,
       })
       return asList(data)
     } catch {
@@ -230,6 +234,8 @@ export async function collectCommerceStats(
       entity: "product",
       fields: ["id", "status"],
       filters: {},
+      skip: 0,
+      take: 10000,
     })
     for (const p of asList(data)) {
       productsTotal += 1
@@ -246,6 +252,8 @@ export async function collectCommerceStats(
       entity: "seller",
       fields: ["id", "status"],
       filters: {},
+      skip: 0,
+      take: 5000,
     })
     for (const s of asList(data)) {
       sellersTotal += 1
@@ -260,6 +268,8 @@ export async function collectCommerceStats(
       entity: "offer",
       fields: ["id"],
       filters: {},
+      skip: 0,
+      take: 50000,
     })
     offersTotal = asList(data).length
   } catch {

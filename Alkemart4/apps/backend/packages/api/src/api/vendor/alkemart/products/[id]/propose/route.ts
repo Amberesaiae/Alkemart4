@@ -18,26 +18,12 @@ import {
   qualityMetadataSnapshot,
 } from "../../../../../../lib/product-quality"
 import { asList } from "../../../../../../lib/graph-utils"
+import { checkRateLimit } from "../../../../../../lib/rate-limiter"
 
 type SellerReq = MedusaRequest & {
   seller_context?: { seller_id?: string }
   session?: { seller_id?: string }
 }
-const rateLimitBuckets = new Map<string, { count: number; resetAt: number }>()
-const RATE_LIMIT = { max: 10, windowMs: 60_000 }
-
-function checkRateLimit(key: string): boolean {
-  const now = Date.now()
-  const bucket = rateLimitBuckets.get(key)
-  if (!bucket || now > bucket.resetAt) {
-    rateLimitBuckets.set(key, { count: 1, resetAt: now + RATE_LIMIT.windowMs })
-    return true
-  }
-  if (bucket.count >= RATE_LIMIT.max) return false
-  bucket.count++
-  return true
-}
-
 export async function POST(req: SellerReq, res: MedusaResponse) {
   const productId = req.params.id
   if (!productId) {
@@ -58,7 +44,8 @@ export async function POST(req: SellerReq, res: MedusaResponse) {
   }
 
   const rateKey = `${sellerId}:${productId}`
-  if (!checkRateLimit(rateKey)) {
+  const allowed = await checkRateLimit(rateKey, 10, 60_000)
+  if (!allowed) {
     res.status(429).json({
       error: "Too many requests. Please wait a moment and try again.",
     })
@@ -114,6 +101,21 @@ export async function POST(req: SellerReq, res: MedusaResponse) {
     if (seller?.id && seller.id !== sellerId) {
       res.status(403).json({ error: "Product belongs to another seller" })
       return
+    }
+
+    if (!seller?.id) {
+      // Verify explicit product_seller link (prevent proposing shared-catalog
+      // products that have no explicit ownership)
+      const { data: linkData } = await query.graph({
+        entity: "product_seller",
+        fields: ["product_id", "seller_id"],
+        filters: { product_id: productId, seller_id: sellerId },
+      })
+      const linkRows = Array.isArray(linkData) ? linkData : linkData ? [linkData] : []
+      if (!linkRows.length) {
+        res.status(403).json({ error: "Product not linked to your shop" })
+        return
+      }
     }
 
     const status = String(product.status || "").toLowerCase()

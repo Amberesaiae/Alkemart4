@@ -1,4 +1,5 @@
 import { asList } from "./graph-utils"
+import { GHANA_REGIONS } from "./ghana-locale"
 
 /**
  * Operating markets — canonical country-gated config for alkemart.
@@ -111,24 +112,7 @@ export const COUNTRY_PROFILES: Record<string, CountryLocaleProfile> = {
           label: "Region",
           required: false,
           input: "select",
-          options: [
-            "Ahafo",
-            "Ashanti",
-            "Bono",
-            "Bono East",
-            "Central",
-            "Eastern",
-            "Greater Accra",
-            "North East",
-            "Northern",
-            "Oti",
-            "Savannah",
-            "Upper East",
-            "Upper West",
-            "Volta",
-            "Western",
-            "Western North",
-          ].map((r) => ({ value: r, label: r })),
+          options: GHANA_REGIONS.map((r) => ({ value: r, label: r })),
         },
         {
           key: "country_code",

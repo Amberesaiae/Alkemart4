@@ -18,7 +18,7 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
   const offset = Math.max(Number(req.query.offset) || 0, 0)
 
   try {
-    const { data } = await query.graph({
+    const { data, metadata } = await query.graph({
       entity: "product",
       fields: [
         "id",
@@ -37,11 +37,13 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
         "images.url",
       ],
       filters: { status: "proposed" },
+      skip: offset,
+      take: limit,
     })
 
-    const allProducts = asList(data)
-    const totalCount = allProducts.length
-    const products = allProducts.slice(offset, offset + limit).map((p) => {
+    const totalCount =
+      (metadata as { count?: number })?.count ?? asList(data).length
+    const products = asList(data).map((p) => {
       const quality = scoreProductQuality({
         title: p.title as string,
         description: p.description as string,

@@ -12,7 +12,7 @@ const EnvSchema = z.object({
   AUTH_CORS: z.string().min(1),
   VENDOR_CORS: z.string().min(1),
   PAYSTACK_SECRET_KEY: z.string().optional(),
-  PAYSTACK_PUBLIC_KEY: z.string().optional(),
+  PAYSTACK_PUBLIC_KEY: z.string().min(1, "PAYSTACK_PUBLIC_KEY is required for client-side Paystack checkout"),
   DEFAULT_CURRENCY: z.string().default("ghs"),
   DEFAULT_COUNTRY_CODE: z.string().default("gh"),
   /** File storage: local (lab) or s3 (R2/S3 production). */

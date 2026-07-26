@@ -50,7 +50,13 @@ export async function GET(req: SellerReq, res: MedusaResponse) {
       return
     }
 
-    if (sellerId) {
+    if (!sellerId) {
+      const seller = product.seller as { id?: string } | null
+      if (seller?.id) {
+        res.status(403).json({ error: "Product belongs to another seller" })
+        return
+      }
+    } else {
       const seller = product.seller as { id?: string } | null
       if (seller?.id && seller.id !== sellerId) {
         res.status(403).json({ error: "Product belongs to another seller" })
