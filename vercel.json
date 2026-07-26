@@ -1,0 +1,12 @@
+{
+  "git": {
+    "deploymentEnabled": {
+      "alkemart-storefront": true
+    }
+  },
+  "projects": {
+    "alkemart-storefront": {
+      "rootDirectory": "Alkemart4/apps/storefront"
+    }
+  }
+}

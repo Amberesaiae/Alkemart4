@@ -77,3 +77,4 @@ apps/storefront/**/.tanstack/
 
 # Local agent brainstorm state
 .superpowers/
+.vercel

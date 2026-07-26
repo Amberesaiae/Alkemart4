@@ -1,9 +1,13 @@
-import { Link } from "@tanstack/react-router"
+import { createFileRoute, Link } from "@tanstack/react-router"
 import { Helmet } from "react-helmet-async"
 import deliveryArt from "@/assets/illustrations/ecommerce-delivery-service.png"
 import doorstepArt from "@/assets/illustrations/doorstep-delivery.png"
 import codArt from "@/assets/illustrations/cash-on-delivery.png"
 import { cn } from "@/lib/utils"
+
+export const Route = createFileRoute("/delivery")({
+  component: DeliveryPage,
+})
 
 const DELIVERY_STEPS = [
   {
@@ -24,7 +28,7 @@ const DELIVERY_STEPS = [
   },
 ]
 
-export default function DeliveryPage() {
+function DeliveryPage() {
   return (
     <>
       <Helmet prioritizeSeoTags>
