@@ -13,6 +13,7 @@ healthcheckPath = "/health"
 healthcheckTimeout = 300
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 5
+resourceLimit = "shared-2x"
 # Database rollback strategy:
 # 1. Use `railway rollback` to revert the API deployment to the previous version.
 # 2. Run `bun medusa db:migrate --down` to revert the last migration if schema changed.
