@@ -23,7 +23,7 @@ export function useAuth() {
   const logoutMutation = useMutation({
     mutationFn: () => auth.logout(!!session),
     onSuccess: () => {
-      queryClient.setQueryData(["session"], null)
+      queryClient.clear()
       navigate({ to: "/login" })
     },
   })
