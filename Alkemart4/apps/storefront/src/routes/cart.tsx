@@ -180,7 +180,7 @@ function CartPage() {
             <Button
               asChild
               size="lg"
-              className="hidden min-h-12 w-full rounded-full font-bold md:inline-flex"
+              className="hidden min-h-12 w-full font-bold md:inline-flex"
             >
               <Link to="/checkout">Place order</Link>
             </Button>
@@ -188,7 +188,7 @@ function CartPage() {
               asChild
               size="lg"
               variant="outline"
-              className="min-h-11 w-full rounded-full"
+              className="min-h-11 w-full"
             >
               <Link to="/categories/$slug" params={{ slug: "all" }}>
                 Continue shopping
@@ -211,7 +211,7 @@ function CartPage() {
           <Button
             asChild
             size="lg"
-            className="min-h-11 shrink-0 rounded-full font-bold"
+            className="min-h-11 shrink-0 font-bold"
           >
             <Link to="/checkout">Place order</Link>
           </Button>

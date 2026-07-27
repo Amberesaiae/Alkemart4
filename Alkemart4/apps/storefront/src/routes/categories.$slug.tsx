@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query"
 import { ProductCard } from "@/components/product-card"
 import { ProductGridShell } from "@/components/product-grid"
 import { EmptyState } from "@/components/empty-state"
+import { ErrorAlert } from "@/components/error-alert"
 import { LoadMore } from "@/components/load-more"
 import { ProductGridSkeleton } from "@/components/skeleton"
 import {
@@ -435,17 +436,9 @@ function BrowsePage() {
           ) : null}
 
           {error && products.length === 0 ? (
-            <div
-              role="alert"
-              className="rounded-2xl border border-destructive/40 bg-destructive/5 p-4 type-sm"
-            >
-              <p className="font-semibold text-destructive">
-                Could not load products
-              </p>
-              <p className="text-muted-foreground">
-                {errMsg instanceof Error ? errMsg.message : "Try again."}
-              </p>
-            </div>
+            <ErrorAlert
+              message={errMsg instanceof Error ? errMsg.message : "Could not load products"}
+            />
           ) : null}
 
           {!loading && products.length === 0 ? (

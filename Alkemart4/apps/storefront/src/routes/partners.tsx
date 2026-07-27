@@ -84,7 +84,7 @@ function PartnersPage() {
           <p className="text-sm text-muted-foreground">
             Orders and addresses on this website.
           </p>
-          <Button asChild className="mt-2 rounded-none">
+          <Button asChild className="mt-2">
             <Link to="/login" search={{}}>
               Customer sign in
             </Link>
@@ -139,7 +139,7 @@ function RoleCard(props: {
         </ul>
         <div className="flex flex-wrap gap-2 pt-1">
           {props.primaryHref && !props.disabled ? (
-            <Button asChild className="rounded-none">
+            <Button asChild>
               <a
                 href={props.primaryHref}
                 target="_blank"
@@ -149,12 +149,12 @@ function RoleCard(props: {
               </a>
             </Button>
           ) : (
-            <Button className="rounded-none" disabled>
+            <Button disabled>
               {props.primaryLabel}
             </Button>
           )}
           {props.secondaryHref && props.secondaryLabel ? (
-            <Button asChild variant="outline" className="rounded-none">
+            <Button asChild variant="outline">
               <a
                 href={props.secondaryHref}
                 target="_blank"

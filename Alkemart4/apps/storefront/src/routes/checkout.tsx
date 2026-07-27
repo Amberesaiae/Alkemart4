@@ -640,7 +640,7 @@ function CheckoutPage() {
               <Button
                 type="submit"
                 size="lg"
-                className="hidden min-h-12 w-full rounded-full font-bold md:inline-flex"
+                className="hidden min-h-12 w-full font-bold md:inline-flex"
                 disabled={!canSubmit}
               >
                 {place.isPending

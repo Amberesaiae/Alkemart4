@@ -16,6 +16,7 @@ import {
   trackSearchPerformed,
   track,
 } from "@/lib/analytics"
+import { Container } from "@workspace/ui"
 import { PageSeo } from "@/components/page-seo"
 import { IconSafe } from "@/design/icons"
 import { useSearchHistory } from "@/lib/search-history"
@@ -202,7 +203,7 @@ function SearchPage() {
         path="/search"
         noindex={multiFacet || Boolean(q)}
       />
-      <div className="mx-auto w-full max-w-[1200px] px-4 py-5 sm:px-6 sm:py-6">
+      <Container className="py-5 sm:py-6">
         <form onSubmit={submit} role="search" aria-label="Site search" className="relative mb-6">
           <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground">
             <IconSafe name="search" size={18} />
@@ -212,12 +213,12 @@ function SearchPage() {
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             placeholder="Search rice, phones, fashion, shops…"
-            className="h-12 w-full rounded-full border border-border bg-white py-2 pl-11 pr-24 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-primary focus-visible:ring-2 focus-visible:ring-primary/30"
+            className="h-12 w-full rounded-full border border-border bg-background py-2 pl-11 pr-24 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-primary focus-visible:ring-2 focus-visible:ring-primary/30"
             aria-label="Search products"
             autoComplete="off"
             enterKeyHint="search"
           />
-          <Button type="submit" size="lg" className="absolute right-1 top-1 min-h-10 rounded-full px-6">
+          <Button type="submit" size="lg" className="absolute right-1 top-1 min-h-10 px-6">
             Search
           </Button>
         </form>
@@ -274,7 +275,7 @@ function SearchPage() {
             ) : null}
           </div>
         </div>
-      </div>
+      </Container>
     </>
   )
 }

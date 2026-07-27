@@ -207,7 +207,7 @@ function SignInPage() {
                 type="submit"
                 size="lg"
                 className={cn(
-                  "min-h-11 w-full rounded-full font-bold",
+                  "min-h-11 w-full font-bold",
                   mode === "login"
                     ? "bg-foreground text-background hover:opacity-90"
                     : "bg-primary text-primary-foreground hover:opacity-90",

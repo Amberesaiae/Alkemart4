@@ -14,15 +14,15 @@ export function NotFoundPage() {
         That URL is not a route in this storefront.
       </p>
       <div className="flex flex-wrap justify-center gap-2 pt-2">
-        <Button asChild className="rounded-xl min-h-11">
+        <Button asChild className="min-h-11">
           <Link to="/">Market</Link>
         </Button>
-        <Button asChild variant="outline" className="rounded-xl min-h-11">
+        <Button asChild variant="outline" className="min-h-11">
           <Link to="/categories/$slug" params={{ slug: "all" }}>
             Browse
           </Link>
         </Button>
-        <Button asChild variant="outline" className="rounded-xl min-h-11">
+        <Button asChild variant="outline" className="min-h-11">
           <Link to="/help">Help</Link>
         </Button>
       </div>

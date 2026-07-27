@@ -2,6 +2,7 @@ import { useEffect, useState } from "react"
 import { createFileRoute, Link } from "@tanstack/react-router"
 import { useQuery } from "@tanstack/react-query"
 import { Button } from "@workspace/ui"
+import { ErrorAlert } from "@/components/error-alert"
 import { Price } from "@/components/price"
 import { SellerChip } from "@/components/seller-chip"
 import { Skeleton } from "@/components/skeleton"
@@ -434,7 +435,7 @@ function OrderDetailPage() {
           </section>
 
           <div className="flex flex-col gap-2 sm:flex-row">
-            <Button asChild size="lg" className="min-h-12 flex-1 rounded-xl">
+            <Button asChild size="lg" className="min-h-12 flex-1">
               <Link to="/">Continue shopping</Link>
             </Button>
             <Button

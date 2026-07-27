@@ -46,7 +46,7 @@ export function EmptyState({
         </p>
       ) : null}
       {actionLabel && actionTo ? (
-        <Button asChild className="mt-5 min-h-11 rounded-none" size="sm">
+        <Button asChild className="mt-5 min-h-11" size="sm">
           <Link
             to={actionTo as "/"}
             params={actionParams as never}

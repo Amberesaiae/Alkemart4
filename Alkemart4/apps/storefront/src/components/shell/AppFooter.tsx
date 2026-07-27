@@ -146,7 +146,7 @@ function FooterLink(props: {
       to={props.to as "/"}
       params={props.params as never}
       search={props.search as never}
-      className="inline-flex min-h-11 items-center text-sm text-white/75 transition hover:text-white focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--footer-bg)]"
+      className="inline-flex min-h-11 items-center text-sm text-primary-foreground/75 transition hover:text-primary-foreground focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-ink"
     >
       {props.children}
     </Link>

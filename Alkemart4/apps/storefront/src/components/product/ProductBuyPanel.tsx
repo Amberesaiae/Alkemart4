@@ -84,7 +84,7 @@ export function ProductBuyPanel({
       <Button
         type="button"
         size="lg"
-        className="min-h-12 w-full rounded-full font-bold"
+        className="min-h-12 w-full font-bold"
         disabled={!canAdd || pending}
         onClick={onAdd}
       >
@@ -99,7 +99,7 @@ export function ProductBuyPanel({
         asChild
         size="lg"
         variant="outline"
-        className="min-h-11 w-full rounded-full"
+        className="min-h-11 w-full"
       >
         <Link to="/cart">View cart</Link>
       </Button>

@@ -38,13 +38,13 @@ function SellPage() {
           </p>
           <div className="flex flex-nowrap gap-2 pt-2">
             {registerUrl ? (
-              <Button asChild className="min-h-11 whitespace-nowrap rounded-none px-4 text-sm sm:px-6">
+              <Button asChild className="min-h-11 whitespace-nowrap px-4 text-sm sm:px-6">
                 <a href={registerUrl} target="_blank" rel="noopener noreferrer">
                   Open a seller account
                 </a>
               </Button>
             ) : (
-              <Button className="min-h-11 rounded-none" disabled>
+              <Button className="min-h-11" disabled>
                 Seller Hub unavailable
               </Button>
             )}

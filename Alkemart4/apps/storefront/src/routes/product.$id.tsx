@@ -13,6 +13,7 @@ import { ProductBuyPanel } from "@/components/product/ProductBuyPanel"
 import { SectionHeader } from "@/components/shell/SectionHeader"
 import { Breadcrumbs } from "@/components/shell/Breadcrumbs"
 import { BottomBar } from "@/components/bottom-bar"
+import { ErrorAlert } from "@/components/error-alert"
 import { addOfferToCart } from "@/lib/cart"
 import {
   getStoreProduct,
@@ -195,17 +196,9 @@ function ProductDetailPage() {
       ) : null}
 
       {productQ.isError ? (
-        <div
-          role="alert"
-          className="rounded-2xl border border-destructive/40 bg-destructive/5 p-5 text-sm"
-        >
-          <p className="font-semibold text-destructive">Could not load product</p>
-          <p className="text-muted-foreground">
-            {productQ.error instanceof Error
-              ? productQ.error.message
-              : "Unknown error"}
-          </p>
-        </div>
+        <ErrorAlert
+          message={productQ.error instanceof Error ? productQ.error.message : "Could not load product"}
+        />
       ) : null}
 
       {p ? (
@@ -358,7 +351,7 @@ function ProductDetailPage() {
           <Button
             type="button"
             size="lg"
-            className="min-h-11 min-w-[7.5rem] shrink-0 rounded-full font-bold"
+            className="min-h-11 min-w-[7.5rem] shrink-0 font-bold"
             disabled={!canAdd || add.isPending}
             onClick={() => add.mutate()}
           >
