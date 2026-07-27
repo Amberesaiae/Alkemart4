@@ -1,6 +1,7 @@
 import { ExecArgs } from "@medusajs/framework/types";
 import {
   ContainerRegistrationKeys,
+  MedusaError,
   Modules,
 } from "@medusajs/framework/utils";
 import { ProductStatus } from "@mercurjs/types";
@@ -228,11 +229,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
       },
     });
   } catch (error: unknown) {
-    // Ignore if link already exists
-    if (!(error instanceof Error && error.message.includes("already"))) {
+    if (error instanceof MedusaError && error.type === MedusaError.Types.DUPLICATE_ERROR) {
+      logger.info("Sales channel already linked to API key, skipping.");
+    } else {
       throw error;
     }
-    logger.info("Sales channel already linked to API key, skipping.");
   }
   logger.info("Finished seeding publishable API key data.");
 
