@@ -4,6 +4,8 @@ import { useOrder, useFulfillOrder, useShipOrder, useDeliverOrder } from "../../
 import { Card, Button, Badge, Input } from "@workspace/ui"
 import { ArrowLeft, Box, Truck, CheckCircle2, User, MapPin } from "lucide-react"
 import { format } from "date-fns"
+import { PageShell } from "../../components/page-shell"
+import { PageHeader } from "../../components/page-header"
 
 export const Route = createFileRoute('/orders/$id')({
   component: OrderDetailPage,
@@ -67,7 +69,7 @@ function OrderDetailPage() {
   }
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto animate-in fade-in duration-500">
+    <PageShell className="max-w-5xl">
       <div className="flex items-center gap-4">
         <Link to="/orders">
           <Button variant="ghost" size="icon" className="h-10 w-10 shrink-0">
@@ -235,6 +237,6 @@ function OrderDetailPage() {
           </Card>
         </div>
       </div>
-    </div>
+    </PageShell>
   )
 }

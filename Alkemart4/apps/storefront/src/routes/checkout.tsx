@@ -19,6 +19,8 @@ import {
   type CheckoutAddress,
   type MomoProvider,
 } from "@/lib/checkout"
+import { BottomBar } from "@/components/bottom-bar"
+import { OrderSummary } from "@/components/order-summary"
 import { SellerChip } from "@/components/seller-chip"
 import { listOperatingMarkets, marketForCountry } from "@/lib/markets"
 import { getSessionCustomer } from "@/lib/auth"
@@ -652,10 +654,7 @@ function CheckoutPage() {
             </form>
           </div>
 
-          <aside className="h-max space-y-4 rounded-2xl border border-border bg-card p-5 shadow-sm lg:sticky lg:top-24">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              Order summary
-            </p>
+          <OrderSummary>
             <Price
               amount={cartQ.data?.total}
               currencyCode={cartQ.data?.currencyCode}
@@ -687,7 +686,7 @@ function CheckoutPage() {
                 </div>
               ))}
             </div>
-            <Button
+              <Button
               asChild
               variant="outline"
               className="w-full rounded-xl"
@@ -695,34 +694,32 @@ function CheckoutPage() {
             >
               <Link to="/cart">Edit cart</Link>
             </Button>
-          </aside>
+          </OrderSummary>
         </div>
       ) : null}
 
       {items.length > 0 ? (
-        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/95 p-3 backdrop-blur md:hidden">
-          <div className="mx-auto flex max-w-6xl items-center gap-3">
-            <div className="min-w-0 flex-1 text-sm">
-              <span className="text-muted-foreground">Total </span>
-              <span className="font-semibold tabular-nums">
-                {formatMoney(cartQ.data?.total, cartQ.data?.currencyCode)}
-              </span>
-            </div>
-            <Button
-              type="submit"
-              form="checkout-form"
-              size="lg"
-              className="min-h-11 shrink-0 rounded-xl"
-              disabled={!canSubmit}
-            >
-              {place.isPending
-                ? "…"
-                : payMethod === "momo"
-                  ? "Pay with MoMo"
-                  : "Place order"}
-            </Button>
+        <BottomBar className="bg-background/95 backdrop-blur">
+          <div className="min-w-0 flex-1 text-sm">
+            <span className="text-muted-foreground">Total </span>
+            <span className="font-semibold tabular-nums">
+              {formatMoney(cartQ.data?.total, cartQ.data?.currencyCode)}
+            </span>
           </div>
-        </div>
+          <Button
+            type="submit"
+            form="checkout-form"
+            size="lg"
+            className="min-h-11 shrink-0 rounded-xl"
+            disabled={!canSubmit}
+          >
+            {place.isPending
+              ? "…"
+              : payMethod === "momo"
+                ? "Pay with MoMo"
+                : "Place order"}
+          </Button>
+        </BottomBar>
       ) : null}
 
     </div>

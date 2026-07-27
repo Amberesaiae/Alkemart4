@@ -21,6 +21,7 @@ import { AppFooter } from "@/components/shell/AppFooter"
 import { CategoryIconRail } from "@/components/shell/CategoryIconRail"
 import { DocumentTitle } from "@/components/document-title"
 import { RouteAnnouncer } from "@/components/a11y/RouteAnnouncer"
+import { SkipLink } from "@/components/skip-link"
 import { ScrollToTop } from "@/components/scroll-to-top"
 import { SearchMicroHeader } from "@/components/search/SearchMicroHeader"
 import { NotFoundPage } from "@/components/not-found"
@@ -165,12 +166,7 @@ function Shell() {
   if (isAuthPage || isSearchPage) {
     return (
       <div className="flex min-h-screen flex-col bg-background">
-        <a
-          href="#main"
-          className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-primary focus:px-3 focus:py-2 focus:text-sm focus:font-bold focus:text-primary-foreground"
-        >
-          Skip to content
-        </a>
+        <SkipLink />
         {isSearchPage ? (
           <div className="flex min-h-screen flex-col bg-primary">
             <SearchMicroHeader />
@@ -250,12 +246,7 @@ function Shell() {
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
-      <a
-        href="#main"
-        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-primary focus:px-3 focus:py-2 focus:text-sm focus:font-bold focus:text-primary-foreground"
-      >
-        Skip to content
-      </a>
+      <SkipLink />
 
       <AppHeader
         cartCount={count}

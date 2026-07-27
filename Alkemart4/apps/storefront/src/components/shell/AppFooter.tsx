@@ -44,13 +44,13 @@ export function AppFooter({ sellUrl = "" }: Props) {
         {/* Brand + payment — full width on mobile, one column on lg */}
         <div className="col-span-2 space-y-3 lg:col-span-1">
           <BrandLogo size="sm" onDark />
-          <p className="max-w-xs text-sm leading-relaxed text-white/80">
+          <p className="max-w-xs text-sm leading-relaxed text-primary-foreground/80">
             {brand.description}
           </p>
-          <p className="type-sm font-bold uppercase tracking-wider text-white/70">
+          <p className="type-sm font-bold uppercase tracking-wider text-primary-foreground/70">
             Payment method
           </p>
-          <p className="text-sm text-white/75">
+          <p className="text-sm text-primary-foreground/75">
             Cash on delivery · Mobile Money (when offered)
           </p>
         </div>
@@ -62,7 +62,7 @@ export function AppFooter({ sellUrl = "" }: Props) {
           </FooterLink>
           <a
             href="/#last-offers"
-            className="inline-flex min-h-11 items-center text-sm text-white/75 transition hover:text-white focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--footer-bg)]"
+      className="inline-flex min-h-11 items-center text-sm text-primary-foreground/75 transition hover:text-primary-foreground focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-ink"
           >
             Last offers
           </a>
@@ -95,7 +95,7 @@ export function AppFooter({ sellUrl = "" }: Props) {
               href={sellUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex min-h-11 items-center text-sm text-white/75 transition hover:text-white focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--footer-bg)]"
+            className="inline-flex min-h-11 items-center text-sm text-primary-foreground/75 transition hover:text-primary-foreground focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-ink"
             >
               Seller Hub
             </a>
@@ -104,8 +104,8 @@ export function AppFooter({ sellUrl = "" }: Props) {
       </Container>
 
       {/* Copyright — no light border (avoids white hairline on dark footer) */}
-      <div className="relative z-10 bg-black/30">
-        <Container className="flex flex-col gap-1 py-4 text-center text-sm text-white/70 sm:flex-row sm:justify-between sm:text-start">
+      <div className="relative z-10 bg-ink/30">
+          <Container className="flex flex-col gap-1 py-4 text-center text-sm text-primary-foreground/70 sm:flex-row sm:justify-between sm:text-start">
           <span>
             © {new Date().getFullYear()} {brand.name}. All rights reserved.
           </span>
@@ -125,7 +125,7 @@ function FooterCol({
 }) {
   return (
     <div className="min-w-0 space-y-2">
-      <p className="text-xs font-bold uppercase tracking-wider text-white/70">
+      <p className="text-xs font-bold uppercase tracking-wider text-primary-foreground/70">
         {title}
       </p>
       <nav className="flex flex-col gap-0.5" aria-label={title}>

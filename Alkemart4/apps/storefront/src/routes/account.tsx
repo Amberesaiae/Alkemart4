@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
 import { requireAuth } from "@/lib/route-guards"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { Button } from "@workspace/ui"
+import { Button, Avatar, AvatarFallback } from "@workspace/ui"
 import { EmptyState } from "@/components/empty-state"
 import { Skeleton } from "@/components/skeleton"
 import { FormField } from "@/components/form-field"
@@ -222,9 +222,11 @@ function AccountPage() {
     <div className="mx-auto max-w-2xl space-y-6">
       <header className="store-hero overflow-hidden rounded-3xl border border-border p-6 shadow-sm sm:p-8">
         <div className="flex flex-wrap items-center gap-4">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary text-2xl font-bold text-primary-foreground">
-            {initial}
-          </div>
+          <Avatar className="h-16 w-16 rounded-2xl text-2xl font-bold">
+            <AvatarFallback className="rounded-2xl bg-primary text-primary-foreground">
+              {initial}
+            </AvatarFallback>
+          </Avatar>
           <div className="min-w-0">
             <p className="type-sm font-semibold uppercase tracking-[0.14em] text-primary">
               Account
@@ -239,7 +241,7 @@ function AccountPage() {
           <Button
             asChild
             size="sm"
-            className="rounded-none bg-primary text-primary-foreground"
+            className="bg-primary text-primary-foreground"
           >
             <Link to="/orders">Your orders</Link>
           </Button>
@@ -247,7 +249,7 @@ function AccountPage() {
             type="button"
             size="sm"
             variant="outline"
-            className="rounded-none border-white/25 bg-transparent text-white hover:bg-white/10"
+            className="border-ink/25 bg-transparent text-primary-foreground hover:bg-ink/10"
             onClick={() => {
               setProfileFirst(user.firstName ?? "")
               setProfileLast(user.lastName ?? "")
@@ -261,7 +263,7 @@ function AccountPage() {
             type="button"
             size="sm"
             variant="outline"
-            className="rounded-none border-white/25 bg-transparent text-white hover:bg-white/10"
+            className="border-ink/25 bg-transparent text-primary-foreground hover:bg-ink/10"
             disabled={signOut.isPending}
             onClick={() => signOut.mutate()}
           >

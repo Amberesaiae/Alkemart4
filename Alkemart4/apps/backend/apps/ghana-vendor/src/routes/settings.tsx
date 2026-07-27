@@ -2,6 +2,8 @@ import { createFileRoute } from "@tanstack/react-router"
 import { useState, useEffect } from "react"
 import { useSellerProfile, useUpdateProfile, useUpdateAddress, useUpdatePayment } from "../lib/hooks"
 import { Card, Button, Input, Label, Select } from "@workspace/ui"
+import { PageShell } from "../components/page-shell"
+import { PageHeader } from "../components/page-header"
 import {
   GHANA_REGIONS,
   GHANA_UI,
@@ -107,11 +109,8 @@ function SettingsPage() {
   ]
 
   return (
-    <div className="space-y-6 max-w-4xl mx-auto animate-in fade-in duration-500">
-      <div>
-        <h1 className="text-2xl sm:text-3xl font-black tracking-tight">Shop Settings</h1>
-        <p className="text-muted-foreground font-medium">Configure your store details and payouts.</p>
-      </div>
+    <PageShell className="max-w-4xl">
+      <PageHeader title="Shop Settings" description="Configure your store details and payouts." />
 
       <div className="flex flex-col md:flex-row gap-8 items-start">
 
@@ -300,7 +299,7 @@ function SettingsPage() {
                     {phoneTouched && phoneRaw && (
                       <span className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
                         {phoneValid
-                          ? <CheckCircle2 className="h-5 w-5 text-green-600" />
+                          ? <CheckCircle2 className="h-5 w-5 text-success" />
                           : <AlertCircle className="h-5 w-5 text-destructive" />
                         }
                       </span>
@@ -314,7 +313,7 @@ function SettingsPage() {
                   )}
 
                   {phoneValid && (
-                    <p className="text-xs text-green-700 font-semibold flex items-center gap-1">
+                    <p className="text-xs text-success font-semibold flex items-center gap-1">
                       <CheckCircle2 className="h-3 w-3 shrink-0" />
                       {formatPhoneDisplay(phoneRaw)}
                       {detectedProvider && ` — ${MOMO_NETWORKS[detectedProvider].label}`}
@@ -359,8 +358,8 @@ function SettingsPage() {
 
                   {/* Mismatch warning */}
                   {detectedProvider && detectedProvider !== provider && (
-                    <div className="flex items-start gap-2 p-3 rounded-lg bg-yellow-50 text-yellow-900 text-xs font-semibold border border-yellow-200">
-                      <AlertCircle className="h-4 w-4 shrink-0 mt-0.5 text-yellow-600" />
+                    <div className="flex items-start gap-2 p-3 rounded-lg bg-warning/10 text-warning text-xs font-semibold border border-warning/20">
+                      <AlertCircle className="h-4 w-4 shrink-0 mt-0.5 text-warning" />
                       <span>
                         Your number prefix suggests <strong>{MOMO_NETWORKS[detectedProvider].label}</strong>,
                         but you selected <strong>{MOMO_NETWORKS[provider].label}</strong>.
@@ -387,7 +386,7 @@ function SettingsPage() {
           )}
         </div>
       </div>
-    </div>
+    </PageShell>
   )
 }
 
@@ -405,7 +404,7 @@ function StatusRow({
   if (!mutation.isSuccess && !mutation.isError) return null
   if (mutation.isSuccess) {
     return (
-      <div className="flex items-center gap-2 p-3 rounded-lg bg-green-50 text-green-700 text-sm font-semibold border border-green-200">
+      <div className="flex items-center gap-2 p-3 rounded-lg bg-success/10 text-success text-sm font-semibold border border-success/20">
         <CheckCircle2 className="h-4 w-4 shrink-0" /> {successText}
       </div>
     )

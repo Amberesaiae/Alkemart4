@@ -3,6 +3,7 @@ import { createFileRoute, Link } from "@tanstack/react-router"
 import { PageSeo } from "@/components/page-seo"
 import { brand } from "@/design/brand"
 import { IconSafe } from "@/design/icons"
+import { Textarea } from "@workspace/ui"
 import { absoluteUrl, organizationJsonLd, siteOrigin } from "@/lib/seo"
 import { cn } from "@/lib/utils"
 
@@ -229,13 +230,13 @@ function ContactPage() {
                 </select>
               </Field>
               <Field label="Message" htmlFor="contact-message">
-                <textarea
+                <Textarea
                   id="contact-message"
                   name="message"
                   rows={5}
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
-                  className={cn(inputClass, "resize-y min-h-[120px]")}
+                  className="resize-y min-h-[120px]"
                   required
                   aria-required="true"
                   aria-invalid={Boolean(error && !message.trim()) || undefined}

@@ -1,7 +1,8 @@
 import { cn } from "@/lib/utils"
+import { Input, Select } from "@workspace/ui"
 
 const inputClass =
-  "h-12 min-h-12 w-full rounded-xl border border-border bg-background px-3.5 text-base sm:text-sm outline-none transition placeholder:text-muted-foreground focus:border-foreground focus:ring-2 focus:ring-foreground/10 focus-visible:ring-2 focus-visible:ring-ring"
+  ""
 
 export function formInputClassName(extra?: string) {
   return cn(inputClass, extra)
@@ -27,12 +28,11 @@ export function FormField(props: FormFieldProps) {
       <label className="text-sm font-semibold text-foreground" htmlFor={id}>
         {props.label}
       </label>
-      <input
+      <Input
         id={id}
         type={props.type ?? "text"}
         inputMode={props.inputMode}
         autoComplete={props.autoComplete}
-        className={inputClass}
         value={props.value}
         onChange={(e) => props.onChange(e.target.value)}
         required={props.required}
@@ -61,15 +61,14 @@ export function FormSelect(props: {
       {props.error ? (
         <p className="text-sm text-destructive">{props.error}</p>
       ) : (
-        <select
+        <Select
           id={id}
-          className={inputClass}
           value={props.value}
           onChange={(e) => props.onChange(e.target.value)}
           required={props.required}
         >
           {props.children}
-        </select>
+        </Select>
       )}
     </div>
   )

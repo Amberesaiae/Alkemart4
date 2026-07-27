@@ -370,13 +370,6 @@ export const seller = {
     get<{ seller: Seller }>("/vendor/sellers/me"),
 
   /**
-   * GET /vendor/members/me — current member with nested seller context.
-   * Richest profile endpoint: member + rbac_role + seller.
-   */
-  memberMe: () =>
-    get<{ seller_member: SellerMember }>("/vendor/members/me"),
-
-  /**
    * GET /vendor/alkemart/me — Alkemart custom convenience endpoint.
    * Requires x-seller-id header (called after seller_id is known).
    */

@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
-import { products, orders, stats, seller, ApiError } from "./api"
+import { products, orders, stats, seller, catalog, ApiError } from "./api"
 import { getActiveSellerId } from "./api"
 
 // --- Stats ---
@@ -124,5 +124,12 @@ export function useUpdatePayment() {
   return useMutation({
     mutationFn: ({ id, data }: { id: string, data: any }) => seller.updatePaymentDetails(id, data),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["vendor", "profile"] })
+  })
+}
+
+export function useCategories() {
+  return useQuery({
+    queryKey: ["vendor", "categories"],
+    queryFn: () => catalog.categories(),
   })
 }

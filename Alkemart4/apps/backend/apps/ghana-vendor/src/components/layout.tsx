@@ -1,7 +1,7 @@
 import { Link, useRouterState } from "@tanstack/react-router"
 import { LayoutDashboard, Package, ShoppingBag, Settings, LogOut, Store } from "lucide-react"
 import { useCurrentUser, useLogout } from "../lib/auth"
-import { cn, Button } from "@workspace/ui"
+import { cn, Button, Avatar, AvatarFallback } from "@workspace/ui"
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const { data: user } = useCurrentUser()
@@ -20,9 +20,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
       {/* Desktop Sidebar */}
       <aside className="hidden md:flex w-64 flex-col border-r border-border bg-ink text-white">
         <div className="p-6 border-b border-white/10 flex flex-col items-center text-center gap-3">
-          <div className="h-16 w-16 rounded-full bg-primary flex items-center justify-center text-primary-foreground shadow-lg">
-            <Store className="h-8 w-8" />
-          </div>
+          <Avatar className="h-16 w-16">
+            <AvatarFallback className="text-2xl font-bold text-primary-foreground bg-primary">
+              {user?.seller_name?.charAt(0) || "S"}
+            </AvatarFallback>
+          </Avatar>
           <div>
             <h2 className="font-bold text-lg text-white">{user?.seller_name || "My Shop"}</h2>
             <p className="text-xs text-white/60 font-medium">{user?.email}</p>
@@ -94,6 +96,13 @@ export function Layout({ children }: { children: React.ReactNode }) {
             </Link>
           )
         })}
+        <button
+          onClick={() => logout.mutate()}
+          className="flex flex-col items-center gap-0.5 text-primary-foreground/60 hover:text-primary-foreground transition-colors"
+        >
+          <LogOut className="h-5 w-5" />
+          <span className="text-[10px] font-medium">Sign Out</span>
+        </button>
       </nav>
     </div>
   )

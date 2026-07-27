@@ -2,8 +2,12 @@ import { createFileRoute, Link } from "@tanstack/react-router"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { Button } from "@workspace/ui"
 import { Price } from "@/components/price"
+import { ProductThumbnail } from "@/components/product-thumbnail"
+import { BottomBar } from "@/components/bottom-bar"
+import { OrderSummary } from "@/components/order-summary"
 import { SellerChip } from "@/components/seller-chip"
 import { EmptyState } from "@/components/empty-state"
+import { ErrorAlert } from "@/components/error-alert"
 import { Skeleton } from "@/components/skeleton"
 import { QtyStepper } from "@/components/qty-stepper"
 import {
@@ -89,22 +93,10 @@ function CartPage() {
       ) : null}
 
       {isError ? (
-        <div
-          role="alert"
-          className="rounded-2xl border border-destructive/40 bg-destructive/5 p-4 text-sm"
-        >
-          <p className="font-semibold text-destructive">Could not load cart</p>
-          <p className="text-muted-foreground">
-            {error instanceof Error ? error.message : "Unknown error"}
-          </p>
-          <button
-            type="button"
-            className="mt-2 underline"
-            onClick={() => void refetch()}
-          >
-            Retry
-          </button>
-        </div>
+        <ErrorAlert
+          message={error instanceof Error ? error.message : "Could not load cart"}
+          onRetry={() => void refetch()}
+        />
       ) : null}
 
       {!isLoading && !isError && items.length === 0 ? (
@@ -174,10 +166,7 @@ function CartPage() {
             ))}
           </div>
 
-          <aside className="h-max space-y-4 rounded-2xl border border-border bg-card p-5 shadow-sm lg:sticky lg:top-24">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              Order summary
-            </p>
+          <OrderSummary>
             <Price
               amount={cart?.total}
               currencyCode={cart?.currencyCode}
@@ -205,30 +194,28 @@ function CartPage() {
                 Continue shopping
               </Link>
             </Button>
-          </aside>
+          </OrderSummary>
         </div>
       ) : null}
 
       {items.length > 0 ? (
-        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card p-3 md:hidden">
-          <div className="mx-auto flex max-w-6xl items-center gap-3">
-            <div className="min-w-0 flex-1 text-sm">
-              <span className="text-muted-foreground">Total </span>
-              <Price
-                amount={cart?.total}
-                currencyCode={cart?.currencyCode}
-                size="sm"
-              />
-            </div>
-            <Button
-              asChild
-              size="lg"
-              className="min-h-11 shrink-0 rounded-full font-bold"
-            >
-              <Link to="/checkout">Place order</Link>
-            </Button>
+        <BottomBar>
+          <div className="min-w-0 flex-1 text-sm">
+            <span className="text-muted-foreground">Total </span>
+            <Price
+              amount={cart?.total}
+              currencyCode={cart?.currencyCode}
+              size="sm"
+            />
           </div>
-        </div>
+          <Button
+            asChild
+            size="lg"
+            className="min-h-11 shrink-0 rounded-full font-bold"
+          >
+            <Link to="/checkout">Place order</Link>
+          </Button>
+        </BottomBar>
       ) : null}
     </div>
   )
@@ -256,17 +243,7 @@ function CartLineRow(props: {
 
   return (
     <li className="flex flex-wrap items-center gap-3 rounded-2xl border border-border/80 bg-background p-3 sm:p-4">
-      {line.thumbnail ? (
-        <img
-          src={line.thumbnail}
-          alt=""
-          className="h-16 w-16 shrink-0 rounded-xl border border-border object-cover bg-muted"
-        />
-      ) : (
-        <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl border border-dashed border-border bg-muted text-[10px] text-muted-foreground">
-          —
-        </div>
-      )}
+      <ProductThumbnail src={line.thumbnail} alt="" />
       <div className="min-w-0 flex-1 space-y-1">
         {title}
         <div className="flex flex-wrap items-center gap-2 text-sm">

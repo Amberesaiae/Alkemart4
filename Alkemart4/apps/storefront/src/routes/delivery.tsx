@@ -40,7 +40,7 @@ function DeliveryPage() {
       <div className="delivery-page mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-10 lg:py-14">
         {/* Hero band */}
         <section
-          className="rounded-xl bg-white/[0.06] px-4 py-6 shadow-[inset_0_0_0_1px_rgba(254,191,49,0.12)] sm:px-8 sm:py-8"
+          className="glass-card rounded-xl px-4 py-6 shadow-[inset_0_0_0_1px_color-mix(in_srgb,_var(--primary)_12%,_transparent)] sm:px-8 sm:py-8"
           aria-labelledby="delivery-hero-title"
         >
           <div className="flex flex-col items-center gap-4 text-center sm:flex-row sm:gap-8 sm:text-left">
@@ -81,7 +81,7 @@ function DeliveryPage() {
                   "inline-flex items-center rounded-full bg-primary font-bold text-primary-foreground",
                   "mt-2 h-10 min-h-10 px-5 text-sm",
                   "transition hover:opacity-90",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-[#080807]",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-ink",
                 )}
               >
                 Start shopping
@@ -101,7 +101,7 @@ function DeliveryPage() {
                 key={step.title}
                 className={cn(
                   "flex flex-col gap-3 rounded-xl p-4 sm:gap-4 sm:p-5",
-                  "bg-white/[0.06] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06)]",
+                  "glass-card",
                 )}
               >
                 <span
@@ -135,7 +135,7 @@ function DeliveryPage() {
             <div
               className={cn(
                 "flex items-start gap-4 rounded-xl p-4 sm:p-5",
-                "bg-white/[0.06] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06)]",
+                "glass-card",
               )}
             >
               <div
@@ -168,7 +168,7 @@ function DeliveryPage() {
             <div
               className={cn(
                 "flex items-start gap-4 rounded-xl p-4 sm:p-5",
-                "bg-white/[0.06] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06)]",
+                "glass-card",
               )}
             >
               <div
@@ -210,7 +210,7 @@ function DeliveryPage() {
           <div
             className={cn(
               "rounded-xl p-4 sm:p-6",
-              "bg-white/[0.06] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06)]",
+              "glass-card",
             )}
           >
             <p className="text-sm leading-relaxed text-white/50">
@@ -226,7 +226,7 @@ function DeliveryPage() {
           <div
             className={cn(
               "rounded-xl px-4 py-6 text-center sm:px-8 sm:py-8",
-              "bg-primary/10 shadow-[inset_0_0_0_1px_rgba(254,191,49,0.2)]",
+              "bg-primary/10 shadow-[inset_0_0_0_1px_color-mix(in_srgb,_var(--primary)_20%,_transparent)]",
             )}
           >
             <h2 className="text-lg font-extrabold tracking-tight sm:text-xl">
@@ -242,7 +242,7 @@ function DeliveryPage() {
                 "mt-4 inline-flex items-center rounded-full bg-primary font-bold text-primary-foreground",
                 "h-11 min-h-11 px-6 text-sm",
                 "transition hover:opacity-90",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-[#080807]",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-ink",
               )}
             >
               Browse all

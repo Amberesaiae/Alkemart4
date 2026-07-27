@@ -1,8 +1,10 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { useState, useRef } from "react"
-import { useUploadImage, useQuickSell } from "../lib/hooks"
-import { Button, Input, Label, Card } from "@workspace/ui"
+import { useUploadImage, useQuickSell, useCategories } from "../lib/hooks"
+import { Button, Input, Label, Card, Textarea, Select } from "@workspace/ui"
 import { UploadCloud, Image as ImageIcon, ArrowRight, CheckCircle2, ChevronLeft } from "lucide-react"
+import { PageShell } from "../components/page-shell"
+import { PageHeader } from "../components/page-header"
 
 export const Route = createFileRoute('/quick-sell')({
   component: QuickSellPage,
@@ -18,9 +20,12 @@ function QuickSellPage() {
   const [title, setTitle] = useState("")
   const [priceGhs, setPriceGhs] = useState("")
   const [description, setDescription] = useState("")
+  const [categoryId, setCategoryId] = useState("")
+  const [quantity, setQuantity] = useState(1)
   
   const upload = useUploadImage()
   const quickSell = useQuickSell()
+  const { data: categoriesData } = useCategories()
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -46,6 +51,8 @@ function QuickSellPage() {
         title,
         price_ghs: Number(priceGhs),
         description,
+        quantity,
+        category_id: categoryId || undefined,
         image_url: imageUrl
       })
 
@@ -56,15 +63,12 @@ function QuickSellPage() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6 animate-in fade-in duration-500">
+    <PageShell className="max-w-2xl">
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" onClick={() => step === 2 ? setStep(1) : navigate({ to: "/" })}>
           <ChevronLeft className="h-6 w-6" />
         </Button>
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-black tracking-tight">Quick Sell</h1>
-          <p className="text-muted-foreground font-medium">List an item in under a minute.</p>
-        </div>
+        <PageHeader title="Quick Sell" description="List an item in under a minute." />
       </div>
 
       <div className="flex items-center justify-center mb-8">
@@ -144,7 +148,7 @@ function QuickSellPage() {
               </div>
 
               <div className="w-full sm:w-2/3 space-y-5">
-                {upload.isError || quickSell.isError && (
+                {(upload.isError || quickSell.isError) && (
                   <div className="p-3 bg-destructive/10 text-destructive text-sm font-semibold rounded-lg border border-destructive/20">
                     Failed to list product. Please try again.
                   </div>
@@ -181,10 +185,36 @@ function QuickSellPage() {
                 </div>
 
                 <div className="space-y-2">
+                  <Label htmlFor="quantity" className="text-base">Quantity</Label>
+                  <Input 
+                    id="quantity" 
+                    type="number" 
+                    min="1"
+                    step="1"
+                    value={quantity} 
+                    onChange={e => setQuantity(Math.max(1, parseInt(e.target.value) || 1))} 
+                    placeholder="1" 
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="category" className="text-base">Category <span className="text-muted-foreground font-normal">(Optional)</span></Label>
+                  <Select
+                    id="category"
+                    value={categoryId}
+                    onChange={e => setCategoryId(e.target.value)}
+                  >
+                    <option value="">Select a category</option>
+                    {categoriesData?.product_categories?.map(cat => (
+                      <option key={cat.id} value={cat.id}>{cat.name}</option>
+                    ))}
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
                   <Label htmlFor="desc" className="text-base">Details <span className="text-muted-foreground font-normal">(Optional)</span></Label>
-                  <textarea 
+                  <Textarea 
                     id="desc"
-                    className="flex w-full rounded-md border-2 border-border bg-card px-4 py-2 text-sm text-foreground transition-colors focus-visible:outline-none focus-visible:border-ring resize-none min-h-[100px]"
                     value={description}
                     onChange={e => setDescription(e.target.value)}
                     placeholder="Size, condition, origin..."
@@ -210,6 +240,6 @@ function QuickSellPage() {
           </form>
         )}
       </Card>
-    </div>
+    </PageShell>
   )
 }

@@ -12,6 +12,7 @@ import { PeerOffersList } from "@/components/product/PeerOffersList"
 import { ProductBuyPanel } from "@/components/product/ProductBuyPanel"
 import { SectionHeader } from "@/components/shell/SectionHeader"
 import { Breadcrumbs } from "@/components/shell/Breadcrumbs"
+import { BottomBar } from "@/components/bottom-bar"
 import { addOfferToCart } from "@/lib/cart"
 import {
   getStoreProduct,
@@ -209,7 +210,7 @@ function ProductDetailPage() {
 
       {p ? (
         <article className="grid items-start gap-6 lg:grid-cols-12 lg:gap-8">
-          <div className="overflow-hidden rounded-2xl border border-border bg-white lg:col-span-5">
+          <div className="overflow-hidden rounded-2xl border border-border bg-card lg:col-span-5">
             {p.thumbnail ? (
               <img
                 src={p.thumbnail}
@@ -340,32 +341,30 @@ function ProductDetailPage() {
       ) : null}
 
       {p ? (
-        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card p-3 md:hidden">
-          <div className="mx-auto flex max-w-6xl items-center gap-3">
-            <QtyStepper
-              value={qty}
-              onChange={setQty}
-              disabled={!canAdd}
+        <BottomBar>
+          <QtyStepper
+            value={qty}
+            onChange={setQty}
+            disabled={!canAdd}
+            size="sm"
+          />
+          <div className="min-w-0 flex-1">
+            <Price
+              amount={displayAmount}
+              currencyCode={displayCurrency}
               size="sm"
             />
-            <div className="min-w-0 flex-1">
-              <Price
-                amount={displayAmount}
-                currencyCode={displayCurrency}
-                size="sm"
-              />
-            </div>
-            <Button
-              type="button"
-              size="lg"
-              className="min-h-11 min-w-[7.5rem] shrink-0 rounded-full font-bold"
-              disabled={!canAdd || add.isPending}
-              onClick={() => add.mutate()}
-            >
-              {add.isPending ? "…" : "Add"}
-            </Button>
           </div>
-        </div>
+          <Button
+            type="button"
+            size="lg"
+            className="min-h-11 min-w-[7.5rem] shrink-0 rounded-full font-bold"
+            disabled={!canAdd || add.isPending}
+            onClick={() => add.mutate()}
+          >
+            {add.isPending ? "…" : "Add"}
+          </Button>
+        </BottomBar>
       ) : null}
     </div>
   )

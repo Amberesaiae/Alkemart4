@@ -5,6 +5,7 @@ import { ProductCard } from "@/components/product-card"
 import { ProductGridShell } from "@/components/product-grid"
 import { EmptyState } from "@/components/empty-state"
 import { ProductGridSkeleton, Skeleton } from "@/components/skeleton"
+import { Avatar, AvatarFallback } from "@workspace/ui"
 import { getBackendUrl, getPublishableKey } from "@/lib/env"
 import { listStoreProducts, type StoreProductCard } from "@/lib/products"
 import { trackSellerStoreViewed } from "@/lib/analytics"
@@ -149,9 +150,11 @@ function StorePage() {
       {vendor && name ? (
         <header className="store-hero overflow-hidden rounded-3xl border border-border p-6 shadow-sm sm:p-8">
           <div className="flex flex-wrap items-start gap-4">
-            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-primary text-2xl font-bold text-primary-foreground">
-              {name.slice(0, 1).toUpperCase()}
-            </div>
+            <Avatar className="h-16 w-16 rounded-2xl text-2xl font-bold">
+              <AvatarFallback className="rounded-2xl bg-primary text-primary-foreground">
+                {name.slice(0, 1).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
             <div className="min-w-0 space-y-2">
               <p className="type-sm font-semibold uppercase tracking-[0.14em] text-primary">
                 Seller store
@@ -160,12 +163,12 @@ function StorePage() {
                 {name}
               </h1>
               {vendor.bio ? (
-                <p className="max-w-2xl type-sm leading-relaxed text-white/70">
+                <p className="max-w-2xl type-sm leading-relaxed text-primary-foreground/70">
                   {vendor.bio}
                 </p>
               ) : null}
               {products.length > 0 ? (
-                <p className="type-sm text-white/55">
+                <p className="type-sm text-primary-foreground/55">
                   {products.length} product{products.length === 1 ? "" : "s"} in
                   catalog
                   {sections.length > 1
@@ -181,7 +184,7 @@ function StorePage() {
                       <li key={s.title}>
                         <a
                           href={`#store-cat-${slugify(s.title)}`}
-                          className="inline-flex rounded-full bg-white/10 px-3 py-1 type-sm font-semibold text-white/90 ring-1 ring-white/15 hover:bg-white/15"
+                          className="inline-flex rounded-full bg-ink/10 px-3 py-1 type-sm font-semibold text-primary-foreground/90 ring-1 ring-ink/15 hover:bg-ink/15"
                         >
                           {s.title}
                           <span className="ml-1.5 opacity-60">

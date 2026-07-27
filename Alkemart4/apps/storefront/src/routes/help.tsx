@@ -1,4 +1,3 @@
-import { useState } from "react"
 import { createFileRoute, Link } from "@tanstack/react-router"
 import { IconSafe, type IconId } from "@/design/icons"
 import { Illustration } from "@/components/illustration"
@@ -49,7 +48,6 @@ const FAQ = [
 ] as const
 
 function HelpPage() {
-  const [open, setOpen] = useState<string | null>(FAQ[0]?.q ?? null)
   let sellUrl = ""
   try {
     sellUrl = getMercurVendorUrl()
@@ -96,37 +94,29 @@ function HelpPage() {
       </ul>
 
       <ul className="space-y-2">
-        {FAQ.map((item) => {
-          const isOpen = open === item.q
-          return (
-            <li
-              key={item.q}
-              className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm"
-            >
-              <button
-                type="button"
-                className="flex w-full items-center justify-between gap-3 px-4 py-4 text-left sm:px-5"
-                onClick={() => setOpen(isOpen ? null : item.q)}
-                aria-expanded={isOpen}
-              >
+        {FAQ.map((item) => (
+          <li
+            key={item.q}
+            className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm"
+          >
+            <details className="group">
+              <summary className="flex w-full cursor-pointer items-center justify-between gap-3 px-4 py-4 text-left sm:px-5 list-none">
                 <span className="font-semibold text-foreground">{item.q}</span>
                 <span
                   className={cn(
-                    "flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-bold transition",
-                    isOpen && "bg-primary text-primary-foreground",
+                    "flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-bold transition group-open:bg-primary group-open:text-primary-foreground",
                   )}
                 >
-                  {isOpen ? "−" : "+"}
+                  <span className="group-open:hidden">+</span>
+                  <span className="hidden group-open:inline">−</span>
                 </span>
-              </button>
-              {isOpen ? (
-                <p className="border-t border-border px-4 pb-4 pt-3 text-sm leading-relaxed text-muted-foreground sm:px-5">
-                  {item.a}
-                </p>
-              ) : null}
-            </li>
-          )
-        })}
+              </summary>
+              <p className="border-t border-border px-4 pb-4 pt-3 text-sm leading-relaxed text-muted-foreground sm:px-5">
+                {item.a}
+              </p>
+            </details>
+          </li>
+        ))}
       </ul>
 
       <div className="grid gap-2 rounded-3xl border border-border bg-muted/30 p-5 sm:grid-cols-2">
