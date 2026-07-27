@@ -9,7 +9,7 @@ app = 'alkemart-api'
 primary_region = 'jnb'  # Johannesburg — ~40ms to Ghana vs ~120ms from London (lhr)
 
 [build]
-  dockerfile = 'Dockerfile'
+  dockerfile = 'packages/api/Dockerfile'
   [build.args]
     # Overridden at deploy if you pass --build-arg; must match public URL after first deploy
     MERCUR_BACKEND_URL = 'https://alkemart-api.fly.dev'
