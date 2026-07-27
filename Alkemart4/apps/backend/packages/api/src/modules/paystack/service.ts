@@ -220,30 +220,35 @@ class PaystackPaymentProvider extends AbstractPaymentProvider<Options> {
   }
 
   async refundPayment(input: RefundPaymentInput): Promise<RefundPaymentOutput> {
-    const currency =
-      ((input.data?.currency as string) || "ghs").toLowerCase()
-    // Prefer explicit pesewas on session data; else convert Medusa major → pesewas
-    let amountPesewas: number
-    if (
-      input.data?.amount_pesewas != null &&
-      Number.isInteger(Number(input.data.amount_pesewas))
-    ) {
-      amountPesewas = Number(input.data.amount_pesewas)
-    } else if (input.amount != null) {
-      amountPesewas = toPaystackAmountPesewas(input.amount as number, currency)
-    } else {
-      throw new MedusaError(
-        MedusaError.Types.INVALID_DATA,
-        "Refund amount is required"
-      )
+    try {
+      const currency =
+        ((input.data?.currency as string) || "ghs").toLowerCase()
+      // Prefer explicit pesewas on session data; else convert Medusa major → pesewas
+      let amountPesewas: number
+      if (
+        input.data?.amount_pesewas != null &&
+        Number.isInteger(Number(input.data.amount_pesewas))
+      ) {
+        amountPesewas = Number(input.data.amount_pesewas)
+      } else if (input.amount != null) {
+        amountPesewas = toPaystackAmountPesewas(input.amount as number, currency)
+      } else {
+        throw new MedusaError(
+          MedusaError.Types.INVALID_DATA,
+          "Refund amount is required"
+        )
+      }
+
+      const data = await this.api<{ id: number }>("/refund", {
+        transaction: input.data?.reference,
+        amount: amountPesewas,
+      })
+
+      return { data: { ...input.data, refund_id: data.id } }
+    } catch (err) {
+      console.error(`[paystack] refundPayment error:`, err)
+      throw err
     }
-
-    const data = await this.api<{ id: number }>("/refund", {
-      transaction: input.data?.reference,
-      amount: amountPesewas,
-    })
-
-    return { data: { ...input.data, refund_id: data.id } }
   }
 
   async retrievePayment(
