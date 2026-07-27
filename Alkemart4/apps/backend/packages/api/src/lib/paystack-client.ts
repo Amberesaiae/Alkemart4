@@ -103,7 +103,7 @@ export async function paystackRequest<T = Record<string, unknown>>(
     init.body = JSON.stringify(options.body)
   }
 
-  const res = await fetch(url, init)
+  const res = await fetch(url, { ...init, signal: AbortSignal.timeout(10000) })
   const json = (await res.json().catch(() => null)) as {
     status?: boolean
     message?: string
