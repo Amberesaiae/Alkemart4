@@ -2,6 +2,7 @@ import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { MercurModules } from "@mercurjs/types"
 import { asList } from "../../../../../lib/graph-utils"
+import { invalidateSellerOwnedProductIds } from "../../../../../lib/seller-owned-products-cache"
 
 type SellerReq = MedusaRequest & {
   seller_context?: { seller_id?: string }
@@ -235,19 +236,55 @@ export async function DELETE(req: SellerReq, res: MedusaResponse) {
       return
     }
 
+    // Delete associated offers first
+    try {
+      const { data: productDetail } = await query.graph({
+        entity: "product",
+        fields: ["id", "variants.id"],
+        filters: { id: productId },
+      })
+      const prodList = asList(productDetail) as Array<Record<string, unknown>>
+      const deleteProduct = prodList[0]
+      const productVariants = (deleteProduct?.variants ?? []) as Array<{ id: string }>
+
+      const { data: offerData } = await query.graph({
+        entity: "offer",
+        fields: ["id", "variant_id"],
+        filters: { product_id: productId },
+      })
+      const variantIds = new Set(productVariants.map((v) => v.id))
+      const offersToDelete = asList(offerData).filter(
+        (o: Record<string, unknown>) => variantIds.has(String(o.variant_id ?? "")),
+      )
+      const offerModule = req.scope.resolve(MercurModules.OFFER) as
+        | { deleteOffers?: (ids: string[]) => Promise<unknown> }
+        | undefined
+      if (offerModule?.deleteOffers && offersToDelete.length) {
+        await offerModule.deleteOffers(offersToDelete.map((o: Record<string, unknown>) => o.id as string))
+      }
+    } catch {
+      /* offer module may not be available — skip cleanup */
+    }
+
     const link = req.scope.resolve(ContainerRegistrationKeys.LINK) as {
       dismiss: (data: unknown) => Promise<unknown>
     }
 
-    await link.dismiss({
-      [Modules.PRODUCT]: { product_id: productId },
-      [MercurModules.SELLER]: { seller_id: sid },
-    }).catch(() => {})
+    try {
+      await link.dismiss({
+        [Modules.PRODUCT]: { product_id: productId },
+        [MercurModules.SELLER]: { seller_id: sid },
+      })
+    } catch (linkErr) {
+      console.error("[alkemart] delete: link.dismiss failed", linkErr)
+    }
 
     const productModule = req.scope.resolve(Modules.PRODUCT) as {
       deleteProducts: (ids: string[]) => Promise<unknown>
     }
     await productModule.deleteProducts([productId])
+
+    void invalidateSellerOwnedProductIds(sid).catch(() => {})
 
     res.status(200).json({ success: true, message: "Product deleted." })
   } catch (e) {
