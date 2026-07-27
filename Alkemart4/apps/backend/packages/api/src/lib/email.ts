@@ -84,13 +84,8 @@ export async function sendEmail(msg: EmailMessage): Promise<SendEmailResult> {
 
   // SMTP via undici/fetch is not standard — use dynamic import of nodemailer if present
   try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const nodemailer = require("nodemailer") as {
-      createTransport: (opts: unknown) => {
-        sendMail: (opts: unknown) => Promise<unknown>
-      }
-    }
-    const transport = nodemailer.createTransport({
+    const { createTransport } = await import("nodemailer")
+    const transport = createTransport({
       host: process.env.SMTP_HOST,
       port: Number(process.env.SMTP_PORT || 587),
       secure: process.env.SMTP_SECURE === "true",
