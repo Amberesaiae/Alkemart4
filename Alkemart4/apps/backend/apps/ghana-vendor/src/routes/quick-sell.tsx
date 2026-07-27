@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { useState, useRef, useEffect } from "react"
 import { useUploadImage, useQuickSell, useCategories } from "../lib/hooks"
+import { useQueryClient } from "@tanstack/react-query"
 import { Button, Input, Label, Card, Textarea, Select } from "@workspace/ui"
 import { UploadCloud, Image as ImageIcon, ArrowRight, CheckCircle2, ChevronLeft } from "lucide-react"
 import { PageShell } from "../components/page-shell"
@@ -12,6 +13,7 @@ export const Route = createFileRoute('/quick-sell')({
 
 function QuickSellPage() {
   const navigate = useNavigate()
+  const qc = useQueryClient()
   const [step, setStep] = useState<1 | 2>(1)
   
   const [file, setFile] = useState<File | null>(null)
@@ -75,6 +77,7 @@ function QuickSellPage() {
         image_url: imageUrl
       })
 
+      qc.invalidateQueries({ queryKey: ["vendor"] })
       navigate({ to: "/products" })
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to list product. Please try again."
