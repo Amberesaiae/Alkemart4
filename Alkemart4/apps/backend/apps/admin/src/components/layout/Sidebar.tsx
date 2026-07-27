@@ -19,23 +19,23 @@ export function Sidebar() {
 
   return (
     <aside className={cn(
-      "bg-ink text-primary-foreground flex flex-col h-screen sticky top-0 border-r border-border shrink-0 transition-all duration-200",
+      "bg-ink text-white flex flex-col h-screen sticky top-0 border-r border-white/10 shrink-0 transition-all duration-200",
       collapsed ? "w-16" : "w-64"
     )}>
       <div className={cn(
-        "h-16 flex items-center border-b border-primary-foreground/10 shrink-0",
+        "h-16 flex items-center border-b border-white/10 shrink-0",
         collapsed ? "justify-center px-2" : "px-6"
       )}>
         {collapsed ? (
-          <span className="text-xl font-bold text-primary-foreground">●</span>
+          <span className="text-xl font-bold text-white">●</span>
         ) : (
-          <h1 className="text-xl font-bold tracking-tight text-primary-foreground flex items-center gap-2 flex-1">
+          <h1 className="text-xl font-bold tracking-tight text-white flex items-center gap-2 flex-1">
             <span className="text-primary">●</span> Alkemart Ops
           </h1>
         )}
         <button
           onClick={() => setCollapsed(c => !c)}
-          className="rounded-md p-1 text-primary-foreground/70 hover:text-primary-foreground hover:bg-primary-foreground/10 transition-colors"
+          className="rounded-md p-1 text-white/70 hover:text-white hover:bg-white/10 transition-colors"
         >
           {collapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
         </button>
@@ -54,7 +54,7 @@ export function Sidebar() {
                 collapsed && "justify-center px-2",
                 isActive
                   ? "bg-primary text-primary-foreground"
-                  : "text-primary-foreground/70 hover:bg-primary-foreground/10 hover:text-primary-foreground"
+                  : "text-white/70 hover:bg-white/10 hover:text-white"
               )}
               title={collapsed ? item.label : undefined}
             >
@@ -66,13 +66,13 @@ export function Sidebar() {
       </nav>
       
       <div className={cn(
-        "p-4 border-t border-primary-foreground/10 shrink-0",
+        "p-4 border-t border-white/10 shrink-0",
         collapsed && "p-2"
       )}>
         <Button 
           variant="ghost" 
           className={cn(
-            "w-full justify-start text-primary-foreground/70 hover:text-primary-foreground hover:bg-primary-foreground/10 gap-3",
+            "w-full justify-start text-white/70 hover:text-white hover:bg-white/10 gap-3",
             collapsed && "justify-center px-2"
           )}
           onClick={() => logout()}

@@ -28,13 +28,13 @@ function OrdersPage() {
 
   return (
     <PageShell>
-      <div className="flex justify-between items-end">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
         <PageHeader title="Marketplace Orders" description="View and track all platform orders." />
         
         <Select
           value={status || ""}
           onChange={(e) => { setStatus(e.target.value || undefined); setOffset(0) }}
-          className="h-10 w-48"
+          className="h-10 w-full sm:w-48"
         >
           <option value="">All Statuses</option>
           <option value="pending">Pending</option>
@@ -45,7 +45,7 @@ function OrdersPage() {
         </Select>
       </div>
 
-      <div className="border rounded-xl bg-card overflow-hidden">
+      <div className="border rounded-xl bg-card overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
