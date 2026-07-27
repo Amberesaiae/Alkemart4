@@ -18,12 +18,15 @@ function Modal({ isOpen, onClose, title, children, footer, className }: LegacyMo
     <DialogPrimitive.Root open={isOpen} onOpenChange={(open) => { if (!open) onClose() }}>
       <DialogPrimitive.Portal>
         <DialogPrimitive.Overlay
+          aria-hidden="true"
           className={cn(
             "fixed inset-0 z-50 bg-ink/50 backdrop-blur-sm",
             "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
           )}
         />
         <DialogPrimitive.Content
+          role="dialog"
+          aria-modal="true"
           className={cn(
             "fixed left-1/2 top-1/2 z-50 w-full max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-xl border border-border bg-card text-card-foreground shadow-lg",
             "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
