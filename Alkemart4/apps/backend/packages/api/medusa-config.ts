@@ -26,6 +26,21 @@ const dashboardAppDir = (name: string) => {
  * PAYSTACK_SECRET_KEY is set so local boot works without payment keys.
  */
 const alkemartModules: Array<Record<string, unknown>> = [
+  // Auth — emailpass provider for user/member login flows
+  {
+    resolve: '@medusajs/medusa/auth',
+    options: {
+      providers: [
+        {
+          resolve: '@medusajs/medusa/auth-emailpass',
+          id: 'emailpass',
+          options: {
+            jwtSecret: env.JWT_SECRET,
+          },
+        },
+      ],
+    },
+  },
   {
     resolve: '@mercurjs/core/modules/admin-ui',
     options: {
