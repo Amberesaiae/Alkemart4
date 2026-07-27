@@ -1,11 +1,3 @@
-/**
- * POST /hooks/paystack — Paystack charge.success / charge.failed webhook.
- *
- * Config in Paystack dashboard: https://your-api/hooks/paystack
- * Header: x-paystack-signature (HMAC-SHA512 of raw body)
- *
- * Completes Ghana MoMo carts after buyer approves USSD/prompt.
- */
 import { Modules } from "@medusajs/framework/utils"
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import {
@@ -14,13 +6,46 @@ import {
 } from "../../../lib/ghana-checkout"
 import { verifyPaystackWebhookSignature } from "../../../lib/paystack-client"
 import { logger } from "../../../lib/logger"
+import { getRedisClient } from "../../../lib/redis-client"
 
-const processedWebhooks = new Set<string>()
-const WEBHOOK_DEDUP_TTL = 5 * 60 * 1000
+const PAYSTACK_IPS: ReadonlySet<string> = new Set([
+  "52.31.139.75",
+  "52.49.173.169",
+  "52.214.14.220",
+])
 
-function markWebhookProcessed(id: string) {
-  processedWebhooks.add(id)
-  setTimeout(() => processedWebhooks.delete(id), WEBHOOK_DEDUP_TTL)
+const WEBHOOK_IPS_ENV = process.env.PAYSTACK_ALLOWED_IPS?.trim()
+
+const IP_WHITELIST_DISABLED = process.env.PAYSTACK_SKIP_IP_CHECK === "true" || process.env.NODE_ENV === "development"
+
+function ipIsAllowed(ip: string): boolean {
+  if (IP_WHITELIST_DISABLED) return true
+  if (WEBHOOK_IPS_ENV) {
+    return WEBHOOK_IPS_ENV.split(",").some((cidr) => ip.startsWith(cidr.trim().replace("/32", "")))
+  }
+  return PAYSTACK_IPS.has(ip)
+}
+
+const WEBHOOK_DEDUP_TTL = 5 * 60
+
+const inMemoryDedup = new Set<string>()
+
+async function isDuplicate(eventId: string): Promise<boolean> {
+  const r = getRedisClient()
+  if (r) {
+    try {
+      const exists = await r.exists(`paystack:dedup:${eventId}`)
+      if (exists) return true
+      await r.setex(`paystack:dedup:${eventId}`, WEBHOOK_DEDUP_TTL, "1")
+      return false
+    } catch {
+      /* fall through to in-memory */
+    }
+  }
+  if (inMemoryDedup.has(eventId)) return true
+  inMemoryDedup.add(eventId)
+  setTimeout(() => inMemoryDedup.delete(eventId), WEBHOOK_DEDUP_TTL * 1000)
+  return false
 }
 
 type PaystackEvent = {
@@ -37,6 +62,18 @@ type PaystackEvent = {
 }
 
 export async function POST(req: MedusaRequest, res: MedusaResponse) {
+  const clientIp =
+    (req.headers["x-forwarded-for"] as string | undefined)?.split(",")[0]?.trim() ||
+    req.headers["x-real-ip"] as string | undefined ||
+    req.socket?.remoteAddress ||
+    ""
+
+  if (!ipIsAllowed(clientIp)) {
+    logger.warn("[paystack-webhook] blocked request from untrusted IP", { clientIp })
+    res.status(403).json({ error: "untrusted source" })
+    return
+  }
+
   const secretKey = process.env.PAYSTACK_SECRET_KEY?.trim()
   if (!secretKey) {
     res.status(503).json({ error: "PAYSTACK_SECRET_KEY not configured" })
@@ -47,7 +84,6 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
     (req.headers["x-paystack-signature"] as string | undefined) ||
     (req.headers["X-Paystack-Signature"] as string | undefined)
 
-  // Prefer raw body when framework preserves it; else re-stringify (last resort).
   const rawBody: string =
     typeof (req as { rawBody?: unknown }).rawBody === "string"
       ? ((req as { rawBody: string }).rawBody as string)
@@ -58,14 +94,9 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
             return JSON.stringify(req.body ?? {})
           })()
 
-  const signatureOk = verifyPaystackWebhookSignature(
-    rawBody,
-    signatureHeader,
-    secretKey
-  )
-
+  const signatureOk = verifyPaystackWebhookSignature(rawBody, signatureHeader, secretKey)
   if (!signatureOk) {
-    logger.warn(`[paystack-webhook] HMAC signature mismatch — expected ${secretKey.slice(0, 4)}***, got ${signatureHeader?.slice(0, 16)}`)
+    logger.warn("[paystack-webhook] HMAC signature mismatch", { clientIp })
     res.status(400).json({ error: "invalid signature" })
     return
   }
@@ -83,21 +114,16 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
 
   const eventId = event.data?.id
   if (eventId && typeof eventId === "string") {
-    if (processedWebhooks.has(eventId)) {
-      logger.warn(`[paystack-webhook] duplicate event ${eventId} — skipping`)
+    if (await isDuplicate(eventId)) {
+      logger.info("[paystack-webhook] duplicate event — skipping", { eventId })
       return Response.json({ status: "duplicate" })
     }
-    markWebhookProcessed(eventId)
   }
 
   const eventName = String(event.event || "")
   const reference = event.data?.reference
 
-  if (eventName === "charge.success" || eventName === "charge.failed") {
-    logger.info(`[paystack-webhook] received ${eventName} for ${reference}`)
-  } else {
-    logger.info(`[paystack-webhook] received unknown event type: ${eventName}`)
-  }
+  logger.info("[paystack-webhook] received event", { eventName, reference, eventId })
 
   if (!reference) {
     res.status(200).json({ received: true, ignored: "no_reference" })
@@ -117,7 +143,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
           metadata: { ghana_payment_status: "failed" },
         }])
       } catch {
-        logger.warn(`[paystack-webhook] failed to update payment status for cart ${cartId}`)
+        logger.warn("[paystack-webhook] failed to update payment status for cart", { cartId })
       }
     }
     res.status(200).json({ received: true, status: "failed", reference })
@@ -131,14 +157,9 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
 
   try {
     const result = await confirmMomoByPaystackReference(req.scope, reference)
-    res.status(200).json({
-      received: true,
-      ...result,
-    })
+    res.status(200).json({ received: true, ...result })
   } catch (err) {
     if (err instanceof CheckoutHttpError) {
-      // 409 not ready yet — still 200 so Paystack does not infinite-retry forever
-      // on pending races; 400 amount mismatch should alert ops
       const retryable = err.status === 409
       res.status(retryable ? 200 : err.status).json({
         received: true,

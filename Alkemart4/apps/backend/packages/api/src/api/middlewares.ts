@@ -3,6 +3,9 @@ import type { MedusaRequest, MedusaResponse, MedusaNextFunction } from "@medusaj
 import { validateVendorUploads } from "./middlewares/validate-vendor-uploads"
 import { securityHeaders } from "./middlewares/security-headers"
 import { applyStrictSellerProductFilter } from "./middlewares/strict-seller-products"
+import { authRateLimit } from "./middlewares/auth-rate-limit"
+import { csrfProtection } from "./middlewares/csrf-protection"
+import { inputSanitize } from "./middlewares/input-sanitize"
 
 /** Redirect bare root → admin dashboard (makes the Replit preview useful). */
 const redirectRootToDashboard = (
@@ -18,6 +21,27 @@ export default defineMiddlewares({
     {
       matcher: "/*",
       middlewares: [securityHeaders],
+    },
+    // ── CSRF protection (state-changing requests) ─────────────────────────
+    {
+      matcher: "/auth/*",
+      methods: ["POST"],
+      middlewares: [csrfProtection, authRateLimit],
+    },
+    {
+      matcher: "/admin/*",
+      methods: ["POST", "PUT", "PATCH", "DELETE"],
+      middlewares: [inputSanitize, csrfProtection],
+    },
+    {
+      matcher: "/vendor/*",
+      methods: ["POST", "PUT", "PATCH", "DELETE"],
+      middlewares: [inputSanitize, csrfProtection],
+    },
+    {
+      matcher: "/store/*",
+      methods: ["POST", "PUT", "PATCH", "DELETE"],
+      middlewares: [inputSanitize, csrfProtection],
     },
     // ── Dev convenience ─────────────────────────────────────────────────────
     {

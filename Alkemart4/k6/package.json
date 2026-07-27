@@ -1,0 +1,10 @@
+{
+  "name": "@alkemart/k6",
+  "private": true,
+  "scripts": {
+    "test:catalog": "k6 run scripts/catalog-browsing.js",
+    "test:cart": "k6 run scripts/cart-checkout.js",
+    "test:search": "k6 run scripts/search.js",
+    "test:all": "k6 run scripts/catalog-browsing.js && k6 run scripts/search.js && k6 run scripts/cart-checkout.js"
+  }
+}
