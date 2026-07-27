@@ -196,7 +196,7 @@ vercel --prod
 | `VITE_POSTHOG_KEY` | PostHog project API key |
 | `VITE_POSTHOG_HOST` | `https://us.i.posthog.com` |
 
-**CSP:** `vercel.json` has a strict Content-Security-Policy. Update `connect-src` if you add new API domains.
+**CSP:** No Content-Security-Policy header is set by `vercel.json`. Add one via Vercel's `headers` config in `vercel.json` or at the edge (e.g., Cloudflare WAF) in production. Include `connect-src` entries for the Railway API origin and any third-party services (PostHog, Sentry, Paystack).
 
 **PWA:** `vite-plugin-pwa` generates the service worker at build time. Vercel serves the SW at `/sw.js` with `Cache-Control: no-cache` automatically (Vercel respects `workbox` SW headers).
 
