@@ -1,7 +1,7 @@
 @import "tailwindcss" source(none);
 @source "../";
 
-@custom-variant dark {}
+@custom-variant dark (&:is(.dark *));
 
 @theme inline {
   --font-sans: "Montserrat", ui-sans-serif, system-ui, sans-serif;

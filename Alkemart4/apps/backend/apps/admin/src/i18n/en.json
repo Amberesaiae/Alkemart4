@@ -2,6 +2,8 @@
   "login": {
     "title": "Admin sign in",
     "hint": "Ops accounts only — invitation or CLI. Not for sellers or shoppers.",
+    "email": "Email",
+    "password": "Password",
     "forgotPassword": "Forgot password? <0>Reset</0>",
     "sessionExpired": "Your session expired — sign in again."
   },

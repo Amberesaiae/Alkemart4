@@ -1,6 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router"
 import { useMarkets } from "../../hooks/use-markets"
-import { Card, CardContent, CardHeader, CardTitle } from "@workspace/ui"
+import { Card, CardContent, CardHeader, CardTitle, Badge, Skeleton } from "@workspace/ui"
+import { PageShell } from "../../components/page-shell"
+import { PageHeader } from "../../components/page-header"
 import { Globe2 } from "lucide-react"
 
 export const Route = createFileRoute("/_authenticated/markets")({
@@ -8,22 +10,37 @@ export const Route = createFileRoute("/_authenticated/markets")({
 })
 
 function MarketsPage() {
-  const { data, isLoading } = useMarkets()
+  const { data, isLoading, isError } = useMarkets()
 
   if (isLoading) {
-    return <div className="p-8">Loading markets...</div>
+    return (
+      <PageShell>
+        <Skeleton className="h-8 w-48" />
+        <Skeleton className="h-4 w-72" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[1, 2, 3].map(i => (
+            <Card key={i}><Skeleton className="h-48 w-full" /></Card>
+          ))}
+        </div>
+      </PageShell>
+    )
+  }
+
+  if (isError) {
+    return (
+      <PageShell>
+        <div className="bg-destructive/10 text-destructive p-4 rounded-md">
+          Failed to load markets.
+        </div>
+      </PageShell>
+    )
   }
 
   const markets = data?.markets || []
 
   return (
-    <div className="p-8 max-w-6xl mx-auto space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Operating Markets</h1>
-        <p className="text-muted-foreground mt-2">
-          Countries currently in operation. Used for localized routing, currency, and address rules.
-        </p>
-      </div>
+    <PageShell>
+      <PageHeader title="Operating Markets" description="Countries currently in operation. Used for localized routing, currency, and address rules." />
 
       {markets.length === 0 ? (
         <div className="p-12 text-center border rounded-xl bg-card shadow-sm">
@@ -38,9 +55,9 @@ function MarketsPage() {
               <CardHeader className="pb-3 border-b bg-muted/20">
                 <CardTitle className="flex justify-between items-center text-lg">
                   {market.display_name || market.name}
-                  <span className="text-xs font-semibold bg-muted-foreground/10 text-foreground px-2 py-1 rounded">
+                  <Badge variant="secondary" className="text-xs font-semibold">
                     {market.currency_code?.toUpperCase()}
-                  </span>
+                  </Badge>
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-4">
@@ -49,13 +66,13 @@ function MarketsPage() {
                     <span className="font-medium text-muted-foreground block mb-2">Supported Countries</span>
                     <div className="flex flex-wrap gap-2">
                       {market.countries ? market.countries.map((c: any) => (
-                        <span key={c.iso_2} className="bg-primary/10 text-foreground px-2 py-1 rounded-md text-xs font-medium border border-primary/20">
+                        <Badge key={c.iso_2} variant="outline" className="bg-primary/10 border-primary/20">
                           {c.name} ({c.iso_2?.toUpperCase()})
-                        </span>
+                        </Badge>
                       )) : (
-                        <span className="bg-primary/10 text-foreground px-2 py-1 rounded-md text-xs font-medium border border-primary/20">
+                        <Badge variant="outline" className="bg-primary/10 border-primary/20">
                           {market.country_code?.toUpperCase()}
-                        </span>
+                        </Badge>
                       )}
                     </div>
                   </div>
@@ -81,6 +98,6 @@ function MarketsPage() {
           ))}
         </div>
       )}
-    </div>
+    </PageShell>
   )
 }

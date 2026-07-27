@@ -1,16 +1,15 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { useState } from "react"
 import { useAuth } from "../hooks/use-auth"
-import { Button } from "@workspace/ui"
-import { PasswordInput } from "@workspace/ui"
-import { Input } from "@workspace/ui"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@workspace/ui"
+import { Button, Input, PasswordInput, Label, Card, CardContent, CardDescription, CardHeader, CardTitle } from "@workspace/ui"
+import { useTranslation } from "react-i18next"
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
 })
 
 function LoginPage() {
+  const { t } = useTranslation()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
@@ -37,8 +36,8 @@ function LoginPage() {
               alkemart<span className="text-primary">.</span>
             </span>
           </div>
-          <CardTitle className="text-xl font-bold tracking-tight">Ops Login</CardTitle>
-          <CardDescription>Sign in to manage the marketplace</CardDescription>
+          <CardTitle className="text-xl font-bold tracking-tight">{t("login.title")}</CardTitle>
+          <CardDescription>{t("login.hint")}</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4 pt-4">
@@ -48,7 +47,7 @@ function LoginPage() {
               </div>
             )}
             <div className="space-y-2">
-              <label className="text-sm font-medium text-muted-foreground">Email</label>
+              <Label>{t("login.email")}</Label>
               <Input
                 type="email"
                 placeholder="admin@alkemart.com"
@@ -58,7 +57,7 @@ function LoginPage() {
               />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium text-muted-foreground">Password</label>
+              <Label>{t("login.password")}</Label>
               <PasswordInput
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}

@@ -1,5 +1,6 @@
 import { Link, useRouterState } from "@tanstack/react-router"
-import { ChartColumn, Package, Store, ShoppingCart, Globe, LogOut } from "lucide-react"
+import { ChartColumn, Package, Store, ShoppingCart, Globe, LogOut, PanelLeftClose, PanelLeftOpen } from "lucide-react"
+import { useState } from "react"
 import { useAuth } from "../../hooks/use-auth"
 import { cn, Button } from "@workspace/ui"
 
@@ -14,13 +15,30 @@ const NAV_ITEMS = [
 export function Sidebar() {
   const router = useRouterState()
   const { logout } = useAuth()
+  const [collapsed, setCollapsed] = useState(false)
 
   return (
-    <aside className="w-64 bg-[--ink] text-white flex flex-col h-screen sticky top-0 border-r border-border shrink-0">
-      <div className="h-16 flex items-center px-6 border-b border-white/10 shrink-0">
-        <h1 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
-          <span className="text-primary">●</span> Alkemart Ops
-        </h1>
+    <aside className={cn(
+      "bg-ink text-primary-foreground flex flex-col h-screen sticky top-0 border-r border-border shrink-0 transition-all duration-200",
+      collapsed ? "w-16" : "w-64"
+    )}>
+      <div className={cn(
+        "h-16 flex items-center border-b border-primary-foreground/10 shrink-0",
+        collapsed ? "justify-center px-2" : "px-6"
+      )}>
+        {collapsed ? (
+          <span className="text-xl font-bold text-primary-foreground">●</span>
+        ) : (
+          <h1 className="text-xl font-bold tracking-tight text-primary-foreground flex items-center gap-2 flex-1">
+            <span className="text-primary">●</span> Alkemart Ops
+          </h1>
+        )}
+        <button
+          onClick={() => setCollapsed(c => !c)}
+          className="rounded-md p-1 text-primary-foreground/70 hover:text-primary-foreground hover:bg-primary-foreground/10 transition-colors"
+        >
+          {collapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
+        </button>
       </div>
       
       <nav className="flex-1 overflow-y-auto py-6 px-3 space-y-1">
@@ -33,26 +51,35 @@ export function Sidebar() {
               to={item.href}
               className={cn(
                 "flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                collapsed && "justify-center px-2",
                 isActive
                   ? "bg-primary text-primary-foreground"
-                  : "text-white/70 hover:bg-white/10 hover:text-white"
+                  : "text-primary-foreground/70 hover:bg-primary-foreground/10 hover:text-primary-foreground"
               )}
+              title={collapsed ? item.label : undefined}
             >
-              <item.icon className="h-4 w-4" />
-              {item.label}
+              <item.icon className="h-4 w-4 shrink-0" />
+              {!collapsed && item.label}
             </Link>
           )
         })}
       </nav>
       
-      <div className="p-4 border-t border-white/10 shrink-0">
+      <div className={cn(
+        "p-4 border-t border-primary-foreground/10 shrink-0",
+        collapsed && "p-2"
+      )}>
         <Button 
           variant="ghost" 
-          className="w-full justify-start text-white/70 hover:text-white hover:bg-white/10 gap-3"
+          className={cn(
+            "w-full justify-start text-primary-foreground/70 hover:text-primary-foreground hover:bg-primary-foreground/10 gap-3",
+            collapsed && "justify-center px-2"
+          )}
           onClick={() => logout()}
+          title={collapsed ? "Sign out" : undefined}
         >
-          <LogOut className="h-4 w-4" />
-          Sign out
+          <LogOut className="h-4 w-4 shrink-0" />
+          {!collapsed && "Sign out"}
         </Button>
       </div>
     </aside>

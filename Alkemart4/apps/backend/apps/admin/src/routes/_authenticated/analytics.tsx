@@ -1,6 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router"
 import { useStats } from "../../hooks/use-stats"
-import { Card, CardContent, CardHeader, CardTitle } from "@workspace/ui"
+import { Card, CardContent, CardHeader, CardTitle, Skeleton } from "@workspace/ui"
+import { PageShell } from "../../components/page-shell"
+import { PageHeader } from "../../components/page-header"
 import { ShoppingCart, DollarSign, Store, Package } from "lucide-react"
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
 
@@ -13,34 +15,31 @@ function AnalyticsPage() {
 
   if (isLoading) {
     return (
-      <div className="p-8">
-        <div className="h-8 w-48 bg-muted animate-pulse rounded-md mb-8"></div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <PageShell>
+        <Skeleton className="h-8 w-48" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {[1, 2, 3, 4].map(i => (
-            <Card key={i} className="animate-pulse h-32"></Card>
+            <Card key={i}><Skeleton className="h-32 w-full" /></Card>
           ))}
         </div>
-        <Card className="animate-pulse h-[400px]"></Card>
-      </div>
+        <Card><Skeleton className="h-[400px] w-full" /></Card>
+      </PageShell>
     )
   }
 
   if (error || !stats) {
     return (
-      <div className="p-8">
+      <PageShell>
         <div className="bg-destructive/10 text-destructive p-4 rounded-md">
           Failed to load platform stats.
         </div>
-      </div>
+      </PageShell>
     )
   }
 
   return (
-    <div className="p-8 max-w-6xl mx-auto space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Platform Analytics</h1>
-        <p className="text-muted-foreground mt-2">Live marketplace totals — orders, sales value, sellers, and catalog.</p>
-      </div>
+    <PageShell>
+      <PageHeader title="Platform Analytics" description="Live marketplace totals — orders, sales value, sellers, and catalog." />
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard 
@@ -119,7 +118,7 @@ function AnalyticsPage() {
           )}
         </CardContent>
       </Card>
-    </div>
+    </PageShell>
   )
 }
 

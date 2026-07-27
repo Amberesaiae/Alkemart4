@@ -1,47 +1,83 @@
 import { createFileRoute } from "@tanstack/react-router"
 import { useState } from "react"
 import { useSellers } from "../../hooks/use-sellers"
-import { Button } from "@workspace/ui"
-import { Modal } from "@workspace/ui"
+import { Button, Modal, Textarea, Skeleton } from "@workspace/ui"
+import { PageShell } from "../../components/page-shell"
+import { PageHeader } from "../../components/page-header"
 
 export const Route = createFileRoute("/_authenticated/sellers-queue")({
   component: SellersQueuePage,
 })
 
 function SellersQueuePage() {
-  const { pending, rejected, isLoading, approve, suspend } = useSellers()
+  const { pending, rejected, isLoading, approve, suspend, isApproving, isSuspending } = useSellers()
   
+  const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean; sellerId: string | null }>({
+    isOpen: false,
+    sellerId: null,
+  })
+
   const [rejectModal, setRejectModal] = useState<{ isOpen: boolean; sellerId: string | null }>({
     isOpen: false,
     sellerId: null,
   })
   const [reason, setReason] = useState("")
+  const [error, setError] = useState<string | null>(null)
 
-  const handleApprove = async (id: string) => {
-    if (window.confirm("Approve this seller application?")) {
-      await approve(id)
+  const handleApprove = async () => {
+    if (!confirmModal.sellerId) return
+    try {
+      setError(null)
+      await approve(confirmModal.sellerId)
+      setConfirmModal({ isOpen: false, sellerId: null })
+    } catch (e) {
+      setError("Failed to approve seller")
     }
   }
 
   const handleReject = async () => {
     if (!rejectModal.sellerId || !reason.trim()) return
-    await suspend({ id: rejectModal.sellerId, reason })
-    setRejectModal({ isOpen: false, sellerId: null })
-    setReason("")
+    try {
+      setError(null)
+      await suspend({ id: rejectModal.sellerId, reason })
+      setRejectModal({ isOpen: false, sellerId: null })
+      setReason("")
+    } catch (e) {
+      setError("Failed to reject seller")
+    }
   }
 
   if (isLoading) {
-    return <div className="p-8">Loading seller queue...</div>
+    return (
+      <PageShell>
+        <Skeleton className="h-8 w-48" />
+        <Skeleton className="h-4 w-64" />
+        <section>
+          <Skeleton className="h-6 w-32 mb-4" />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {[1, 2].map(i => (
+              <div key={i} className="p-6 border rounded-xl bg-card">
+                <Skeleton className="h-6 w-40 mb-3" />
+                <Skeleton className="h-4 w-24 mb-2" />
+                <Skeleton className="h-4 w-56 mb-2" />
+                <Skeleton className="h-4 w-32" />
+              </div>
+            ))}
+          </div>
+        </section>
+      </PageShell>
+    )
   }
 
   return (
-    <div className="p-8 max-w-6xl mx-auto space-y-12">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Seller Applications</h1>
-        <p className="text-muted-foreground mt-2">
-          Review new applications. Approve to open their shop, or reject with a reason.
-        </p>
-      </div>
+    <PageShell>
+      <PageHeader title="Seller Applications" description="Review new applications. Approve to open their shop, or reject with a reason." />
+
+      {error && (
+        <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-md">
+          {error}
+        </div>
+      )}
 
       <section>
         <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
@@ -55,11 +91,11 @@ function SellersQueuePage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {pending.map(seller => (
+            {pending.map((seller: any) => (
               <SellerCard 
                 key={seller.id} 
                 seller={seller}
-                onApprove={() => handleApprove(seller.id)}
+                onApprove={() => setConfirmModal({ isOpen: true, sellerId: seller.id })}
                 onReject={() => setRejectModal({ isOpen: true, sellerId: seller.id })}
               />
             ))}
@@ -75,35 +111,69 @@ function SellersQueuePage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 opacity-75">
-            {rejected.map(seller => (
+            {rejected.map((seller: any) => (
               <SellerCard key={seller.id} seller={seller} />
             ))}
           </div>
         )}
       </section>
 
+      <ConfirmDialog
+        open={confirmModal.isOpen}
+        onOpenChange={(open) => setConfirmModal({ isOpen: open, sellerId: open ? confirmModal.sellerId : null })}
+        title="Approve Seller"
+        onConfirm={handleApprove}
+        confirmLabel="Approve"
+        disabled={isApproving}
+      />
+
       <Modal
         isOpen={rejectModal.isOpen}
-        onClose={() => setRejectModal({ isOpen: false, sellerId: null })}
+        onClose={() => { setRejectModal({ isOpen: false, sellerId: null }); setError(null) }}
         title="Reject Application"
         footer={
           <>
-            <Button variant="ghost" onClick={() => setRejectModal({ isOpen: false, sellerId: null })}>Cancel</Button>
-            <Button variant="destructive" onClick={handleReject} disabled={!reason.trim()}>Reject</Button>
+            <Button variant="ghost" onClick={() => { setRejectModal({ isOpen: false, sellerId: null }); setError(null) }}>Cancel</Button>
+            <Button variant="destructive" onClick={handleReject} disabled={!reason.trim() || isSuspending}>Reject</Button>
           </>
         }
       >
         <div className="space-y-4">
           <p className="text-sm text-muted-foreground">Provide a reason for rejection.</p>
-          <textarea
-            className="w-full h-32 p-3 border rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-ring"
+          <Textarea
             placeholder="Reason for rejection..."
             value={reason}
             onChange={e => setReason(e.target.value)}
+            className="h-32"
           />
+          {error && (
+            <p className="text-sm text-destructive">{error}</p>
+          )}
         </div>
       </Modal>
-    </div>
+    </PageShell>
+  )
+}
+
+function ConfirmDialog({ open, onOpenChange, title, onConfirm, confirmLabel = "Confirm", disabled }: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  title: string
+  onConfirm: () => void
+  confirmLabel?: string
+  disabled?: boolean
+}) {
+  return (
+    <Modal isOpen={open} onClose={() => onOpenChange(false)}>
+      <div className="p-6">
+        <h3 className="text-lg font-semibold">{title}</h3>
+        <p className="text-sm text-muted-foreground mt-2">This action cannot be undone.</p>
+        <div className="flex justify-end gap-3 mt-6">
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={disabled}>Cancel</Button>
+          <Button variant="destructive" onClick={onConfirm} disabled={disabled}>{confirmLabel}</Button>
+        </div>
+      </div>
+    </Modal>
   )
 }
 
