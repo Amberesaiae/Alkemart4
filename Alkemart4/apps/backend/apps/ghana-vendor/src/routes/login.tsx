@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { useState } from "react"
 import { useLogin } from "../lib/auth"
-import { Button, Input, Label, Card } from "@workspace/ui"
+import { Button, PasswordInput, Input, Label, Card } from "@workspace/ui"
 
 export const Route = createFileRoute('/login')({
   component: LoginPage,
@@ -53,9 +53,8 @@ function LoginPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
-              <Input 
+              <PasswordInput 
                 id="password" 
-                type="password" 
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 required 

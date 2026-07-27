@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { useState } from "react"
 import { useRegister } from "../lib/auth"
-import { Button, Input, Label, Card } from "@workspace/ui"
+import { Button, PasswordInput, Input, Label, Card } from "@workspace/ui"
 
 export const Route = createFileRoute('/register')({
   component: RegisterPage,
@@ -76,9 +76,8 @@ function RegisterPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
-              <Input 
+              <PasswordInput 
                 id="password" 
-                type="password" 
                 value={formData.password}
                 onChange={e => setFormData({ ...formData, password: e.target.value })}
                 required 

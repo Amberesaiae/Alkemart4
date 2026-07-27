@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { useState } from "react"
 import { useAuth } from "../hooks/use-auth"
 import { Button } from "@workspace/ui"
+import { PasswordInput } from "@workspace/ui"
 import { Input } from "@workspace/ui"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@workspace/ui"
 
@@ -58,8 +59,7 @@ function LoginPage() {
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium text-muted-foreground">Password</label>
-              <Input
-                type="password"
+              <PasswordInput
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
