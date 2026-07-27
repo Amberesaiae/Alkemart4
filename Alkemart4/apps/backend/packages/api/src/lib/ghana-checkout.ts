@@ -600,15 +600,15 @@ export async function runMomoCheckout(
       e instanceof Error ? e.message : "Invalid phone for market",
     )
   }
-  const reference = `momo_${cart.id.replace(/[^a-zA-Z0-9]/g, "").slice(-16)}_${Date.now().toString(36)}`
+  const momoReference = `momo_${cart.id.replace(/[^a-zA-Z0-9]/g, "").slice(-16)}_${Date.now().toString(36)}`
   const expiresAt = new Date(Date.now() + MOMO_PENDING_TTL_MS).toISOString()
 
   // Intent-before-HTTP: persist intent metadata before calling Paystack
   await mergeCartMetadata(container, cart.id, {
     ghana_payment: "momo",
     ghana_payment_status: "initiated",
-    paystack_reference: reference,
-    client_reference: reference,
+    paystack_reference: momoReference,
+    client_reference: momoReference,
     ghana_amount_pesewas: amountPesewas,
     ghana_momo_provider: input.momoProvider,
     ghana_expires_at: expiresAt,
@@ -625,13 +625,13 @@ export async function runMomoCheckout(
       phone,
       provider: input.momoProvider,
       currency,
-      reference,
+      reference: momoReference,
       metadata: {
         cart_id: cart.id,
-        client_reference: reference,
+        client_reference: momoReference,
         momo_provider: input.momoProvider,
         ghana_checkout: true,
-        payment_intent_id: reference,
+        payment_intent_id: momoReference,
       },
     })
   } catch (err) {
@@ -651,17 +651,17 @@ export async function runMomoCheckout(
   }
 
   // Paystack may return a different reference — store the authoritative one
-  const providerRef = charge.reference || reference
+  const paystackRef = charge.reference || momoReference
   await mergeCartMetadata(container, cart.id, {
-    paystack_reference: providerRef,
-    client_reference: providerRef,
+    paystack_reference: paystackRef,
+    client_reference: paystackRef,
     ghana_payment_status: charge.status === "success" ? "charged" : "pending",
     ghana_provider_status: charge.providerStatus,
   })
 
   if (charge.status === "success") {
     try {
-      return await confirmMomoByPaystackReference(container, providerRef)
+      return await confirmMomoByPaystackReference(container, paystackRef)
     } catch (err) {
       // confirm already attempts refund on complete failure
       if (err instanceof CheckoutHttpError) throw err
@@ -672,9 +672,9 @@ export async function runMomoCheckout(
   return {
     status: "payment_pending",
     cart_id: cart.id,
-    payment_intent_id: providerRef,
-    client_reference: providerRef,
-    provider_reference: providerRef,
+    payment_intent_id: paystackRef,
+    client_reference: paystackRef,
+    provider_reference: paystackRef,
     expires_at: expiresAt,
     amount_pesewas: amountPesewas,
     provider_status: charge.providerStatus,
