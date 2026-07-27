@@ -29,6 +29,7 @@ const EnvSchema = z.object({
   ALKEMART_STRICT_PROPOSE_GATES: z.string().optional(),
   ALKEMART_REQUIRE_CATEGORY_ON_PROPOSE: z.string().optional(),
   PAYSTACK_WEBHOOK_RELAXED: z.enum(["true", "false"]).optional(),
+  SENTRY_DSN: z.string().optional(),
 })
 
 export type AppEnv = z.infer<typeof EnvSchema>
