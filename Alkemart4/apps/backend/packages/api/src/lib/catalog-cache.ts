@@ -129,7 +129,7 @@ export async function invalidateCatalogCache(
     if (!(await ensureConnected(r))) return false
     await r.incr(GEN_KEY)
     if (process.env.NODE_ENV !== "test" && reason) {
-      console.info("[catalog-cache] invalidated:", reason)
+      log("invalidated:", reason)
     }
     return true
   } catch {
