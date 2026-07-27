@@ -64,10 +64,9 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
     secretKey
   )
 
-  // Still process if signature fails in development when explicitly allowed —
-  // production requires signature. We always re-verify via Paystack API.
-  if (!signatureOk && (process.env.NODE_ENV !== "development" || process.env.PAYSTACK_WEBHOOK_RELAXED !== "true")) {
-    res.status(401).json({ error: "Invalid Paystack signature" })
+  if (!signatureOk) {
+    console.warn(`[paystack-webhook] HMAC signature mismatch — expected ${secretKey.slice(0, 4)}***, got ${signatureHeader?.slice(0, 16)}`)
+    res.status(400).json({ error: "invalid signature" })
     return
   }
 
