@@ -625,6 +625,7 @@ export async function runMomoCheckout(
   const shipCountry = String(
     cart.shipping_address?.country_code || "gh",
   ).toLowerCase()
+  // TODO: Add balance check before payment processing (check customer wallet/credit)
   let phone: string
   try {
     phone = normalizePhoneForCountry(shipCountry, input.phone)
