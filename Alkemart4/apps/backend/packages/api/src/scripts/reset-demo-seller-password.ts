@@ -5,7 +5,7 @@
 import type { ExecArgs } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 
-const EMAIL = "seller@mercur.dev"
+const EMAIL = "seller@alkemart.local"
 const PASSWORD = "supersecret"
 
 export default async function resetDemoSellerPassword({ container }: ExecArgs) {
@@ -44,7 +44,7 @@ export default async function resetDemoSellerPassword({ container }: ExecArgs) {
       body: { email: EMAIL, password: PASSWORD },
     })
     logger.info(
-      `Auth check seller@mercur.dev: success=${Boolean(ok?.success)} error=${ok?.error ?? ""}`,
+      `Auth check seller@alkemart.local: success=${Boolean(ok?.success)} error=${ok?.error ?? ""}`,
     )
   } catch (e) {
     logger.warn(`authenticate check: ${e instanceof Error ? e.message : e}`)
