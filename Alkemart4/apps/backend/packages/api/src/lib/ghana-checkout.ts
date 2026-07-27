@@ -288,14 +288,12 @@ async function mergeCartMetadata(
   cartId: string,
   patch: Record<string, unknown>
 ): Promise<void> {
-  const cart = await loadCheckoutCart(container, cartId)
-  const next = { ...(cart.metadata ?? {}), ...patch }
   const cartModule = container.resolve(Modules.CART) as {
     updateCarts: (
       data: { id: string; metadata?: Record<string, unknown> }[]
     ) => Promise<unknown>
   }
-  await cartModule.updateCarts([{ id: cartId, metadata: next }])
+  await cartModule.updateCarts([{ id: cartId, metadata: patch }])
 }
 
 export async function ensureSystemPaymentAndCompleteCart(
