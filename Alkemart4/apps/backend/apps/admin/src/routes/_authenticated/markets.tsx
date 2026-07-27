@@ -71,7 +71,7 @@ function MarketsPage() {
                     <span className="font-medium text-muted-foreground block mb-2">Supported Countries</span>
                     <div className="flex flex-wrap gap-2">
                       {market.countries ? market.countries.map((c) => (
-                        <Badge key={c.iso_2} variant="outline" className="bg-primary/10 border-primary/20">
+                        <Badge key={c.iso_2 ?? c.name} variant="outline" className="bg-primary/10 border-primary/20">
                           {c.name} ({c.iso_2?.toUpperCase()})
                         </Badge>
                       )) : (
