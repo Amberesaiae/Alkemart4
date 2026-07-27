@@ -1,7 +1,11 @@
-# Storefront Worker config
-# This file configures Cloudflare Pages / Workers for the alkemart-storefront SPA.
-# The storefront is deployed via Vercel (primary) or Cloudflare Pages (alternative).
-# The `bucket` points to the Vite build output directory.
+# Storefront Worker config — Cloudflare Pages / Workers deployment.
+# The storefront is deployed via Vercel (PRIMARY) — this file is only used
+# if deploying via Cloudflare Pages as an alternative/CDN fallback.
+# When using Vercel, ignore this file; Vercel uses apps/storefront/vercel.json.
+#
+# If you switch to Cloudflare Pages deployment:
+#   - Set Wrangler environment variables for VITE_MEDUSA_BACKEND_URL etc.
+#   - Run `npx wrangler pages deploy` from apps/storefront/
 name = "alkemart-storefront"
 compatibility_date = "2024-01-01"
 [site]
