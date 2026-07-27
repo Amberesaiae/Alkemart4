@@ -20,7 +20,7 @@
     "@radix-ui/react-avatar": "^1.2.2",
     "@radix-ui/react-slot": "^1.2.4",
     "@sentry/react": "^10.66.0",
-    "@tanstack/react-query": "^5.90.21",
+    "@tanstack/react-query": "5.64.2",
     "@tanstack/react-router": "^1.170.16",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
