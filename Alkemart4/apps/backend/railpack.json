@@ -1,0 +1,23 @@
+{
+  "$schema": "https://schema.railpack.com",
+  "steps": {
+    "install": {
+      "inputs": [
+        { "local": true },
+        { "step": "packages:mise" }
+      ],
+      "commands": [
+        {"src": "package.json", "dest": "package.json"},
+        {"src": "bun.lock", "dest": "bun.lock"},
+        {"src": ".npmrc", "dest": ".npmrc"},
+        {"src": ".yarnrc.yml", "dest": ".yarnrc.yml"},
+        {"src": "apps/admin/package.json", "dest": "apps/admin/package.json"},
+        {"src": "apps/ghana-vendor/package.json", "dest": "apps/ghana-vendor/package.json"},
+        {"src": "packages/api/package.json", "dest": "packages/api/package.json"},
+        {"src": "packages/api/.npmrc", "dest": "packages/api/.npmrc"},
+        {"src": "packages/ui/package.json", "dest": "packages/ui/package.json"},
+        "bun install"
+      ]
+    }
+  }
+}
