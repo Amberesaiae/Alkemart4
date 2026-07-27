@@ -142,6 +142,23 @@
         "yalc": "^1.0.0-pre.53",
       },
     },
+    "packages/ui": {
+      "name": "@workspace/ui",
+      "version": "0.0.0",
+      "dependencies": {
+        "@radix-ui/react-avatar": "^1.2.2",
+        "@radix-ui/react-slot": "^1.2.4",
+        "@radix-ui/react-dialog": "^1.1.10",
+        "class-variance-authority": "^0.7.1",
+        "clsx": "^2.1.1",
+        "lucide-react": "^0.487.0",
+        "tailwind-merge": "^3.3.1"
+      },
+      "devDependencies": {
+        "@types/react": "^19.0.0",
+        "@types/react-dom": "^19.0.0"
+      }
+    },
   },
   "overrides": {
     "@medusajs/admin-sdk": "2.17.2",
@@ -166,6 +183,8 @@
     "@acme/vendor": ["@acme/vendor@workspace:apps/vendor"],
 
     "@alkemart/ghana-vendor": ["@alkemart/ghana-vendor@workspace:apps/ghana-vendor"],
+
+    "@workspace/ui": ["@workspace/ui@workspace:packages/ui"],
 
     "@alloc/quick-lru": ["@alloc/quick-lru@5.2.0", "", {}, "sha512-UrcABB+4bUrFABwbluTIBErXwvbsU/V7TZWfmbgJfbkwiBuziS9gxdODUyuiecfdGQ85jglMW6juS3+z5TsKLw=="],
 
