@@ -17,8 +17,13 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex min-h-[100dvh] w-full bg-background flex-col md:flex-row">
+      {/* Skip to content */}
+      <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:bg-primary focus:text-primary-foreground focus:px-4 focus:py-2 focus:rounded-lg focus:shadow-lg">
+        Skip to content
+      </a>
+
       {/* Desktop Sidebar */}
-      <aside className="hidden md:flex w-64 flex-col border-r border-border bg-ink text-white">
+      <aside aria-label="Sidebar" className="hidden md:flex w-64 flex-col border-r border-border bg-ink text-white">
         <div className="p-6 border-b border-white/10 flex flex-col items-center text-center gap-3">
           <Avatar className="h-16 w-16">
             <AvatarFallback className="text-2xl font-bold text-primary-foreground bg-primary">
@@ -30,7 +35,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <p className="text-xs text-white/60 font-medium">{user?.email}</p>
           </div>
         </div>
-        <nav className="flex-1 p-4 space-y-1">
+        <nav aria-label="Main navigation" className="flex-1 p-4 space-y-1">
           {navItems.map((item) => {
             const isActive = item.to === "/" ? router.location.pathname === "/seller" || router.location.pathname === "/seller/" : router.location.pathname.startsWith(`/seller${item.to}`)
             return (
@@ -43,6 +48,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                     ? "bg-primary text-primary-foreground shadow-md" 
                     : "text-white/70 hover:bg-white/10 hover:text-white"
                 )}
+                aria-current={isActive ? "page" : undefined}
               >
                 <item.icon className="h-5 w-5" />
                 {item.name}
@@ -64,7 +70,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 flex flex-col min-w-0 pb-20 md:pb-0 overflow-y-auto">
+      <main id="main-content" className="flex-1 flex flex-col min-w-0 pb-20 md:pb-0 overflow-y-auto">
         <div className="md:hidden flex items-center justify-between p-4 bg-ink text-white sticky top-0 z-20 shadow-sm">
           <div className="flex items-center gap-2">
             <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground">
@@ -79,7 +85,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
       </main>
 
       {/* Mobile Bottom Tab Bar */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-ink text-white/70 border-t border-white/10 flex justify-around items-center p-2 pb-safe z-50">
+      <nav aria-label="Mobile navigation" className="md:hidden fixed bottom-0 left-0 right-0 bg-ink text-white/70 border-t border-white/10 flex justify-around items-center p-2 pb-safe z-50">
         {navItems.map((item) => {
           const isActive = item.to === "/" ? router.location.pathname === "/seller" || router.location.pathname === "/seller/" : router.location.pathname.startsWith(`/seller${item.to}`)
           return (
@@ -90,8 +96,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 "flex flex-col items-center p-2 rounded-lg min-w-[64px] transition-colors",
                 isActive ? "text-primary font-bold" : "hover:text-white"
               )}
+              aria-current={isActive ? "page" : undefined}
             >
-              <item.icon className="h-5 w-5 mb-1" />
+              <item.icon className="h-5 w-5 mb-1" aria-hidden="true" />
               <span className="text-[10px] leading-none">{item.name}</span>
             </Link>
           )
@@ -99,8 +106,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <button
           onClick={() => logout.mutate()}
           className="flex flex-col items-center gap-0.5 text-primary-foreground/60 hover:text-primary-foreground transition-colors"
+          aria-label="Sign out"
         >
-          <LogOut className="h-5 w-5" />
+          <LogOut className="h-5 w-5" aria-hidden="true" />
           <span className="text-[10px] font-medium">Sign Out</span>
         </button>
       </nav>

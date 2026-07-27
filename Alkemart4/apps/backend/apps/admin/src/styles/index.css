@@ -27,6 +27,7 @@
 }
 
 :root {
+  color-scheme: light;
   --primary: #FEBF31;
   --primary-foreground: #1a1a1a;
   --background: #f0f0f0;

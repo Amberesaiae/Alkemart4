@@ -115,10 +115,14 @@ function SettingsPage() {
       <div className="flex flex-col md:flex-row gap-8 items-start">
 
         {/* Tab nav */}
-        <div className="w-full md:w-56 shrink-0 flex flex-row md:flex-col gap-1 overflow-x-auto pb-2 scrollbar-none">
+        <div className="w-full md:w-56 shrink-0 flex flex-row md:flex-col gap-1 overflow-x-auto pb-2 scrollbar-none" role="tablist" aria-label="Settings sections">
           {tabs.map(tab => (
             <button
               key={tab.id}
+              role="tab"
+              id={`tab-${tab.id}`}
+              aria-selected={activeTab === tab.id}
+              aria-controls={`panel-${tab.id}`}
               onClick={() => setActiveTab(tab.id)}
               className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all w-full text-left whitespace-nowrap ${
                 activeTab === tab.id
@@ -126,7 +130,7 @@ function SettingsPage() {
                   : "text-muted-foreground hover:bg-muted hover:text-foreground"
               }`}
             >
-              <tab.icon className="h-4 w-4 shrink-0" />
+              <tab.icon className="h-4 w-4 shrink-0" aria-hidden="true" />
               {tab.label}
             </button>
           ))}
@@ -136,7 +140,7 @@ function SettingsPage() {
 
           {/* ── Shop Profile ── */}
           {activeTab === "profile" && (
-            <Card className="p-6 border-2 shadow-sm">
+            <Card className="p-6 border-2 shadow-sm" role="tabpanel" id="panel-profile" aria-labelledby="tab-profile">
               <form onSubmit={handleProfileSubmit} className="space-y-5">
                 <h2 className="text-lg font-black tracking-tight">Shop Profile</h2>
 
@@ -182,7 +186,7 @@ function SettingsPage() {
 
           {/* ── Dispatch Address ── */}
           {activeTab === "dispatch" && (
-            <Card className="p-6 border-2 shadow-sm">
+            <Card className="p-6 border-2 shadow-sm" role="tabpanel" id="panel-dispatch" aria-labelledby="tab-dispatch">
               <form onSubmit={handleAddressSubmit} className="space-y-5">
                 <div>
                   <h2 className="text-lg font-black tracking-tight">Dispatch Address</h2>
@@ -269,7 +273,7 @@ function SettingsPage() {
 
           {/* ── MoMo Payout ── */}
           {activeTab === "momo" && (
-            <Card className="p-6 border-2 shadow-sm">
+            <Card className="p-6 border-2 shadow-sm" role="tabpanel" id="panel-momo" aria-labelledby="tab-momo">
               <form onSubmit={handlePaymentSubmit} className="space-y-5">
                 <div>
                   <h2 className="text-lg font-black tracking-tight">Mobile Money Payout</h2>
@@ -339,6 +343,7 @@ function SettingsPage() {
                         key={key}
                         type="button"
                         onClick={() => setProvider(key)}
+                        aria-pressed={provider === key}
                         className={`relative flex flex-col items-start p-4 rounded-xl border-2 text-left transition-all ${
                           provider === key
                             ? "border-primary bg-primary/5 shadow-sm"
@@ -404,13 +409,13 @@ function StatusRow({
   if (!mutation.isSuccess && !mutation.isError) return null
   if (mutation.isSuccess) {
     return (
-      <div className="flex items-center gap-2 p-3 rounded-lg bg-success/10 text-success text-sm font-semibold border border-success/20">
+      <div className="flex items-center gap-2 p-3 rounded-lg bg-success/10 text-success text-sm font-semibold border border-success/20" role="status">
         <CheckCircle2 className="h-4 w-4 shrink-0" /> {successText}
       </div>
     )
   }
   return (
-    <div className="flex items-center gap-2 p-3 rounded-lg bg-destructive/10 text-destructive text-sm font-semibold border border-destructive/20">
+    <div className="flex items-center gap-2 p-3 rounded-lg bg-destructive/10 text-destructive text-sm font-semibold border border-destructive/20" role="alert">
       <AlertCircle className="h-4 w-4 shrink-0" /> Could not save — try again
     </div>
   )

@@ -51,7 +51,7 @@ function RegisterPage() {
         <Card className="w-full bg-card border-none shadow-xl rounded-2xl p-6 sm:p-8">
           <form onSubmit={handleSubmit} className="space-y-5">
             {register.isError && (
-              <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm font-semibold border border-destructive/20 text-center">
+              <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm font-semibold border border-destructive/20 text-center" role="alert">
                 {register.error instanceof Error ? register.error.message : "Could not register. Try a different email."}
               </div>
             )}
@@ -103,7 +103,7 @@ function RegisterPage() {
                 required 
               />
               {passwordError && (
-                <p className="text-sm text-destructive font-semibold">{passwordError}</p>
+                <p className="text-sm text-destructive font-semibold" role="alert">{passwordError}</p>
               )}
             </div>
             <Button 

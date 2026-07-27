@@ -30,6 +30,7 @@
 }
 
 :root {
+  color-scheme: light;
   --primary: #FEBF31;
   --primary-foreground: #1a1a1a;
   /* Brand ink — sidebar, dark surfaces */

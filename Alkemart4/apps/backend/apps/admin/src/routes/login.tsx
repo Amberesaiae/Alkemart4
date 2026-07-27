@@ -42,25 +42,29 @@ function LoginPage() {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4 pt-4">
             {error && (
-              <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-md">
+              <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-md" role="alert">
                 {error}
               </div>
             )}
             <div className="space-y-2">
-              <Label>{t("login.email")}</Label>
+              <Label htmlFor="admin-email">{t("login.email")}</Label>
               <Input
+                id="admin-email"
                 type="email"
                 placeholder="admin@alkemart.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                autoComplete="email"
                 required
               />
             </div>
             <div className="space-y-2">
-              <Label>{t("login.password")}</Label>
+              <Label htmlFor="admin-password">{t("login.password")}</Label>
               <PasswordInput
+                id="admin-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                autoComplete="current-password"
                 required
               />
             </div>

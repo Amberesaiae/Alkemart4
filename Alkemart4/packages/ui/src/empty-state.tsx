@@ -16,9 +16,10 @@ function EmptyState({ icon, title, description, action, className }: EmptyStateP
         "border border-dashed border-border bg-card px-6 py-12 text-center sm:py-14",
         className,
       )}
+      role="status"
     >
       {icon ? <div className="mb-5 flex justify-center">{icon}</div> : null}
-      <p className="text-lg font-bold tracking-tight text-foreground">{title}</p>
+      <h2 className="text-lg font-bold tracking-tight text-foreground">{title}</h2>
       {description ? (
         <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-muted-foreground">
           {description}

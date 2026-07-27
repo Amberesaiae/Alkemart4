@@ -30,8 +30,9 @@ function NavItem({ href, label, icon: Icon, collapsed, isActive }: {
           : "text-white/70 hover:bg-white/10 hover:text-white"
       )}
       title={collapsed ? label : undefined}
+      aria-current={isActive ? "page" : undefined}
     >
-      <Icon className="h-5 w-5 shrink-0" />
+      <Icon className="h-5 w-5 shrink-0" aria-hidden="true" />
       {!collapsed && label}
     </Link>
   )
@@ -43,7 +44,7 @@ export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false)
 
   return (
-    <aside className={cn(
+    <aside aria-label="Sidebar" className={cn(
       "bg-ink text-white flex flex-col min-h-screen sticky top-0 border-r border-white/10 shrink-0 transition-all duration-200",
       collapsed ? "w-16" : "w-64"
     )}>
@@ -61,12 +62,14 @@ export function Sidebar() {
         <button
           onClick={() => setCollapsed(c => !c)}
           className="rounded-md p-1 text-white/70 hover:text-white hover:bg-white/10 transition-colors"
+          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          aria-expanded={!collapsed}
         >
-          {collapsed ? <PanelLeftOpen className="h-5 w-5" /> : <PanelLeftClose className="h-5 w-5" />}
+          {collapsed ? <PanelLeftOpen className="h-5 w-5" aria-hidden="true" /> : <PanelLeftClose className="h-5 w-5" aria-hidden="true" />}
         </button>
       </div>
 
-      <nav className="flex-1 overflow-y-auto p-4 space-y-1">
+      <nav aria-label="Main navigation" className="flex-1 overflow-y-auto p-4 space-y-1">
         {NAV_ITEMS.map((item) => (
           <NavItem
             key={item.href}
@@ -88,8 +91,9 @@ export function Sidebar() {
             "text-white/70 hover:bg-white/10 hover:text-white"
           )}
           title={collapsed ? "Sign out" : undefined}
+          aria-label="Sign out"
         >
-          <LogOut className="h-5 w-5 shrink-0" />
+          <LogOut className="h-5 w-5 shrink-0" aria-hidden="true" />
           {!collapsed && "Sign out"}
         </button>
       </div>
