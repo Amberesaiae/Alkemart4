@@ -13,7 +13,7 @@ export const Route = createFileRoute('/orders/$id')({
 
 function OrderDetailPage() {
   const { id } = Route.useParams()
-  const { data, isLoading } = useOrder(id)
+  const { data, isLoading, isError, error } = useOrder(id)
   const order = data?.order
 
   const fulfill = useFulfillOrder()
@@ -33,6 +33,20 @@ function OrderDetailPage() {
           <div className="md:col-span-2 h-[400px] bg-muted rounded-xl" />
           <div className="h-[400px] bg-muted rounded-xl" />
         </div>
+      </div>
+    )
+  }
+
+  if (isError) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 text-center">
+        <h2 className="text-lg font-semibold text-destructive mb-2">Failed to load order</h2>
+        <p className="text-sm text-muted-foreground mb-4">
+          {error instanceof Error ? error.message : "An unexpected error occurred"}
+        </p>
+        <button onClick={() => window.location.reload()} className="text-sm text-primary hover:underline">
+          Try again
+        </button>
       </div>
     )
   }
