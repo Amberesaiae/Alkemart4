@@ -27,6 +27,14 @@ The vendor dashboard (`apps/ghana-vendor`) and admin dashboard (`apps/admin`) us
 
 Then run `bun install` from `apps/backend/` and push.
 
+### force-ipv4-dns workaround
+
+On some WSL/networks Neon resolves to IPv6 first and TCP hangs (ETIMEDOUT),
+while IPv4 works. The file `packages/api/src/lib/force-ipv4-dns.ts` calls
+`dns.setDefaultResultOrder("ipv4first")` and is imported first in
+`medusa-config.ts` before any database clients load. This is a deployment
+workaround, not a general DNS change — it only affects the Node process.
+
 ### Storefront node_modules shadowing
 
 The storefront at `apps/storefront` had a stale `node_modules/@radix-ui/` directory from its previous pnpm setup that only contained `react-avatar` and `react-slot`. This shadowed the hoisted root `node_modules/@radix-ui/` which has all radix packages.
