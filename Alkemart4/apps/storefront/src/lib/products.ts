@@ -12,6 +12,7 @@ export type StoreProductCard = {
   title: string
   handle?: string | null
   thumbnail?: string | null
+  images?: { url: string }[] | null
   description?: string | null
   /** Present when store API hydrates offer on variants — never invented. */
   offerId?: string | null
@@ -49,6 +50,7 @@ type ProductSlice = {
   title?: string | null
   handle?: string | null
   thumbnail?: string | null
+  images?: { url: string }[] | null
   description?: string | null
   variants?: VariantSlice[] | null
   /** Possible Mercur/extensions — only used if present */
@@ -84,6 +86,7 @@ function mapProduct(p: ProductSlice): StoreProductCard {
     title: p.title ?? "Untitled",
     handle: p.handle,
     thumbnail: p.thumbnail,
+    images: p.images ?? null,
     description: p.description ?? null,
     offerId: typeof variant?.offer_id === "string" ? variant.offer_id : null,
     amount:
@@ -147,7 +150,7 @@ async function enrichSellersFromOffers(
   }
 }
 
-const LIST_FIELDS = "*variants.calculated_price,*seller"
+const LIST_FIELDS = "*variants.calculated_price,*seller,images.url"
 
 /**
  * Prefer products that can be added to cart (have offer_id).

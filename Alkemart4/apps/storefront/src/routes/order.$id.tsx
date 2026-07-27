@@ -19,6 +19,7 @@ import {
 import { rememberOrderId } from "@/lib/recent-orders"
 import { CopyButton } from "@/components/copy-button"
 import { Illustration } from "@/components/illustration"
+import { OrderTimeline } from "@/components/order-timeline"
 
 const EMAIL_KEY = "alkemart.storefront.order_lookup_email"
 
@@ -304,6 +305,8 @@ function OrderDetailPage() {
               on shared screens.
             </p>
           </header>
+
+          <OrderTimeline order={data} />
 
           <div className="space-y-2 rounded-3xl border border-border bg-card p-5 shadow-sm">
             <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">

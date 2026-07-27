@@ -14,6 +14,7 @@ import { SectionHeader } from "@/components/shell/SectionHeader"
 import { Breadcrumbs } from "@/components/shell/Breadcrumbs"
 import { BottomBar } from "@/components/bottom-bar"
 import { ErrorAlert } from "@/components/error-alert"
+import { ProductImageGallery } from "@/components/product/ProductImageGallery"
 import { addOfferToCart } from "@/lib/cart"
 import {
   getStoreProduct,
@@ -203,23 +204,11 @@ function ProductDetailPage() {
 
       {p ? (
         <article className="grid items-start gap-6 lg:grid-cols-12 lg:gap-8">
-          <div className="overflow-hidden rounded-2xl border border-border bg-card lg:col-span-5">
-            {p.thumbnail ? (
-              <img
-                src={p.thumbnail}
-                alt={p.title || "Product image"}
-                className="aspect-square w-full object-contain p-4"
-              />
-            ) : (
-              <div
-                className="flex aspect-square flex-col items-center justify-center gap-2 bg-primary/15"
-                aria-hidden
-              >
-                <span className="flex h-16 w-16 items-center justify-center rounded-full bg-primary text-2xl font-extrabold text-primary-foreground">
-                  {(p.title || "A").trim().charAt(0).toUpperCase()}
-                </span>
-              </div>
-            )}
+          <div className="lg:col-span-5">
+            <ProductImageGallery
+              images={p.images}
+              title={p.title}
+            />
           </div>
 
           <div className="space-y-4 lg:col-span-4">
