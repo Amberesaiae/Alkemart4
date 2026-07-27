@@ -4,13 +4,14 @@
  * Creates product + offer in a single call. Cleans up partial state on failure.
  */
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
-import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
+import { ContainerRegistrationKeys, Modules, MedusaError } from "@medusajs/framework/utils"
 import { MercurModules } from "@mercurjs/types"
 import { createOffersWorkflow } from "@mercurjs/core/workflows"
 import { evaluateSellerReadiness } from "../../../../lib/seller-readiness"
 import { invalidateSellerOwnedProductIds } from "../../../../lib/seller-owned-products-cache"
 import { checkRateLimit } from "../../../../lib/rate-limiter"
 import { asList } from "../../../../lib/graph-utils"
+import { z } from "zod"
 
 type SellerReq = MedusaRequest & {
   seller_context?: { seller_id?: string; member_id?: string }
@@ -35,10 +36,25 @@ export async function POST(req: SellerReq, res: MedusaResponse) {
 
   const body = (req.body || {}) as Record<string, unknown>
   const title = String(body.title || "").trim()
-  const price_ghs = Number(body.price_ghs) || 0
+
+  const rawPrice = body.price_ghs
+  const price_ghs = (() => {
+    const parsed = Number(rawPrice)
+    if (!Number.isFinite(parsed) || parsed < 0) {
+      throw new MedusaError(MedusaError.Types.INVALID_DATA, `Invalid price: ${rawPrice}`)
+    }
+    return parsed
+  })()
+
   const description = String(body.description || "").trim()
   const category_id = String(body.category_id || "").trim() || undefined
   const image_url = String(body.image_url || "").trim() || undefined
+  if (image_url !== undefined && image_url !== '' && image_url !== null) {
+    const parsed = z.string().url().safeParse(image_url)
+    if (!parsed.success) {
+      throw new MedusaError(MedusaError.Types.INVALID_DATA, `Invalid image URL: ${image_url}`)
+    }
+  }
   const quantity = Math.max(1, Math.floor(Number(body.quantity) || 1))
 
   if (!title || title.length < 3) {
@@ -111,6 +127,7 @@ export async function POST(req: SellerReq, res: MedusaResponse) {
       return
     }
 
+    // productModule.create() — under Medusa v2 this calls the ProductModuleService.create method
     const productModule = req.scope.resolve(Modules.PRODUCT) as unknown as Record<string, (...args: unknown[]) => Promise<unknown>>
 
     const product = await productModule.create({

@@ -5,6 +5,7 @@ import type { ProposedProduct } from "../../lib/api"
 import { Button, Badge, Modal, Textarea, Skeleton, EmptyState } from "@workspace/ui"
 import { PageShell } from "../../components/page-shell"
 import { PageHeader } from "../../components/page-header"
+import { t } from "../../lib/t"
 
 export const Route = createFileRoute("/_authenticated/product-moderation")({
   component: ProductModerationPage,
@@ -106,14 +107,14 @@ function ProductModerationPage() {
 
   return (
     <PageShell>
-      <PageHeader title="Product Review" description="Review proposed listings. Approve to publish, request changes, or reject." />
+      <PageHeader title={t("moderation.title", "Product Review")} description={t("moderation.description", "Review proposed listings. Approve to publish, request changes, or reject.")} />
 
       {error && (
         <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-md">{error}</div>
       )}
 
       {products.length === 0 ? (
-        <EmptyState title="All caught up" description="No products awaiting review." />
+        <EmptyState title={t("moderation.empty", "All caught up")} description={t("moderation.emptyHint", "No products awaiting review.")} />
       ) : (
         <div className="grid grid-cols-1 gap-4">
           {products.map((p: ProposedProduct) => (

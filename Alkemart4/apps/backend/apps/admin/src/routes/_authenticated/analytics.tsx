@@ -5,6 +5,7 @@ import { PageShell } from "../../components/page-shell"
 import { PageHeader } from "../../components/page-header"
 import { ShoppingCart, DollarSign, Store, Package } from "lucide-react"
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
+import { t } from "../../lib/t"
 
 export const Route = createFileRoute("/_authenticated/analytics")({
   component: AnalyticsPage,
@@ -48,7 +49,7 @@ function AnalyticsPage() {
     return (
       <PageShell>
         <div className="bg-destructive/10 text-destructive p-4 rounded-md">
-          Failed to load platform stats.
+          {t("analytics.failed", "Failed to load platform stats.")}
         </div>
       </PageShell>
     )
@@ -56,19 +57,19 @@ function AnalyticsPage() {
 
   return (
     <PageShell>
-      <PageHeader title="Platform Analytics" description="Live marketplace totals — orders, sales value, sellers, and catalog." />
-      {isFetching && <div className="text-xs text-muted-foreground text-right -mt-2 mb-2">Refreshing…</div>}
+      <PageHeader title={t("analytics.title", "Platform Analytics")} description={t("analytics.description", "Live marketplace totals — orders, sales value, sellers, and catalog.")} />
+      {isFetching && <div className="text-xs text-muted-foreground text-right -mt-2 mb-2">{t("analytics.refreshing", "Refreshing…")}</div>}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard title="Total Orders" value={(stats.total_orders ?? 0).toLocaleString()} icon={ShoppingCart} />
-        <StatCard title="Total GMV" value={`₵${(stats.total_gmv_ghs ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`} icon={DollarSign} />
-        <StatCard title="Active Sellers" value={(stats.active_sellers ?? 0).toLocaleString()} icon={Store} />
-        <StatCard title="Catalog Size" value={(stats.catalog_size ?? 0).toLocaleString()} icon={Package} />
+        <StatCard title={t("analytics.totalOrders", "Total Orders")} value={(stats.total_orders ?? 0).toLocaleString()} icon={ShoppingCart} />
+        <StatCard title={t("analytics.totalGmv", "Total GMV")} value={`₵${(stats.total_gmv_ghs ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`} icon={DollarSign} />
+        <StatCard title={t("analytics.activeSellers", "Active Sellers")} value={(stats.active_sellers ?? 0).toLocaleString()} icon={Store} />
+        <StatCard title={t("analytics.catalogSize", "Catalog Size")} value={(stats.catalog_size ?? 0).toLocaleString()} icon={Package} />
       </div>
 
       <Card className="overflow-hidden">
         <CardHeader>
-          <CardTitle>Revenue (Last 30 Days)</CardTitle>
+          <CardTitle>{t("analytics.revenue", "Revenue (Last 30 Days)")}</CardTitle>
         </CardHeader>
         <CardContent>
           {stats.gmv_last_30_days && stats.gmv_last_30_days.length > 0 ? (
@@ -108,7 +109,7 @@ function AnalyticsPage() {
             </div>
           ) : (
             <div className="h-[400px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-md border border-dashed mt-4">
-              No revenue data available for the last 30 days
+              {t("analytics.noRevenue", "No revenue data available for the last 30 days")}
             </div>
           )}
         </CardContent>

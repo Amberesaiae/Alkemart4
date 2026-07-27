@@ -118,7 +118,7 @@ function OrdersPage() {
                         {order.created_at ? format(new Date(order.created_at), "MMM d, yyyy") : "-"}
                       </TableCell>
                       <TableCell className="font-medium">
-                        {order.customer_id ? order.email : "Guest"}
+                        {order.email ? `${order.email.slice(0, 3)}***${order.email.includes("@") ? order.email.slice(order.email.indexOf("@")) : ""}` : "Guest"}
                       </TableCell>
                       <TableCell>
                         <Badge variant={

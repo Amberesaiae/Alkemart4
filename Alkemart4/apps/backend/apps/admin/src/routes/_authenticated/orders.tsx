@@ -5,6 +5,7 @@ import type { AdminOrder } from "../../lib/api"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Badge, Select, Skeleton, Button, Price, EmptyState } from "@workspace/ui"
 import { PageShell } from "../../components/page-shell"
 import { PageHeader } from "../../components/page-header"
+import { t } from "../../lib/t"
 
 export const Route = createFileRoute("/_authenticated/orders")({
   component: OrdersPage,
@@ -34,8 +35,8 @@ function OrdersPage() {
     return (
       <PageShell>
         <div className="bg-destructive/10 text-destructive p-4 rounded-md flex items-center justify-between">
-          <span>Failed to load orders.</span>
-          <Button variant="outline" size="sm" onClick={() => window.location.reload()}>Retry</Button>
+          <span>{t("orders.failed", "Failed to load orders.")}</span>
+          <Button variant="outline" size="sm" onClick={() => window.location.reload()}>{t("orders.retry", "Retry")}</Button>
         </div>
       </PageShell>
     )
@@ -44,7 +45,7 @@ function OrdersPage() {
   return (
     <PageShell>
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
-        <PageHeader title="Marketplace Orders" description="View and track all platform orders." />
+        <PageHeader title={t("orders.title", "Marketplace Orders")} description={t("orders.description", "View and track all platform orders.")} />
         <Select
           value={status || ""}
           onChange={(e) => { setStatus(e.target.value || undefined); setOffset(0) }}
@@ -63,12 +64,12 @@ function OrdersPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Order #</TableHead>
-              <TableHead>Date</TableHead>
-              <TableHead>Customer</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Payment</TableHead>
-              <TableHead className="text-right">Total</TableHead>
+              <TableHead>{t("orders.orderNumber", "Order #")}</TableHead>
+              <TableHead>{t("orders.date", "Date")}</TableHead>
+              <TableHead>{t("orders.customer", "Customer")}</TableHead>
+              <TableHead>{t("orders.status", "Status")}</TableHead>
+              <TableHead>{t("orders.payment", "Payment")}</TableHead>
+              <TableHead className="text-right">{t("orders.total", "Total")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -86,7 +87,7 @@ function OrdersPage() {
             ) : !data?.orders?.length ? (
               <TableRow>
                 <TableCell colSpan={6}>
-                  <EmptyState title="No orders found" />
+                  <EmptyState title={t("orders.empty", "No orders found")} />
                 </TableCell>
               </TableRow>
             ) : (
@@ -120,10 +121,10 @@ function OrdersPage() {
         </span>
         <div className="flex gap-2">
           <Button variant="outline" disabled={offset === 0} onClick={() => setOffset(o => Math.max(0, o - limit))}>
-            Previous
+            {t("orders.previous", "Previous")}
           </Button>
           <Button variant="outline" disabled={!data?.orders || data.orders.length < limit} onClick={() => setOffset(o => o + limit)}>
-            Next
+            {t("orders.next", "Next")}
           </Button>
         </div>
       </div>

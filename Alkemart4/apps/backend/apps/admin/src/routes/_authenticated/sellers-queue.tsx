@@ -5,6 +5,7 @@ import type { SellerApplication } from "../../lib/api"
 import { Button, Modal, Textarea, Skeleton, EmptyState } from "@workspace/ui"
 import { PageShell } from "../../components/page-shell"
 import { PageHeader } from "../../components/page-header"
+import { t } from "../../lib/t"
 
 export const Route = createFileRoute("/_authenticated/sellers-queue")({
   component: SellersQueuePage,
@@ -100,7 +101,7 @@ function SellersQueuePage() {
 
   return (
     <PageShell>
-      <PageHeader title="Seller Applications" description="Review new applications. Approve to open their shop, or reject with a reason." />
+      <PageHeader title={t("sellers.title", "Seller Applications")} description={t("sellers.description", "Review new applications. Approve to open their shop, or reject with a reason.")} />
 
       {error && (
         <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-md">{error}</div>
@@ -108,12 +109,12 @@ function SellersQueuePage() {
 
       <section>
         <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-          Pending Approval
+          {t("sellers.pending", "Pending Approval")}
           <span className="bg-primary/20 text-primary text-xs px-2 py-0.5 rounded-full">{pending.length}</span>
         </h2>
 
         {pending.length === 0 ? (
-          <EmptyState title="No pending applications" />
+          <EmptyState title={t("sellers.noPending", "No pending applications")} />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {pending.map((seller: SellerApplication) => (
@@ -126,9 +127,9 @@ function SellersQueuePage() {
       </section>
 
       <section>
-        <h2 className="text-xl font-semibold mb-4 text-muted-foreground">Rejected Applications</h2>
+        <h2 className="text-xl font-semibold mb-4 text-muted-foreground">{t("sellers.rejected", "Rejected Applications")}</h2>
         {rejected.length === 0 ? (
-          <EmptyState title="No rejected applications" />
+          <EmptyState title={t("sellers.noRejected", "No rejected applications")} />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 opacity-75">
             {rejected.map((seller: SellerApplication) => (
