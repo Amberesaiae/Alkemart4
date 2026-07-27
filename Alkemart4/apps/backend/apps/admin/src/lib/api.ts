@@ -85,6 +85,8 @@ export const auth = {
     try { await apiFetch("/auth/session", { method: "DELETE" }) } catch {}
   },
   getSession: async (): Promise<{ user: AuthUser } | null> => {
+    // Must call /auth/session — the JWT payload doesn't include `role`,
+    // which the admin guard needs to verify admin privileges.
     try {
       return await apiFetch<{ user: AuthUser }>("/auth/session")
     } catch {
