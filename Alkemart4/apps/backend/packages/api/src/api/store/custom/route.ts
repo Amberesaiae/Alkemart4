@@ -1,3 +1,4 @@
+// @deprecated — stub route, no behavior
 import { MedusaRequest, MedusaResponse } from "@medusajs/framework/http";
 
 export async function GET(
