@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test"
-import { SHOP, ADMIN, SELLER } from "../lib/env"
+import { SHOP, ADMIN, SELLER, API } from "../lib/env"
 
 test.describe("internationalization", () => {
   test("storefront language control is visible", async ({ page }) => {

@@ -94,7 +94,7 @@ jobs:
           DATABASE_URL: postgres://postgres:postgres@localhost:5432/medusa-test
           REDIS_URL: redis://localhost:6379
   e2e:
-    if: false
+    if: vars.RUN_E2E == 'true'
     runs-on: ubuntu-latest
     needs: [unit]
     services:
@@ -128,14 +128,38 @@ jobs:
       - run: bun install --frozen-lockfile
       - run: bunx playwright install chromium
         working-directory: e2e
-      - name: Start services
+      - name: Start backend
         run: |
           bun run --cwd apps/backend dev &
-          sleep 15
-          bun run e2e/scripts/seed-e2e-accounts.ts &
+          # Wait for API health
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:9000/health > /dev/null 2>&1; then
+              echo "API healthy after ${i}s"
+              break
+            fi
+            sleep 2
+          done
+      - name: Start storefront
+        run: |
+          bun run --cwd apps/storefront dev &
+          for i in $(seq 1 20); do
+            if curl -sf http://localhost:5175 > /dev/null 2>&1; then
+              echo "Storefront ready after ${i}s"
+              break
+            fi
+            sleep 2
+          done
+      - name: Seed E2E accounts
+        run: bun run e2e/scripts/seed-e2e-accounts.ts
+        env:
+          API_URL: http://localhost:9000
       - run: bun run test
         working-directory: e2e
         env:
           CI: true
+          API_URL: http://localhost:9000
+          SHOP_URL: http://localhost:5175
+          ADMIN_URL: http://localhost:7000
+          SELLER_URL: http://localhost:7001
           DATABASE_URL: postgres://postgres:postgres@localhost:5432/medusa-e2e
           REDIS_URL: redis://localhost:6379
