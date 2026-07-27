@@ -103,7 +103,7 @@ async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
   }
 
   if (!res.ok) {
-    const body = await res.json().catch(() => ({})) as ApiErrorBody
+    const body = await res.json().catch(() => ({})) as unknown as ApiErrorBody
     const msg = body.error || body.message || `HTTP ${res.status}`
     throw new ApiError(res.status, msg)
   }
