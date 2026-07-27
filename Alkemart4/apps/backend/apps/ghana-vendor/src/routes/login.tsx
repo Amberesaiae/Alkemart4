@@ -6,6 +6,7 @@ import { Button, PasswordInput, Input, Label, Card } from "@workspace/ui"
 export const Route = createFileRoute('/login')({
   validateSearch: (search: Record<string, unknown>) => ({
     redirect: typeof search.redirect === "string" ? search.redirect : undefined,
+    registered: typeof search.registered === "string" ? search.registered : undefined,
   }),
   component: LoginPage,
 })
@@ -15,7 +16,7 @@ function LoginPage() {
   const [password, setPassword] = useState("")
   const login = useLogin()
   const navigate = useNavigate()
-  const { redirect } = Route.useSearch()
+  const { redirect, registered } = Route.useSearch()
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -39,6 +40,11 @@ function LoginPage() {
 
         <Card className="w-full bg-card border-none shadow-xl rounded-2xl p-6 sm:p-8">
           <form onSubmit={handleSubmit} className="space-y-5">
+            {registered && (
+              <div className="p-3 rounded-lg bg-success/10 text-success text-sm font-semibold border border-success/20 text-center" role="status">
+                Stall created! Sign in to start selling.
+              </div>
+            )}
             {login.isError && (
               <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm font-semibold border border-destructive/20 text-center" role="alert">
                 {login.error instanceof Error ? login.error.message : "Invalid credentials. Please try again."}
