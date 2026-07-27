@@ -78,3 +78,6 @@ apps/storefront/**/.tanstack/
 # Local agent brainstorm state
 .superpowers/
 .vercel
+
+# Local IDE/agent config
+opencode.json
