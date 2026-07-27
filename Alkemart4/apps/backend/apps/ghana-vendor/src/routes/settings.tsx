@@ -22,7 +22,7 @@ export const Route = createFileRoute('/settings')({
 })
 
 function SettingsPage() {
-  const { data, isLoading } = useSellerProfile()
+  const { data, isLoading, isError } = useSellerProfile()
   const seller = data?.seller
   const updateProfile  = useUpdateProfile()
   const updateAddress  = useUpdateAddress()
@@ -101,6 +101,15 @@ function SettingsPage() {
   }
 
   if (isLoading) return <div className="animate-pulse h-96 bg-muted rounded-xl" />
+  if (isError) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 text-center">
+        <h2 className="text-lg font-semibold text-destructive mb-2">Failed to load profile</h2>
+        <p className="text-sm text-muted-foreground mb-4">Could not load your profile data. Please try again.</p>
+        <button onClick={() => window.location.reload()} className="text-sm text-primary hover:underline">Try again</button>
+      </div>
+    )
+  }
 
   const tabs = [
     { id: "profile"  as const, label: "Shop Profile",    icon: Store },
