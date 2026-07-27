@@ -37,6 +37,38 @@ export const SYSTEM_PAYMENT_PROVIDER_ID = "pp_system_default"
 
 const MOMO_PENDING_TTL_MS = 30 * 60 * 1000
 
+const VALID_TRANSITIONS: Record<string, string[]> = {
+  initiated: ["pending", "charged", "charge_failed"],
+  pending: ["succeeded", "charge_failed"],
+  charged: ["succeeded", "charge_failed"],
+  charge_failed: [],
+  succeeded: ["completed", "refunded", "complete_failed"],
+  completed: ["refunded"],
+  complete_failed: [],
+  refunded: [],
+}
+
+function validatePaymentStateTransition(from: string, to: string): boolean {
+  const allowed = VALID_TRANSITIONS[from]
+  if (!allowed) return false
+  return allowed.includes(to)
+}
+
+async function transitionPaymentStatus(
+  container: MedusaContainer,
+  cartId: string,
+  newStatus: string
+): Promise<void> {
+  const cart = await loadCheckoutCart(container, cartId)
+  const currentStatus = String(cart.metadata?.ghana_payment_status || "")
+  if (currentStatus && !validatePaymentStateTransition(currentStatus, newStatus)) {
+    console.warn(
+      `[checkout] invalid payment state transition: ${currentStatus} → ${newStatus} for cart ${cartId}`
+    )
+  }
+  await mergeCartMetadata(container, cartId, { ghana_payment_status: newStatus })
+}
+
 const completingLocks = new Set<string>()
 
 export type CheckoutInput = {
@@ -358,9 +390,9 @@ export async function ensureSystemPaymentAndCompleteCart(
   }
 
   try {
+    await transitionPaymentStatus(container, cartId, "completed")
     await mergeCartMetadata(container, cartId, {
       ghana_order_id: String(orderId),
-      ghana_payment_status: "completed",
     })
   } catch {
     // non-fatal — order already exists
@@ -474,10 +506,10 @@ export async function confirmMomoByPaystackReference(
   }
 
   try {
+    await transitionPaymentStatus(container, cartId, "succeeded")
     await mergeCartMetadata(container, cartId, {
       ghana_payment: "momo",
       paystack_reference: reference,
-      ghana_payment_status: "succeeded",
     })
     const { order_id } = await ensureSystemPaymentAndCompleteCart(
       container,
