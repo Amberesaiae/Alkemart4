@@ -226,7 +226,7 @@ export async function POST(req: SellerReq, res: MedusaResponse) {
           await pm.deleteProducts([createdProductId])
         }
       } catch (cleanupErr) {
-        console.error("[alkemart] quick-list cleanup failed for product", createdProductId, cleanupErr)
+        console.error("[alkemart] quick-list cleanup failed for product", createdProductId, cleanupErr instanceof Error ? cleanupErr.message : cleanupErr)
       }
     }
 
