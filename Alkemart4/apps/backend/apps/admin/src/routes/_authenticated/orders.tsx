@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router"
 import { useState } from "react"
 import { useOrders } from "../../hooks/use-orders"
+import type { AdminOrder } from "../../lib/api"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Badge, Select, Skeleton, Button, Price, EmptyState } from "@workspace/ui"
 import { PageShell } from "../../components/page-shell"
 import { PageHeader } from "../../components/page-header"
@@ -89,7 +90,7 @@ function OrdersPage() {
                 </TableCell>
               </TableRow>
             ) : (
-              data.orders.map((order: any) => (
+              data.orders.map((order: AdminOrder) => (
                 <TableRow key={order.id}>
                   <TableCell className="font-medium">#{order.display_id}</TableCell>
                   <TableCell>{new Date(order.created_at).toLocaleDateString()}</TableCell>

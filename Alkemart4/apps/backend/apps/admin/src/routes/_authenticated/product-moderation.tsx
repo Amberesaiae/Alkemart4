@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router"
 import { useState } from "react"
 import { useProducts } from "../../hooks/use-products"
+import type { ProposedProduct } from "../../lib/api"
 import { Button, Badge, Modal, Textarea, Skeleton, EmptyState } from "@workspace/ui"
 import { PageShell } from "../../components/page-shell"
 import { PageHeader } from "../../components/page-header"
@@ -115,7 +116,7 @@ function ProductModerationPage() {
         <EmptyState title="All caught up" description="No products awaiting review." />
       ) : (
         <div className="grid grid-cols-1 gap-4">
-          {products.map((p: any) => (
+          {products.map((p: ProposedProduct) => (
             <div key={p.id} className="flex flex-col sm:flex-row gap-6 p-6 border rounded-xl bg-card shadow-sm">
               <div className="h-32 w-32 shrink-0 rounded-lg overflow-hidden bg-muted border flex items-center justify-center">
                 {p.thumbnail ? (

@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router"
 import { useState } from "react"
 import { useSellers } from "../../hooks/use-sellers"
+import type { SellerApplication } from "../../lib/api"
 import { Button, Modal, Textarea, Skeleton, EmptyState } from "@workspace/ui"
 import { PageShell } from "../../components/page-shell"
 import { PageHeader } from "../../components/page-header"
@@ -9,7 +10,7 @@ export const Route = createFileRoute("/_authenticated/sellers-queue")({
   component: SellersQueuePage,
 })
 
-function SellerCard({ seller, onApprove, onReject }: { seller: any, onApprove?: () => void, onReject?: () => void }) {
+function SellerCard({ seller, onApprove, onReject }: { seller: SellerApplication, onApprove?: () => void, onReject?: () => void }) {
   return (
     <div className="p-6 border rounded-xl bg-card shadow-sm flex flex-col justify-between">
       <div className="mb-4">
@@ -115,7 +116,7 @@ function SellersQueuePage() {
           <EmptyState title="No pending applications" />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {pending.map((seller: any) => (
+            {pending.map((seller: SellerApplication) => (
               <SellerCard key={seller.id} seller={seller}
                 onApprove={() => setConfirmModal({ isOpen: true, sellerId: seller.id })}
                 onReject={() => setRejectModal({ isOpen: true, sellerId: seller.id })} />
@@ -130,7 +131,7 @@ function SellersQueuePage() {
           <EmptyState title="No rejected applications" />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 opacity-75">
-            {rejected.map((seller: any) => (
+            {rejected.map((seller: SellerApplication) => (
               <SellerCard key={seller.id} seller={seller} />
             ))}
           </div>

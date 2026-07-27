@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router"
 import { useMarkets } from "../../hooks/use-markets"
+import type { Market } from "../../lib/api"
 import { Card, CardContent, CardHeader, CardTitle, Badge, Skeleton, EmptyState } from "@workspace/ui"
 import { PageShell } from "../../components/page-shell"
 import { PageHeader } from "../../components/page-header"
@@ -53,8 +54,8 @@ function MarketsPage() {
           description="Configure regions via backend to see markets here." />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {markets.map((market: any) => (
-            <Card key={market.region_id || market.id} className="shadow-sm">
+          {markets.map((market: Market) => (
+            <Card key={market.region_id} className="shadow-sm">
               <CardHeader className="pb-3 border-b bg-muted/20">
                 <CardTitle className="flex justify-between items-center text-lg">
                   {market.display_name || market.name}
@@ -68,7 +69,7 @@ function MarketsPage() {
                   <div>
                     <span className="font-medium text-muted-foreground block mb-2">Supported Countries</span>
                     <div className="flex flex-wrap gap-2">
-                      {market.countries ? market.countries.map((c: any) => (
+                      {market.countries ? market.countries.map((c) => (
                         <Badge key={c.iso_2} variant="outline" className="bg-primary/10 border-primary/20">
                           {c.name} ({c.iso_2?.toUpperCase()})
                         </Badge>
@@ -91,7 +92,7 @@ function MarketsPage() {
                     <div className="pt-2">
                       <span className="font-medium text-muted-foreground block mb-1">Address Format</span>
                       <p className="text-foreground text-xs text-muted-foreground">
-                        {market.locale.address.fields.map((f: any) => f.label).join(" · ")}
+                        {market.locale.address.fields.map((f) => f.label).join(" · ")}
                       </p>
                     </div>
                   )}
