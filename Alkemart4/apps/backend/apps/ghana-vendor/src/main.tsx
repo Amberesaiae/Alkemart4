@@ -5,6 +5,12 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { routeTree } from './routeTree.gen'
 import './styles/index.css'
 
+if (!CSS.supports?.("padding-bottom: env(safe-area-inset-bottom)")) {
+  const style = document.createElement("style")
+  style.textContent = ".pb-safe { padding-bottom: 0px; }"
+  document.head.appendChild(style)
+}
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
