@@ -79,6 +79,12 @@ async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
   if (isJsonBody) {
     extraHeaders["Content-Type"] = "application/json"
   }
+  if (!init.headers || !("Authorization" in init.headers)) {
+    try {
+      const jwt = localStorage.getItem("alk:jwt")
+      if (jwt) extraHeaders["Authorization"] = `Bearer ${jwt}`
+    } catch {}
+  }
 
   const res = await fetch(path, {
     credentials: "include",
