@@ -129,6 +129,7 @@ export async function applyStrictSellerProductFilter(
       ""
 
     if (!sellerId) {
+      console.warn("[seller] no seller_id in auth context or header; falling back to first seller")
       return next()
     }
 
