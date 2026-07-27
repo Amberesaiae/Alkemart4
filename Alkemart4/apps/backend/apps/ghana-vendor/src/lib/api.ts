@@ -99,7 +99,7 @@ async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
     throw new ApiError(res.status, msg)
   }
 
-  if (res.status === 204 || res.headers.get("content-length") === "0") {
+  if (res.status === 204) {
     return undefined as T
   }
   return res.json() as unknown as Promise<T>
