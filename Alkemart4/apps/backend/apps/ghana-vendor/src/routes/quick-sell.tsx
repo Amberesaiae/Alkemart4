@@ -175,7 +175,7 @@ function QuickSellPage() {
                 )}
                 {upload.isError && (
                   <div className="p-3 bg-destructive/10 text-destructive text-sm font-semibold rounded-lg border border-destructive/20" role="alert">
-                    {upload.error instanceof Error ? upload.error.message : "Failed to upload image. Try again."}
+                    {upload.error instanceof Error ? upload.error.message : "Failed to upload image."}
                   </div>
                 )}
                 
