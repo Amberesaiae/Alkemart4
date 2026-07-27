@@ -93,7 +93,7 @@ function OrdersPage() {
             ) : (
               data.orders.map((order: AdminOrder) => (
                 <TableRow key={order.id}>
-                  <TableCell className="font-medium">#{order.display_id}</TableCell>
+                  <TableCell className="font-medium">#{order.display_id ?? t("orders.na", "N/A")}</TableCell>
                   <TableCell>{new Date(order.created_at).toLocaleDateString()}</TableCell>
                   <TableCell>
                     {order.customer?.first_name || order.customer?.last_name
