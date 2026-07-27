@@ -2,7 +2,7 @@ import { Link, useRouterState } from "@tanstack/react-router"
 import { ChartColumn, Package, Store, ShoppingCart, Globe, LogOut, PanelLeftClose, PanelLeftOpen } from "lucide-react"
 import { useState } from "react"
 import { useAuth } from "../../hooks/use-auth"
-import { cn, Button } from "@workspace/ui"
+import { cn } from "@workspace/ui"
 
 const NAV_ITEMS = [
   { href: "/analytics", label: "Analytics", icon: ChartColumn },
@@ -11,6 +11,31 @@ const NAV_ITEMS = [
   { href: "/orders", label: "Orders", icon: ShoppingCart },
   { href: "/markets", label: "Markets", icon: Globe },
 ]
+
+function NavItem({ href, label, icon: Icon, collapsed, isActive }: {
+  href: string
+  label: string
+  icon: React.ElementType
+  collapsed: boolean
+  isActive: boolean
+}) {
+  return (
+    <Link
+      to={href}
+      className={cn(
+        "flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all",
+        collapsed && "justify-center px-2",
+        isActive
+          ? "bg-primary text-primary-foreground shadow-md"
+          : "text-white/70 hover:bg-white/10 hover:text-white"
+      )}
+      title={collapsed ? label : undefined}
+    >
+      <Icon className="h-5 w-5 shrink-0" />
+      {!collapsed && label}
+    </Link>
+  )
+}
 
 export function Sidebar() {
   const router = useRouterState()
@@ -42,45 +67,31 @@ export function Sidebar() {
       </div>
 
       <nav className="flex-1 overflow-y-auto p-4 space-y-1">
-        {NAV_ITEMS.map((item) => {
-          const isActive = router.location.pathname.startsWith(item.href)
-
-          return (
-            <Link
-              key={item.href}
-              to={item.href}
-              className={cn(
-                "flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all",
-                collapsed && "justify-center px-2",
-                isActive
-                  ? "bg-primary text-primary-foreground shadow-md"
-                  : "text-white/70 hover:bg-white/10 hover:text-white"
-              )}
-              title={collapsed ? item.label : undefined}
-            >
-              <item.icon className="h-5 w-5 shrink-0" />
-              {!collapsed && item.label}
-            </Link>
-          )
-        })}
+        {NAV_ITEMS.map((item) => (
+          <NavItem
+            key={item.href}
+            {...item}
+            collapsed={collapsed}
+            isActive={router.location.pathname.startsWith(item.href)}
+          />
+        ))}
       </nav>
 
-      <div className={cn(
-        "p-4 border-t border-white/10 shrink-0",
-        collapsed && "p-2"
-      )}>
-        <Button
-          variant="ghost"
-          className={cn(
-            "w-full justify-start text-white/70 hover:text-white hover:bg-white/10 gap-3",
-            collapsed && "justify-center px-2"
-          )}
+      <hr className="border-white/10 mx-4" />
+
+      <div className="p-4 pt-3 shrink-0">
+        <button
           onClick={() => logout()}
+          className={cn(
+            "flex items-center gap-3 w-full px-4 py-3 rounded-xl text-sm font-bold transition-all",
+            collapsed ? "justify-center px-2" : "",
+            "text-white/70 hover:bg-white/10 hover:text-white"
+          )}
           title={collapsed ? "Sign out" : undefined}
         >
           <LogOut className="h-5 w-5 shrink-0" />
           {!collapsed && "Sign out"}
-        </Button>
+        </button>
       </div>
     </aside>
   )
