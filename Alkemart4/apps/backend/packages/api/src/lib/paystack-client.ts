@@ -340,6 +340,7 @@ export async function refundCharge(
     })
     return { ok: true, id: data?.id }
   } catch (err) {
+    console.error(`[paystack] refund FAILED for transaction ${params.reference}: ${err instanceof Error ? err.message : "Refund request failed"}`)
     return {
       ok: false,
       error: err instanceof Error ? err.message : "Refund request failed",
