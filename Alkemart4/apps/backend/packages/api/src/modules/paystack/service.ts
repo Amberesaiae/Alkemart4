@@ -302,8 +302,12 @@ class PaystackPaymentProvider extends AbstractPaymentProvider<Options> {
       }
     }
 
-    const event =
-      typeof rawData === "string" ? JSON.parse(rawData) : (rawData as any)
+    let event: Record<string, unknown>
+    try {
+      event = typeof rawData === "string" ? JSON.parse(rawData) : (rawData as Record<string, unknown>)
+    } catch {
+      return { action: "failed", data: { session_id: "", amount: new BigNumber(0) } }
+    }
 
     switch (event.event) {
       case "charge.success": {
