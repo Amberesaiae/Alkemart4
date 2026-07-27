@@ -3,6 +3,7 @@
  */
 import type { SubscriberArgs, SubscriberConfig } from "@medusajs/framework"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
+import { logger } from "../lib/logger"
 import { markMediaPending } from "../lib/media/derivatives"
 
 export default async function productMediaPending({
@@ -45,7 +46,7 @@ export default async function productMediaPending({
     // Retry counter: stop after 5 attempts to prevent infinite thrash loop
     const retryCount = (media.retry_count as number) || 0
     if (media.derivatives_status === "pending" && retryCount >= 5) {
-      console.warn(
+      logger.warn(
         `[alkemart] media derivatives: max retries (5) reached for product ${id}, marking skipped`,
       )
       const skipMeta = markMediaPending(meta)
