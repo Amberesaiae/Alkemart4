@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router"
 import { useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
 import { useOrders } from "../../lib/hooks"
+import { maskEmail } from "../../lib/api"
 import { Card, Badge, Button, Skeleton, Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@workspace/ui"
 import { format } from "date-fns"
 import { ShoppingBag, AlertCircle } from "lucide-react"
@@ -11,12 +12,6 @@ import { PageHeader } from "../../components/page-header"
 export const Route = createFileRoute('/orders/')({
   component: OrdersPage,
 })
-
-function maskEmail(email?: string | null): string | null {
-  if (!email || !email.includes("@")) return email ?? null
-  const [name, domain] = email.split("@", 2)
-  return `${name.slice(0, 3)}***@${domain}`
-}
 
 function OrdersPage() {
   const qc = useQueryClient()

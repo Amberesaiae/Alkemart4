@@ -697,6 +697,16 @@ export const catalog = {
 }
 
 // ---------------------------------------------------------------------------
+// Shared utilities
+// ---------------------------------------------------------------------------
+
+export function maskEmail(email?: string | null): string | null {
+  if (!email || !email.includes("@")) return email ?? null
+  const [name, domain] = email.split("@", 2)
+  return `${name.slice(0, 2)}***@${domain}`
+}
+
+// ---------------------------------------------------------------------------
 // Convenience: complete login flow
 // ---------------------------------------------------------------------------
 

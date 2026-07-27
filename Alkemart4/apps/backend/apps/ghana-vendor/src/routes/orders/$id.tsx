@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
 import { useState } from "react"
 import { useOrder, useFulfillOrder, useShipOrder, useDeliverOrder } from "../../lib/hooks"
+import { maskEmail } from "../../lib/api"
 import { Card, Button, Badge, Input } from "@workspace/ui"
 import { ArrowLeft, Box, Truck, CheckCircle2, User, MapPin } from "lucide-react"
 import { format } from "date-fns"
@@ -10,12 +11,6 @@ import { PageHeader } from "../../components/page-header"
 export const Route = createFileRoute('/orders/$id')({
   component: OrderDetailPage,
 })
-
-function maskEmail(email?: string | null): string | null {
-  if (!email || !email.includes("@")) return email ?? null
-  const [name, domain] = email.split("@", 2)
-  return `${name.slice(0, 3)}***@${domain}`
-}
 
 function OrderDetailPage() {
   const { id } = Route.useParams()
