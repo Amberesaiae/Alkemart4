@@ -26,7 +26,7 @@ function StatCard({ title, value, icon: Icon }: { title: string; value: string; 
 }
 
 function AnalyticsPage() {
-  const { data: stats, isLoading, isFetching, error } = useStats()
+  const { data: stats, isLoading, isFetching, error, dataUpdatedAt } = useStats()
 
   if (isLoading) {
     return (
@@ -57,7 +57,15 @@ function AnalyticsPage() {
 
   return (
     <PageShell>
-      <PageHeader title={t("analytics.title", "Platform Analytics")} description={t("analytics.description", "Live marketplace totals — orders, sales value, sellers, and catalog.")} />
+      <div className="flex items-end justify-between">
+        <PageHeader title={t("analytics.title", "Platform Analytics")} description={t("analytics.description", "Live marketplace totals — orders, sales value, sellers, and catalog.")} />
+        {dataUpdatedAt != null && (
+          <div className="flex items-center gap-2 text-xs text-muted-foreground whitespace-nowrap pb-1">
+            <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-500" />
+            {t("analytics.lastUpdated", "Last updated")}: {Math.round((Date.now() - dataUpdatedAt) / 60000)}{t("analytics.minAgo", "m ago")}
+          </div>
+        )}
+      </div>
       {isFetching && <div className="text-xs text-muted-foreground text-right -mt-2 mb-2">{t("analytics.refreshing", "Refreshing…")}</div>}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
