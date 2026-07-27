@@ -36,8 +36,10 @@ export type Market = {
   region_id: string
   region_name: string
   currency_code: string
-  country_code: string
   display_name: string
+  name?: string
+  countries?: Array<{ iso_2: string; name: string }>
+  country_code?: string
   locale: {
     phone?: { example: string; hint: string }
     address?: { fields: { key: string; label: string }[] }
