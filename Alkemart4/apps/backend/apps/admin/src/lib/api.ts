@@ -47,22 +47,11 @@ export type Market = {
 
 const BASE = import.meta.env.VITE_BACKEND_URL || ""
 
-const TOKEN_KEY = "alkemart:admin_token"
-
-function getToken(): string | null {
-  try { return localStorage.getItem(TOKEN_KEY) } catch { return null }
-}
-function setToken(token: string | null) {
-  try { if (token) localStorage.setItem(TOKEN_KEY, token); else localStorage.removeItem(TOKEN_KEY) } catch {}
-}
-
 async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
   const extraHeaders: Record<string, string> = {}
   if (init.body !== undefined && typeof init.body === "string") {
     extraHeaders["Content-Type"] = "application/json"
   }
-  const token = getToken()
-  if (token) extraHeaders["Authorization"] = `Bearer ${token}`
   const res = await fetch(`${BASE}${path}`, {
     credentials: "include",
     ...init,
@@ -90,18 +79,15 @@ export const auth = {
       method: "POST",
       body: JSON.stringify({ email, password }),
     })
-    if (data.token) setToken(data.token)
     return data
   },
   logout: async () => {
     try { await apiFetch("/auth/session", { method: "DELETE" }) } catch {}
-    setToken(null)
   },
   getSession: async (): Promise<{ user: AuthUser } | null> => {
     try {
       return await apiFetch<{ user: AuthUser }>("/auth/session")
     } catch {
-      setToken(null)
       return null
     }
   },
