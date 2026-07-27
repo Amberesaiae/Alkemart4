@@ -3,6 +3,15 @@ import { LayoutDashboard, Package, ShoppingBag, Settings, LogOut, Store } from "
 import { useCurrentUser, useLogout } from "../lib/auth"
 import { cn, Button, Avatar, AvatarFallback } from "@workspace/ui"
 
+function avatarInitials(name: string | null | undefined): string {
+  if (!name) return "S"
+  const segmenter = new Intl.Segmenter("en", { granularity: "grapheme" })
+  for (const seg of segmenter.segment(name.trim())) {
+    return seg.segment
+  }
+  return "S"
+}
+
 export function Layout({ children }: { children: React.ReactNode }) {
   const { data: user } = useCurrentUser()
   const logout = useLogout()
@@ -27,7 +36,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <div className="p-6 border-b border-ink-foreground/10 flex flex-col items-center text-center gap-3">
           <Avatar className="h-16 w-16">
             <AvatarFallback className="text-2xl font-bold text-primary-foreground bg-primary">
-              {user?.seller_name ? Array.from(user.seller_name)[0] || "S" : "S"}
+              {avatarInitials(user?.seller_name)}
             </AvatarFallback>
           </Avatar>
           <div>
