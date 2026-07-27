@@ -35,6 +35,10 @@ type MeiliIndex = {
   }>
 }
 
+function isValidMeiliClient(obj: unknown): obj is MeiliClient {
+  return typeof obj === "object" && obj !== null && typeof (obj as Record<string, unknown>).index === "function"
+}
+
 const INDEX_UID = process.env.MEILISEARCH_INDEX_UID?.trim() || "products"
 
 export function isSearchEnabled(): boolean {
@@ -56,10 +60,14 @@ let clientPromise: Promise<MeiliClient | null> | null = null
 async function createMeiliClient(): Promise<MeiliClient | null> {
   if (!isSearchEnabled()) return null
   const { Meilisearch } = await import("meilisearch")
-  return new Meilisearch({
+  const instance = new Meilisearch({
     host: getSearchHost(),
     apiKey: getSearchApiKey() || undefined,
-  }) as unknown as MeiliClient
+  })
+  if (!isValidMeiliClient(instance)) {
+    throw new Error("Meilisearch SDK returned an unexpected type — cannot proceed")
+  }
+  return instance
 }
 
 /** Sync accessor — returns cached client or null if not yet loaded. Prefer getMeiliClientAsync. */
