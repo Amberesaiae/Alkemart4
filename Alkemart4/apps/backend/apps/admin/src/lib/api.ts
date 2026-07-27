@@ -79,16 +79,9 @@ async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
 export interface AuthUser {
   id: string
   email: string
+  role?: string
   first_name?: string
   last_name?: string
-}
-
-function decodeJwtPayload(token: string): Record<string, unknown> | null {
-  try {
-    const base64 = token.split(".")[1]
-    const json = atob(base64.replace(/-/g, "+").replace(/_/g, "/"))
-    return JSON.parse(json)
-  } catch { return null }
 }
 
 export const auth = {
@@ -105,19 +98,11 @@ export const auth = {
     setToken(null)
   },
   getSession: async (): Promise<{ user: AuthUser } | null> => {
-    const token = getToken()
-    if (!token) return null
-    const payload = decodeJwtPayload(token)
-    if (!payload) { setToken(null); return null }
-    if (payload.exp && typeof payload.exp === "number" && payload.exp * 1000 < Date.now()) {
+    try {
+      return await apiFetch<{ user: AuthUser }>("/auth/session")
+    } catch {
       setToken(null)
       return null
-    }
-    return {
-      user: {
-        id: payload.actor_id as string || "",
-        email: (payload.app_metadata as Record<string,string>)?.email || (payload.user_metadata as Record<string,string>)?.email || "",
-      },
     }
   },
 }

@@ -12,6 +12,9 @@ export const Route = createFileRoute("/_authenticated")({
         queryFn: auth.getSession,
       })
       if (!session) throw new Error("No session")
+      if (!session?.user?.role || session.user.role !== "admin") {
+        throw new Error("Unauthorized — admin access required")
+      }
     } catch (e) {
       throw redirect({ to: "/login" })
     }
