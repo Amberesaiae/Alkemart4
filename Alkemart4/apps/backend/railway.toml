@@ -1,6 +1,6 @@
 [build]
 builder = "railpack"
-installCommand = "true"
+installCommand = "bun install"
 buildCommand = "TMPDIR=/tmp bun install && bun run build"
 
 [deploy]
