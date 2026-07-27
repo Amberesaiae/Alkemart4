@@ -13,14 +13,25 @@ function RegisterPage() {
     last_name: "",
     email: "",
     password: "",
+    confirm_password: "",
   })
   const register = useRegister()
   const navigate = useNavigate()
 
+  const [passwordError, setPasswordError] = useState("")
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    if (formData.password !== formData.confirm_password) {
+      setPasswordError("Passwords do not match")
+      return
+    }
+    setPasswordError("")
     register.mutate(formData, {
-      onSuccess: () => navigate({ to: "/" })
+      onSuccess: () => {
+        setPasswordError("")
+        navigate({ to: "/" })
+      }
     })
   }
 
@@ -82,6 +93,18 @@ function RegisterPage() {
                 onChange={e => setFormData({ ...formData, password: e.target.value })}
                 required 
               />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="confirm_password">Confirm Password</Label>
+              <PasswordInput 
+                id="confirm_password" 
+                value={formData.confirm_password}
+                onChange={e => setFormData({ ...formData, confirm_password: e.target.value })}
+                required 
+              />
+              {passwordError && (
+                <p className="text-sm text-destructive font-semibold">{passwordError}</p>
+              )}
             </div>
             <Button 
               type="submit" 

@@ -391,6 +391,7 @@ export const seller = {
   create: (input: {
     name: string
     email: string
+    member_email: string
     currency_code?: string
     handle?: string
     first_name?: string
