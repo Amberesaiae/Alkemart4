@@ -39,7 +39,6 @@ export class ApiError extends Error {
 // ---------------------------------------------------------------------------
 
 const SELLER_KEY = "alk:seller_id"
-const TOKEN_KEY = "alk:auth_token"
 let _sellerId: string | null = null
 
 export function setActiveSellerId(id: string | null): void {
@@ -62,17 +61,6 @@ export function getActiveSellerId(): string | null {
   return _sellerId
 }
 
-export function setAuthToken(token: string | null): void {
-  try {
-    if (token) localStorage.setItem(TOKEN_KEY, token)
-    else localStorage.removeItem(TOKEN_KEY)
-  } catch {}
-}
-
-export function getAuthToken(): string | null {
-  try { return localStorage.getItem(TOKEN_KEY) } catch { return null }
-}
-
 // ---------------------------------------------------------------------------
 // Base fetch
 // ---------------------------------------------------------------------------
@@ -81,8 +69,6 @@ async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
   const sellerId = getActiveSellerId()
   const extraHeaders: Record<string, string> = {}
   if (sellerId) extraHeaders["x-seller-id"] = sellerId
-  const authToken = getAuthToken()
-  if (authToken) extraHeaders["Authorization"] = `Bearer ${authToken}`
   if (init.body !== undefined && typeof init.body === "string") {
     extraHeaders["Content-Type"] = "application/json"
   }
@@ -98,9 +84,8 @@ async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
   })
 
   if (res.status === 401) {
-    // Session expired — clear auth context so UI redirects to login
+    // Session expired — clear seller context so UI redirects to login
     setActiveSellerId(null)
-    setAuthToken(null)
     throw new ApiError(401, "Session expired. Please sign in again.")
   }
 
@@ -333,7 +318,6 @@ export const auth = {
    */
   login: async (email: string, password: string) => {
     const data = await post<{ token?: string }>("/auth/member/emailpass", { email, password })
-    if (data.token) setAuthToken(data.token)
     return data
   },
 
@@ -344,7 +328,6 @@ export const auth = {
    */
   register: async (email: string, password: string) => {
     const data = await post<{ token?: string }>("/auth/member/emailpass/register", { email, password })
-    if (data.token) setAuthToken(data.token)
     return data
   },
 
@@ -353,7 +336,6 @@ export const auth = {
    */
   logout: async () => {
     try { await del<void>("/auth/session") } catch {}
-    setAuthToken(null)
   },
 }
 
@@ -546,8 +528,6 @@ export const products = {
         const h: Record<string, string> = {}
         const id = getActiveSellerId()
         if (id) h["x-seller-id"] = id
-        const token = getAuthToken()
-        if (token) h["Authorization"] = `Bearer ${token}`
         return h
       })(),
       body: form,
@@ -741,18 +721,14 @@ export async function loginAndSelectSeller(
   email: string,
   password: string,
 ): Promise<{ sellerId: string | null; me: AlkemartMe }> {
-  await auth.login(email, password)
+  await post<{ token?: string }>("/auth/member/emailpass", { email, password })
 
-  // Use the bootstrap endpoint (outside /vendor/*) — no x-seller-id required
   const me = await seller.memberMe()
   const sellerId = me.seller_id ?? null
 
   if (sellerId) {
     setActiveSellerId(sellerId)
-    // Bind seller to session for Mercur native endpoints
-    await seller.select(sellerId).catch(() => {
-      // Non-fatal: custom /vendor/alkemart/* endpoints use x-seller-id header fallback
-    })
+    await seller.select(sellerId).catch(() => {})
   }
 
   return { sellerId, me }
