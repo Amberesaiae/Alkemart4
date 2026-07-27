@@ -305,7 +305,7 @@ export default async function seedDemoData({ container }: ExecArgs) {
       entity_id: SELLER_EMAIL,
       provider: "emailpass",
     });
-    authIdentityId = providerIdentity.auth_identity_id!;
+    authIdentityId = providerIdentity.auth_identity_id ?? (() => { throw new Error("Auth identity ID missing for existing provider identity") })();
   }
 
   const { result: demoSeller } = await createSellerAccountWorkflow(
@@ -350,7 +350,9 @@ export default async function seedDemoData({ container }: ExecArgs) {
     fields: ["id"],
     filters: { email: SELLER_EMAIL },
   });
-  const demoSellerMemberId = members[0].id;
+  const demoSellerMember = members[0];
+  if (!demoSellerMember) throw new Error("Member record not found for demo seller after account creation");
+  const demoSellerMemberId = demoSellerMember.id;
 
   const { result: sellerStockLocations } =
     await createSellerStockLocationsWorkflow(container).run({
@@ -495,6 +497,12 @@ export default async function seedDemoData({ container }: ExecArgs) {
 
   logger.info("Seeding product data...");
 
+  const shirtsCat = categoryResult.find((cat: { name: string }) => cat.name === "Shirts");
+  const sweatersCat = categoryResult.find((cat: { name: string }) => cat.name === "Sweatshirts");
+  const pantsCat = categoryResult.find((cat: { name: string }) => cat.name === "Pants");
+  const merchCat = categoryResult.find((cat: { name: string }) => cat.name === "Merch");
+  if (!shirtsCat || !sweatersCat || !pantsCat || !merchCat) throw new Error("Required product categories not found");
+
   await createProductsWorkflow(container).run({
     input: {
       created_by: demoSellerMemberId,
@@ -502,7 +510,7 @@ export default async function seedDemoData({ container }: ExecArgs) {
         {
           title: "Basic T-Shirt",
           category_ids: [
-            categoryResult.find((cat: { name: string }) => cat.name === "Shirts")!.id,
+            shirtsCat.id,
           ],
           description:
             "Reimagine the feeling of a classic T-shirt. With our cotton T-shirts, everyday essentials no longer have to be ordinary.",
@@ -534,7 +542,7 @@ export default async function seedDemoData({ container }: ExecArgs) {
         {
           title: "Basic Sweatshirt",
           category_ids: [
-            categoryResult.find((cat: { name: string }) => cat.name === "Sweatshirts")!.id,
+            sweatersCat.id,
           ],
           description:
             "Reimagine the feeling of a classic sweatshirt. With our cotton sweatshirt, everyday essentials no longer have to be ordinary.",
@@ -559,7 +567,7 @@ export default async function seedDemoData({ container }: ExecArgs) {
         {
           title: "Basic Sweatpants",
           category_ids: [
-            categoryResult.find((cat: { name: string }) => cat.name === "Pants")!.id,
+            pantsCat.id,
           ],
           description:
             "Reimagine the feeling of classic sweatpants. With our cotton sweatpants, everyday essentials no longer have to be ordinary.",
@@ -584,7 +592,7 @@ export default async function seedDemoData({ container }: ExecArgs) {
         {
           title: "Basic Shorts",
           category_ids: [
-            categoryResult.find((cat: { name: string }) => cat.name === "Merch")!.id,
+            merchCat.id,
           ],
           description:
             "Reimagine the feeling of classic shorts. With our cotton shorts, everyday essentials no longer have to be ordinary.",
