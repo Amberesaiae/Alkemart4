@@ -8,6 +8,7 @@
  */
 import type { Redis } from "ioredis"
 import { getRedisClient } from "./redis-client"
+import { logger } from "./logger"
 
 export type CatalogCachePayload = {
   products: unknown[]
@@ -129,7 +130,7 @@ export async function invalidateCatalogCache(
     if (!(await ensureConnected(r))) return false
     await r.incr(GEN_KEY)
     if (process.env.NODE_ENV !== "test" && reason) {
-      console.warn("[catalog-cache] invalidated:", reason)
+      logger.warn("[catalog-cache] invalidated", { reason })
     }
     return true
   } catch {

@@ -1,7 +1,6 @@
 import type { Redis } from "ioredis"
 import { getRedisClient } from "./redis-client"
-
-const log = (msg: string, ...args: unknown[]) => console.warn(`[rate-limiter] ${msg}`, ...args)
+import { logger } from "./logger"
 
 const KEY_PREFIX = "alkemart:ratelimit:v1:"
 
@@ -28,7 +27,7 @@ export async function checkRateLimit(
 ): Promise<boolean> {
   const r = getClient()
   if (!r) {
-    log("Redis unavailable — rate limiting disabled")
+    logger.warn("[rate-limiter] Redis unavailable — rate limiting disabled")
     return true
   }
   try {
@@ -40,7 +39,7 @@ export async function checkRateLimit(
     }
     return current <= max
   } catch (e) {
-    log("Redis error — rate limiting disabled", e instanceof Error ? e.message : e)
+    logger.warn("[rate-limiter] Redis error — rate limiting disabled", { error: e instanceof Error ? e.message : e })
     return true
   }
 }

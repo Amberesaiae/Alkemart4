@@ -22,6 +22,7 @@ import {
   getCachedOwnedProductIds,
   setCachedOwnedProductIds,
 } from "../../lib/seller-owned-products-cache"
+import { logger } from "../../lib/logger"
 
 type SellerReq = MedusaRequest & {
   seller_context?: { seller_id?: string }
@@ -76,10 +77,7 @@ export async function resolveOwnedProductIds(
       if (id) ids.add(id)
     }
   } catch (e) {
-    console.error(
-      "[alkemart] product_seller ownership query failed:",
-      e instanceof Error ? e.message : e,
-    )
+    logger.error("[strict-seller-products] product_seller ownership query failed", { error: e instanceof Error ? e.message : e })
     // Fail closed at caller; empty set → sentinel
   }
 
@@ -129,7 +127,7 @@ export async function applyStrictSellerProductFilter(
       ""
 
     if (!sellerId) {
-      console.warn("[seller] no seller_id in auth context or header; falling back to first seller")
+      logger.warn("[seller] no seller_id in auth context or header; falling back to first seller")
       return next()
     }
 
@@ -142,10 +140,7 @@ export async function applyStrictSellerProductFilter(
       [],
       (req.filterableFields || {}) as Record<string, unknown>,
     )
-    console.error(
-      "[alkemart] strict seller product filter failed:",
-      e instanceof Error ? e.message : e,
-    )
+    logger.error("[strict-seller-products] filter failed", { error: e instanceof Error ? e.message : e })
   }
 
   return next()

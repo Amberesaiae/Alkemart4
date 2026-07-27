@@ -1,4 +1,5 @@
 import { createHmac, timingSafeEqual } from "crypto"
+import { logger } from "./logger"
 
 export const PAYSTACK_API_BASE = "https://api.paystack.co"
 
@@ -147,7 +148,7 @@ export async function verifyPaystackTransaction(
       method: "GET",
     })
   } catch (err) {
-    console.warn("[paystack] verify failed", err instanceof Error ? err.message : err)
+    logger.warn("[paystack] verify failed", { error: err instanceof Error ? err.message : err })
     return null
   }
 }
@@ -341,7 +342,7 @@ export async function refundCharge(
     })
     return { ok: true, id: data?.id }
   } catch (err) {
-    console.error(`[paystack] refund FAILED for transaction ${params.reference}: ${err instanceof Error ? err.message : "Refund request failed"}`)
+    logger.error(`[paystack] refund FAILED for transaction ${params.reference}`, { error: err instanceof Error ? err.message : "Refund request failed" })
     return {
       ok: false,
       error: err instanceof Error ? err.message : "Refund request failed",

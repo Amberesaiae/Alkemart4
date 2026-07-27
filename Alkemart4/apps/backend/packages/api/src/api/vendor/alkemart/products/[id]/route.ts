@@ -3,6 +3,7 @@ import { ContainerRegistrationKeys, Modules, MedusaError } from "@medusajs/frame
 import { MercurModules } from "@mercurjs/types"
 import { checkRateLimit } from "../../../../../lib/simple-rate-limit"
 import { asList } from "../../../../../lib/graph-utils"
+import { logger } from "../../../../../lib/logger"
 import { invalidateSellerOwnedProductIds } from "../../../../../lib/seller-owned-products-cache"
 import { z } from "zod"
 
@@ -284,7 +285,7 @@ export async function DELETE(req: SellerReq, res: MedusaResponse) {
         await offerModule.deleteOffers(offersToDelete.map((o: Record<string, unknown>) => o.id as string))
       }
     } catch (e) {
-      console.error("[alkemart] delete: offer cleanup failed", e instanceof Error ? e.message : e)
+      logger.error("[alkemart] delete: offer cleanup failed", { error: e instanceof Error ? e.message : e })
     }
 
     const link = req.scope.resolve(ContainerRegistrationKeys.LINK) as {
@@ -297,7 +298,7 @@ export async function DELETE(req: SellerReq, res: MedusaResponse) {
         [MercurModules.SELLER]: { seller_id: sid },
       })
     } catch (linkErr) {
-      console.error("[alkemart] delete: link.dismiss failed — product was already deleted, link may be orphaned", linkErr instanceof Error ? linkErr.message : linkErr)
+      logger.error("[alkemart] delete: link.dismiss failed — product was already deleted, link may be orphaned", { error: linkErr instanceof Error ? linkErr.message : linkErr })
     }
 
     const productModule = req.scope.resolve(Modules.PRODUCT) as {

@@ -2,6 +2,7 @@ import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { MercurModules } from "@mercurjs/types"
 import { createProductsWorkflow } from "@mercurjs/core/workflows"
 import { invalidateSellerOwnedProductIds } from "../../lib/seller-owned-products-cache"
+import { logger } from "../../lib/logger"
 
 type ProductsCreated = {
   products?: Array<{ id?: string }>
@@ -63,10 +64,7 @@ createProductsWorkflow.hooks.productsCreated(
 
     if (!sellerId) {
       const orphanIds = list.map((p) => p.id).filter(Boolean)
-      console.warn(
-        `[alkemart] WARNING: ${orphanIds.length} product(s) created without seller context — orphans:`,
-        orphanIds.join(", "),
-      )
+      logger.warn("[product-created] product(s) created without seller context", { count: orphanIds.length, orphans: orphanIds.join(", ") })
       return
     }
 
@@ -102,11 +100,7 @@ createProductsWorkflow.hooks.productsCreated(
       await link.create(links)
       await invalidateSellerOwnedProductIds(sellerId).catch(() => {})
     } catch (e) {
-      console.error(
-        "[alkemart] product_seller link failed",
-        sellerId,
-        e instanceof Error ? e.message : e,
-      )
+      logger.error("[product-created] product_seller link failed", { sellerId, error: e instanceof Error ? e.message : e })
       await invalidateSellerOwnedProductIds(sellerId).catch(() => {})
     }
   },

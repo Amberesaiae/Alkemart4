@@ -1,4 +1,5 @@
 import { asList } from "./graph-utils"
+import { logger } from "./logger"
 
 /**
  * Pure helpers for /store/alkemart/catalog product mapping + pagination.
@@ -74,7 +75,7 @@ export function minPriceFromOfferPrices(prices: unknown): {
   for (const p of asList(prices)) {
     const amount = p.amount != null ? num(p.amount) : (p.calculated_amount != null ? num(p.calculated_amount) : null)
     if (amount == null) {
-      console.warn("[catalog] offer has no amount or calculated_amount", p.id)
+      logger.warn("[catalog] offer has no amount or calculated_amount", { productId: p.id })
       continue
     }
     const code = str(p.currency_code || p.currencyCode).toLowerCase() || null

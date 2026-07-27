@@ -27,6 +27,7 @@ import {
   verifyPaystackTransaction,
   type MomoProvider,
 } from "./paystack-client"
+import { logger } from "./logger"
 import {
   listOperatingMarkets,
   normalizePhoneForCountry,
@@ -64,9 +65,7 @@ async function transitionPaymentStatus(
   const cart = await loadCheckoutCart(container, cartId)
   const currentStatus = String(cart.metadata?.ghana_payment_status || "")
   if (currentStatus && !validatePaymentStateTransition(currentStatus, newStatus)) {
-    console.warn(
-      `[checkout] invalid payment state transition: ${currentStatus} → ${newStatus} for cart ${cartId}`
-    )
+    logger.warn(`[checkout] invalid payment state transition: ${currentStatus} → ${newStatus} for cart ${cartId}`)
   }
   await mergeCartMetadata(container, cartId, { ghana_payment_status: newStatus })
 }
@@ -453,7 +452,7 @@ export async function confirmMomoByPaystackReference(
 
   const verified = await verifyPaystackTransaction(secretKey, reference.trim())
   if (!verified) {
-    console.warn(`[checkout] verifyPaystackTransaction returned null for reference=${reference.trim()}`)
+    logger.warn(`[checkout] verifyPaystackTransaction returned null for reference=${reference.trim()}`)
     throw new CheckoutHttpError(400, "Could not verify Paystack transaction")
   }
   if (verified.status !== "success") {
@@ -473,7 +472,7 @@ export async function confirmMomoByPaystackReference(
   }
 
   if (completingLocks.has(cartId)) {
-    console.warn(`[checkout] cart ${cartId} already being completed — skipping duplicate`)
+    logger.warn(`[checkout] cart ${cartId} already being completed — skipping duplicate`)
     return { status: "duplicate", order_id: null } as unknown as CheckoutResult
   }
   completingLocks.add(cartId)
@@ -586,7 +585,7 @@ export async function runMomoCheckout(
   if (typeof existingRef === "string" && existingRef && !cart.completed_at) {
     const verified = await verifyPaystackTransaction(secretKey, existingRef)
     if (!verified) {
-      console.warn(`[checkout] verifyPaystackTransaction returned null for existingRef=${existingRef}`)
+      logger.warn(`[checkout] verifyPaystackTransaction returned null for existingRef=${existingRef}`)
     }
     if (verified?.status === "success") {
       return confirmMomoByPaystackReference(container, existingRef)
@@ -747,7 +746,7 @@ export async function getMomoCheckoutStatus(
     if (secretKey) {
       const verified = await verifyPaystackTransaction(secretKey, ref)
       if (!verified) {
-        console.warn(`[checkout] verifyPaystackTransaction returned null for ref=${ref} (poll)`)
+        logger.warn(`[checkout] verifyPaystackTransaction returned null for ref=${ref} (poll)`)
       }
       if (verified?.status === "success") {
         return confirmMomoByPaystackReference(container, ref)

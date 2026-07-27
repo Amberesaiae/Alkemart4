@@ -1,4 +1,5 @@
 import { AbstractPaymentProvider, BigNumber, MedusaError } from "@medusajs/framework/utils"
+import { logger } from "../../lib/logger"
 import {
   AuthorizePaymentInput,
   AuthorizePaymentOutput,
@@ -180,7 +181,7 @@ class PaystackPaymentProvider extends AbstractPaymentProvider<Options> {
   async capturePayment(
     input: CapturePaymentInput
   ): Promise<CapturePaymentOutput> {
-    console.warn(`[paystack] capturePayment called but Paystack auto-captures — no action taken`)
+    logger.warn("[paystack] capturePayment called but Paystack auto-captures — no action taken")
     return { data: input.data }
   }
 
@@ -246,7 +247,7 @@ class PaystackPaymentProvider extends AbstractPaymentProvider<Options> {
 
       return { data: { ...input.data, refund_id: data.id } }
     } catch (err) {
-      console.error(`[paystack] refundPayment error:`, err)
+      logger.error("[paystack] refundPayment error", { error: err instanceof Error ? err.message : err })
       throw err
     }
   }

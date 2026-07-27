@@ -19,6 +19,7 @@ import {
 } from "../../../../../../lib/product-quality"
 import { asList } from "../../../../../../lib/graph-utils"
 import { checkRateLimit } from "../../../../../../lib/rate-limiter"
+import { logger } from "../../../../../../lib/logger"
 
 type SellerReq = MedusaRequest & {
   seller_context?: { seller_id?: string }
@@ -166,9 +167,7 @@ export async function POST(req: SellerReq, res: MedusaResponse) {
     const verified = asList(verifyRows)[0]
     const newStatus = String(verified?.status || "").toLowerCase()
     if (newStatus !== "proposed") {
-      console.error(
-        `[alkemart] propose concurrency conflict: product ${productId} expected "proposed" but found "${newStatus}"`,
-      )
+      logger.error(`[alkemart] propose concurrency conflict: product ${productId} expected "proposed" but found "${newStatus}"`)
       res.status(409).json({
         error: "Product status changed during submission. Please refresh and try again.",
       })

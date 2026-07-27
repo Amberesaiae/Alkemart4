@@ -13,6 +13,7 @@ import {
   confirmMomoByPaystackReference,
 } from "../../../lib/ghana-checkout"
 import { verifyPaystackWebhookSignature } from "../../../lib/paystack-client"
+import { logger } from "../../../lib/logger"
 
 const processedWebhooks = new Set<string>()
 const WEBHOOK_DEDUP_TTL = 5 * 60 * 1000
@@ -53,9 +54,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
       : Buffer.isBuffer((req as { rawBody?: unknown }).rawBody)
         ? (req as { rawBody: Buffer }).rawBody.toString("utf8")
         : (() => {
-            console.warn(
-              "[paystack] rawBody not available on request — JSON.stringify may cause HMAC mismatch"
-            )
+            logger.warn("[paystack] rawBody not available on request — JSON.stringify may cause HMAC mismatch")
             return JSON.stringify(req.body ?? {})
           })()
 
@@ -66,7 +65,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
   )
 
   if (!signatureOk) {
-    console.warn(`[paystack-webhook] HMAC signature mismatch — expected ${secretKey.slice(0, 4)}***, got ${signatureHeader?.slice(0, 16)}`)
+    logger.warn(`[paystack-webhook] HMAC signature mismatch — expected ${secretKey.slice(0, 4)}***, got ${signatureHeader?.slice(0, 16)}`)
     res.status(400).json({ error: "invalid signature" })
     return
   }
@@ -85,7 +84,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
   const eventId = event.data?.id
   if (eventId && typeof eventId === "string") {
     if (processedWebhooks.has(eventId)) {
-      console.warn(`[paystack-webhook] duplicate event ${eventId} — skipping`)
+      logger.warn(`[paystack-webhook] duplicate event ${eventId} — skipping`)
       return Response.json({ status: "duplicate" })
     }
     markWebhookProcessed(eventId)
@@ -95,9 +94,9 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
   const reference = event.data?.reference
 
   if (eventName === "charge.success" || eventName === "charge.failed") {
-    console.info(`[paystack-webhook] received ${eventName} for ${reference}`)
+    logger.info(`[paystack-webhook] received ${eventName} for ${reference}`)
   } else {
-    console.info(`[paystack-webhook] received unknown event type: ${eventName}`)
+    logger.info(`[paystack-webhook] received unknown event type: ${eventName}`)
   }
 
   if (!reference) {
@@ -118,7 +117,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
           metadata: { ghana_payment_status: "failed" },
         }])
       } catch {
-        console.warn(`[paystack-webhook] failed to update payment status for cart ${cartId}`)
+        logger.warn(`[paystack-webhook] failed to update payment status for cart ${cartId}`)
       }
     }
     res.status(200).json({ received: true, status: "failed", reference })

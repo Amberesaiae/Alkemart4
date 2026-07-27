@@ -13,6 +13,129 @@ jobs:
         with:
           bun-version: latest
       - run: bun install --frozen-lockfile
-        working-directory: apps/backend
       - run: bun run build
         working-directory: apps/backend
+      - run: bun run check-types
+        working-directory: apps/backend
+  unit:
+    runs-on: ubuntu-latest
+    needs: [validate]
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: medusa-test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - run: bun run test:unit
+        working-directory: apps/backend/packages/api
+        env:
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/medusa-test
+          REDIS_URL: redis://localhost:6379
+      - run: bun run test
+        working-directory: apps/storefront
+  integration:
+    runs-on: ubuntu-latest
+    needs: [validate]
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: medusa-test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - run: bun run test:integration:http
+        working-directory: apps/backend/packages/api
+        env:
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/medusa-test
+          REDIS_URL: redis://localhost:6379
+  e2e:
+    if: false
+    runs-on: ubuntu-latest
+    needs: [unit]
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: medusa-e2e
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - run: bunx playwright install chromium
+        working-directory: e2e
+      - name: Start services
+        run: |
+          bun run --cwd apps/backend dev &
+          sleep 15
+          bun run e2e/scripts/seed-e2e-accounts.ts &
+      - run: bun run test
+        working-directory: e2e
+        env:
+          CI: true
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/medusa-e2e
+          REDIS_URL: redis://localhost:6379

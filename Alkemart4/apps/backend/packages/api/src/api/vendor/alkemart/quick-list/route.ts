@@ -12,6 +12,7 @@ import { invalidateSellerOwnedProductIds } from "../../../../lib/seller-owned-pr
 import { checkRateLimit } from "../../../../lib/rate-limiter"
 import { asList } from "../../../../lib/graph-utils"
 import { z } from "zod"
+import { logger } from "../../../../lib/logger"
 
 type SellerReq = MedusaRequest & {
   seller_context?: { seller_id?: string; member_id?: string }
@@ -153,11 +154,7 @@ export async function POST(req: SellerReq, res: MedusaResponse) {
       [Modules.PRODUCT]: { product_id: product.id },
       [MercurModules.SELLER]: { seller_id: sellerId },
     }).catch((linkErr) => {
-      console.error(
-        "[alkemart] quick-list: product_seller link failed",
-        sellerId, product.id,
-        linkErr instanceof Error ? linkErr.message : linkErr,
-      )
+      logger.error("[alkemart] quick-list: product_seller link failed", { sellerId, productId: product.id, error: linkErr instanceof Error ? linkErr.message : linkErr })
       throw linkErr
     })
     linkCreated = true
@@ -205,7 +202,7 @@ export async function POST(req: SellerReq, res: MedusaResponse) {
     })
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Quick list failed"
-    console.error(`[alkemart] quick-list error for seller ${sellerId}:`, msg)
+    logger.error("[alkemart] quick-list error", { sellerId, error: msg })
 
     // Clean up partial state
     if (createdProductId) {
@@ -226,7 +223,7 @@ export async function POST(req: SellerReq, res: MedusaResponse) {
           await pm.deleteProducts([createdProductId])
         }
       } catch (cleanupErr) {
-        console.error("[alkemart] quick-list cleanup failed for product", createdProductId, cleanupErr instanceof Error ? cleanupErr.message : cleanupErr)
+        logger.error("[alkemart] quick-list cleanup failed for product", { productId: createdProductId, error: cleanupErr instanceof Error ? cleanupErr.message : cleanupErr })
       }
     }
 

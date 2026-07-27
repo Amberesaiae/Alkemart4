@@ -1,4 +1,5 @@
 import { ExecArgs } from "@medusajs/framework/types";
+import { logger } from "../lib/logger";
 import {
   ContainerRegistrationKeys,
   MedusaError,
@@ -273,7 +274,7 @@ export default async function seedDemoData({ container }: ExecArgs) {
   const SELLER_EMAIL = "seller@alkemart.local";
   const SELLER_PASSWORD = process.env.SEED_PASSWORD || "supersecret";
   if (!process.env.SEED_PASSWORD) {
-    console.warn("[seed] WARNING: Using default password 'supersecret'. Set SEED_PASSWORD env var in production.");
+    logger.warn("[seed] Using default password 'supersecret'. Set SEED_PASSWORD env var in production.");
   }
 
   const { data: existingSellers } = await query.graph({

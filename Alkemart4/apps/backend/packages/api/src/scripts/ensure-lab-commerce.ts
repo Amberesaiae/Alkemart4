@@ -16,6 +16,7 @@
  *
  * Seller Hub login: POST /auth/member/emailpass (not /auth/seller).
  */
+import { logger } from "../lib/logger"
 import type { ExecArgs } from "@medusajs/framework/types"
 import {
   ContainerRegistrationKeys,
@@ -41,7 +42,7 @@ import {
 const SELLER_EMAIL = "seller@alkemart.local"
 const SELLER_PASSWORD = process.env.SEED_PASSWORD || "supersecret"
 if (!process.env.SEED_PASSWORD) {
-  console.warn("[seed] WARNING: Using default password 'supersecret'. Set SEED_PASSWORD env var in production.")
+  logger.warn("[seed] Using default password 'supersecret'. Set SEED_PASSWORD env var in production.")
 }
 const PRODUCT_HANDLE = "lab-ghana-rice-5kg"
 

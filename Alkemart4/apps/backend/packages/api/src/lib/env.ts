@@ -1,3 +1,4 @@
+import { logger } from "./logger"
 import { z } from "zod"
 
 const EnvSchema = z.object({
@@ -89,7 +90,7 @@ export function loadAppEnv(raw: NodeJS.ProcessEnv = process.env): AppEnv {
       const retry = EnvSchema.safeParse(merged)
       if (retry.success) return retry.data
     }
-    console.error("Environment validation failed:", parsed.error.flatten().fieldErrors)
+    logger.error("[env] Environment validation failed", { errors: parsed.error.flatten().fieldErrors })
     throw new Error("Invalid environment configuration")
   }
   if (parsed.data.NODE_ENV === "production") {
@@ -106,9 +107,7 @@ export function loadAppEnv(raw: NodeJS.ProcessEnv = process.env): AppEnv {
       throw new Error("PAYSTACK_PUBLIC_KEY required in production (needed for client-side Paystack checkout)")
     }
     if (parsed.data.FILE_DRIVER === "local") {
-      console.warn(
-        "WARNING: FILE_DRIVER=local in production — files are stored on local disk. Switch to S3/R2 for multi-replica safety."
-      )
+      logger.warn("[env] FILE_DRIVER=local in production — files are stored on local disk. Switch to S3/R2 for multi-replica safety.")
     }
     if (parsed.data.FILE_DRIVER === "s3") {
       if (!parsed.data.S3_FILE_URL || !parsed.data.S3_BUCKET) {
