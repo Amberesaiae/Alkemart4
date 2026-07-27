@@ -6,6 +6,7 @@
  *
  * Completes Ghana MoMo carts after buyer approves USSD/prompt.
  */
+import { Modules } from "@medusajs/framework/utils"
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import {
   CheckoutHttpError,
@@ -105,6 +106,21 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
   }
 
   if (eventName === "charge.failed") {
+    const meta = event.data?.metadata ?? {}
+    const cartId = String(meta.cart_id ?? meta.cartId ?? "").trim()
+    if (cartId) {
+      try {
+        const cartModule = req.scope.resolve(Modules.CART) as {
+          updateCarts: (data: { id: string; metadata?: Record<string, unknown> }[]) => Promise<unknown>
+        }
+        await cartModule.updateCarts([{
+          id: cartId,
+          metadata: { ghana_payment_status: "failed" },
+        }])
+      } catch {
+        console.warn(`[paystack-webhook] failed to update payment status for cart ${cartId}`)
+      }
+    }
     res.status(200).json({ received: true, status: "failed", reference })
     return
   }
