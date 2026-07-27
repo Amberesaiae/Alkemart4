@@ -9,6 +9,12 @@ export const Route = createFileRoute('/products/$id')({
   component: ProductDetailPage,
 })
 
+interface ProductFormData {
+  title: string
+  description: string
+  categoryId: string
+}
+
 function ProductDetailPage() {
   const { id } = Route.useParams()
   const navigate = useNavigate()
@@ -18,9 +24,7 @@ function ProductDetailPage() {
   const { data: categoriesData } = useCategories()
 
   const [editing, setEditing] = useState(false)
-  const [title, setTitle] = useState("")
-  const [description, setDescription] = useState("")
-  const [categoryId, setCategoryId] = useState("")
+  const [form, setForm] = useState<ProductFormData>({ title: "", description: "", categoryId: "" })
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
@@ -29,9 +33,11 @@ function ProductDetailPage() {
 
   const startEditing = () => {
     if (!product) return
-    setTitle(product.title || "")
-    setDescription(product.description || "")
-    setCategoryId(product.categories?.[0]?.id || "")
+    setForm({
+      title: product.title || "",
+      description: product.description || "",
+      categoryId: product.categories?.[0]?.id || "",
+    })
     setEditing(true)
     setError(null)
     setSuccess(null)
@@ -40,7 +46,7 @@ function ProductDetailPage() {
   const handleSave = async () => {
     setError(null)
     setSuccess(null)
-    if (!title || title.trim().length < 3) {
+    if (!form.title || form.title.trim().length < 3) {
       setError("Title must be at least 3 characters.")
       return
     }
@@ -48,9 +54,9 @@ function ProductDetailPage() {
       await update.mutateAsync({
         id,
         data: {
-          title: title.trim(),
-          description: description.trim() || undefined,
-          categories: categoryId ? [{ id: categoryId }] : [],
+          title: form.title.trim(),
+          description: form.description.trim() || undefined,
+          categories: form.categoryId ? [{ id: form.categoryId }] : [],
         },
       })
       setSuccess("Product updated.")
@@ -181,24 +187,24 @@ function ProductDetailPage() {
           </div>
 
           {editing ? (
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="edit-title">Title</Label>
-                <Input id="edit-title" value={title} onChange={e => setTitle(e.target.value)} required />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="edit-desc">Description</Label>
-                <Textarea id="edit-desc" value={description} onChange={e => setDescription(e.target.value)} rows={4} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="edit-category">Category</Label>
-                <Select id="edit-category" value={categoryId} onChange={e => setCategoryId(e.target.value)}>
-                  <option value="">No category</option>
-                  {categoriesData?.product_categories?.map(cat => (
-                    <option key={cat.id} value={cat.id}>{cat.name}</option>
-                  ))}
-                </Select>
-              </div>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-title">Title</Label>
+                  <Input id="edit-title" value={form.title} onChange={e => setForm(p => ({ ...p, title: e.target.value }))} required />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-desc">Description</Label>
+                  <Textarea id="edit-desc" value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} rows={4} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-category">Category</Label>
+                  <Select id="edit-category" value={form.categoryId} onChange={e => setForm(p => ({ ...p, categoryId: e.target.value }))}>
+                    <option value="">No category</option>
+                    {categoriesData?.product_categories?.map(cat => (
+                      <option key={cat.id} value={cat.id}>{cat.name}</option>
+                    ))}
+                  </Select>
+                </div>
               <div className="flex gap-3 pt-2">
                 <Button onClick={handleSave} isLoading={update.isPending} className="gap-2">
                   <Save className="h-4 w-4" />
