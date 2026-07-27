@@ -14,6 +14,7 @@
  * }
  */
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
+import { checkRateLimit } from "../../../../../lib/simple-rate-limit"
 import { runGhanaSellerSetup } from "../../../../../lib/ghana-seller-setup"
 import { invalidateSellerReadiness } from "../../../../../lib/seller-readiness-cache"
 
@@ -35,6 +36,11 @@ export async function POST(req: SellerReq, res: MedusaResponse) {
       error: "Select your shop first, then try again.",
     })
     return
+  }
+
+  const { ok } = checkRateLimit({ key: `ghana-setup:${sellerId}`, limit: 5, windowMs: 60_000 })
+  if (!ok) {
+    return res.status(429).json({ error: "Too many requests. Please wait before retrying." })
   }
 
   const body = (req.body || {}) as Record<string, unknown>
