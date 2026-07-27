@@ -4,6 +4,9 @@ import { useLogin } from "../lib/auth"
 import { Button, PasswordInput, Input, Label, Card } from "@workspace/ui"
 
 export const Route = createFileRoute('/login')({
+  validateSearch: (search: Record<string, unknown>) => ({
+    redirect: typeof search.redirect === "string" ? search.redirect : undefined,
+  }),
   component: LoginPage,
 })
 
@@ -12,11 +15,12 @@ function LoginPage() {
   const [password, setPassword] = useState("")
   const login = useLogin()
   const navigate = useNavigate()
+  const { redirect } = Route.useSearch()
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     login.mutate({ email, password }, {
-      onSuccess: () => navigate({ to: "/" })
+      onSuccess: () => navigate({ to: redirect || "/" })
     })
   }
 
