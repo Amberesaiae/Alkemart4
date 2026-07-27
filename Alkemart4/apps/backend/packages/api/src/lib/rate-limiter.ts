@@ -53,7 +53,7 @@ export async function checkRateLimit(
 ): Promise<boolean> {
   const r = getClient()
   if (!r) {
-    // Redis not available — allow through (fail-open to avoid blocking users)
+    console.warn("[rate-limiter] Redis unavailable — rate limiting disabled")
     return true
   }
   try {
@@ -64,7 +64,8 @@ export async function checkRateLimit(
       await r.pexpire(redisKey, windowMs)
     }
     return current <= max
-  } catch {
+  } catch (e) {
+    console.warn("[rate-limiter] Redis error — rate limiting disabled", e instanceof Error ? e.message : e)
     return true
   }
 }

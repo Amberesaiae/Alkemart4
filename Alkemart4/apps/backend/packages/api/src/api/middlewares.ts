@@ -97,7 +97,7 @@ export default defineMiddlewares({
     {
       matcher: "/vendor/uploads",
       methods: ["POST"],
-      middlewares: [validateVendorUploads],
+      middlewares: [authenticate("member", ["session", "bearer"]), validateVendorUploads],
     },
     // Admin moderation queues + summary
     {
@@ -107,6 +107,17 @@ export default defineMiddlewares({
     },
     {
       matcher: "/admin/alkemart/moderation/summary",
+      methods: ["GET"],
+      middlewares: [authenticate("user", ["session", "bearer"])],
+    },
+    // Admin stats + markets
+    {
+      matcher: "/admin/alkemart/stats",
+      methods: ["GET"],
+      middlewares: [authenticate("user", ["session", "bearer"])],
+    },
+    {
+      matcher: "/admin/alkemart/markets",
       methods: ["GET"],
       middlewares: [authenticate("user", ["session", "bearer"])],
     },
