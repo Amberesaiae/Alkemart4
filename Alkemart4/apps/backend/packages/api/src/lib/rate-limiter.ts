@@ -20,6 +20,7 @@ async function ensureConnected(r: Redis): Promise<boolean> {
   }
 }
 
+// TODO: Replace with Redis-backed rate limiter for multi-instance deployments
 export async function checkRateLimit(
   key: string,
   max: number = 10,
