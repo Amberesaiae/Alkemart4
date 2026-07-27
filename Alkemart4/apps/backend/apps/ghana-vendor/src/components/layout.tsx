@@ -27,7 +27,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <div className="p-6 border-b border-white/10 flex flex-col items-center text-center gap-3">
           <Avatar className="h-16 w-16">
             <AvatarFallback className="text-2xl font-bold text-primary-foreground bg-primary">
-              {user?.seller_name?.charAt(0) || "S"}
+              {user?.seller_name ? Array.from(user.seller_name)[0] || "S" : "S"}
             </AvatarFallback>
           </Avatar>
           <div>
