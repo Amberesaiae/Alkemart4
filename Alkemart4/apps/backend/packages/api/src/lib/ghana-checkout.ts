@@ -37,6 +37,8 @@ export const SYSTEM_PAYMENT_PROVIDER_ID = "pp_system_default"
 
 const MOMO_PENDING_TTL_MS = 30 * 60 * 1000
 
+const completingLocks = new Set<string>()
+
 export type CheckoutInput = {
   cartId: string
   paymentMethod: "cod" | "momo"
@@ -420,6 +422,7 @@ export async function confirmMomoByPaystackReference(
 
   const verified = await verifyPaystackTransaction(secretKey, reference.trim())
   if (!verified) {
+    console.warn(`[checkout] verifyPaystackTransaction returned null for reference=${reference.trim()}`)
     throw new CheckoutHttpError(400, "Could not verify Paystack transaction")
   }
   if (verified.status !== "success") {
@@ -438,22 +441,28 @@ export async function confirmMomoByPaystackReference(
     )
   }
 
-  const cart = await loadCheckoutCart(container, cartId)
-  if (cart.completed_at) {
-    const orderId = cart.metadata?.ghana_order_id
-    if (orderId) {
-      return {
-        status: "completed",
-        order_id: String(orderId),
-        cart_id: cartId,
+  if (completingLocks.has(cartId)) {
+    console.warn(`[checkout] cart ${cartId} already being completed — skipping duplicate`)
+    return { status: "duplicate", order_id: null } as unknown as CheckoutResult
+  }
+  completingLocks.add(cartId)
+  try {
+    const cart = await loadCheckoutCart(container, cartId)
+    if (cart.completed_at) {
+      const orderId = cart.metadata?.ghana_order_id
+      if (orderId) {
+        return {
+          status: "completed",
+          order_id: String(orderId),
+          cart_id: cartId,
+        }
       }
     }
-  }
 
-  const currency = (cart.currency_code || verified.currency || "ghs").toLowerCase()
-  const intentPesewas =
-    Number(cart.metadata?.ghana_amount_pesewas) ||
-    toPaystackAmountPesewas(Number(cart.total ?? 0), currency)
+    const currency = (cart.currency_code || verified.currency || "ghs").toLowerCase()
+    const intentPesewas =
+      Number(cart.metadata?.ghana_amount_pesewas) ||
+      toPaystackAmountPesewas(Number(cart.total ?? 0), currency)
 
   try {
     assertPaystackAmountMatches(Number(verified.amount), intentPesewas)
@@ -497,6 +506,9 @@ export async function confirmMomoByPaystackReference(
       errorMessage(err) ||
         "Payment captured but order could not be completed — refund attempted"
     )
+  }
+  } finally {
+    completingLocks.delete(cartId)
   }
 }
 
@@ -542,6 +554,9 @@ export async function runMomoCheckout(
   const existingRef = cart.metadata?.paystack_reference
   if (typeof existingRef === "string" && existingRef && !cart.completed_at) {
     const verified = await verifyPaystackTransaction(secretKey, existingRef)
+    if (!verified) {
+      console.warn(`[checkout] verifyPaystackTransaction returned null for existingRef=${existingRef}`)
+    }
     if (verified?.status === "success") {
       return confirmMomoByPaystackReference(container, existingRef)
     }
@@ -699,6 +714,9 @@ export async function getMomoCheckoutStatus(
     const secretKey = process.env.PAYSTACK_SECRET_KEY?.trim()
     if (secretKey) {
       const verified = await verifyPaystackTransaction(secretKey, ref)
+      if (!verified) {
+        console.warn(`[checkout] verifyPaystackTransaction returned null for ref=${ref} (poll)`)
+      }
       if (verified?.status === "success") {
         return confirmMomoByPaystackReference(container, ref)
       }
