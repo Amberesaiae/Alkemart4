@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router"
+import { useId } from "react"
 import { useStats } from "../../hooks/use-stats"
 import { Card, CardContent, CardHeader, CardTitle, Skeleton } from "@workspace/ui"
 import { PageShell } from "../../components/page-shell"
@@ -27,6 +28,7 @@ function StatCard({ title, value, icon: Icon }: { title: string; value: string; 
 
 function AnalyticsPage() {
   const { data: stats, isLoading, isFetching, error, dataUpdatedAt } = useStats()
+  const gradientId = useId()
 
   if (isLoading) {
     return (
@@ -85,7 +87,7 @@ function AnalyticsPage() {
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={stats.gmv_last_30_days}>
                   <defs>
-                    <linearGradient id="colorAmount" x1="0" y1="0" x2="0" y2="1">
+                    <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="var(--primary)" stopOpacity={0.3}/>
                       <stop offset="95%" stopColor="var(--primary)" stopOpacity={0}/>
                     </linearGradient>
@@ -111,7 +113,7 @@ function AnalyticsPage() {
                     labelFormatter={(val) => new Date(String(val)).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
                     formatter={(val: any) => [`₵${Number(val).toLocaleString(undefined, { minimumFractionDigits: 2 })}`, 'Revenue']}
                   />
-                  <Area type="monotone" dataKey="amount" stroke="var(--primary)" strokeWidth={3} fillOpacity={1} fill="url(#colorAmount)" />
+                  <Area type="monotone" dataKey="amount" stroke="var(--primary)" strokeWidth={3} fillOpacity={1} fill={`url(#${gradientId})`} />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
