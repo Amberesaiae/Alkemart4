@@ -297,7 +297,7 @@ export async function DELETE(req: SellerReq, res: MedusaResponse) {
         [MercurModules.SELLER]: { seller_id: sid },
       })
     } catch (linkErr) {
-      console.error("[alkemart] delete: link.dismiss failed", linkErr)
+      console.error("[alkemart] delete: link.dismiss failed — product was already deleted, link may be orphaned", linkErr instanceof Error ? linkErr.message : linkErr)
     }
 
     const productModule = req.scope.resolve(Modules.PRODUCT) as {
