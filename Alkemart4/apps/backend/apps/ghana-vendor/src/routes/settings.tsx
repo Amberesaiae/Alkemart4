@@ -52,20 +52,18 @@ function SettingsPage() {
     if (!seller) return
     setProfileForm({ name: seller.name || "", handle: seller.handle || "" })
     if (seller.address) {
-      const a = seller.address as any
       setAddressForm({
-        address_1:   a.address_1   || "",
-        address_2:   a.address_2   || "",
-        city:        a.city        || "",
-        province:    a.province    || "",
-        postal_code: a.postal_code || "",
+        address_1:   seller.address.address_1   || "",
+        address_2:   seller.address.address_2   || "",
+        city:        seller.address.city        || "",
+        province:    seller.address.province    || "",
+        postal_code: seller.address.postal_code || "",
         country_code: "gh",
       })
     }
     if (seller.payment_details) {
-      const pd = seller.payment_details as any
-      setPhoneRaw(pd.phone || "")
-      setProvider((pd.provider as MomoProvider) || "mtn")
+      setPhoneRaw(seller.payment_details.phone || "")
+      setProvider((seller.payment_details.provider as MomoProvider) || "mtn")
     }
   }, [seller])
 

@@ -29,7 +29,7 @@ export function useCurrentUser() {
 export function useLogin() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: async ({ email, password }: any) => {
+    mutationFn: async ({ email, password }: { email: string; password: string }) => {
       return loginAndSelectSeller(email, password)
     },
     onSuccess: () => {
@@ -48,7 +48,7 @@ export function useLogin() {
 export function useRegister() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: async (payload: any) => {
+    mutationFn: async (payload: { email: string; password: string; first_name: string; last_name: string }) => {
       await authApi.register(payload.email, payload.password)
       let sellerData
       try {

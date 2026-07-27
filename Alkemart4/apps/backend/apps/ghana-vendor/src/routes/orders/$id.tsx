@@ -242,8 +242,8 @@ function OrderDetailPage() {
                     <MapPin className="h-4 w-4 text-muted-foreground" /> Delivery Address
                   </h3>
                   <p className="text-sm text-muted-foreground font-medium leading-relaxed">
-                    {(order.shipping_address as any).address_1}<br/>
-                    {(order.shipping_address as any).city}, {(order.shipping_address as any).country_code?.toUpperCase()}
+                    {String((order.shipping_address as Record<string, unknown>)?.address_1 ?? "")}<br/>
+                    {String((order.shipping_address as Record<string, unknown>)?.city ?? "")}, {String((order.shipping_address as Record<string, unknown>)?.country_code ?? "").toUpperCase()}
                   </p>
                 </div>
               )}

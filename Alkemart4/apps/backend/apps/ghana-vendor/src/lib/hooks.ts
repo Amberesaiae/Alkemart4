@@ -11,7 +11,7 @@ export function useDashboardStats() {
 }
 
 // --- Orders ---
-export function useOrders(params?: any) {
+export function useOrders(params?: Record<string, string | number | boolean | undefined>) {
   return useQuery({
     queryKey: ["vendor", "orders", params],
     queryFn: () => orders.list(params),
@@ -29,7 +29,7 @@ export function useOrder(id: string) {
 export function useFulfillOrder() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: ({ orderId, items }: { orderId: string, items: any[] }) => 
+    mutationFn: ({ orderId, items }: { orderId: string, items: { id: string; quantity: number }[] }) => 
       orders.createFulfillment(orderId, { items }),
     onSuccess: (_, { orderId }) => {
       qc.invalidateQueries({ queryKey: ["vendor", "orders", orderId] })
@@ -104,7 +104,7 @@ export function useDeleteProduct() {
 export function useQuickSell() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (data: any) => products.quickList(data),
+    mutationFn: (data: Parameters<typeof products.quickList>[0]) => products.quickList(data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["vendor", "products"] })
       qc.invalidateQueries({ queryKey: ["vendor", "stats"] })
@@ -137,7 +137,7 @@ export function useSellerProfile() {
 export function useUpdateProfile() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (data: any) => seller.update(data),
+    mutationFn: (data: Parameters<typeof seller.update>[0]) => seller.update(data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["vendor", "profile"] })
       qc.invalidateQueries({ queryKey: ["seller", "me"] })
@@ -148,7 +148,7 @@ export function useUpdateProfile() {
 export function useUpdateAddress() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: ({ id, data }: { id: string, data: any }) => seller.updateAddress(id, data),
+    mutationFn: ({ id, data }: { id: string, data: Parameters<typeof seller.updateAddress>[1] }) => seller.updateAddress(id, data),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["vendor", "profile"] })
   })
 }
@@ -156,7 +156,7 @@ export function useUpdateAddress() {
 export function useUpdatePayment() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: ({ id, data }: { id: string, data: any }) => seller.updatePaymentDetails(id, data),
+    mutationFn: ({ id, data }: { id: string, data: Parameters<typeof seller.updatePaymentDetails>[1] }) => seller.updatePaymentDetails(id, data),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["vendor", "profile"] })
   })
 }

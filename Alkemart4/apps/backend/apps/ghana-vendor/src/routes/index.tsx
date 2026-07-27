@@ -145,7 +145,7 @@ function DashboardPage() {
   )
 }
 
-function StatCard({ title, value, icon: Icon, highlight = false, loading = false }: { title: string, value: string, icon: any, highlight?: boolean, loading?: boolean }) {
+function StatCard({ title, value, icon: Icon, highlight = false, loading = false }: { title: string, value: string, icon: React.ComponentType<{ className?: string }>, highlight?: boolean, loading?: boolean }) {
   return (
     <Card className={cn(
       "p-5 flex flex-col gap-4 border-2 transition-all hover:-translate-y-1 hover:shadow-md",
