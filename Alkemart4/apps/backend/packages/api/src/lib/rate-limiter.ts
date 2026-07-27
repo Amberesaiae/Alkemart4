@@ -1,38 +1,10 @@
-import Redis from "ioredis"
+import type { Redis } from "ioredis"
+import { getRedisClient } from "./redis-client"
 
 const KEY_PREFIX = "alkemart:ratelimit:v1:"
 
-let client: Redis | null | undefined
-
-function redisUrl(): string {
-  return (process.env.REDIS_URL || "").trim()
-}
-
 function getClient(): Redis | null {
-  if (client !== undefined) return client
-  const url = redisUrl()
-  if (!url) {
-    client = null
-    return null
-  }
-  try {
-    client = new Redis(url, {
-      maxRetriesPerRequest: 1,
-      enableReadyCheck: true,
-      lazyConnect: true,
-      connectTimeout: 1500,
-      enableOfflineQueue: false,
-    })
-    client.on("error", (err) => {
-      if (process.env.NODE_ENV !== "test") {
-        console.warn("[rate-limiter] redis error:", err.message)
-      }
-    })
-    return client
-  } catch {
-    client = null
-    return null
-  }
+  return getRedisClient()
 }
 
 async function ensureConnected(r: Redis): Promise<boolean> {

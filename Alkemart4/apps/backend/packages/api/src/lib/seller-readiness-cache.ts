@@ -2,16 +2,11 @@
  * Redis cache for seller readiness (onboarding/status).
  * Stops 15–30s multi-graph evaluations from running on every banner poll.
  */
-import Redis from "ioredis"
+import type { Redis } from "ioredis"
+import { getRedisClient } from "./redis-client"
 import type { SellerReadiness } from "./seller-readiness"
 
 const KEY_PREFIX = "alkemart:seller_ready:v1:"
-
-let client: Redis | null | undefined
-
-function redisUrl(): string {
-  return (process.env.REDIS_URL || "").trim()
-}
 
 function disabled(): boolean {
   const v = (process.env.SELLER_READY_CACHE_DISABLED || "").toLowerCase()
@@ -20,30 +15,7 @@ function disabled(): boolean {
 
 function getClient(): Redis | null {
   if (disabled()) return null
-  if (client !== undefined) return client
-  const url = redisUrl()
-  if (!url) {
-    client = null
-    return null
-  }
-  try {
-    client = new Redis(url, {
-      maxRetriesPerRequest: 1,
-      enableReadyCheck: true,
-      lazyConnect: true,
-      connectTimeout: 1500,
-      enableOfflineQueue: false,
-    })
-    client.on("error", (err) => {
-      if (process.env.NODE_ENV !== "test") {
-        console.warn("[seller-ready-cache] redis error:", err.message)
-      }
-    })
-    return client
-  } catch {
-    client = null
-    return null
-  }
+  return getRedisClient()
 }
 
 async function ensureConnected(r: Redis): Promise<boolean> {

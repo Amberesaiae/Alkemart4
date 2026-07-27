@@ -1,30 +1,8 @@
-import Redis from "ioredis"
-
-const REDIS_URL = (process.env.REDIS_URL || "").trim()
-
-let client: Redis | null | undefined
+import type { Redis } from "ioredis"
+import { getRedisClient } from "./redis-client"
 
 function getClient(): Redis | null {
-  if (client === undefined) {
-    if (!REDIS_URL) {
-      client = null
-    } else {
-      try {
-        client = new Redis(REDIS_URL, {
-          lazyConnect: true,
-          maxRetriesPerRequest: 0,
-          retryStrategy: () => null,
-        })
-        client.connect().catch(() => {
-          client!.disconnect()
-          client = null
-        })
-      } catch {
-        client = null
-      }
-    }
-  }
-  return client
+  return getRedisClient()
 }
 
 const RECENT_KEY = (did: string) => `alk:history:recent:${did}`

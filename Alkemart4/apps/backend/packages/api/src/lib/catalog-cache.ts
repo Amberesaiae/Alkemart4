@@ -6,7 +6,8 @@
  *
  * Graceful: if Redis is down, get returns null and set is no-op.
  */
-import Redis from "ioredis"
+import type { Redis } from "ioredis"
+import { getRedisClient } from "./redis-client"
 
 export type CatalogCachePayload = {
   products: unknown[]
@@ -23,12 +24,6 @@ export type CatalogCachePayload = {
 
 const GEN_KEY = "alkemart:catalog:gen"
 const KEY_PREFIX = "alkemart:catalog:v1"
-
-let client: Redis | null | undefined
-
-function redisUrl(): string {
-  return (process.env.REDIS_URL || "").trim()
-}
 
 function cacheDisabled(): boolean {
   const v = (process.env.CATALOG_CACHE_DISABLED || "").toLowerCase()
@@ -56,32 +51,7 @@ export function buildCatalogCacheKey(parts: {
 
 function getClient(): Redis | null {
   if (cacheDisabled()) return null
-  if (client !== undefined) return client
-  const url = redisUrl()
-  if (!url) {
-    client = null
-    return null
-  }
-  try {
-    client = new Redis(url, {
-      maxRetriesPerRequest: 1,
-      enableReadyCheck: true,
-      lazyConnect: true,
-      connectTimeout: 2000,
-      // Don't block process exit in tests
-      enableOfflineQueue: false,
-    })
-    client.on("error", (err) => {
-      // Avoid crash loops; log once-style noise is fine for lab
-      if (process.env.NODE_ENV !== "test") {
-        console.warn("[catalog-cache] redis error:", err.message)
-      }
-    })
-    return client
-  } catch {
-    client = null
-    return null
-  }
+  return getRedisClient()
 }
 
 async function ensureConnected(r: Redis): Promise<boolean> {
@@ -169,12 +139,5 @@ export async function invalidateCatalogCache(
 
 /** Test helper — reset singleton between unit tests. */
 export function _resetCatalogCacheClientForTests(): void {
-  if (client) {
-    try {
-      client.disconnect()
-    } catch {
-      /* */
-    }
-  }
-  client = undefined
+  /* no-op — shared redis-client handles lifecycle */
 }
