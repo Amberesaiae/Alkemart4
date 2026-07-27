@@ -11,7 +11,7 @@ export const Route = createFileRoute("/_authenticated/sellers-queue")({
   component: SellersQueuePage,
 })
 
-function SellerCard({ seller, onApprove, onReject }: { seller: SellerApplication, onApprove?: () => void, onReject?: () => void }) {
+function SellerCard({ seller, onApprove, onSuspend }: { seller: SellerApplication, onApprove?: () => void, onSuspend?: () => void }) {
   return (
     <div className="p-6 border rounded-xl bg-card shadow-sm flex flex-col justify-between">
       <div className="mb-4">
@@ -23,10 +23,10 @@ function SellerCard({ seller, onApprove, onReject }: { seller: SellerApplication
           <p><span className="font-medium">Applied:</span> {new Date(seller.created_at).toLocaleDateString()}</p>
         </div>
       </div>
-      {(onApprove || onReject) && (
+      {(onApprove || onSuspend) && (
         <div className="flex gap-3 pt-4 border-t mt-auto">
           {onApprove && <Button className="flex-1" onClick={onApprove}>Approve</Button>}
-          {onReject && <Button variant="destructive" className="flex-1" onClick={onReject}>Reject</Button>}
+          {onSuspend && <Button variant="destructive" className="flex-1" onClick={onSuspend}>Suspend</Button>}
         </div>
       )}
     </div>
@@ -41,7 +41,7 @@ function SellersQueuePage() {
     sellerId: null,
   })
 
-  const [rejectModal, setRejectModal] = useState<{ isOpen: boolean; sellerId: string | null }>({
+  const [suspendModal, setSuspendModal] = useState<{ isOpen: boolean; sellerId: string | null }>({
     isOpen: false,
     sellerId: null,
   })
@@ -59,15 +59,15 @@ function SellersQueuePage() {
     }
   }
 
-  const handleReject = async () => {
-    if (!rejectModal.sellerId || !reason.trim()) return
+  const handleSuspend = async () => {
+    if (!suspendModal.sellerId || !reason.trim()) return
     try {
       setError(null)
-      await suspend({ id: rejectModal.sellerId, reason })
-      setRejectModal({ isOpen: false, sellerId: null })
+      await suspend({ id: suspendModal.sellerId, reason })
+      setSuspendModal({ isOpen: false, sellerId: null })
       setReason("")
     } catch {
-      setError("Failed to reject seller")
+      setError("Failed to suspend seller")
     }
   }
 
@@ -101,7 +101,7 @@ function SellersQueuePage() {
 
   return (
     <PageShell>
-      <PageHeader title={t("sellers.title", "Seller Applications")} description={t("sellers.description", "Review new applications. Approve to open their shop, or reject with a reason.")} />
+      <PageHeader title={t("sellers.title", "Seller Applications")} description={t("sellers.description", "Review new applications. Approve to open their shop, or suspend with a reason.")} />
 
       {error && (
         <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-md">{error}</div>
@@ -120,7 +120,7 @@ function SellersQueuePage() {
             {pending.map((seller: SellerApplication) => (
               <SellerCard key={seller.id} seller={seller}
                 onApprove={() => setConfirmModal({ isOpen: true, sellerId: seller.id })}
-                onReject={() => setRejectModal({ isOpen: true, sellerId: seller.id })} />
+                onSuspend={() => setSuspendModal({ isOpen: true, sellerId: seller.id })} />
             ))}
           </div>
         )}
@@ -150,17 +150,17 @@ function SellersQueuePage() {
         </div>
       </Modal>
 
-      <Modal isOpen={rejectModal.isOpen} onClose={() => { setRejectModal({ isOpen: false, sellerId: null }); setError(null) }}
-        title="Reject Application"
+      <Modal isOpen={suspendModal.isOpen} onClose={() => { setSuspendModal({ isOpen: false, sellerId: null }); setError(null) }}
+        title="Suspend Seller"
         footer={
           <>
-            <Button variant="ghost" onClick={() => { setRejectModal({ isOpen: false, sellerId: null }); setError(null) }}>Cancel</Button>
-            <Button variant="destructive" onClick={handleReject} disabled={!reason.trim() || isSuspending}>Reject</Button>
+            <Button variant="ghost" onClick={() => { setSuspendModal({ isOpen: false, sellerId: null }); setError(null) }}>Cancel</Button>
+            <Button variant="destructive" onClick={handleSuspend} disabled={!reason.trim() || isSuspending}>Suspend</Button>
           </>
         }>
         <div className="space-y-4">
-          <p className="text-sm text-muted-foreground">Provide a reason for rejection.</p>
-          <Textarea placeholder="Reason for rejection..." value={reason} onChange={e => setReason(e.target.value)} className="h-32" />
+          <p className="text-sm text-muted-foreground">Provide a reason for suspension.</p>
+          <Textarea placeholder="Reason for suspension..." value={reason} onChange={e => setReason(e.target.value)} className="h-32" />
           {error && <p className="text-sm text-destructive">{error}</p>}
         </div>
       </Modal>
