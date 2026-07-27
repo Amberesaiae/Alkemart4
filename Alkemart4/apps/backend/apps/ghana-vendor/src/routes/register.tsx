@@ -22,6 +22,10 @@ function RegisterPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    if (formData.password.length < 8) {
+      setPasswordError("Password must be at least 8 characters")
+      return
+    }
     if (formData.password !== formData.confirm_password) {
       setPasswordError("Passwords do not match")
       return
