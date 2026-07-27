@@ -1,6 +1,7 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { MercurModules } from "@mercurjs/types"
+import { checkRateLimit } from "../../../../../lib/simple-rate-limit"
 import { asList } from "../../../../../lib/graph-utils"
 import { invalidateSellerOwnedProductIds } from "../../../../../lib/seller-owned-products-cache"
 
@@ -105,6 +106,11 @@ export async function PUT(req: SellerReq, res: MedusaResponse) {
   if (!sid) {
     res.status(400).json({ error: "Seller context required" })
     return
+  }
+
+  const { ok } = checkRateLimit({ key: `product-update:${sid}`, limit: 30, windowMs: 60_000 })
+  if (!ok) {
+    return res.status(429).json({ error: "Too many updates. Please wait before retrying." })
   }
 
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY) as {
