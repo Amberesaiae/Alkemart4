@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router"
 import { useState } from "react"
 import { useProduct, useUpdateProduct, useDeleteProduct, useCategories } from "../lib/hooks"
+import { type ProductStatus } from "../lib/api"
 import { Card, Button, Input, Label, Textarea, Select, Skeleton } from "@workspace/ui"
 import { ArrowLeft, Save, Trash2, AlertCircle } from "lucide-react"
 import { PageShell } from "../components/page-shell"
@@ -105,8 +106,8 @@ function ProductDetailPage() {
     )
   }
 
-  const statusBadge = (status: string) => {
-    const map: Record<string, string> = {
+  const statusBadge = (status: ProductStatus) => {
+    const map: Record<ProductStatus, string> = {
       draft: "bg-muted text-muted-foreground",
       proposed: "bg-warning/10 text-warning",
       published: "bg-success/10 text-success",

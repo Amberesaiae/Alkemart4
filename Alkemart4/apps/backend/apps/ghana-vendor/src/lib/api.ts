@@ -34,6 +34,12 @@ export class ApiError extends Error {
   }
 }
 
+export interface ApiErrorBody {
+  error?: string
+  message?: string
+  type?: string
+}
+
 // ---------------------------------------------------------------------------
 // Seller context — persisted in localStorage so the header survives refresh
 // ---------------------------------------------------------------------------
@@ -90,11 +96,7 @@ async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
   }
 
   if (!res.ok) {
-    const body = await res.json().catch(() => ({})) as {
-      error?: string
-      message?: string
-      type?: string
-    }
+    const body = await res.json().catch(() => ({})) as ApiErrorBody
     const msg = body.error || body.message || `HTTP ${res.status}`
     throw new ApiError(res.status, msg)
   }

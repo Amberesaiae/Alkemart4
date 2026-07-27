@@ -23,7 +23,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
       </a>
 
       {/* Desktop Sidebar */}
-      <aside aria-label="Sidebar" className="hidden md:flex w-64 flex-col border-r border-border bg-ink text-white">
+      <aside aria-label="Sidebar" className="hidden md:flex w-64 flex-col border-r border-border bg-ink text-ink-foreground">
         <div className="p-6 border-b border-white/10 flex flex-col items-center text-center gap-3">
           <Avatar className="h-16 w-16">
             <AvatarFallback className="text-2xl font-bold text-primary-foreground bg-primary">
@@ -31,8 +31,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
             </AvatarFallback>
           </Avatar>
           <div>
-            <h2 className="font-bold text-lg text-white">{user?.seller_name || "My Shop"}</h2>
-            <p className="text-xs text-white/60 font-medium">{user?.email}</p>
+            <h2 className="font-bold text-lg text-ink-foreground">{user?.seller_name || "My Shop"}</h2>
+            <p className="text-xs text-ink-foreground/60 font-medium">{user?.email}</p>
           </div>
         </div>
         <nav aria-label="Main navigation" className="flex-1 p-4 space-y-1">
@@ -46,7 +46,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                   "flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all text-sm",
                   isActive 
                     ? "bg-primary text-primary-foreground shadow-md" 
-                    : "text-white/70 hover:bg-white/10 hover:text-white"
+                    : "text-ink-foreground/70 hover:bg-white/10 hover:text-ink-foreground"
                 )}
                 aria-current={isActive ? "page" : undefined}
               >
@@ -59,7 +59,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <div className="p-4 border-t border-white/10">
           <Button 
             variant="ghost" 
-            className="w-full justify-start gap-3 text-white/70 hover:text-white hover:bg-white/10"
+            className="w-full justify-start gap-3 text-ink-foreground/70 hover:text-ink-foreground hover:bg-white/10"
             onClick={() => logout.mutate()}
             isLoading={logout.isPending}
           >
@@ -71,7 +71,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
       {/* Main Content Area */}
       <main id="main-content" className="flex-1 flex flex-col min-w-0 pb-20 md:pb-0 overflow-y-auto">
-        <div className="md:hidden flex items-center justify-between p-4 bg-ink text-white sticky top-0 z-20 shadow-sm">
+        <div className="md:hidden flex items-center justify-between p-4 bg-ink text-ink-foreground sticky top-0 z-20 shadow-sm">
           <div className="flex items-center gap-2">
             <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground">
               <Store className="h-4 w-4" />
@@ -85,7 +85,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
       </main>
 
       {/* Mobile Bottom Tab Bar */}
-      <nav aria-label="Mobile navigation" className="md:hidden fixed bottom-0 left-0 right-0 bg-ink text-white/70 border-t border-white/10 flex justify-around items-center p-2 pb-safe z-50">
+      <nav aria-label="Mobile navigation" className="md:hidden fixed bottom-0 left-0 right-0 bg-ink text-ink-foreground/70 border-t border-white/10 flex justify-around items-center p-2 pb-safe z-50">
         {navItems.map((item) => {
           const isActive = item.to === "/" ? router.location.pathname === "/seller" || router.location.pathname === "/seller/" : router.location.pathname.startsWith(`/seller${item.to}`)
           return (
