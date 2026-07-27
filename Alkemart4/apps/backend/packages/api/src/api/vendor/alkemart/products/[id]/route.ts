@@ -262,8 +262,8 @@ export async function DELETE(req: SellerReq, res: MedusaResponse) {
       if (offerModule?.deleteOffers && offersToDelete.length) {
         await offerModule.deleteOffers(offersToDelete.map((o: Record<string, unknown>) => o.id as string))
       }
-    } catch {
-      /* offer module may not be available — skip cleanup */
+    } catch (e) {
+      console.error("[alkemart] delete: offer cleanup failed", e instanceof Error ? e.message : e)
     }
 
     const link = req.scope.resolve(ContainerRegistrationKeys.LINK) as {
