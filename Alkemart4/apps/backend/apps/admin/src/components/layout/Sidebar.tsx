@@ -3,13 +3,14 @@ import { ChartColumn, Package, Store, ShoppingCart, Globe, LogOut, PanelLeftClos
 import { useState } from "react"
 import { useAuth } from "../../hooks/use-auth"
 import { cn } from "@workspace/ui"
+import { t } from "../../lib/t"
 
 const NAV_ITEMS = [
-  { href: "/analytics", label: "Analytics", icon: ChartColumn },
-  { href: "/product-moderation", label: "Product Review", icon: Package },
-  { href: "/sellers-queue", label: "Seller Queue", icon: Store },
-  { href: "/orders", label: "Orders", icon: ShoppingCart },
-  { href: "/markets", label: "Markets", icon: Globe },
+  { href: "/analytics", label: t("nav.analytics", "Analytics"), icon: ChartColumn },
+  { href: "/product-moderation", label: t("nav.productReview", "Product Review"), icon: Package },
+  { href: "/sellers-queue", label: t("nav.sellerQueue", "Seller Queue"), icon: Store },
+  { href: "/orders", label: t("nav.orders", "Orders"), icon: ShoppingCart },
+  { href: "/markets", label: t("nav.markets", "Markets"), icon: Globe },
 ]
 
 function NavItem({ href, label, icon: Icon, collapsed, isActive }: {
@@ -56,7 +57,7 @@ export function Sidebar() {
           <span className="text-xl font-bold text-white">●</span>
         ) : (
           <h1 className="text-xl font-bold tracking-tight text-white flex items-center gap-2 flex-1">
-            <span className="text-primary">●</span> Alkemart Ops
+            <span className="text-primary">●</span> {t("nav.brand", "Alkemart Ops")}
           </h1>
         )}
         <button
@@ -94,7 +95,7 @@ export function Sidebar() {
           aria-label="Sign out"
         >
           <LogOut className="h-5 w-5 shrink-0" aria-hidden="true" />
-          {!collapsed && "Sign out"}
+          {!collapsed && t("nav.signOut", "Sign out")}
         </button>
       </div>
     </aside>
