@@ -102,9 +102,9 @@ function ProductDetailPage() {
   const statusBadge = (status: string) => {
     const map: Record<string, string> = {
       draft: "bg-muted text-muted-foreground",
-      proposed: "bg-yellow-100 text-yellow-800",
-      published: "bg-green-100 text-green-800",
-      rejected: "bg-red-100 text-red-800",
+      proposed: "bg-warning/10 text-warning",
+      published: "bg-success/10 text-success",
+      rejected: "bg-destructive/10 text-destructive",
     }
     return (
       <span className={`px-3 py-1 rounded-full text-xs font-bold ${map[status] || "bg-muted"}`}>
@@ -131,7 +131,7 @@ function ProductDetailPage() {
         </div>
       )}
       {success && (
-        <div className="mb-4 p-3 bg-green-100 text-green-800 text-sm font-semibold rounded-lg border border-green-200" role="status">
+        <div className="mb-4 p-3 bg-success/10 text-success text-sm font-semibold rounded-lg border border-success/20" role="status">
           {success}
         </div>
       )}
