@@ -35,6 +35,7 @@ export function useFulfillOrder() {
       qc.invalidateQueries({ queryKey: ["vendor", "orders", orderId] })
       qc.invalidateQueries({ queryKey: ["vendor", "orders"] })
       qc.invalidateQueries({ queryKey: ["vendor", "products"] })
+      qc.invalidateQueries({ queryKey: ["vendor", "stats"] })
     }
   })
 }
