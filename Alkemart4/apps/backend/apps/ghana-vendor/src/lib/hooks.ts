@@ -7,6 +7,7 @@ export function useDashboardStats() {
   return useQuery({
     queryKey: ["vendor", "stats"],
     queryFn: () => stats.get(),
+    staleTime: 30_000,
   })
 }
 
@@ -15,6 +16,7 @@ export function useOrders(params?: Record<string, string | number | boolean | un
   return useQuery({
     queryKey: ["vendor", "orders", params],
     queryFn: () => orders.list(params),
+    staleTime: 15_000,
   })
 }
 
@@ -23,6 +25,7 @@ export function useOrder(id: string) {
     queryKey: ["vendor", "orders", id],
     queryFn: () => orders.get(id),
     enabled: !!id,
+    staleTime: 15_000,
   })
 }
 
@@ -70,6 +73,7 @@ export function useProducts() {
   return useQuery({
     queryKey: ["vendor", "products"],
     queryFn: () => products.list(),
+    staleTime: 30_000,
   })
 }
 
@@ -78,6 +82,7 @@ export function useProduct(id: string) {
     queryKey: ["vendor", "products", id],
     queryFn: () => products.get(id),
     enabled: !!id,
+    staleTime: 30_000,
   })
 }
 
@@ -133,6 +138,7 @@ export function useSellerProfile() {
   return useQuery({
     queryKey: ["vendor", "profile"],
     queryFn: () => seller.me(),
+    staleTime: 60_000,
   })
 }
 
@@ -167,5 +173,6 @@ export function useCategories() {
   return useQuery({
     queryKey: ["vendor", "categories"],
     queryFn: () => catalog.categories(),
+    staleTime: 120_000,
   })
 }
