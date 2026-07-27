@@ -102,7 +102,7 @@ async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
   if (res.status === 204 || res.headers.get("content-length") === "0") {
     return undefined as T
   }
-  return res.json() as Promise<T>
+  return res.json() as unknown as Promise<T>
 }
 
 function get<T>(path: string, params?: Record<string, string | number | boolean | undefined>): Promise<T> {
