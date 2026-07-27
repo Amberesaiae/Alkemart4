@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router"
 import { useState } from "react"
 import { useProducts } from "../../hooks/use-products"
-import { Button, Badge, Modal, Textarea, Skeleton } from "@workspace/ui"
+import { Button, Badge, Modal, Textarea, Skeleton, EmptyState } from "@workspace/ui"
 import { PageShell } from "../../components/page-shell"
 import { PageHeader } from "../../components/page-header"
 
@@ -9,9 +9,31 @@ export const Route = createFileRoute("/_authenticated/product-moderation")({
   component: ProductModerationPage,
 })
 
+function ConfirmDialog({ open, onOpenChange, title, onConfirm, confirmLabel = "Confirm", disabled }: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  title: string
+  onConfirm: () => void
+  confirmLabel?: string
+  disabled?: boolean
+}) {
+  return (
+    <Modal isOpen={open} onClose={() => onOpenChange(false)}>
+      <div className="p-6">
+        <h3 className="text-lg font-semibold">{title}</h3>
+        <p className="text-sm text-muted-foreground mt-2">This action cannot be undone.</p>
+        <div className="flex justify-end gap-3 mt-6">
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={disabled}>Cancel</Button>
+          <Button onClick={onConfirm} disabled={disabled}>{confirmLabel}</Button>
+        </div>
+      </div>
+    </Modal>
+  )
+}
+
 function ProductModerationPage() {
   const { products, isLoading, confirm, reject, requestChanges, isConfirming, isRejecting, isRequestingChanges } = useProducts()
-  
+
   const [modalState, setModalState] = useState<{
     isOpen: boolean;
     type: "reject" | "request-changes" | null;
@@ -32,14 +54,13 @@ function ProductModerationPage() {
       setError(null)
       await confirm(confirmModal.productId)
       setConfirmModal({ isOpen: false, productId: null })
-    } catch (e) {
+    } catch {
       setError("Failed to perform action")
     }
   }
 
   const handleAction = async () => {
     if (!modalState.productId || !modalState.type || !reason.trim()) return
-    
     try {
       setError(null)
       if (modalState.type === "reject") {
@@ -49,7 +70,7 @@ function ProductModerationPage() {
       }
       setModalState({ isOpen: false, type: null, productId: null })
       setReason("")
-    } catch (e) {
+    } catch {
       setError("Failed to perform action")
     }
   }
@@ -82,16 +103,11 @@ function ProductModerationPage() {
       <PageHeader title="Product Review" description="Review proposed listings. Approve to publish, request changes, or reject." />
 
       {error && (
-        <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-md">
-          {error}
-        </div>
+        <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-md">{error}</div>
       )}
 
       {products.length === 0 ? (
-        <div className="py-20 text-center border rounded-xl bg-card">
-          <p className="text-lg font-medium">All caught up</p>
-          <p className="text-muted-foreground">No products awaiting review.</p>
-        </div>
+        <EmptyState title="All caught up" description="No products awaiting review." />
       ) : (
         <div className="grid grid-cols-1 gap-4">
           {products.map((p: any) => (
@@ -103,7 +119,7 @@ function ProductModerationPage() {
                   <span className="text-muted-foreground text-sm">No Image</span>
                 )}
               </div>
-              
+
               <div className="flex-1 space-y-2">
                 <div className="flex justify-between items-start">
                   <div>
@@ -118,7 +134,6 @@ function ProductModerationPage() {
                     </Badge>
                   )}
                 </div>
-                
                 <p className="text-xs text-muted-foreground">
                   Submitted: {new Date(p.created_at).toLocaleDateString()}
                 </p>
@@ -128,18 +143,10 @@ function ProductModerationPage() {
                 <Button className="w-full" onClick={() => setConfirmModal({ isOpen: true, productId: p.id })}>
                   Approve
                 </Button>
-                <Button 
-                  variant="outline" 
-                  className="w-full"
-                  onClick={() => setModalState({ isOpen: true, type: "request-changes", productId: p.id })}
-                >
+                <Button variant="outline" className="w-full" onClick={() => setModalState({ isOpen: true, type: "request-changes", productId: p.id })}>
                   Request Changes
                 </Button>
-                <Button 
-                  variant="destructive" 
-                  className="w-full"
-                  onClick={() => setModalState({ isOpen: true, type: "reject", productId: p.id })}
-                >
+                <Button variant="destructive" className="w-full" onClick={() => setModalState({ isOpen: true, type: "reject", productId: p.id })}>
                   Reject
                 </Button>
               </div>
@@ -157,65 +164,29 @@ function ProductModerationPage() {
         disabled={isConfirming}
       />
 
-      <Modal
-        isOpen={modalState.isOpen}
-        onClose={() => { setModalState({ isOpen: false, type: null, productId: null }); setError(null) }}
+      <Modal isOpen={modalState.isOpen} onClose={() => { setModalState({ isOpen: false, type: null, productId: null }); setError(null) }}
         title={modalState.type === "reject" ? "Reject Product" : "Request Changes"}
         footer={
           <>
             <Button variant="ghost" onClick={() => { setModalState({ isOpen: false, type: null, productId: null }); setError(null) }}>
               Cancel
             </Button>
-            <Button 
-              variant={modalState.type === "reject" ? "destructive" : "default"} 
-              onClick={handleAction}
-              disabled={!reason.trim() || isRejecting || isRequestingChanges}
-            >
+            <Button variant={modalState.type === "reject" ? "destructive" : "default"} onClick={handleAction}
+              disabled={!reason.trim() || isRejecting || isRequestingChanges}>
               {isRejecting || isRequestingChanges ? "Processing..." : "Confirm"}
             </Button>
           </>
-        }
-      >
+        }>
         <div className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            {modalState.type === "reject" 
+            {modalState.type === "reject"
               ? "Provide a reason for rejecting this product. This will be sent to the seller."
               : "What changes does the seller need to make before this can be approved?"}
           </p>
-          <Textarea
-            placeholder="Enter reason..."
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-            autoFocus
-            className="h-32"
-          />
-          {error && (
-            <p className="text-sm text-destructive">{error}</p>
-          )}
+          <Textarea placeholder="Enter reason..." value={reason} onChange={(e) => setReason(e.target.value)} autoFocus className="h-32" />
+          {error && <p className="text-sm text-destructive">{error}</p>}
         </div>
       </Modal>
     </PageShell>
-  )
-}
-
-function ConfirmDialog({ open, onOpenChange, title, onConfirm, confirmLabel = "Confirm", disabled }: {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  title: string
-  onConfirm: () => void
-  confirmLabel?: string
-  disabled?: boolean
-}) {
-  return (
-    <Modal isOpen={open} onClose={() => onOpenChange(false)}>
-      <div className="p-6">
-        <h3 className="text-lg font-semibold">{title}</h3>
-        <p className="text-sm text-muted-foreground mt-2">This action cannot be undone.</p>
-        <div className="flex justify-end gap-3 mt-6">
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={disabled}>Cancel</Button>
-          <Button variant="destructive" onClick={onConfirm} disabled={disabled}>{confirmLabel}</Button>
-        </div>
-      </div>
-    </Modal>
   )
 }

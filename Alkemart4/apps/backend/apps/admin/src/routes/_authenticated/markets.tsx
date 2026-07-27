@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router"
 import { useMarkets } from "../../hooks/use-markets"
-import { Card, CardContent, CardHeader, CardTitle, Badge, Skeleton } from "@workspace/ui"
+import { Card, CardContent, CardHeader, CardTitle, Badge, Skeleton, EmptyState } from "@workspace/ui"
 import { PageShell } from "../../components/page-shell"
 import { PageHeader } from "../../components/page-header"
 import { Globe2 } from "lucide-react"
@@ -43,11 +43,9 @@ function MarketsPage() {
       <PageHeader title="Operating Markets" description="Countries currently in operation. Used for localized routing, currency, and address rules." />
 
       {markets.length === 0 ? (
-        <div className="p-12 text-center border rounded-xl bg-card shadow-sm">
-          <Globe2 className="mx-auto h-12 w-12 text-muted-foreground/50 mb-4" />
-          <p className="text-lg font-medium">No active markets</p>
-          <p className="text-muted-foreground">Configure regions via backend to see markets here.</p>
-        </div>
+        <EmptyState icon={<Globe2 className="h-12 w-12 text-muted-foreground/50" />}
+          title="No active markets"
+          description="Configure regions via backend to see markets here." />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {markets.map((market: any) => (

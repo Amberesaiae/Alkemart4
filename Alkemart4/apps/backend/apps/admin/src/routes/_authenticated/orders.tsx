@@ -1,13 +1,27 @@
 import { createFileRoute } from "@tanstack/react-router"
 import { useState } from "react"
 import { useOrders } from "../../hooks/use-orders"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Badge, Select, Skeleton, Button } from "@workspace/ui"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Badge, Select, Skeleton, Button, Price, EmptyState } from "@workspace/ui"
 import { PageShell } from "../../components/page-shell"
 import { PageHeader } from "../../components/page-header"
 
 export const Route = createFileRoute("/_authenticated/orders")({
   component: OrdersPage,
 })
+
+function StatusBadge({ status }: { status?: string }) {
+  let variant: "default" | "secondary" | "destructive" | "success" | "warning" = "secondary"
+
+  switch((status ?? "").toLowerCase()) {
+    case "pending": variant = "warning"; break
+    case "completed":
+    case "delivered": variant = "success"; break
+    case "cancelled": variant = "destructive"; break
+    case "processing": variant = "default"; break
+  }
+
+  return <Badge variant={variant} className="capitalize">{status}</Badge>
+}
 
 function OrdersPage() {
   const [status, setStatus] = useState<string | undefined>(undefined)
@@ -30,7 +44,6 @@ function OrdersPage() {
     <PageShell>
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
         <PageHeader title="Marketplace Orders" description="View and track all platform orders." />
-        
         <Select
           value={status || ""}
           onChange={(e) => { setStatus(e.target.value || undefined); setOffset(0) }}
@@ -45,7 +58,7 @@ function OrdersPage() {
         </Select>
       </div>
 
-      <div className="border rounded-xl bg-card overflow-x-auto">
+      <div className="border rounded-xl bg-card">
         <Table>
           <TableHeader>
             <TableRow>
@@ -68,7 +81,9 @@ function OrdersPage() {
               ))
             ) : !data?.orders?.length ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">No orders found.</TableCell>
+                <TableCell colSpan={6}>
+                  <EmptyState title="No orders found" />
+                </TableCell>
               </TableRow>
             ) : (
               data.orders.map((order: any) => (
@@ -86,7 +101,7 @@ function OrdersPage() {
                     <span className="capitalize">{order.payment_status}</span>
                   </TableCell>
                   <TableCell className="text-right font-medium">
-                    {(order.currency_code ?? "GHS").toUpperCase()} {(order.total != null ? (order.total / 100) : 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    <Price amount={order.total != null ? order.total / 100 : null} currency={order.currency_code} />
                   </TableCell>
                 </TableRow>
               ))
@@ -110,18 +125,4 @@ function OrdersPage() {
       </div>
     </PageShell>
   )
-}
-
-function StatusBadge({ status }: { status?: string }) {
-  let variant: "default" | "secondary" | "destructive" | "success" | "warning" = "secondary"
-  
-  switch((status ?? "").toLowerCase()) {
-    case "pending": variant = "warning"; break;
-    case "completed":
-    case "delivered": variant = "success"; break;
-    case "cancelled": variant = "destructive"; break;
-    case "processing": variant = "default"; break;
-  }
-
-  return <Badge variant={variant} className="capitalize">{status}</Badge>
 }

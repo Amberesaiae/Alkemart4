@@ -10,6 +10,20 @@ export const Route = createFileRoute("/_authenticated/analytics")({
   component: AnalyticsPage,
 })
 
+function StatCard({ title, value, icon: Icon }: { title: string; value: string; icon: React.ElementType }) {
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between pb-2">
+        <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
+        <Icon className="h-4 w-4 text-muted-foreground" />
+      </CardHeader>
+      <CardContent>
+        <div className="text-3xl font-bold">{value}</div>
+      </CardContent>
+    </Card>
+  )
+}
+
 function AnalyticsPage() {
   const { data: stats, isLoading, error } = useStats()
 
@@ -42,26 +56,10 @@ function AnalyticsPage() {
       <PageHeader title="Platform Analytics" description="Live marketplace totals — orders, sales value, sellers, and catalog." />
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard 
-          title="Total Orders" 
-          value={(stats.total_orders ?? 0).toLocaleString()} 
-          icon={ShoppingCart} 
-        />
-        <StatCard 
-          title="Total GMV" 
-          value={`₵${(stats.total_gmv_ghs ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`} 
-          icon={DollarSign} 
-        />
-        <StatCard 
-          title="Active Sellers" 
-          value={(stats.active_sellers ?? 0).toLocaleString()} 
-          icon={Store} 
-        />
-        <StatCard 
-          title="Catalog Size" 
-          value={(stats.catalog_size ?? 0).toLocaleString()} 
-          icon={Package} 
-        />
+        <StatCard title="Total Orders" value={(stats.total_orders ?? 0).toLocaleString()} icon={ShoppingCart} />
+        <StatCard title="Total GMV" value={`₵${(stats.total_gmv_ghs ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`} icon={DollarSign} />
+        <StatCard title="Active Sellers" value={(stats.active_sellers ?? 0).toLocaleString()} icon={Store} />
+        <StatCard title="Catalog Size" value={(stats.catalog_size ?? 0).toLocaleString()} icon={Package} />
       </div>
 
       <Card className="overflow-hidden">
@@ -80,34 +78,27 @@ function AnalyticsPage() {
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
-                  <XAxis 
-                    dataKey="date" 
+                  <XAxis
+                    dataKey="date"
                     tickFormatter={(val) => new Date(val).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                     tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }}
                     tickLine={false}
                     axisLine={false}
                     dy={10}
                   />
-                  <YAxis 
+                  <YAxis
                     tickFormatter={(val) => `₵${(val ?? 0).toLocaleString()}`}
                     tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }}
                     tickLine={false}
                     axisLine={false}
                     dx={-10}
                   />
-                  <Tooltip 
+                  <Tooltip
                     contentStyle={{ backgroundColor: 'var(--card)', borderRadius: '8px', border: '1px solid var(--border)' }}
                     labelFormatter={(val) => new Date(String(val)).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
                     formatter={(val: any) => [`₵${Number(val).toLocaleString(undefined, { minimumFractionDigits: 2 })}`, 'Revenue']}
                   />
-                  <Area 
-                    type="monotone" 
-                    dataKey="amount" 
-                    stroke="var(--primary)" 
-                    strokeWidth={3}
-                    fillOpacity={1} 
-                    fill="url(#colorAmount)" 
-                  />
+                  <Area type="monotone" dataKey="amount" stroke="var(--primary)" strokeWidth={3} fillOpacity={1} fill="url(#colorAmount)" />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
@@ -119,19 +110,5 @@ function AnalyticsPage() {
         </CardContent>
       </Card>
     </PageShell>
-  )
-}
-
-function StatCard({ title, value, icon: Icon }: { title: string, value: string, icon: React.ElementType }) {
-  return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
-        <Icon className="h-4 w-4 text-muted-foreground" />
-      </CardHeader>
-      <CardContent>
-        <div className="text-3xl font-bold">{value}</div>
-      </CardContent>
-    </Card>
   )
 }
