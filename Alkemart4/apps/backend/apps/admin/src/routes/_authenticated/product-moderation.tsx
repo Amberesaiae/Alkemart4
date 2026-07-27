@@ -136,8 +136,18 @@ function ProductModerationPage() {
                     </p>
                   </div>
                   {p.quality_score !== undefined && (
-                    <Badge variant={p.quality_score > 80 ? "success" : "warning"}>
-                      Quality: {p.quality_score}
+                    <Badge variant={
+                      p.quality_score >= 90 ? "success" :
+                      p.quality_score >= 70 ? "default" :
+                      p.quality_score >= 50 ? "warning" :
+                      p.quality_score >= 30 ? "secondary" :
+                      "destructive"
+                    }>
+                      {p.quality_score >= 90 ? "Excellent" :
+                       p.quality_score >= 70 ? "Good" :
+                       p.quality_score >= 50 ? "Average" :
+                       p.quality_score >= 30 ? "Poor" :
+                       "Very Low"}: {p.quality_score}
                     </Badge>
                   )}
                 </div>
