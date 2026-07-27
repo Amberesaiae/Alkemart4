@@ -3,7 +3,6 @@
   "steps": {
     "install": {
       "inputs": [
-        { "local": true },
         { "step": "packages:mise" }
       ],
       "commands": [
