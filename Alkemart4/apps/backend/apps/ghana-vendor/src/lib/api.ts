@@ -103,7 +103,7 @@ async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
   }
 
   if (res.status === 204) {
-    return undefined as T
+    return undefined as unknown as T
   }
   return res.json() as unknown as Promise<T>
 }
