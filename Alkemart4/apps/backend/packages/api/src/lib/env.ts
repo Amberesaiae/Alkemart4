@@ -28,6 +28,7 @@ const EnvSchema = z.object({
   /** When true (default), proposed products require full seller setup. */
   ALKEMART_STRICT_PROPOSE_GATES: z.string().optional(),
   ALKEMART_REQUIRE_CATEGORY_ON_PROPOSE: z.string().optional(),
+  PAYSTACK_WEBHOOK_RELAXED: z.enum(["true", "false"]).optional(),
 })
 
 export type AppEnv = z.infer<typeof EnvSchema>
@@ -128,7 +129,7 @@ export function loadAppEnv(raw: NodeJS.ProcessEnv = process.env): AppEnv {
         "ALKEMART_STRICT_PROPOSE_GATES must not be false in production (seller propose readiness)",
       )
     }
-    if (process.env.PAYSTACK_WEBHOOK_RELAXED === "true") {
+    if (parsed.data.PAYSTACK_WEBHOOK_RELAXED === "true") {
       throw new Error(
         "PAYSTACK_WEBHOOK_RELAXED must not be true in production (unsigned webhooks)",
       )
