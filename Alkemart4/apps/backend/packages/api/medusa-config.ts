@@ -130,6 +130,12 @@ module.exports = withMercur({
               ? { rejectUnauthorized: true }
               : { rejectUnauthorized: false },
       },
+      pool: {
+        min: 0,
+        max: 5,
+        acquireTimeoutMillis: 10000,
+        idleTimeoutMillis: 30000,
+      },
     },
     http: {
       storeCors: env.STORE_CORS,
