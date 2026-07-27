@@ -173,6 +173,11 @@ function QuickSellPage() {
                     {submitError}
                   </div>
                 )}
+                {upload.isError && (
+                  <div className="p-3 bg-destructive/10 text-destructive text-sm font-semibold rounded-lg border border-destructive/20" role="alert">
+                    {upload.error instanceof Error ? upload.error.message : "Failed to upload image. Try again."}
+                  </div>
+                )}
                 
                 <div className="space-y-2">
                   <Label htmlFor="title" className="text-base">What are you selling?</Label>
