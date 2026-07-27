@@ -34,7 +34,7 @@ function RegisterPage() {
     register.mutate(formData, {
       onSuccess: () => {
         setPasswordError("")
-        navigate({ to: "/login", search: { redirect: undefined, registered: "true" } })
+        navigate({ to: "/login", search: { registered: "true" }, replace: true })
       }
     })
   }
