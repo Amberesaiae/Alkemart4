@@ -83,7 +83,8 @@ export const auth = {
     })
     return data
   },
-  logout: async () => {
+  logout: async (hasSession?: boolean) => {
+    if (hasSession === false) return
     try { await apiFetch("/auth/session", { method: "DELETE" }) } catch {}
   },
   getSession: async (): Promise<{ user: AuthUser } | null> => {
