@@ -52,7 +52,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
 
   // Still process if signature fails in development when explicitly allowed —
   // production requires signature. We always re-verify via Paystack API.
-  if (!signatureOk && process.env.PAYSTACK_WEBHOOK_RELAXED !== "true") {
+  if (!signatureOk && (process.env.NODE_ENV !== "development" || process.env.PAYSTACK_WEBHOOK_RELAXED !== "true")) {
     res.status(401).json({ error: "Invalid Paystack signature" })
     return
   }
