@@ -1,3 +1,4 @@
+import { logger } from "../logger"
 import {
   ensureProductsIndex,
   getIndexUid,
@@ -70,9 +71,9 @@ async function fetchOffersForProducts(
     const list = Array.isArray(data) ? data : data ? [data] : []
     return list as Record<string, unknown>[]
   } catch (e) {
-    console.warn(
+    logger.warn(
       "[search] offer graph unavailable",
-      e instanceof Error ? e.message : e,
+      { error: e instanceof Error ? e.message : String(e) },
     )
     return []
   }
@@ -133,9 +134,9 @@ export async function fetchProductsForIndex(
       }
     }
   } catch (e) {
-    console.warn(
+    logger.warn(
       "[search] seller_address graph unavailable",
-      e instanceof Error ? e.message : e,
+      { error: e instanceof Error ? e.message : String(e) },
     )
   }
 
