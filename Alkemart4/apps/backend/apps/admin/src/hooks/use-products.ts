@@ -14,6 +14,9 @@ export function useProducts() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["products-queue"] })
     },
+    onError: (err) => {
+      console.error("[admin] mutation failed", err)
+    },
   })
 
   const reject = useMutation({
@@ -21,12 +24,18 @@ export function useProducts() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["products-queue"] })
     },
+    onError: (err) => {
+      console.error("[admin] mutation failed", err)
+    },
   })
 
   const requestChanges = useMutation({
     mutationFn: ({ id, reason }: { id: string; reason: string }) => moderation.requestChanges(id, reason),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["products-queue"] })
+    },
+    onError: (err) => {
+      console.error("[admin] mutation failed", err)
     },
   })
 

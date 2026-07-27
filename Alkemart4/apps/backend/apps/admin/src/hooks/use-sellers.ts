@@ -14,12 +14,18 @@ export function useSellers() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["sellers-queue"] })
     },
+    onError: (err) => {
+      console.error("[admin] mutation failed", err)
+    },
   })
 
   const suspend = useMutation({
     mutationFn: ({ id, reason }: { id: string; reason: string }) => sellerQueue.suspend(id, reason),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["sellers-queue"] })
+    },
+    onError: (err) => {
+      console.error("[admin] mutation failed", err)
     },
   })
 
