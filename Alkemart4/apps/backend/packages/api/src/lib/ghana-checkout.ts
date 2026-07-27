@@ -371,13 +371,10 @@ export async function ensureSystemPaymentAndCompleteCart(
     },
   })
 
-  const { result, errors } = await completeCartWorkflow(container).run({
+  const { result } = await completeCartWorkflow(container).run({
     input: { id: cartId },
+    throwOnError: true,
   })
-
-  if (errors?.length) {
-    throw new CheckoutHttpError(400, errorMessage({ errors }))
-  }
 
   const orderId =
     (result as { id?: string })?.id ||

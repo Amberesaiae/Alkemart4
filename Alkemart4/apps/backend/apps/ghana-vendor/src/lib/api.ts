@@ -79,12 +79,7 @@ async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
   if (isJsonBody) {
     extraHeaders["Content-Type"] = "application/json"
   }
-  if (!init.headers || !("Authorization" in init.headers)) {
-    try {
-      const jwt = localStorage.getItem("alk:jwt")
-      if (jwt) extraHeaders["Authorization"] = `Bearer ${jwt}`
-    } catch {}
-  }
+  // Auth via httpOnly cookie (set by backend on login). No localStorage JWT needed.
 
   const res = await fetch(path, {
     credentials: "include",
@@ -730,9 +725,7 @@ export async function loginAndSelectSeller(
 ): Promise<{ sellerId: string | null; me: AlkemartMe }> {
   const loginRes = await post<{ token?: string }>("/auth/member/emailpass", { email, password })
 
-  if (loginRes.token) {
-    try { localStorage.setItem("alk:jwt", loginRes.token) } catch {}
-  }
+  // Token is set as httpOnly cookie by the backend — no localStorage needed.
 
   const me = await seller.memberMe()
   const sellerId = me.seller_id ?? null
