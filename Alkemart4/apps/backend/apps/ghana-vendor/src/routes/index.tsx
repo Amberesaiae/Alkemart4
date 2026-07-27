@@ -1,7 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router"
+import { useQueryClient } from "@tanstack/react-query"
 import { useDashboardStats, useOrders } from "../lib/hooks"
 import { Card, Button, Badge, cn, Skeleton, Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@workspace/ui"
-import { ArrowRight, Package, TrendingUp, ShoppingBag, Clock, PlusCircle, AlertCircle, RefreshCw } from "lucide-react"
+import { ArrowRight, Package, TrendingUp, ShoppingBag, Clock, PlusCircle, AlertCircle } from "lucide-react"
 import { format } from "date-fns"
 import { PageShell } from "../components/page-shell"
 import { PageHeader } from "../components/page-header"
@@ -11,6 +12,7 @@ export const Route = createFileRoute('/')({
 })
 
 function DashboardPage() {
+  const qc = useQueryClient()
   const { data: stats, isLoading: statsLoading, isError: statsError } = useDashboardStats()
   const { data: recentOrders, isLoading: ordersLoading, isError: ordersError } = useOrders({ limit: 5 })
 
@@ -63,8 +65,8 @@ function DashboardPage() {
           <AlertCircle className="h-10 w-10 mx-auto mb-3 text-destructive" />
           <h2 className="text-lg font-bold mb-1">Failed to load data</h2>
           <p className="text-muted-foreground text-sm mb-4">Something went wrong. Please try again.</p>
-          <Button onClick={() => window.location.reload()} variant="outline" className="gap-2">
-            <RefreshCw className="h-4 w-4" /> Retry
+          <Button onClick={() => { qc.invalidateQueries({ queryKey: ["vendor"] }) }} variant="outline" className="gap-2">
+            Retry
           </Button>
         </Card>
       ) : (

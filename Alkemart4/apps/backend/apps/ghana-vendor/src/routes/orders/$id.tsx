@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useParams } from "@tanstack/react-router"
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
 import { useState } from "react"
 import { useOrder, useFulfillOrder, useShipOrder, useDeliverOrder } from "../../lib/hooks"
 import { Card, Button, Badge, Input } from "@workspace/ui"
@@ -13,6 +13,7 @@ export const Route = createFileRoute('/orders/$id')({
 
 function OrderDetailPage() {
   const { id } = Route.useParams()
+  const navigate = useNavigate()
   const { data, isLoading, isError, error } = useOrder(id)
   const order = data?.order
 
@@ -46,8 +47,8 @@ function OrderDetailPage() {
         <p className="text-sm text-muted-foreground mb-4">
           {error instanceof Error ? error.message : "An unexpected error occurred"}
         </p>
-        <button onClick={() => window.location.reload()} className="text-sm text-primary hover:underline">
-          Try again
+        <button onClick={() => navigate({ to: "/orders", replace: true })} className="text-sm text-primary hover:underline">
+          Back to orders
         </button>
       </div>
     )

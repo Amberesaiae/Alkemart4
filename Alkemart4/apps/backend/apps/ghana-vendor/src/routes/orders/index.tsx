@@ -1,9 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router"
+import { useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
 import { useOrders } from "../../lib/hooks"
 import { Card, Badge, Button, Skeleton, Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@workspace/ui"
 import { format } from "date-fns"
-import { ShoppingBag, AlertCircle, RefreshCw } from "lucide-react"
+import { ShoppingBag, AlertCircle } from "lucide-react"
 import { PageShell } from "../../components/page-shell"
 import { PageHeader } from "../../components/page-header"
 
@@ -18,6 +19,7 @@ function maskEmail(email?: string | null): string | null {
 }
 
 function OrdersPage() {
+  const qc = useQueryClient()
   const [filter, setFilter] = useState("all")
   
   const params = filter === "all" ? undefined : 
@@ -64,8 +66,8 @@ function OrdersPage() {
           <AlertCircle className="h-10 w-10 mx-auto mb-3 text-destructive" />
           <h2 className="text-lg font-bold mb-1">Failed to load orders</h2>
           <p className="text-muted-foreground text-sm mb-4">Something went wrong. Please try again.</p>
-          <Button onClick={() => window.location.reload()} variant="outline" className="gap-2">
-            <RefreshCw className="h-4 w-4" /> Retry
+          <Button onClick={() => { qc.invalidateQueries({ queryKey: ["vendor", "orders"] }) }} variant="outline" className="gap-2">
+            Retry
           </Button>
         </Card>
       ) : (

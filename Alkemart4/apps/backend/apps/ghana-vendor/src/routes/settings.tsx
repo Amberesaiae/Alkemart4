@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router"
+import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { useState, useEffect } from "react"
 import { useSellerProfile, useUpdateProfile, useUpdateAddress, useUpdatePayment } from "../lib/hooks"
 import { Card, Button, Input, Label, Select } from "@workspace/ui"
@@ -22,6 +22,7 @@ export const Route = createFileRoute('/settings')({
 })
 
 function SettingsPage() {
+  const navigate = useNavigate()
   const { data, isLoading, isError } = useSellerProfile()
   const seller = data?.seller
   const updateProfile  = useUpdateProfile()
@@ -109,7 +110,7 @@ function SettingsPage() {
       <div className="flex flex-col items-center justify-center py-20 text-center">
         <h2 className="text-lg font-semibold text-destructive mb-2">Failed to load profile</h2>
         <p className="text-sm text-muted-foreground mb-4">Could not load your profile data. Please try again.</p>
-        <button onClick={() => window.location.reload()} className="text-sm text-primary hover:underline">Try again</button>
+        <button onClick={() => navigate({ to: "/settings", replace: true })} className="text-sm text-primary hover:underline">Try again</button>
       </div>
     )
   }

@@ -1,7 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router"
+import { useQueryClient } from "@tanstack/react-query"
 import { useProducts, useProposeProduct } from "../lib/hooks"
 import { Card, Button, Badge, Skeleton } from "@workspace/ui"
-import { PlusCircle, CheckCircle, Clock, AlertCircle, RefreshCw } from "lucide-react"
+import { PlusCircle, CheckCircle, Clock, AlertCircle } from "lucide-react"
 import { PageShell } from "../components/page-shell"
 import { PageHeader } from "../components/page-header"
 
@@ -10,6 +11,7 @@ export const Route = createFileRoute('/products')({
 })
 
 function ProductsPage() {
+  const qc = useQueryClient()
   const { data, isLoading, isError } = useProducts()
   const propose = useProposeProduct()
 
@@ -43,8 +45,8 @@ function ProductsPage() {
           <AlertCircle className="h-10 w-10 mx-auto mb-3 text-destructive" />
           <h2 className="text-lg font-bold mb-1">Failed to load products</h2>
           <p className="text-muted-foreground text-sm mb-4">Something went wrong. Please try again.</p>
-          <Button onClick={() => window.location.reload()} variant="outline" className="gap-2">
-            <RefreshCw className="h-4 w-4" /> Retry
+          <Button onClick={() => { qc.invalidateQueries({ queryKey: ["vendor", "products"] }) }} variant="outline" className="gap-2">
+            Retry
           </Button>
         </Card>
       ) : isLoading ? (
