@@ -98,7 +98,12 @@ function SettingsPage() {
     })
   }
 
-  if (isLoading) return <div className="animate-pulse h-96 bg-muted rounded-xl" />
+  if (isLoading) return (
+    <PageShell className="max-w-4xl">
+      <PageHeader title="Shop Settings" description="Configure your store details and payouts." />
+      <div className="animate-pulse h-96 bg-muted rounded-xl" />
+    </PageShell>
+  )
   if (isError) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center">

@@ -27,13 +27,15 @@ function OrderDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="space-y-6 animate-pulse">
-        <div className="h-10 w-48 bg-muted rounded-md" />
-        <div className="grid md:grid-cols-3 gap-6">
-          <div className="md:col-span-2 h-[400px] bg-muted rounded-xl" />
-          <div className="h-[400px] bg-muted rounded-xl" />
+      <PageShell>
+        <div className="space-y-6 animate-pulse">
+          <div className="h-10 w-48 bg-muted rounded-md" />
+          <div className="grid md:grid-cols-3 gap-6">
+            <div className="md:col-span-2 h-[400px] bg-muted rounded-xl" />
+            <div className="h-[400px] bg-muted rounded-xl" />
+          </div>
         </div>
-      </div>
+      </PageShell>
     )
   }
 
