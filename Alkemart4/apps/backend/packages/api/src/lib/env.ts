@@ -14,6 +14,7 @@ const EnvSchema = z.object({
   ADMIN_CORS: z.string().min(1),
   AUTH_CORS: z.string().min(1),
   VENDOR_CORS: z.string().min(1),
+  // Paystack secret key — use test key (sk_test_*) for development, live key (sk_live_*) for production
   PAYSTACK_SECRET_KEY: z.string().optional(),
   PAYSTACK_PUBLIC_KEY: z.string().optional(),
   DEFAULT_CURRENCY: z.string().default("ghs"),
