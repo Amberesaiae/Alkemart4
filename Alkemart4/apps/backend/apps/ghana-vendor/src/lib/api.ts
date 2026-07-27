@@ -546,6 +546,8 @@ export const products = {
         const h: Record<string, string> = {}
         const id = getActiveSellerId()
         if (id) h["x-seller-id"] = id
+        const token = getAuthToken()
+        if (token) h["Authorization"] = `Bearer ${token}`
         return h
       })(),
       body: form,

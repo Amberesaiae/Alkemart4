@@ -52,10 +52,25 @@ export default defineMiddlewares({
       methods: ["POST"],
       middlewares: [authenticate("member", ["session", "bearer"])],
     },
-    // Lightweight exclusive product list (prefer over heavy Mercur /vendor/products)
+    // Alkemart vendor product routes (list, detail, update, delete)
     {
       matcher: "/vendor/alkemart/products",
       methods: ["GET"],
+      middlewares: [authenticate("member", ["session", "bearer"])],
+    },
+    {
+      matcher: "/vendor/alkemart/products/*",
+      methods: ["GET"],
+      middlewares: [authenticate("member", ["session", "bearer"])],
+    },
+    {
+      matcher: "/vendor/alkemart/products/*",
+      methods: ["PUT"],
+      middlewares: [authenticate("member", ["session", "bearer"])],
+    },
+    {
+      matcher: "/vendor/alkemart/products/*",
+      methods: ["DELETE"],
       middlewares: [authenticate("member", ["session", "bearer"])],
     },
     {
