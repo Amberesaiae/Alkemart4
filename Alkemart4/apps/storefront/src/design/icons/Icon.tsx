@@ -1,4 +1,3 @@
-import { color } from "@/design/tokens"
 import type { IconId } from "./types"
 import { cn } from "@/lib/utils"
 
@@ -209,8 +208,8 @@ function pathFor(name: IconId) {
     case "cart":
       return (
         <>
-          <circle cx="9" cy="20" r="1.2" fill={color.foreground} stroke="none" />
-          <circle cx="17" cy="20" r="1.2" fill={color.foreground} stroke="none" />
+          <circle cx="9" cy="20" r="1.2" fill="currentColor" stroke="none" />
+          <circle cx="17" cy="20" r="1.2" fill="currentColor" stroke="none" />
           <path d="M3 4h2l1.6 9.2a1.5 1.5 0 0 0 1.5 1.3h8.2a1.5 1.5 0 0 0 1.5-1.2L19 7H6.2" />
         </>
       )

@@ -1,4 +1,4 @@
-import { color } from "@/design/tokens"
+import { brand } from "@/design/brand"
 import { cn } from "@/lib/utils"
 
 type Props = {
@@ -52,7 +52,7 @@ function Star({ size, fill }: { size: number; fill: number }) {
       >
         <path
           d={STAR_PATH}
-          fill={color.primary}
+          fill={brand.primary}
           stroke="none"
         />
       </svg>
@@ -71,7 +71,7 @@ function Star({ size, fill }: { size: number; fill: number }) {
         <path
           d={STAR_PATH}
           fill="none"
-          stroke={color.primary}
+          stroke={brand.primary}
           strokeWidth="1.5"
           strokeLinejoin="round"
           opacity={0.35}
@@ -96,14 +96,14 @@ function Star({ size, fill }: { size: number; fill: number }) {
       <path
         d={STAR_PATH}
         fill="none"
-        stroke={color.primary}
+        stroke={brand.primary}
         strokeWidth="1.5"
         strokeLinejoin="round"
         opacity={0.35}
       />
       <path
         d={STAR_PATH}
-        fill={color.primary}
+        fill={brand.primary}
         stroke="none"
         clipPath={`url(#${id})`}
       />

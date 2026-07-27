@@ -11,14 +11,5 @@
  */
 
 export { brand } from "./brand"
-export {
-  color,
-  space,
-  radius,
-  layout,
-  typography,
-  categoryAccent,
-  onAccent,
-} from "./tokens"
 export { Icon, IconSafe, IconFallback, ICON_IDS, categoryIconId } from "./icons"
 export type { IconId } from "./icons"
