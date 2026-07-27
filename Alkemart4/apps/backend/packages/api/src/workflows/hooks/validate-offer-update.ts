@@ -1,7 +1,7 @@
 /**
  * Soft gates on update-offers validate hook (same readiness as create).
  */
-import { MedusaError } from "@medusajs/framework/utils"
+import { ContainerRegistrationKeys, MedusaError } from "@medusajs/framework/utils"
 import { updateOffersWorkflow } from "@mercurjs/core/workflows"
 import {
   assertCanSell,
@@ -23,7 +23,7 @@ updateOffersWorkflow.hooks.validate(
       offers.map((o) => o.seller_id).find(Boolean) ||
       ""
 
-    const query = container.resolve("query") as {
+    const query = container.resolve(ContainerRegistrationKeys.QUERY) as {
       graph: (args: unknown) => Promise<{ data: unknown }>
     }
 

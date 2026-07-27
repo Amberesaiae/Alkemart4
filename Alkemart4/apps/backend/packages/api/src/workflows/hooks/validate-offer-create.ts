@@ -1,7 +1,7 @@
 /**
  * Non-bypassable soft gates on create-offers validate hook.
  */
-import { MedusaError } from "@medusajs/framework/utils"
+import { ContainerRegistrationKeys, MedusaError } from "@medusajs/framework/utils"
 import { createOffersWorkflow } from "@mercurjs/core/workflows"
 import {
   assertCanSell,
@@ -30,7 +30,7 @@ createOffersWorkflow.hooks.validate(
       )
     }
 
-    const query = container.resolve("query") as {
+    const query = container.resolve(ContainerRegistrationKeys.QUERY) as {
       graph: (args: unknown) => Promise<{ data: unknown }>
     }
 
