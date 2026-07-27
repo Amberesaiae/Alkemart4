@@ -43,7 +43,8 @@ export function fromPaystackAmountMajor(
 ): number {
   const currency = (currencyCode || "ghs").toLowerCase()
   if (currency === "ghs") {
-    return amountPesewas / 100
+    const major = amountPesewas / 100
+    return Math.round(major * 100) / 100
   }
   return amountPesewas
 }
