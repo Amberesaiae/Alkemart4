@@ -13,9 +13,18 @@ import {
 } from "../../../lib/ghana-checkout"
 import { verifyPaystackWebhookSignature } from "../../../lib/paystack-client"
 
+const processedWebhooks = new Set<string>()
+const WEBHOOK_DEDUP_TTL = 5 * 60 * 1000
+
+function markWebhookProcessed(id: string) {
+  processedWebhooks.add(id)
+  setTimeout(() => processedWebhooks.delete(id), WEBHOOK_DEDUP_TTL)
+}
+
 type PaystackEvent = {
   event?: string
   data?: {
+    id?: string
     reference?: string
     status?: string
     amount?: number
@@ -73,8 +82,23 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
     return
   }
 
+  const eventId = event.data?.id
+  if (eventId && typeof eventId === "string") {
+    if (processedWebhooks.has(eventId)) {
+      console.warn(`[paystack-webhook] duplicate event ${eventId} — skipping`)
+      return Response.json({ status: "duplicate" })
+    }
+    markWebhookProcessed(eventId)
+  }
+
   const eventName = String(event.event || "")
   const reference = event.data?.reference
+
+  if (eventName === "charge.success" || eventName === "charge.failed") {
+    console.info(`[paystack-webhook] received ${eventName} for ${reference}`)
+  } else {
+    console.info(`[paystack-webhook] received unknown event type: ${eventName}`)
+  }
 
   if (!reference) {
     res.status(200).json({ received: true, ignored: "no_reference" })
