@@ -6,6 +6,8 @@
 import type { Redis } from "ioredis"
 import { getRedisClient } from "./redis-client"
 
+const log = (msg: string, ...args: unknown[]) => console.warn(`[seller-owned-products-cache] ${msg}`, ...args)
+
 const KEY_PREFIX = "alkemart:seller_owned:v1:"
 
 function disabled(): boolean {
@@ -53,6 +55,7 @@ export async function getCachedOwnedProductIds(
     if (!Array.isArray(parsed)) return null
     return parsed.filter((x): x is string => typeof x === "string" && !!x)
   } catch {
+    log("Redis error in getCachedOwnedProductIds")
     return null
   }
 }
@@ -73,7 +76,7 @@ export async function setCachedOwnedProductIds(
       sellerOwnedCacheTtlSec(),
     )
   } catch {
-    /* best-effort */
+    log("Redis error in setCachedOwnedProductIds")
   }
 }
 
@@ -87,7 +90,7 @@ export async function invalidateSellerOwnedProductIds(
     if (!(await ensureConnected(r))) return
     await r.del(keyFor(sellerId))
   } catch {
-    /* best-effort */
+    log("Redis error in invalidateSellerOwnedProductIds")
   }
 }
 
