@@ -1,6 +1,7 @@
 import { defineMiddlewares, authenticate } from "@medusajs/framework/http"
 import type { MedusaRequest, MedusaResponse, MedusaNextFunction } from "@medusajs/framework/http"
 import { validateVendorUploads } from "./middlewares/validate-vendor-uploads"
+import { securityHeaders } from "./middlewares/security-headers"
 import { applyStrictSellerProductFilter } from "./middlewares/strict-seller-products"
 
 /** Redirect bare root → admin dashboard (makes the Replit preview useful). */
@@ -14,6 +15,10 @@ const redirectRootToDashboard = (
 
 export default defineMiddlewares({
   routes: [
+    {
+      matcher: "/*",
+      middlewares: [securityHeaders],
+    },
     // ── Dev convenience ─────────────────────────────────────────────────────
     {
       matcher: "/",
