@@ -34,7 +34,7 @@ function SellerCard({ seller, onApprove, onSuspend }: { seller: SellerApplicatio
 }
 
 function SellersQueuePage() {
-  const { pending, rejected, isLoading, approve, suspend, isApproving, isSuspending } = useSellers()
+  const { pending, rejected, isLoading, isError, approve, suspend, isApproving, isSuspending } = useSellers()
 
   const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean; sellerId: string | null }>({
     isOpen: false,
@@ -69,6 +69,17 @@ function SellersQueuePage() {
     } catch {
       setError("Failed to suspend seller")
     }
+  }
+
+  if (isError) {
+    return (
+      <PageShell>
+        <div className="bg-destructive/10 text-destructive p-4 rounded-md flex items-center justify-between">
+          <span>{t("sellers.failed", "Failed to load seller applications.")}</span>
+          <Button variant="outline" size="sm" onClick={() => window.location.reload()}>{t("sellers.retry", "Retry")}</Button>
+        </div>
+      </PageShell>
+    )
   }
 
   if (isLoading) {

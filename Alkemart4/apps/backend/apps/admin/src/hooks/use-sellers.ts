@@ -33,6 +33,7 @@ export function useSellers() {
     pending: query.data?.pending || [],
     rejected: query.data?.rejected_applications || [],
     isLoading: query.isLoading,
+    isError: query.isError,
     approve: approve.mutateAsync,
     isApproving: approve.isPending,
     suspend: suspend.mutateAsync,

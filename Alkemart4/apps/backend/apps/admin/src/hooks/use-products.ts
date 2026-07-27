@@ -42,6 +42,7 @@ export function useProducts() {
   return {
     products: query.data?.proposed || [],
     isLoading: query.isLoading,
+    isError: query.isError,
     confirm: confirm.mutateAsync,
     isConfirming: confirm.isPending,
     reject: reject.mutateAsync,

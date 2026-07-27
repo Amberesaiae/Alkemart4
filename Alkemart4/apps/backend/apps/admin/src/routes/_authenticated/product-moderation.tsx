@@ -34,7 +34,7 @@ function ConfirmDialog({ open, onOpenChange, title, onConfirm, confirmLabel = "C
 }
 
 function ProductModerationPage() {
-  const { products, isLoading, confirm, reject, requestChanges, isConfirming, isRejecting, isRequestingChanges } = useProducts()
+  const { products, isLoading, isError, confirm, reject, requestChanges, isConfirming, isRejecting, isRequestingChanges } = useProducts()
 
   const [modalState, setModalState] = useState<{
     isOpen: boolean;
@@ -75,6 +75,17 @@ function ProductModerationPage() {
     } catch {
       setError("Failed to perform action")
     }
+  }
+
+  if (isError) {
+    return (
+      <PageShell>
+        <div className="bg-destructive/10 text-destructive p-4 rounded-md flex items-center justify-between">
+          <span>{t("moderation.failed", "Failed to load products.")}</span>
+          <Button variant="outline" size="sm" onClick={() => window.location.reload()}>{t("moderation.retry", "Retry")}</Button>
+        </div>
+      </PageShell>
+    )
   }
 
   if (isLoading) {
