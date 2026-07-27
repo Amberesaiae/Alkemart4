@@ -9,6 +9,13 @@
 
 CLI context: `/home/amber/Desktop/amber/Alkemart4`
 
+### Known build fix: hoist workspace deps
+
+If `bun run build` from `apps/backend` fails with module-not-found errors for
+`@radix-ui/*`, `sonner`, or `tailwindcss-animate`, add them as direct
+dependencies in `apps/backend/package.json` so bun's workspace hoisting
+makes them available to the bundler. Run `bun install` after adding.
+
 ### Build failure: Rollup cannot resolve @radix-ui/* / sonner / tailwindcss-animate
 
 The vendor dashboard (`apps/ghana-vendor`) and admin dashboard (`apps/admin`) use components from `packages/ui` which depend on Radix primitives, sonner, and tailwindcss-animate. These are listed in `packages/ui/package.json` but when Railway builds, bun's workspace hoisting may not make them available to the vendor build's rollup bundler.
