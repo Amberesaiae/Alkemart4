@@ -50,15 +50,12 @@ export function useRegister() {
   return useMutation({
     mutationFn: async (payload: any) => {
       await authApi.register(payload.email, payload.password)
-      await loginAndSelectSeller(payload.email, payload.password)
-      
       const sellerData = await sellerApi.create({
         email: payload.email,
         name: `${payload.first_name} ${payload.last_name}'s Shop`,
         first_name: payload.first_name,
         last_name: payload.last_name,
       })
-      
       await sellerApi.select(sellerData.seller.id)
       setActiveSellerId(sellerData.seller.id)
       return sellerData
