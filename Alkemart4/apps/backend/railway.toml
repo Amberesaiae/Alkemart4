@@ -5,6 +5,7 @@ buildCommand = "TMPDIR=/tmp bun install && bun run build"
 
 [deploy]
 startCommand = "cd packages/api && node ./scripts/start-with-compression.mjs"
+preDeployCommand = "cd packages/api && bun medusa db:migrate"
 healthcheckPath = "/health"
 healthcheckTimeout = 300
 restartPolicyType = "ON_FAILURE"
