@@ -25,7 +25,7 @@ function StatCard({ title, value, icon: Icon }: { title: string; value: string; 
 }
 
 function AnalyticsPage() {
-  const { data: stats, isLoading, error } = useStats()
+  const { data: stats, isLoading, isFetching, error } = useStats()
 
   if (isLoading) {
     return (
@@ -57,6 +57,7 @@ function AnalyticsPage() {
   return (
     <PageShell>
       <PageHeader title="Platform Analytics" description="Live marketplace totals — orders, sales value, sellers, and catalog." />
+      {isFetching && <div className="text-xs text-muted-foreground text-right -mt-2 mb-2">Refreshing…</div>}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard title="Total Orders" value={(stats.total_orders ?? 0).toLocaleString()} icon={ShoppingCart} />
