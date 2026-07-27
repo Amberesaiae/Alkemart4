@@ -72,17 +72,23 @@ function SellersQueuePage() {
   if (isLoading) {
     return (
       <PageShell>
-        <Skeleton className="h-8 w-48" />
-        <Skeleton className="h-4 w-64" />
+        <div className="space-y-2">
+          <Skeleton className="h-8 w-48" />
+          <Skeleton className="h-4 w-64" />
+        </div>
         <section>
           <Skeleton className="h-6 w-32 mb-4" />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {[1, 2].map(i => (
-              <div key={i} className="p-6 border rounded-xl bg-card">
+              <div key={i} className="p-6 border rounded-xl bg-card flex flex-col">
                 <Skeleton className="h-6 w-40 mb-3" />
                 <Skeleton className="h-4 w-24 mb-2" />
                 <Skeleton className="h-4 w-56 mb-2" />
-                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-4 w-32 mb-4" />
+                <div className="flex gap-3 pt-4 border-t mt-auto">
+                  <Skeleton className="h-10 flex-1 rounded-lg" />
+                  <Skeleton className="h-10 flex-1 rounded-lg" />
+                </div>
               </div>
             ))}
           </div>

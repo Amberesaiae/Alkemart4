@@ -30,7 +30,10 @@ function AnalyticsPage() {
   if (isLoading) {
     return (
       <PageShell>
-        <Skeleton className="h-8 w-48" />
+        <div className="space-y-2">
+          <Skeleton className="h-8 w-56" />
+          <Skeleton className="h-4 w-96" />
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {[1, 2, 3, 4].map(i => (
             <Card key={i}><Skeleton className="h-32 w-full" /></Card>

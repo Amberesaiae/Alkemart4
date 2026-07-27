@@ -19,7 +19,7 @@ export function Sidebar() {
 
   return (
     <aside className={cn(
-      "bg-ink text-white flex flex-col h-screen sticky top-0 border-r border-white/10 shrink-0 transition-all duration-200",
+      "bg-ink text-white flex flex-col min-h-screen sticky top-0 border-r border-white/10 shrink-0 transition-all duration-200",
       collapsed ? "w-16" : "w-64"
     )}>
       <div className={cn(
@@ -37,40 +37,40 @@ export function Sidebar() {
           onClick={() => setCollapsed(c => !c)}
           className="rounded-md p-1 text-white/70 hover:text-white hover:bg-white/10 transition-colors"
         >
-          {collapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
+          {collapsed ? <PanelLeftOpen className="h-5 w-5" /> : <PanelLeftClose className="h-5 w-5" />}
         </button>
       </div>
-      
-      <nav className="flex-1 overflow-y-auto py-6 px-3 space-y-1">
+
+      <nav className="flex-1 overflow-y-auto p-4 space-y-1">
         {NAV_ITEMS.map((item) => {
           const isActive = router.location.pathname.startsWith(item.href)
-          
+
           return (
             <Link
               key={item.href}
               to={item.href}
               className={cn(
-                "flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                "flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all",
                 collapsed && "justify-center px-2",
                 isActive
-                  ? "bg-primary text-primary-foreground"
+                  ? "bg-primary text-primary-foreground shadow-md"
                   : "text-white/70 hover:bg-white/10 hover:text-white"
               )}
               title={collapsed ? item.label : undefined}
             >
-              <item.icon className="h-4 w-4 shrink-0" />
+              <item.icon className="h-5 w-5 shrink-0" />
               {!collapsed && item.label}
             </Link>
           )
         })}
       </nav>
-      
+
       <div className={cn(
         "p-4 border-t border-white/10 shrink-0",
         collapsed && "p-2"
       )}>
-        <Button 
-          variant="ghost" 
+        <Button
+          variant="ghost"
           className={cn(
             "w-full justify-start text-white/70 hover:text-white hover:bg-white/10 gap-3",
             collapsed && "justify-center px-2"
@@ -78,7 +78,7 @@ export function Sidebar() {
           onClick={() => logout()}
           title={collapsed ? "Sign out" : undefined}
         >
-          <LogOut className="h-4 w-4 shrink-0" />
+          <LogOut className="h-5 w-5 shrink-0" />
           {!collapsed && "Sign out"}
         </Button>
       </div>

@@ -15,11 +15,16 @@ function MarketsPage() {
   if (isLoading) {
     return (
       <PageShell>
-        <Skeleton className="h-8 w-48" />
-        <Skeleton className="h-4 w-72" />
+        <div className="space-y-2">
+          <Skeleton className="h-8 w-48" />
+          <Skeleton className="h-4 w-72" />
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[1, 2, 3].map(i => (
-            <Card key={i}><Skeleton className="h-48 w-full" /></Card>
+            <Card key={i}>
+              <CardHeader><Skeleton className="h-5 w-32" /></CardHeader>
+              <CardContent><Skeleton className="h-24 w-full" /></CardContent>
+            </Card>
           ))}
         </div>
       </PageShell>

@@ -78,18 +78,23 @@ function ProductModerationPage() {
   if (isLoading) {
     return (
       <PageShell>
-        <Skeleton className="h-8 w-48" />
-        <Skeleton className="h-4 w-64" />
+        <div className="space-y-2">
+          <Skeleton className="h-8 w-48" />
+          <Skeleton className="h-4 w-64" />
+        </div>
         <div className="grid grid-cols-1 gap-4">
           {[1, 2].map(i => (
-            <div key={i} className="p-6 border rounded-xl bg-card">
-              <div className="flex gap-6">
-                <Skeleton className="h-32 w-32 rounded-lg" />
-                <div className="flex-1 space-y-3">
-                  <Skeleton className="h-6 w-48" />
-                  <Skeleton className="h-4 w-32" />
-                  <Skeleton className="h-4 w-24" />
-                </div>
+            <div key={i} className="flex flex-col sm:flex-row gap-6 p-6 border rounded-xl bg-card">
+              <Skeleton className="h-32 w-32 shrink-0 rounded-lg" />
+              <div className="flex-1 space-y-3">
+                <Skeleton className="h-6 w-48" />
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-4 w-24" />
+              </div>
+              <div className="flex sm:flex-col gap-2 justify-end sm:w-40 shrink-0">
+                <Skeleton className="h-10 w-full rounded-lg" />
+                <Skeleton className="h-10 w-full rounded-lg" />
+                <Skeleton className="h-10 w-full rounded-lg" />
               </div>
             </div>
           ))}
