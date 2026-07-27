@@ -337,7 +337,6 @@ export async function ensureSystemPaymentAndCompleteCart(
 
   const { result, errors } = await completeCartWorkflow(container).run({
     input: { id: cartId },
-    throwOnError: false,
   })
 
   if (errors?.length) {
