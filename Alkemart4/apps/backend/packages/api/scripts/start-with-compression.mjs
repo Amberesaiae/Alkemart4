@@ -57,8 +57,11 @@ if (typeof Bun !== "undefined") {
   if (patched.size) console.log(`[start] patched ${patched.size} source-map-support files for Bun`)
 }
 
-// Patch http.Server to inject compression middleware once per request pipeline.
-// We wrap emit('request') so it works regardless of how Medusa attaches listeners.
+// Monkey-patch http.Server.prototype.emit to inject gzip compression.
+// We cannot use Express app-level middleware because Medusa creates its own
+// internal HTTP server and does not expose the app reference to us. Wrapping
+// emit('request') is the only reliable hook that works across Medusa versions
+// without modifying framework internals.
 function installCompression() {
   const compress = compression({
     threshold: 1024,
