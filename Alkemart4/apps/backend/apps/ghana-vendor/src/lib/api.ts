@@ -39,6 +39,7 @@ export class ApiError extends Error {
 // ---------------------------------------------------------------------------
 
 const SELLER_KEY = "alk:seller_id"
+const TOKEN_KEY = "alk:auth_token"
 let _sellerId: string | null = null
 
 export function setActiveSellerId(id: string | null): void {
@@ -61,6 +62,17 @@ export function getActiveSellerId(): string | null {
   return _sellerId
 }
 
+export function setAuthToken(token: string | null): void {
+  try {
+    if (token) localStorage.setItem(TOKEN_KEY, token)
+    else localStorage.removeItem(TOKEN_KEY)
+  } catch {}
+}
+
+export function getAuthToken(): string | null {
+  try { return localStorage.getItem(TOKEN_KEY) } catch { return null }
+}
+
 // ---------------------------------------------------------------------------
 // Base fetch
 // ---------------------------------------------------------------------------
@@ -69,6 +81,8 @@ async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
   const sellerId = getActiveSellerId()
   const extraHeaders: Record<string, string> = {}
   if (sellerId) extraHeaders["x-seller-id"] = sellerId
+  const authToken = getAuthToken()
+  if (authToken) extraHeaders["Authorization"] = `Bearer ${authToken}`
   if (init.body !== undefined && typeof init.body === "string") {
     extraHeaders["Content-Type"] = "application/json"
   }
@@ -84,8 +98,9 @@ async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
   })
 
   if (res.status === 401) {
-    // Session expired — clear seller context so UI redirects to login
+    // Session expired — clear auth context so UI redirects to login
     setActiveSellerId(null)
+    setAuthToken(null)
     throw new ApiError(401, "Session expired. Please sign in again.")
   }
 
@@ -316,22 +331,30 @@ export const auth = {
    * Login as a seller member.
    * Mercur actor_type = "member" (NOT "seller" — common mistake).
    */
-  login: (email: string, password: string) =>
-    post<{ token?: string }>("/auth/member/emailpass", { email, password }),
+  login: async (email: string, password: string) => {
+    const data = await post<{ token?: string }>("/auth/member/emailpass", { email, password })
+    if (data.token) setAuthToken(data.token)
+    return data
+  },
 
   /**
    * Register a new auth identity for a seller member.
    * Creates the identity; does NOT create the Seller record.
    * Follow with vendor.sellers.create() to create the Seller.
    */
-  register: (email: string, password: string) =>
-    post<{ token?: string }>("/auth/member/emailpass/register", { email, password }),
+  register: async (email: string, password: string) => {
+    const data = await post<{ token?: string }>("/auth/member/emailpass/register", { email, password })
+    if (data.token) setAuthToken(data.token)
+    return data
+  },
 
   /**
    * Invalidate the current session / bearer token.
    */
-  logout: () =>
-    del<void>("/auth/session"),
+  logout: async () => {
+    try { await del<void>("/auth/session") } catch {}
+    setAuthToken(null)
+  },
 }
 
 // ---------------------------------------------------------------------------

@@ -47,11 +47,22 @@ export type Market = {
 
 const BASE = import.meta.env.VITE_BACKEND_URL || ""
 
+const TOKEN_KEY = "alkemart:admin_token"
+
+function getToken(): string | null {
+  try { return localStorage.getItem(TOKEN_KEY) } catch { return null }
+}
+function setToken(token: string | null) {
+  try { if (token) localStorage.setItem(TOKEN_KEY, token); else localStorage.removeItem(TOKEN_KEY) } catch {}
+}
+
 async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
   const extraHeaders: Record<string, string> = {}
   if (init.body !== undefined && typeof init.body === "string") {
     extraHeaders["Content-Type"] = "application/json"
   }
+  const token = getToken()
+  if (token) extraHeaders["Authorization"] = `Bearer ${token}`
   const res = await fetch(`${BASE}${path}`, {
     credentials: "include",
     ...init,
@@ -65,12 +76,50 @@ async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
   return res.json()
 }
 
-// Auth
+export interface AuthUser {
+  id: string
+  email: string
+  first_name?: string
+  last_name?: string
+}
+
+function decodeJwtPayload(token: string): Record<string, unknown> | null {
+  try {
+    const base64 = token.split(".")[1]
+    const json = atob(base64.replace(/-/g, "+").replace(/_/g, "/"))
+    return JSON.parse(json)
+  } catch { return null }
+}
+
 export const auth = {
-  login: (email: string, password: string) =>
-    apiFetch("/auth/user/emailpass", { method: "POST", body: JSON.stringify({ email, password }) }),
-  logout: () => apiFetch("/auth/session", { method: "DELETE" }),
-  getSession: () => apiFetch<{ user: { id: string; email: string } }>("/auth/session"),
+  login: async (email: string, password: string) => {
+    const data = await apiFetch<{ token?: string }>("/auth/user/emailpass", {
+      method: "POST",
+      body: JSON.stringify({ email, password }),
+    })
+    if (data.token) setToken(data.token)
+    return data
+  },
+  logout: async () => {
+    try { await apiFetch("/auth/session", { method: "DELETE" }) } catch {}
+    setToken(null)
+  },
+  getSession: async (): Promise<{ user: AuthUser } | null> => {
+    const token = getToken()
+    if (!token) return null
+    const payload = decodeJwtPayload(token)
+    if (!payload) { setToken(null); return null }
+    if (payload.exp && typeof payload.exp === "number" && payload.exp * 1000 < Date.now()) {
+      setToken(null)
+      return null
+    }
+    return {
+      user: {
+        id: payload.actor_id as string || "",
+        email: (payload.app_metadata as Record<string,string>)?.email || (payload.user_metadata as Record<string,string>)?.email || "",
+      },
+    }
+  },
 }
 
 // Stats
