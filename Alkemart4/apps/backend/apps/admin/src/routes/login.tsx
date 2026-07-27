@@ -60,6 +60,7 @@ function LoginPage() {
               <Label htmlFor="admin-password">{t("login.password")}</Label>
               <PasswordInput
                 id="admin-password"
+                name="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 autoComplete="current-password"
