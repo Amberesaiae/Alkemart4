@@ -1,4 +1,4 @@
-import { createRootRouteWithContext, Outlet, useNavigate } from "@tanstack/react-router"
+import { createRootRouteWithContext, Outlet, useNavigate, useLocation } from "@tanstack/react-router"
 import type { QueryClient } from "@tanstack/react-query"
 import { useCurrentUser } from "../lib/auth"
 import { Layout } from "../components/layout"
@@ -11,8 +11,9 @@ interface RouterContext {
 function RootComponent() {
   const { data: user, isLoading, isError } = useCurrentUser()
   const navigate = useNavigate()
+  const location = useLocation()
   
-  const pathname = window.location.pathname
+  const pathname = location.pathname
   const isPublicPage = pathname.includes("/login") || pathname.includes("/register")
 
   useEffect(() => {
