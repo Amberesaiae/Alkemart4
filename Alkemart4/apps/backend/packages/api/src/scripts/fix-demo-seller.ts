@@ -7,14 +7,14 @@
  * Usage:  bun medusa exec ./src/scripts/fix-demo-seller.ts
  */
 import { ExecArgs } from "@medusajs/framework/types"
-import { Modules } from "@medusajs/framework/utils"
+import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { createOffersWorkflow } from "@mercurjs/core/workflows"
 
 const SELLER_EMAIL = "seller@alkemart.local"
 
 export default async function fixDemoSeller({ container }: ExecArgs) {
-  const logger = container.resolve("logger") as { info: (m: string) => void; error: (m: string) => void }
-  const query = container.resolve("query") as {
+  const logger = container.resolve(ContainerRegistrationKeys.LOGGER) as { info: (m: string) => void; error: (m: string) => void }
+  const query = container.resolve(ContainerRegistrationKeys.QUERY) as {
     graph: (args: unknown) => Promise<{ data: unknown }>
   }
 
