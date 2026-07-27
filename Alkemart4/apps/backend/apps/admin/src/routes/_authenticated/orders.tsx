@@ -117,7 +117,7 @@ function OrdersPage() {
 
       <div className="flex justify-between items-center">
         <span className="text-sm text-muted-foreground">
-          {data?.orders?.length ? `${offset + 1}–${offset + data.orders.length}` : "0"} of {data?.count ?? "..."}
+          {data?.orders?.length ? `${offset + 1}–${offset + data.orders.length}` : "0"} {t("orders.of", "of")} {data?.count != null ? data.count : "…"}
         </span>
         <div className="flex gap-2">
           <Button variant="outline" disabled={offset === 0} onClick={() => setOffset(o => Math.max(0, o - limit))}>
