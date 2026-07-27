@@ -3,6 +3,9 @@ builder = "railpack"
 installCommand = "bun install"
 buildCommand = "bun run build"
 
+[provider]
+strategy = "nixpacks"
+
 [deploy]
 startCommand = "cd packages/api && node ./scripts/start-with-compression.mjs"
 preDeployCommand = "cd packages/api && bun medusa db:migrate"
