@@ -34,8 +34,8 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
   try {
     const { data } = await query.graph({
       entity: "seller_member",
-      fields: ["id", "name", "email", "seller.id", "seller.name"],
-      filters: { id: auth.actor_id },
+      fields: ["id", "name", "email", "member.id", "seller.id", "seller.name"],
+      filters: { member_id: auth.actor_id },
     })
     const list = Array.isArray(data) ? data : data ? [data] : []
     const member = list[0] as MemberRow | undefined
