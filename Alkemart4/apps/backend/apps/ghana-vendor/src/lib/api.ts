@@ -75,7 +75,8 @@ async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
   const sellerId = getActiveSellerId()
   const extraHeaders: Record<string, string> = {}
   if (sellerId) extraHeaders["x-seller-id"] = sellerId
-  if (init.body !== undefined && typeof init.body === "string") {
+  const isJsonBody = init.body !== undefined && typeof init.body === "string"
+  if (isJsonBody) {
     extraHeaders["Content-Type"] = "application/json"
   }
 
