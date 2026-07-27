@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { useState, useEffect } from "react"
 import { useSellerProfile, useUpdateProfile, useUpdateAddress, useUpdatePayment } from "../lib/hooks"
-import { Card, Button, Input, Label, Select } from "@workspace/ui"
+import { Card, Button, Input, Label, Select, Skeleton } from "@workspace/ui"
 import { PageShell } from "../components/page-shell"
 import { PageHeader } from "../components/page-header"
 import {
@@ -102,7 +102,10 @@ function SettingsPage() {
   if (isLoading) return (
     <PageShell className="max-w-4xl">
       <PageHeader title="Shop Settings" description="Configure your store details and payouts." />
-      <div className="animate-pulse h-96 bg-muted rounded-xl" />
+      <div className="space-y-4">
+        <Skeleton className="h-8 w-48" />
+        <Skeleton className="h-96 w-full rounded-xl" />
+      </div>
     </PageShell>
   )
   if (isError) {
