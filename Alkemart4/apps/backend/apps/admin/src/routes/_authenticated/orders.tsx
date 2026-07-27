@@ -62,6 +62,7 @@ function OrdersPage() {
 
       <div className="border rounded-xl bg-card">
         <Table>
+          <caption className="sr-only">{t("orders.tableCaption", "Marketplace orders list")}</caption>
           <TableHeader>
             <TableRow>
               <TableHead>{t("orders.orderNumber", "Order #")}</TableHead>
