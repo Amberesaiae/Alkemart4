@@ -378,10 +378,18 @@ export const seller = {
 
   /**
    * GET /vendor/alkemart/me — Alkemart custom convenience endpoint.
-   * Used to resolve seller_id for the x-seller-id header after login.
+   * Requires x-seller-id header (called after seller_id is known).
    */
   alkemartMe: () =>
     get<AlkemartMe>("/vendor/alkemart/me"),
+
+  /**
+   * GET /alkemart/member/me — Login bootstrap endpoint.
+   * Returns member info + seller_id using ONLY the JWT token (no x-seller-id).
+   * Used right after login when the seller_id is not yet known.
+   */
+  memberMe: () =>
+    get<AlkemartMe>("/alkemart/member/me"),
 
   /**
    * POST /vendor/sellers — Register a new seller.
@@ -700,7 +708,7 @@ export const catalog = {
 /**
  * Full login + seller-select sequence.
  * 1. POST /auth/member/emailpass
- * 2. GET /vendor/alkemart/me → resolve seller_id
+ * 2. GET /alkemart/member/me → resolve seller_id (no x-seller-id needed)
  * 3. POST /vendor/sellers/select → bind seller to session
  * 4. Persist seller_id for x-seller-id header
  * Returns the seller_id on success.
@@ -711,7 +719,8 @@ export async function loginAndSelectSeller(
 ): Promise<{ sellerId: string | null; me: AlkemartMe }> {
   await auth.login(email, password)
 
-  const me = await seller.alkemartMe()
+  // Use the bootstrap endpoint (outside /vendor/*) — no x-seller-id required
+  const me = await seller.memberMe()
   const sellerId = me.seller_id ?? null
 
   if (sellerId) {

@@ -13,7 +13,8 @@ export function useCurrentUser() {
   return useQuery({
     queryKey: ["seller", "me"],
     queryFn: async (): Promise<AlkemartMe> => {
-      const data = await sellerApi.alkemartMe()
+      // Use the bootstrap endpoint (no x-seller-id required) for auth check
+      const data = await sellerApi.memberMe()
       // Restore seller_id into memory if we have it but module reloaded
       if (data.seller_id && !getActiveSellerId()) {
         setActiveSellerId(data.seller_id)

@@ -95,6 +95,12 @@ export default defineMiddlewares({
       methods: ["GET"],
       middlewares: [authenticate("user", ["session", "bearer"])],
     },
+    // Login bootstrap: resolve seller_id from JWT (outside /vendor/* to skip ensureSeller)
+    {
+      matcher: "/alkemart/member/me",
+      methods: ["GET"],
+      middlewares: [authenticate("member", ["session", "bearer"])],
+    },
     // /vendor/alkemart/markets uses AUTHENTICATE=false (public operating config)
   ],
 })
