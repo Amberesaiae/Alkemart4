@@ -521,22 +521,10 @@ export const products = {
   upload: async (file: File): Promise<string> => {
     const form = new FormData()
     form.append("files", file)
-    const res = await fetch("/vendor/uploads", {
-      method: "POST",
-      credentials: "include",
-      headers: (() => {
-        const h: Record<string, string> = {}
-        const id = getActiveSellerId()
-        if (id) h["x-seller-id"] = id
-        return h
-      })(),
-      body: form,
-    })
-    if (!res.ok) {
-      const body = await res.json().catch(() => ({})) as { message?: string }
-      throw new ApiError(res.status, body.message || "Upload failed")
-    }
-    const data = await res.json() as { files?: { url: string }[]; url?: string }
+    const data = await apiFetch<{ files?: { url: string }[]; url?: string }>(
+      "/vendor/uploads",
+      { method: "POST", body: form },
+    )
     const url = data.files?.[0]?.url ?? data.url
     if (!url) throw new ApiError(500, "Upload succeeded but returned no URL")
     return url
