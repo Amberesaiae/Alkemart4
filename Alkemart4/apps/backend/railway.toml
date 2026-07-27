@@ -13,6 +13,14 @@ healthcheckPath = "/health"
 healthcheckTimeout = 300
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 5
+# Database rollback strategy:
+# 1. Use `railway rollback` to revert the API deployment to the previous version.
+# 2. Run `bun medusa db:migrate --down` to revert the last migration if schema changed.
+#    List recent migrations: `bun medusa db:migrate --last 5`
+# 3. If data was migrated forward, restore from Neon's point-in-time recovery (PITR):
+#    Neon dashboard > Branch > Restore from Timestamp.
+# 4. Never run irreversible migrations (e.g. DROP COLUMN) during business hours.
+#    Use multiple deploy phases: (a) add column, (b) backfill, (c) drop old column.
 
 # Non-secret env vars safe to commit. All secrets go in Railway dashboard.
 [env]
