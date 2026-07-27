@@ -1,2 +1,2 @@
-const t = (key: string, fallback: string) => fallback
+const t = (_key: string, fallback: string) => fallback
 export { t }

@@ -7,6 +7,7 @@ import { PageHeader } from "../../components/page-header"
 import { ShoppingCart, DollarSign, Store, Package } from "lucide-react"
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
 import { t } from "../../lib/t"
+import { currencySymbol } from "../../lib/config"
 
 export const Route = createFileRoute("/_authenticated/analytics")({
   component: AnalyticsPage,
@@ -72,7 +73,7 @@ function AnalyticsPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard title={t("analytics.totalOrders", "Total Orders")} value={(stats.total_orders ?? 0).toLocaleString()} icon={ShoppingCart} />
-        <StatCard title={t("analytics.totalGmv", "Total GMV")} value={`₵${(stats.total_gmv_ghs ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`} icon={DollarSign} />
+        <StatCard title={t("analytics.totalGmv", "Total GMV")} value={`${currencySymbol}${(stats.total_gmv_ghs ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`} icon={DollarSign} />
         <StatCard title={t("analytics.activeSellers", "Active Sellers")} value={(stats.active_sellers ?? 0).toLocaleString()} icon={Store} />
         <StatCard title={t("analytics.catalogSize", "Catalog Size")} value={(stats.catalog_size ?? 0).toLocaleString()} icon={Package} />
       </div>
@@ -102,7 +103,7 @@ function AnalyticsPage() {
                     dy={10}
                   />
                   <YAxis
-                    tickFormatter={(val) => `₵${(val ?? 0).toLocaleString()}`}
+                    tickFormatter={(val) => `${currencySymbol}${(val ?? 0).toLocaleString()}`}
                     tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }}
                     tickLine={false}
                     axisLine={false}
@@ -111,7 +112,7 @@ function AnalyticsPage() {
                   <Tooltip
                     contentStyle={{ backgroundColor: 'var(--card)', borderRadius: '8px', border: '1px solid var(--border)' }}
                     labelFormatter={(val) => new Date(String(val)).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-                    formatter={(val: any) => [`₵${Number(val).toLocaleString(undefined, { minimumFractionDigits: 2 })}`, 'Revenue']}
+                    formatter={(val: any) => [`${currencySymbol}${Number(val).toLocaleString(undefined, { minimumFractionDigits: 2 })}`, 'Revenue']}
                   />
                   <Area type="monotone" dataKey="amount" stroke="var(--primary)" strokeWidth={3} fillOpacity={1} fill={`url(#${gradientId})`} />
                 </AreaChart>
