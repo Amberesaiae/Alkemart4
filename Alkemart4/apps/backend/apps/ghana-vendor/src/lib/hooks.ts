@@ -34,6 +34,7 @@ export function useFulfillOrder() {
     onSuccess: (_, { orderId }) => {
       qc.invalidateQueries({ queryKey: ["vendor", "orders", orderId] })
       qc.invalidateQueries({ queryKey: ["vendor", "orders"] })
+      qc.invalidateQueries({ queryKey: ["vendor", "products"] })
     }
   })
 }
