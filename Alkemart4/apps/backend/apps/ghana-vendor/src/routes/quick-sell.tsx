@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import { useUploadImage, useQuickSell, useCategories } from "../lib/hooks"
 import { Button, Input, Label, Card, Textarea, Select } from "@workspace/ui"
 import { UploadCloud, Image as ImageIcon, ArrowRight, CheckCircle2, ChevronLeft } from "lucide-react"
@@ -28,9 +28,14 @@ function QuickSellPage() {
   const { data: categoriesData } = useCategories()
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  useEffect(() => {
+    return () => { if (preview) URL.revokeObjectURL(preview) }
+  }, [preview])
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = e.target.files?.[0]
     if (selected) {
+      if (preview) URL.revokeObjectURL(preview)
       setFile(selected)
       setPreview(URL.createObjectURL(selected))
       setStep(2)
