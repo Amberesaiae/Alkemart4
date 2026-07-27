@@ -37,12 +37,17 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
     (req.headers["X-Paystack-Signature"] as string | undefined)
 
   // Prefer raw body when framework preserves it; else re-stringify (last resort).
-  const rawBody =
+  const rawBody: string =
     typeof (req as { rawBody?: unknown }).rawBody === "string"
       ? ((req as { rawBody: string }).rawBody as string)
       : Buffer.isBuffer((req as { rawBody?: unknown }).rawBody)
         ? (req as { rawBody: Buffer }).rawBody.toString("utf8")
-        : JSON.stringify(req.body ?? {})
+        : (() => {
+            console.warn(
+              "[paystack] rawBody not available on request — JSON.stringify may cause HMAC mismatch"
+            )
+            return JSON.stringify(req.body ?? {})
+          })()
 
   const signatureOk = verifyPaystackWebhookSignature(
     rawBody,
