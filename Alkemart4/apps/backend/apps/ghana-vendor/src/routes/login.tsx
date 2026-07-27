@@ -37,7 +37,7 @@ function LoginPage() {
           <form onSubmit={handleSubmit} className="space-y-5">
             {login.isError && (
               <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm font-semibold border border-destructive/20 text-center">
-                Invalid credentials. Please try again.
+                {login.error instanceof Error ? login.error.message : "Invalid credentials. Please try again."}
               </div>
             )}
             <div className="space-y-2">

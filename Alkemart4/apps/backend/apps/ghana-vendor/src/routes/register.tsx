@@ -41,7 +41,7 @@ function RegisterPage() {
           <form onSubmit={handleSubmit} className="space-y-5">
             {register.isError && (
               <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm font-semibold border border-destructive/20 text-center">
-                Could not register. Try a different email.
+                {register.error instanceof Error ? register.error.message : "Could not register. Try a different email."}
               </div>
             )}
             <div className="grid grid-cols-2 gap-4">
