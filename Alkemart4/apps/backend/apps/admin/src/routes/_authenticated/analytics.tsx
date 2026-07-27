@@ -44,22 +44,22 @@ function AnalyticsPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard 
           title="Total Orders" 
-          value={stats.total_orders.toLocaleString()} 
+          value={(stats.total_orders ?? 0).toLocaleString()} 
           icon={ShoppingCart} 
         />
         <StatCard 
           title="Total GMV" 
-          value={`₵${stats.total_gmv_ghs.toLocaleString(undefined, { minimumFractionDigits: 2 })}`} 
+          value={`₵${(stats.total_gmv_ghs ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`} 
           icon={DollarSign} 
         />
         <StatCard 
           title="Active Sellers" 
-          value={stats.active_sellers.toLocaleString()} 
+          value={(stats.active_sellers ?? 0).toLocaleString()} 
           icon={Store} 
         />
         <StatCard 
           title="Catalog Size" 
-          value={stats.catalog_size.toLocaleString()} 
+          value={(stats.catalog_size ?? 0).toLocaleString()} 
           icon={Package} 
         />
       </div>
@@ -89,7 +89,7 @@ function AnalyticsPage() {
                     dy={10}
                   />
                   <YAxis 
-                    tickFormatter={(val) => `₵${val.toLocaleString()}`}
+                    tickFormatter={(val) => `₵${(val ?? 0).toLocaleString()}`}
                     tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }}
                     tickLine={false}
                     axisLine={false}

@@ -86,7 +86,7 @@ function OrdersPage() {
                     <span className="capitalize">{order.payment_status}</span>
                   </TableCell>
                   <TableCell className="text-right font-medium">
-                    {order.currency_code.toUpperCase()} {(order.total / 100).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    {(order.currency_code ?? "GHS").toUpperCase()} {(order.total != null ? (order.total / 100) : 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                   </TableCell>
                 </TableRow>
               ))
@@ -112,10 +112,10 @@ function OrdersPage() {
   )
 }
 
-function StatusBadge({ status }: { status: string }) {
+function StatusBadge({ status }: { status?: string }) {
   let variant: "default" | "secondary" | "destructive" | "success" | "warning" = "secondary"
   
-  switch(status.toLowerCase()) {
+  switch((status ?? "").toLowerCase()) {
     case "pending": variant = "warning"; break;
     case "completed":
     case "delivered": variant = "success"; break;
