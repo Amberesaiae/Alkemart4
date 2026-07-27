@@ -137,7 +137,10 @@ export function useUpdateProfile() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (data: any) => seller.update(data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["vendor", "profile"] })
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["vendor", "profile"] })
+      qc.invalidateQueries({ queryKey: ["seller", "me"] })
+    }
   })
 }
 
