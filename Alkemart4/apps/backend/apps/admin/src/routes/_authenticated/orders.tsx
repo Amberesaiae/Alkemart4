@@ -96,7 +96,9 @@ function OrdersPage() {
                   <TableCell className="font-medium">#{order.display_id}</TableCell>
                   <TableCell>{new Date(order.created_at).toLocaleDateString()}</TableCell>
                   <TableCell>
-                    {order.customer?.first_name} {order.customer?.last_name}
+                    {order.customer?.first_name || order.customer?.last_name
+                      ? `${order.customer?.first_name || ""} ${order.customer?.last_name || ""}`.trim()
+                      : order.customer?.email || t("orders.unknownCustomer", "Unknown customer")}
                     <div className="text-xs text-muted-foreground">{order.customer?.email}</div>
                   </TableCell>
                   <TableCell>
