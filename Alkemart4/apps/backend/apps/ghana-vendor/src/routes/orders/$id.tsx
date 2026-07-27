@@ -11,6 +11,12 @@ export const Route = createFileRoute('/orders/$id')({
   component: OrderDetailPage,
 })
 
+function maskEmail(email?: string | null): string | null {
+  if (!email || !email.includes("@")) return email ?? null
+  const [name, domain] = email.split("@", 2)
+  return `${name.slice(0, 3)}***@${domain}`
+}
+
 function OrderDetailPage() {
   const { id } = Route.useParams()
   const navigate = useNavigate()
@@ -238,7 +244,7 @@ function OrderDetailPage() {
               <User className="h-4 w-4 text-muted-foreground" /> Customer
             </h2>
             <div className="space-y-1">
-              <p className="font-bold">{order.email}</p>
+              <p className="font-bold">{maskEmail(order.email) || "Guest"}</p>
               {order.shipping_address && (
                 <div className="mt-4 pt-4 border-t border-border">
                   <h3 className="text-sm font-bold flex items-center gap-2 mb-2">
