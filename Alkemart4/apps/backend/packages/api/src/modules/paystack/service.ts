@@ -180,7 +180,7 @@ class PaystackPaymentProvider extends AbstractPaymentProvider<Options> {
   async capturePayment(
     input: CapturePaymentInput
   ): Promise<CapturePaymentOutput> {
-    // Paystack charges are captured at authorize for card/momo success paths.
+    console.warn(`[paystack] capturePayment called but Paystack auto-captures — no action taken`)
     return { data: input.data }
   }
 
