@@ -122,10 +122,14 @@ export default async function seedDemoData({ container }: ExecArgs) {
     relations: ["countries"],
   });
 
+  function countryIso2(c: Record<string, unknown>): string {
+    return String((c.iso2 ?? c.iso_2 ?? "") || "")
+  }
+
   const assignedCountries = new Set<string>();
   for (const r of existingRegions) {
     for (const c of r.countries || []) {
-      assignedCountries.add(c.iso_2);
+      assignedCountries.add(countryIso2(c as unknown as Record<string, unknown>));
     }
   }
 
@@ -135,7 +139,7 @@ export default async function seedDemoData({ container }: ExecArgs) {
   if (unassignedCountries.length === 0) {
     // All countries already assigned - find the region that has most of our countries
     region = existingRegions.find(r =>
-      r.countries?.some(c => countries.includes(c.iso_2))
+      r.countries?.some(c => countries.includes(countryIso2(c as unknown as Record<string, unknown>)))
     ) || existingRegions[0];
     logger.info("Countries already assigned to a region, skipping region creation.");
   } else if (unassignedCountries.length < countries.length) {

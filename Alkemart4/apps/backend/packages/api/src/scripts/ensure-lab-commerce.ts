@@ -141,10 +141,13 @@ export default async function ensureLabCommerce({ container }: ExecArgs) {
   const ghana =
     regions.find((r) => {
       const currency = (r.currency_code || "").toLowerCase()
-      const countries = (r.countries || []) as { iso_2?: string | null }[]
+      const countries = (r.countries || []) as Record<string, unknown>[]
       return (
         currency === "ghs" ||
-        countries.some((c) => (c?.iso_2 || "").toLowerCase() === "gh")
+        countries.some((c) => {
+          const iso = String(c.iso2 ?? c.iso_2 ?? "").toLowerCase()
+          return iso === "gh"
+        })
       )
     }) || regions[0]
   if (!ghana?.id) throw new Error("No region found — run ensure-ghana-region first")

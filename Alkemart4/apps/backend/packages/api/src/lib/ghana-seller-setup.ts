@@ -105,12 +105,15 @@ export async function runGhanaSellerSetup(
   })
   const regionList = Array.isArray(regions) ? regions : regions ? [regions] : []
   const ghanaRegion =
-    regionList.find((r: { currency_code?: string; countries?: { iso_2?: string }[] }) => {
+    regionList.find((r) => {
       const cur = str(r.currency_code).toLowerCase()
-      const countries = r.countries || []
+      const countries = (r.countries || []) as Record<string, unknown>[]
       return (
         cur === "ghs" ||
-        countries.some((c) => str(c.iso_2).toLowerCase() === "gh")
+        countries.some((c) => {
+          const iso = str(c.iso2 ?? c.iso_2).toLowerCase()
+          return iso === "gh"
+        })
       )
     }) || regionList[0]
   const regionId = str((ghanaRegion as { id?: string })?.id)

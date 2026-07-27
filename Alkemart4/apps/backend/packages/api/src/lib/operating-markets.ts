@@ -234,7 +234,7 @@ export async function listOperatingMarkets(
     const currency = String(r.currency_code ?? "").toLowerCase()
     const countries = asList(r.countries)
     for (const c of countries) {
-      const iso = String(c.iso_2 ?? c.iso2 ?? "").toLowerCase()
+      const iso = String(c.iso2 ?? c.iso_2 ?? "").toLowerCase()
       if (!iso || !regionId) continue
       const display =
         String(c.display_name ?? c.name ?? "").trim() ||

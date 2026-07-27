@@ -69,7 +69,10 @@ export default async function ensureGhanaRegion({ container }: ExecArgs) {
 
   const regions = await regionModule.listRegions({}, { relations: ["countries"] })
   const hasGh = regions.some((r) =>
-    r.countries?.some((c) => (c.iso_2 || "").toLowerCase() === "gh"),
+    r.countries?.some((c) => {
+      const iso = String((c as Record<string, unknown>).iso2 ?? (c as Record<string, unknown>).iso_2 ?? "").toLowerCase()
+      return iso === "gh"
+    }),
   )
 
   if (!hasGh) {
@@ -88,7 +91,10 @@ export default async function ensureGhanaRegion({ container }: ExecArgs) {
     logger.info(`Created Ghana region ${result[0]?.id}`)
   } else {
     const r = regions.find((x) =>
-      x.countries?.some((c) => (c.iso_2 || "").toLowerCase() === "gh"),
+      x.countries?.some((c) => {
+        const iso = String((c as Record<string, unknown>).iso2 ?? (c as Record<string, unknown>).iso_2 ?? "").toLowerCase()
+        return iso === "gh"
+      }),
     )
     logger.info(`Ghana country already on region ${r?.id} (${r?.name})`)
   }
