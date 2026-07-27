@@ -1,9 +1,10 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
-import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
+import { ContainerRegistrationKeys, Modules, MedusaError } from "@medusajs/framework/utils"
 import { MercurModules } from "@mercurjs/types"
 import { checkRateLimit } from "../../../../../lib/simple-rate-limit"
 import { asList } from "../../../../../lib/graph-utils"
 import { invalidateSellerOwnedProductIds } from "../../../../../lib/seller-owned-products-cache"
+import { z } from "zod"
 
 type SellerReq = MedusaRequest & {
   seller_context?: { seller_id?: string }
@@ -160,11 +161,25 @@ export async function PUT(req: SellerReq, res: MedusaResponse) {
       update.description = String(body.description).trim() || undefined
     }
     if (body.thumbnail !== undefined) {
-      update.thumbnail = String(body.thumbnail).trim() || undefined
+      const raw = String(body.thumbnail).trim()
+      if (raw) {
+        const parsed = z.string().url().safeParse(raw)
+        if (!parsed.success) {
+          throw new MedusaError(MedusaError.Types.INVALID_DATA, `Invalid thumbnail URL: ${raw}`)
+        }
+      }
+      update.thumbnail = raw || undefined
     }
     if (body.categories !== undefined) {
-      const cats = Array.isArray(body.categories) ? body.categories : []
-      update.categories = cats.map((c: unknown) =>
+      const raw = body.categories
+      if (!Array.isArray(raw)) {
+        throw new MedusaError(MedusaError.Types.INVALID_DATA, "Invalid categories: expected an array")
+      }
+      const parsed = z.array(z.string().or(z.object({ id: z.string() }))).safeParse(raw)
+      if (!parsed.success) {
+        throw new MedusaError(MedusaError.Types.INVALID_DATA, "Invalid categories: expected array of category IDs or { id } objects")
+      }
+      update.categories = raw.map((c: unknown) =>
         typeof c === "string" ? { id: c } : c,
       )
     }
