@@ -466,16 +466,18 @@ export async function confirmMomoByPaystackReference(
   }
 
   try {
+    await mergeCartMetadata(container, cartId, {
+      ghana_payment: "momo",
+      paystack_reference: reference,
+      ghana_payment_status: "succeeded",
+    })
     const { order_id } = await ensureSystemPaymentAndCompleteCart(
       container,
       cartId
     )
     await mergeCartMetadata(container, cartId, {
-      ghana_payment: "momo",
-      paystack_reference: reference,
-      ghana_payment_status: "succeeded",
       ghana_order_id: order_id,
-    })
+    }).catch(() => undefined)
     return { status: "completed", order_id, cart_id: cartId }
   } catch (err) {
     // Charge succeeded but complete failed — best-effort refund
