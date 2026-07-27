@@ -84,6 +84,7 @@ export async function sendEmail(msg: EmailMessage): Promise<SendEmailResult> {
 
   // SMTP via undici/fetch is not standard — use dynamic import of nodemailer if present
   try {
+    // @ts-expect-error — optional dep, may not be installed
     const { createTransport } = await import("nodemailer")
     const transport = createTransport({
       host: process.env.SMTP_HOST,

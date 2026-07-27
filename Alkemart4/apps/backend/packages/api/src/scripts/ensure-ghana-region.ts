@@ -70,7 +70,7 @@ export default async function ensureGhanaRegion({ container }: ExecArgs) {
   const regions = await regionModule.listRegions({}, { relations: ["countries"] })
   const hasGh = regions.some((r) =>
     r.countries?.some((c) => {
-      const iso = String((c as Record<string, unknown>).iso2 ?? (c as Record<string, unknown>).iso_2 ?? "").toLowerCase()
+      const iso = String((c as unknown as Record<string, unknown>).iso2 ?? (c as unknown as Record<string, unknown>).iso_2 ?? "").toLowerCase()
       return iso === "gh"
     }),
   )
@@ -92,7 +92,7 @@ export default async function ensureGhanaRegion({ container }: ExecArgs) {
   } else {
     const r = regions.find((x) =>
       x.countries?.some((c) => {
-        const iso = String((c as Record<string, unknown>).iso2 ?? (c as Record<string, unknown>).iso_2 ?? "").toLowerCase()
+        const iso = String((c as unknown as Record<string, unknown>).iso2 ?? (c as unknown as Record<string, unknown>).iso_2 ?? "").toLowerCase()
         return iso === "gh"
       }),
     )
