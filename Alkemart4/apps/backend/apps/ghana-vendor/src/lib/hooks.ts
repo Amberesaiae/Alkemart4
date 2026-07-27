@@ -70,6 +70,36 @@ export function useProducts() {
   })
 }
 
+export function useProduct(id: string) {
+  return useQuery({
+    queryKey: ["vendor", "products", id],
+    queryFn: () => products.get(id),
+    enabled: !!id,
+  })
+}
+
+export function useUpdateProduct() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Parameters<typeof products.update>[1] }) =>
+      products.update(id, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["vendor", "products"] })
+    },
+  })
+}
+
+export function useDeleteProduct() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => products.delete(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["vendor", "products"] })
+      qc.invalidateQueries({ queryKey: ["vendor", "stats"] })
+    },
+  })
+}
+
 export function useQuickSell() {
   const qc = useQueryClient()
   return useMutation({

@@ -94,19 +94,19 @@ function ProductsPage() {
                 </p>
               </div>
               <div className="p-4 pt-0 border-t border-border/50 mt-auto bg-muted/20 flex gap-2">
+                <Link to="/products/$id" params={{ id: product.id }} className="flex-1">
+                  <Button className="w-full" size="sm" variant="outline">
+                    View Details
+                  </Button>
+                </Link>
                 {product.status === "draft" && (
                   <Button 
-                    className="w-full" 
+                    className="flex-1" 
                     size="sm" 
                     onClick={() => handlePropose(product.id)}
                     isLoading={propose.isPending && propose.variables === product.id}
                   >
                     Submit for Review
-                  </Button>
-                )}
-                {product.status !== "draft" && (
-                  <Button className="w-full" size="sm" variant="outline" disabled>
-                    View Details
                   </Button>
                 )}
               </div>

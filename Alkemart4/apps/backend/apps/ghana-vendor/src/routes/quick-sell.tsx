@@ -37,9 +37,23 @@ function QuickSellPage() {
     }
   }
 
+  const [submitError, setSubmitError] = useState<string | null>(null)
+
+  const validate = (): string | null => {
+    if (!title || title.trim().length < 3) return "Title must be at least 3 characters."
+    if (!priceGhs || Number(priceGhs) < 0.5) return "Price must be at least GH₵0.50."
+    if (Number(priceGhs) > 500_000) return "Price must not exceed GH₵500,000."
+    return null
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!title || !priceGhs) return
+    setSubmitError(null)
+    const validationError = validate()
+    if (validationError) {
+      setSubmitError(validationError)
+      return
+    }
 
     try {
       let imageUrl = undefined
@@ -58,7 +72,8 @@ function QuickSellPage() {
 
       navigate({ to: "/products" })
     } catch (err) {
-      console.error(err)
+      const message = err instanceof Error ? err.message : "Failed to list product. Please try again."
+      setSubmitError(message)
     }
   }
 
@@ -148,9 +163,9 @@ function QuickSellPage() {
               </div>
 
               <div className="w-full sm:w-2/3 space-y-5">
-                {(upload.isError || quickSell.isError) && (
-                  <div className="p-3 bg-destructive/10 text-destructive text-sm font-semibold rounded-lg border border-destructive/20">
-                    Failed to list product. Please try again.
+                {submitError && (
+                  <div className="p-3 bg-destructive/10 text-destructive text-sm font-semibold rounded-lg border border-destructive/20" role="alert">
+                    {submitError}
                   </div>
                 )}
                 
@@ -173,7 +188,8 @@ function QuickSellPage() {
                     <Input 
                       id="price" 
                       type="number" 
-                      min="0"
+                      min="0.5"
+                      max="500000"
                       step="0.01"
                       className="pl-10 font-bold"
                       value={priceGhs} 

@@ -465,9 +465,37 @@ export const products = {
     ),
 
   /**
-   * GET /vendor/products/:id — Full product detail with variants.
+   * GET /vendor/alkemart/products/:id — Product detail.
    */
   get: (id: string) =>
+    get<{ product: Product }>(`/vendor/alkemart/products/${id}`),
+
+  /**
+   * PUT /vendor/alkemart/products/:id — Update product (title, description, categories, thumbnail).
+   */
+  update: (id: string, data: {
+    title?: string
+    description?: string
+    thumbnail?: string
+    categories?: { id: string }[]
+  }) =>
+    put<{ product: Product; message: string }>(
+      `/vendor/alkemart/products/${id}`,
+      data,
+    ),
+
+  /**
+   * DELETE /vendor/alkemart/products/:id — Delete product.
+   */
+  delete: (id: string) =>
+    del<{ success: boolean; message: string }>(
+      `/vendor/alkemart/products/${id}`,
+    ),
+
+  /**
+   * GET /vendor/products/:id — Full product detail with variants (Mercur).
+   */
+  mercurGet: (id: string) =>
     get<{ product: Product }>(`/vendor/products/${id}`),
 
   /**

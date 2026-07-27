@@ -34,6 +34,7 @@ export async function POST(req: SellerReq, res: MedusaResponse) {
   const description = String(body.description || "").trim()
   const category_id = String(body.category_id || "").trim() || undefined
   const image_url = String(body.image_url || "").trim() || undefined
+  const quantity = Math.max(1, Math.floor(Number(body.quantity) || 1))
 
   if (!title || title.length < 3) {
     res.status(400).json({ error: "Title must be at least 3 characters." })
@@ -41,6 +42,10 @@ export async function POST(req: SellerReq, res: MedusaResponse) {
   }
   if (price_ghs < 0.5) {
     res.status(400).json({ error: "Price must be at least GH₵0.50." })
+    return
+  }
+  if (price_ghs > 500_000) {
+    res.status(400).json({ error: "Price must not exceed GH₵500,000." })
     return
   }
 
@@ -116,28 +121,28 @@ export async function POST(req: SellerReq, res: MedusaResponse) {
       },
     }) as Record<string, unknown> | undefined
 
-    if (!product?.id) {
-      res.status(500).json({ error: "Product creation failed." })
-      return
-    }
+  if (!product?.id) {
+    res.status(500).json({ error: "Product creation failed." })
+    return
+  }
 
-    const link = req.scope.resolve(ContainerRegistrationKeys.LINK) as {
-      create: (data: unknown) => Promise<unknown>
-    }
-    try {
-      await link.create({
-        [Modules.PRODUCT]: { product_id: product.id },
-        [MercurModules.SELLER]: { seller_id: sellerId },
-      })
-      await invalidateSellerOwnedProductIds(sellerId).catch(() => {})
-    } catch (linkErr) {
-      console.error(
-        "[alkemart] quick-list: product_seller link failed",
-        sellerId,
-        product.id,
-        linkErr instanceof Error ? linkErr.message : linkErr,
-      )
-    }
+  const link = req.scope.resolve(ContainerRegistrationKeys.LINK) as {
+    create: (data: unknown) => Promise<unknown>
+  }
+
+  await link.create({
+    [Modules.PRODUCT]: { product_id: product.id },
+    [MercurModules.SELLER]: { seller_id: sellerId },
+  }).catch((linkErr) => {
+    console.error(
+      "[alkemart] quick-list: product_seller link failed",
+      sellerId,
+      product.id,
+      linkErr instanceof Error ? linkErr.message : linkErr,
+    )
+    throw linkErr
+  })
+  await invalidateSellerOwnedProductIds(sellerId).catch(() => {})
 
     const { data: productData } = await query.graph({
       entity: "product",
@@ -166,12 +171,12 @@ export async function POST(req: SellerReq, res: MedusaResponse) {
             inventory_items: [
               {
                 sku: offerSku,
-                stock_levels: [
-                  {
-                    location_id: stockLocationId,
-                    stocked_quantity: 999,
-                  },
-                ],
+                  stock_levels: [
+                    {
+                      location_id: stockLocationId,
+                      stocked_quantity: quantity,
+                    },
+                  ],
               },
             ],
             prices: [{ amount: price_ghs, currency_code: "ghs" }],
