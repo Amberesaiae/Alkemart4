@@ -72,8 +72,11 @@ export function minPriceFromOfferPrices(prices: unknown): {
   let minAny: number | null = null
   let anyCode: string | null = null
   for (const p of asList(prices)) {
-    const amount = num(p.amount ?? p.calculated_amount)
-    if (amount == null) continue
+    const amount = p.amount != null ? num(p.amount) : (p.calculated_amount != null ? num(p.calculated_amount) : null)
+    if (amount == null) {
+      console.warn("[catalog] offer has no amount or calculated_amount", p.id)
+      continue
+    }
     const code = str(p.currency_code || p.currencyCode).toLowerCase() || null
     if (code === "ghs") {
       if (minGhs == null || amount < minGhs) minGhs = amount
