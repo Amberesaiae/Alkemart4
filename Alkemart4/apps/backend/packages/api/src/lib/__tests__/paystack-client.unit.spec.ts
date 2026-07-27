@@ -136,7 +136,7 @@ describe("chargeMobileMoney", () => {
     expect(result.status).toBe("success")
     expect(result.reference).toBe("ref_ok_1")
 
-    const call = (global.fetch as jest.Mock).mock.calls[0]
+    const call = (global.fetch as unknown as jest.Mock).mock.calls[0]
     const body = JSON.parse(call[1].body)
     expect(body.mobile_money.provider).toBe("mtn")
     expect(body.amount).toBe(1000)
@@ -165,7 +165,7 @@ describe("chargeMobileMoney", () => {
     expect(result.status).toBe("pending")
     expect(result.providerStatus).toBe("send_otp")
 
-    const body = JSON.parse((global.fetch as jest.Mock).mock.calls[0][1].body)
+    const body = JSON.parse((global.fetch as unknown as jest.Mock).mock.calls[0][1].body)
     expect(body.mobile_money.provider).toBe("vod")
   })
 
@@ -192,7 +192,7 @@ describe("chargeMobileMoney", () => {
       })
     ).rejects.toBeInstanceOf(PaymentDeclinedError)
 
-    const body = JSON.parse((global.fetch as jest.Mock).mock.calls[0][1].body)
+    const body = JSON.parse((global.fetch as unknown as jest.Mock).mock.calls[0][1].body)
     expect(body.mobile_money.provider).toBe("atl")
   })
 })
