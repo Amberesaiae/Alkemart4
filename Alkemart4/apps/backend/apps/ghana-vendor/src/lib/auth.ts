@@ -57,8 +57,11 @@ export function useRegister() {
         first_name: payload.first_name,
         last_name: payload.last_name,
       })
-      await sellerApi.select(sellerData.seller.id)
-      setActiveSellerId(sellerData.seller.id)
+      await authApi.login(payload.email, payload.password)
+      const me = await sellerApi.memberMe()
+      const sellerId = me.seller_id ?? sellerData.seller.id
+      setActiveSellerId(sellerId)
+      await sellerApi.select(sellerId).catch(() => {})
       return sellerData
     },
     onSuccess: () => {
