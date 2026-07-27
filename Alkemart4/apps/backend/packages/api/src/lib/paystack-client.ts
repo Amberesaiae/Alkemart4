@@ -145,7 +145,8 @@ export async function verifyPaystackTransaction(
       path: `/transaction/verify/${encodeURIComponent(reference)}`,
       method: "GET",
     })
-  } catch {
+  } catch (err) {
+    console.warn("[paystack] verify failed", err instanceof Error ? err.message : err)
     return null
   }
 }
