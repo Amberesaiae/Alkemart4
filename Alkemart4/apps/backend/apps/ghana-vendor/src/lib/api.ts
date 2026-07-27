@@ -709,7 +709,11 @@ export async function loginAndSelectSeller(
   email: string,
   password: string,
 ): Promise<{ sellerId: string | null; me: AlkemartMe }> {
-  await post<{ token?: string }>("/auth/member/emailpass", { email, password })
+  const loginRes = await post<{ token?: string }>("/auth/member/emailpass", { email, password })
+
+  if (loginRes.token) {
+    try { localStorage.setItem("alk:jwt", loginRes.token) } catch {}
+  }
 
   const me = await seller.memberMe()
   const sellerId = me.seller_id ?? null
