@@ -18,7 +18,7 @@ function RootComponent() {
 
   useEffect(() => {
     if (!isLoading && !isPublicPage && (isError || !user)) {
-      navigate({ to: "/login", search: { redirect: pathname } })
+      navigate({ to: "/login", search: { redirect: pathname, registered: undefined } })
     }
   }, [isLoading, isPublicPage, isError, user, navigate])
 

@@ -34,7 +34,7 @@ function RegisterPage() {
     register.mutate(formData, {
       onSuccess: () => {
         setPasswordError("")
-        navigate({ to: "/login", search: { registered: "true" } })
+        navigate({ to: "/login", search: { redirect: undefined, registered: "true" } })
       }
     })
   }
@@ -121,7 +121,7 @@ function RegisterPage() {
 
           <div className="mt-6 text-center text-sm font-medium text-muted-foreground">
             Already have a stall?{" "}
-            <Button variant="ghost" className="p-0 h-auto font-bold text-foreground hover:bg-transparent hover:text-primary" onClick={() => navigate({ to: "/login" })}>
+            <Button variant="ghost" className="p-0 h-auto font-bold text-foreground hover:bg-transparent hover:text-primary" onClick={() => navigate({ to: "/login", search: { redirect: undefined, registered: undefined } })}>
               Sign in
             </Button>
           </div>

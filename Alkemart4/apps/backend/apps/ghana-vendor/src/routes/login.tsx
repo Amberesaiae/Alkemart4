@@ -4,10 +4,12 @@ import { useLogin } from "../lib/auth"
 import { Button, PasswordInput, Input, Label, Card } from "@workspace/ui"
 
 export const Route = createFileRoute('/login')({
-  validateSearch: (search: Record<string, unknown>) => ({
-    redirect: typeof search.redirect === "string" ? search.redirect : undefined,
-    registered: typeof search.registered === "string" ? search.registered : undefined,
-  }),
+  validateSearch: (search: Record<string, unknown>) => {
+    const result: { redirect?: string; registered?: string } = {}
+    if (typeof search.redirect === "string") result.redirect = search.redirect
+    if (typeof search.registered === "string") result.registered = search.registered
+    return result
+  },
   component: LoginPage,
 })
 
