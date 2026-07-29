@@ -55,6 +55,10 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
     const dst = new Client({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } })
     await dst.connect()
 
+    // Diagnose: check actual product count in Neon via raw SQL
+    const { rows: countRows } = await dst.query(`SELECT COUNT(*) as cnt, status FROM product GROUP BY status`)
+    const { rows: allProdRows } = await dst.query(`SELECT id, title, status, handle FROM product LIMIT 20`)
+
     let total = 0
     const results: string[] = []
 
@@ -115,27 +119,40 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
     const channels = Array.isArray(scResult.data) ? scResult.data : []
     const sc = channels.find((c: any) => c.name === "Default Sales Channel") || channels[0]
 
+    let prodDebug = "no products via query"
     if (sc) {
       const prodResult = await query.graph({
         entity: "product",
         fields: ["id", "status", "title"],
       })
       const products = Array.isArray(prodResult.data) ? prodResult.data : []
-
-      let linked = 0
-      for (const p of products) {
-        try {
-          await link.create({
-            [Modules.PRODUCT]: { product_id: p.id },
-            [Modules.SALES_CHANNEL]: { sales_channel_id: sc.id },
-          })
-          linked++
-        } catch { /* may exist */ }
-      }
-      results.push(`product_links: ${linked} created, total_products_in_db: ${products.length}, statuses: ${JSON.stringify([...new Set(products.map((p: any) => p.status))])}`)
+      prodDebug = `query_found: ${products.length}, statuses: ${JSON.stringify([...new Set(products.map((p: any) => p.status))])}`
     }
 
-    res.json({ ok: true, total, tables: results })
+    // Also check via product module
+    let moduleDebug = "no product module"
+    try {
+      const pm = req.scope.resolve(Modules.PRODUCT) as any
+      if (pm?.listProducts) {
+        const prods = await pm.listProducts({}, { take: 20 })
+        moduleDebug = `module_found: ${prods.length}, ids: ${JSON.stringify(prods.map((p: any) => p.id).slice(0, 5))}`
+      } else if (pm?.retrieveProduct) {
+        moduleDebug = "has retrieveProduct but not listProducts"
+      } else {
+        moduleDebug = `module_methods: ${Object.keys(pm).slice(0, 10).join(", ")}`
+      }
+    } catch (e: any) {
+      moduleDebug = `module_error: ${(e as Error).message.substring(0, 80)}`
+    }
+
+    res.json({
+      ok: true,
+      total,
+      rawProductCount: countRows,
+      rawProducts: allProdRows.map((r: any) => ({ id: r.id, title: r.title, status: r.status })),
+      prodDebug,
+      moduleDebug,
+    })
   } catch (e: any) {
     res.status(500).json({ error: (e as Error).message })
   }
