@@ -1,5 +1,5 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
-import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 
 export async function GET(req: MedusaRequest, res: MedusaResponse) {
   try {
@@ -9,12 +9,12 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
     const link = req.scope.resolve(ContainerRegistrationKeys.LINK) as {
       create: (args: any) => Promise<any>
     }
+    const logger = req.scope.resolve(ContainerRegistrationKeys.LOGGER) as { info: (m: string) => void; error: (m: string) => void }
 
     const scResult = await query.graph({
       entity: "sales_channel",
       fields: ["id", "name"],
     })
-
     const channels = Array.isArray(scResult.data) ? scResult.data : []
     const defaultSC = channels.find((c: any) => c.name === "Default Sales Channel") || channels[0]
 
@@ -27,15 +27,11 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
       entity: "product",
       fields: ["id", "title"],
     })
-
     const products = Array.isArray(prodResult.data) ? prodResult.data : []
     if (products.length === 0) {
-      res.json({ error: "No products found to link", salesChannel: defaultSC, allProducts: [] })
+      res.json({ error: "No products found to link", salesChannel: defaultSC })
       return
     }
-
-    let linked = 0
-    const skipped: string[] = []
 
     const existingLinks = await query.graph({
       entity: "product_sales_channel",
@@ -47,19 +43,23 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
       )
     )
 
+    let linked = 0
+    const errors: string[] = []
+
     for (const p of products) {
       const key = `${p.id}::${defaultSC.id}`
-      if (existingSet.has(key)) {
-        skipped.push(p.id)
-        continue
+      if (existingSet.has(key)) continue
+
+      try {
+        await link.create({
+          [Modules.PRODUCT]: { product_id: p.id },
+          [Modules.SALES_CHANNEL]: { sales_channel_id: defaultSC.id },
+        })
+        linked++
+      } catch (e: any) {
+        errors.push(`${p.id}: ${e.message.substring(0, 80)}`)
+        logger.error(`[migrate] link failed for product ${p.id}: ${e.message}`)
       }
-      await link.create({
-        product_sales_channel: {
-          product_id: p.id,
-          sales_channel_id: defaultSC.id,
-        },
-      })
-      linked++
     }
 
     res.json({
@@ -67,7 +67,9 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
       salesChannel: defaultSC,
       totalProducts: products.length,
       linked,
-      skipped: skipped.length,
+      existing: existingSet.size,
+      errors: errors.length,
+      errorDetails: errors.length > 0 ? errors : undefined,
     })
   } catch (e: any) {
     res.status(500).json({ error: e.message, stack: e.stack?.substring(0, 500) })
