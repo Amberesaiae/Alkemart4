@@ -19,46 +19,42 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
       graph: (args: any) => Promise<{ data: any[]; metadata?: any }>
     }
 
+    const results: Record<string, any> = {}
+
     // Test 1: basic query all products
-    const t1 = await query.graph({ entity: "product", fields: ["id", "title", "status"] })
+    try {
+      const t1 = await query.graph({ entity: "product", fields: ["id", "title", "status"] })
+      results.test1_all = { count: t1.data.length }
+    } catch (e: any) {
+      results.test1_all = { error: e.message }
+    }
 
-    // Test 2: query with status filter
-    const t2 = await query.graph({
-      entity: "product",
-      fields: ["id", "title", "status"],
-      filters: { status: ["published"] },
-    })
+    // Test 2: status filter
+    try {
+      const t2 = await query.graph({
+        entity: "product",
+        fields: ["id", "title", "status"],
+        filters: { status: ["published"] as any },
+      })
+      results.test2_status = { count: t2.data.length }
+    } catch (e: any) {
+      results.test2_status = { error: e.message }
+    }
 
-    // Test 3: query with status + sales_channel_id filter
-    const t3 = await query.graph({
-      entity: "product",
-      fields: ["id", "title", "status"],
-      filters: { status: ["published"], sales_channel_id: "sc_01KXMN56SN3RSCSP55KE3A8BD4" },
-    })
+    // Test 3: query product_sales_channel links directly
+    try {
+      const t4 = await query.graph({
+        entity: "product_sales_channel",
+        fields: ["product_id", "sales_channel_id"],
+        filters: { sales_channel_id: "sc_01KXMN56SN3RSCSP55KE3A8BD4" },
+      })
+      results.test3_product_sc = { count: t4.data.length }
+    } catch (e: any) {
+      results.test3_product_sc = { error: e.message }
+    }
 
-    // Test 4: query product_sales_channel directly
-    const t4 = await query.graph({
-      entity: "product_sales_channel",
-      fields: ["product_id", "sales_channel_id"],
-      filters: { sales_channel_id: "sc_01KXMN56SN3RSCSP55KE3A8BD4" },
-    })
-
-    // Test 5: query the store-facing product entity with full config
-    const { rows: scProducts } = await dst.query(`
-      SELECT p.id, p.title, p.status FROM product p
-      INNER JOIN product_sales_channel psc ON p.id = psc.product_id
-      WHERE psc.sales_channel_id = 'sc_01KXMN56SN3RSCSP55KE3A8BD4'
-        AND p.status = 'published'
-    `)
-
-    res.json({
-      test1_all: { count: t1.data.length, products: t1.data.slice(0, 3) },
-      test2_status_published: { count: t2.data.length },
-      test3_status_and_sc: { count: t3.data.length },
-      test4_product_sc: { count: t4.data.length, links: t4.data.slice(0, 3) },
-      test5_raw_sql_sc_published: scProducts.length,
-    })
+    res.json(results)
   } catch (e: any) {
-    res.status(500).json({ error: (e as Error).message, stack: (e as Error).stack })
+    res.status(500).json({ error: (e as Error).message, stack: (e as Error).stack?.slice(0, 500) })
   }
 }
