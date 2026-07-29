@@ -9,35 +9,33 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
     const dst = new Client({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } })
     await dst.connect()
 
-    // List all tables and find product-related ones
-    const { rows: tables } = await dst.query(`
-      SELECT table_name FROM information_schema.tables
-      WHERE table_schema = 'public' AND table_type = 'BASE TABLE'
-      ORDER BY table_name
+    // Check product table columns and constraints
+    const { rows: cols } = await dst.query(`
+      SELECT column_name, data_type, is_nullable, column_default
+      FROM information_schema.columns
+      WHERE table_schema = 'public' AND table_name = 'product'
+      ORDER BY ordinal_position
     `)
-    const prodTables = tables
-      .map((r: any) => r.table_name)
-      .filter((t: string) => t.includes("product"))
 
-    const info: any = {}
+    const { rows: constraints } = await dst.query(`
+      SELECT conname, contype, pg_get_constraintdef(oid) as def
+      FROM pg_constraint
+      WHERE conrelid = 'product'::regclass
+    `)
 
-    for (const t of prodTables) {
-      const { rows } = await dst.query(`SELECT COUNT(*) as cnt FROM "${t}"`)
-      info[t] = parseInt(rows[0].cnt)
-    }
+    // Check if deleted_at is set
+    const { rows: deletedRows } = await dst.query(`SELECT COUNT(*) as cnt FROM product WHERE deleted_at IS NOT NULL`)
+
+    // Check raw product count
+    const { rows: totalRows } = await dst.query(`SELECT COUNT(*) as cnt FROM product`)
 
     await dst.end()
 
-    // Now query via Medusa
-    const query = req.scope.resolve(ContainerRegistrationKeys.QUERY) as {
-      graph: (args: any) => Promise<{ data: any }>
-    }
-
-    const pm = req.scope.resolve(Modules.PRODUCT) as any
-
     res.json({
-      product_tables: info,
-      module_methods: Object.keys(pm).filter(k => k.startsWith("list") || k.startsWith("retrieve")).slice(0, 20),
+      total_products: parseInt(totalRows[0].cnt),
+      soft_deleted: parseInt(deletedRows[0].cnt),
+      columns: cols.map((c: any) => ({ name: c.column_name, type: c.data_type, nullable: c.is_nullable })),
+      constraints: constraints.map((c: any) => ({ name: c.conname, type: c.contype, def: c.def })),
     })
   } catch (e: any) {
     res.status(500).json({ error: (e as Error).message })
