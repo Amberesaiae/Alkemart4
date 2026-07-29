@@ -1,8 +1,6 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 
-const SRC = "postgresql://postgres:lFNiCsDkeLxwoRXNOxSQPOYcGXBkTqRo@sakura.proxy.rlwy.net:22053/railway"
-
 export async function GET(req: MedusaRequest, res: MedusaResponse) {
   try {
     const { Client } = require("pg")
@@ -15,52 +13,26 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
     await dst.query(`UPDATE product_option_value SET deleted_at = NULL WHERE deleted_at IS NOT NULL`)
     await dst.query(`UPDATE image SET deleted_at = NULL WHERE deleted_at IS NOT NULL`)
 
-    const { rows: statusRows } = await dst.query(`SELECT status, COUNT(*) as cnt FROM product GROUP BY status`)
-    const { rows: deletedCheck } = await dst.query(`SELECT COUNT(*) as cnt FROM product WHERE deleted_at IS NOT NULL`)
-    const { rows: totalRows } = await dst.query(`SELECT COUNT(*) as cnt FROM product`)
-    const { rows: salesChanRows } = await dst.query(`SELECT id, name FROM sales_channel`)
+    // Investigate store product pipeline
+    // 1. What publishable API keys exist?
+    const { rows: apiKeys } = await dst.query(`SELECT * FROM publishable_api_key`)
+    // 2. What sales channels are linked to which API key?
+    const { rows: scLinks } = await dst.query(`SELECT * FROM "publishable_api_key_sales_channel"`)
+    // 3. Check if product_sales_channel raw links exist
+    const { rows: pscRaw } = await dst.query(`SELECT * FROM "product_sales_channel"`)
+    // 4. Check product statuses
+    const { rows: pRows } = await dst.query(`SELECT id, title, status FROM product ORDER BY created_at`)
+    // 5. Try deleting and re-creating API key→SC link via raw SQL
+    const apiKeyId = apiKeys.length > 0 ? apiKeys[0].id : null
 
-    const { rows: publishedCount } = await dst.query(`SELECT COUNT(*) as cnt FROM product WHERE status = 'published'`)
     await dst.end()
 
-    const query = req.scope.resolve(ContainerRegistrationKeys.QUERY) as {
-      graph: (args: any) => Promise<{ data: any[] }>
-    }
-
-    // 1. Query products via Medusa Query API
-    const qProducts = await query.graph({ entity: "product", fields: ["id", "title", "status"] })
-    const qCount = qProducts.data.length
-
-    // 2. Query sales channels via Medusa Query API
-    const qSC = await query.graph({ entity: "sales_channel", fields: ["id", "name", "description"] })
-    const qSCs = qSC.data
-
-    // 3. Check API key → sales channel links
-    const qKeyChan = await query.graph({
-      entity: "publishable_api_key_sales_channel",
-      fields: ["publishable_api_key_id", "sales_channel_id"],
-    })
-    const keyChanLinks = qKeyChan.data
-
-    // 4. Check product → sales channel links
-    const qProdChan = await query.graph({
-      entity: "product_sales_channel",
-      fields: ["product_id", "sales_channel_id"],
-    })
-    const prodChanLinks = qProdChan.data
-
     res.json({
-      total_products: parseInt(totalRows[0].cnt),
-      published: parseInt(publishedCount[0].cnt),
-      statuses: statusRows,
-      deleted_remaining: parseInt(deletedCheck[0].cnt),
-      query_api_product_count: qCount,
-      query_api_products: qProducts.data.map((p: any) => ({ id: p.id, title: p.title, status: p.status })),
-      sales_channels: qSCs,
-      raw_sales_channels: salesChanRows,
-      publishable_api_key_links: keyChanLinks,
-      product_sales_channel_links: prodChanLinks.slice(0, 15),
-      product_sales_channel_count: prodChanLinks.length,
+      api_keys: apiKeys.map((k: any) => ({ id: k.id, title: k.title })),
+      api_key_sales_channel_links: scLinks,
+      product_sales_channel_count: pscRaw.length,
+      first_product: pRows.length > 0 ? pRows[0] : null,
+      product_count: pRows.length,
     })
   } catch (e: any) {
     res.status(500).json({ error: (e as Error).message })
