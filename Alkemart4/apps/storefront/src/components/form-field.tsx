@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils"
-import { Input, Select } from "@workspace/ui"
+import { Input, PasswordInput, Select } from "@workspace/ui"
 
 const inputClass =
   ""
@@ -28,17 +28,29 @@ export function FormField(props: FormFieldProps) {
       <label className="text-sm font-semibold text-foreground" htmlFor={id}>
         {props.label}
       </label>
-      <Input
-        id={id}
-        type={props.type ?? "text"}
-        inputMode={props.inputMode}
-        autoComplete={props.autoComplete}
-        value={props.value}
-        onChange={(e) => props.onChange(e.target.value)}
-        required={props.required}
-        aria-required={props.required || undefined}
-        placeholder={props.placeholder}
-      />
+      {props.type === "password" ? (
+        <PasswordInput
+          id={id}
+          autoComplete={props.autoComplete}
+          value={props.value}
+          onChange={(e) => props.onChange(e.target.value)}
+          required={props.required}
+          aria-required={props.required || undefined}
+          placeholder={props.placeholder}
+        />
+      ) : (
+        <Input
+          id={id}
+          type={props.type ?? "text"}
+          inputMode={props.inputMode}
+          autoComplete={props.autoComplete}
+          value={props.value}
+          onChange={(e) => props.onChange(e.target.value)}
+          required={props.required}
+          aria-required={props.required || undefined}
+          placeholder={props.placeholder}
+        />
+      )}
     </div>
   )
 }

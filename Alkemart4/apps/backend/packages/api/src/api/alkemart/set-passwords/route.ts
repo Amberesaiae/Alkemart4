@@ -6,7 +6,7 @@ const DEFAULT_PASS = "test123"
 
 export async function POST(req: MedusaRequest, res: MedusaResponse) {
   try {
-    const { secret, email, password } = req.body || {}
+    const { secret, email, password } = (req.body || {}) as Record<string, unknown>
     if (secret !== SECRET) {
       return res.status(403).json({ error: "invalid secret" })
     }
@@ -53,6 +53,6 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
 
     res.json({ ok: true, total: identities.length, results, password: pwd })
   } catch (e: any) {
-    res.status(500).json({ error: (e as Error).message, stack: (e as Error).stack?.slice(0, 500) })
+    res.status(500).json({ error: String(e) })
   }
 }

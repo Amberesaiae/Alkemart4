@@ -68,6 +68,14 @@ export function getActiveSellerId(): string | null {
 }
 
 // ---------------------------------------------------------------------------
+// Auth token — stored in-memory after login, sent as Bearer on every request
+// ---------------------------------------------------------------------------
+
+let _token: string | null = null
+
+function setToken(t: string | null) { _token = t }
+
+// ---------------------------------------------------------------------------
 // Base fetch
 // ---------------------------------------------------------------------------
 
@@ -75,11 +83,13 @@ async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
   const sellerId = getActiveSellerId()
   const extraHeaders: Record<string, string> = {}
   if (sellerId) extraHeaders["x-seller-id"] = sellerId
+  if (_token) {
+    extraHeaders["Authorization"] = `Bearer ${_token}`
+  }
   const isJsonBody = init.body !== undefined && typeof init.body === "string"
   if (isJsonBody) {
     extraHeaders["Content-Type"] = "application/json"
   }
-  // Auth via httpOnly cookie (set by backend on login). No localStorage JWT needed.
 
   const res = await fetch(path, {
     credentials: "include",
@@ -322,6 +332,7 @@ export const auth = {
    */
   login: async (email: string, password: string) => {
     const data = await post<{ token?: string }>("/auth/member/emailpass", { email, password })
+    if (data.token) setToken(data.token)
     return data
   },
 
@@ -339,6 +350,7 @@ export const auth = {
    * Invalidate the current session / bearer token.
    */
   logout: async () => {
+    setToken(null)
     try { await del<void>("/auth/session") } catch {}
   },
 }

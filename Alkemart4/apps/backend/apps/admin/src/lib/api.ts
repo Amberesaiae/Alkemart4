@@ -49,10 +49,17 @@ export type Market = {
 
 const BASE = import.meta.env.VITE_BACKEND_URL || ""
 
+let _token: string | null = null
+
+function setToken(t: string | null) { _token = t }
+
 async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
   const extraHeaders: Record<string, string> = {}
   if (init.body !== undefined && typeof init.body === "string") {
     extraHeaders["Content-Type"] = "application/json"
+  }
+  if (_token) {
+    extraHeaders["Authorization"] = `Bearer ${_token}`
   }
   const res = await fetch(`${BASE}${path}`, {
     credentials: "include",
@@ -81,17 +88,28 @@ export const auth = {
       method: "POST",
       body: JSON.stringify({ email, password }),
     })
+    if (data.token) setToken(data.token)
     return data
   },
   logout: async (hasSession?: boolean) => {
+    setToken(null)
     if (hasSession === false) return
     try { await apiFetch("/auth/session", { method: "DELETE" }) } catch {}
   },
   getSession: async (): Promise<{ user: AuthUser } | null> => {
-    // Must call /auth/session — the JWT payload doesn't include `role`,
-    // which the admin guard needs to verify admin privileges.
     try {
-      return await apiFetch<{ user: AuthUser }>("/auth/session")
+      const data = await apiFetch<{ user: Record<string, unknown> }>("/auth/session", { method: "POST" })
+      if (!data.user) return null
+      const actor = data.user
+      const roles: string[] = (actor.app_metadata as Record<string, unknown>)?.["roles"] as string[] ?? []
+      const role = roles.includes("role_super_admin") ? "admin" : roles[0] ?? "user"
+      return {
+        user: {
+          id: (actor.actor_id as string) ?? "",
+          email: (actor.entity_id as string) ?? "",
+          role,
+        },
+      }
     } catch {
       return null
     }
