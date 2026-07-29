@@ -71,9 +71,22 @@ export function getActiveSellerId(): string | null {
 // Auth token — stored in-memory after login, sent as Bearer on every request
 // ---------------------------------------------------------------------------
 
+const TOKEN_KEY = "alk:vendor_token"
 let _token: string | null = null
 
-function setToken(t: string | null) { _token = t }
+function getToken(): string | null {
+  if (_token) return _token
+  try { _token = sessionStorage.getItem(TOKEN_KEY) } catch {}
+  return _token
+}
+
+function setToken(t: string | null) {
+  _token = t
+  try {
+    if (t) sessionStorage.setItem(TOKEN_KEY, t)
+    else sessionStorage.removeItem(TOKEN_KEY)
+  } catch {}
+}
 
 // ---------------------------------------------------------------------------
 // Base fetch
@@ -83,8 +96,9 @@ async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
   const sellerId = getActiveSellerId()
   const extraHeaders: Record<string, string> = {}
   if (sellerId) extraHeaders["x-seller-id"] = sellerId
-  if (_token) {
-    extraHeaders["Authorization"] = `Bearer ${_token}`
+  const token = getToken()
+  if (token) {
+    extraHeaders["Authorization"] = `Bearer ${token}`
   }
   const isJsonBody = init.body !== undefined && typeof init.body === "string"
   if (isJsonBody) {

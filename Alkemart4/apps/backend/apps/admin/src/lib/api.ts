@@ -49,17 +49,31 @@ export type Market = {
 
 const BASE = import.meta.env.VITE_BACKEND_URL || ""
 
+const TOKEN_KEY = "alk:admin_token"
 let _token: string | null = null
 
-function setToken(t: string | null) { _token = t }
+function getToken(): string | null {
+  if (_token) return _token
+  try { _token = sessionStorage.getItem(TOKEN_KEY) } catch {}
+  return _token
+}
+
+function setToken(t: string | null) {
+  _token = t
+  try {
+    if (t) sessionStorage.setItem(TOKEN_KEY, t)
+    else sessionStorage.removeItem(TOKEN_KEY)
+  } catch {}
+}
 
 async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
   const extraHeaders: Record<string, string> = {}
   if (init.body !== undefined && typeof init.body === "string") {
     extraHeaders["Content-Type"] = "application/json"
   }
-  if (_token) {
-    extraHeaders["Authorization"] = `Bearer ${_token}`
+  const token = getToken()
+  if (token) {
+    extraHeaders["Authorization"] = `Bearer ${token}`
   }
   const res = await fetch(`${BASE}${path}`, {
     credentials: "include",
