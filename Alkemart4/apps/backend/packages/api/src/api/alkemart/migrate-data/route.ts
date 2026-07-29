@@ -20,6 +20,7 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
     const { rows: totalRows } = await dst.query(`SELECT COUNT(*) as cnt FROM product`)
     const { rows: salesChanRows } = await dst.query(`SELECT id, name FROM sales_channel`)
 
+    const { rows: publishedCount } = await dst.query(`SELECT COUNT(*) as cnt FROM product WHERE status = 'published'`)
     await dst.end()
 
     const query = req.scope.resolve(ContainerRegistrationKeys.QUERY) as {
@@ -47,9 +48,6 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
       fields: ["product_id", "sales_channel_id"],
     })
     const prodChanLinks = qProdChan.data
-
-    // 5. Try listing via admin product endpoint filters
-    const { rows: publishedCount } = await dst.query(`SELECT COUNT(*) as cnt FROM product WHERE status = 'published'`)
 
     res.json({
       total_products: parseInt(totalRows[0].cnt),
