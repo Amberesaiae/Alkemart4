@@ -21,36 +21,66 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
 
     const results: Record<string, any> = {}
 
-    // Test 1: basic query all products
+    // Test A: query.graph with minimal fields, status filter
     try {
-      const t1 = await query.graph({ entity: "product", fields: ["id", "title", "status"] })
-      results.test1_all = { count: t1.data.length }
-    } catch (e: any) {
-      results.test1_all = { error: e.message }
-    }
-
-    // Test 2: status filter
-    try {
-      const t2 = await query.graph({
+      const a = await query.graph({
         entity: "product",
         fields: ["id", "title", "status"],
         filters: { status: ["published"] as any },
+        pagination: { skip: 0, take: 50 },
       })
-      results.test2_status = { count: t2.data.length }
+      results.testA_minimal = { count: a.data.length }
     } catch (e: any) {
-      results.test2_status = { error: e.message }
+      results.testA_minimal = { error: e.message }
     }
 
-    // Test 3: query product_sales_channel links directly
+    // Test B: query.graph with store product fields
+    // These are the fields used by the store product endpoint
     try {
-      const t4 = await query.graph({
-        entity: "product_sales_channel",
-        fields: ["product_id", "sales_channel_id"],
-        filters: { sales_channel_id: "sc_01KXMN56SN3RSCSP55KE3A8BD4" },
+      const b = await query.graph({
+        entity: "product",
+        fields: [
+          "id", "title", "subtitle", "description", "handle", "is_giftcard",
+          "status", "thumbnail", "weight", "length", "height", "width",
+          "origin_country", "hs_code", "mid_code", "material", "collection_id",
+          "type_id", "discountable", "external_id", "created_at", "updated_at",
+          "images.*", "options.*", "options.values.*",
+          "variants.*", "variants.options.*",
+          "tags.*", "type.*", "collection.*", "categories.*",
+        ],
+        filters: { status: ["published"] as any },
+        pagination: { skip: 0, take: 50 },
       })
-      results.test3_product_sc = { count: t4.data.length }
+      results.testB_full_fields = { count: b.data.length, metadata: b.metadata }
     } catch (e: any) {
-      results.test3_product_sc = { error: e.message }
+      results.testB_full_fields = { error: e.message?.slice(0, 300) }
+    }
+
+    // Test C: query.graph with pricing context
+    try {
+      const c = await query.graph({
+        entity: "product",
+        fields: ["id", "title", "status"],
+        filters: { status: ["published"] as any },
+        pagination: { skip: 0, take: 50 },
+        context: { variants: { calculated_price: {} } },
+      })
+      results.testC_with_pricing = { count: c.data.length }
+    } catch (e: any) {
+      results.testC_with_pricing = { error: e.message?.slice(0, 300) }
+    }
+
+    // Test D: query.graph with NO cache
+    try {
+      const d = await query.graph({
+        entity: "product",
+        fields: ["id", "title", "status"],
+        filters: { status: ["published"] as any },
+        pagination: { skip: 0, take: 50 },
+      }, { cache: { enable: false } })
+      results.testD_no_cache = { count: d.data.length }
+    } catch (e: any) {
+      results.testD_no_cache = { error: e.message }
     }
 
     res.json(results)
