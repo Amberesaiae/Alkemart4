@@ -44,7 +44,8 @@
     "meilisearch": "^0.59.0",
     "sharp": "^0.34.2",
     "zod": "^4.4.3",
-    "compression": "^1.8.1"
+    "compression": "^1.8.1",
+    "pg": "^8.22.0"
   },
   "devDependencies": {
     "@acme/admin": "*",
