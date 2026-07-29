@@ -100,43 +100,39 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
     await src.end()
     await dst.end()
 
-    // Now link all products to default sales channel using Medusa's link API
-    try {
-      const link = req.scope.resolve(ContainerRegistrationKeys.LINK) as {
-        create: (args: any) => Promise<any>
-      }
-      const query = req.scope.resolve(ContainerRegistrationKeys.QUERY) as {
-        graph: (args: any) => Promise<{ data: any }>
-      }
+    // Now link products to default sales channel via Medusa's link API
+    const link = req.scope.resolve(ContainerRegistrationKeys.LINK) as {
+      create: (args: any) => Promise<any>
+    }
+    const query = req.scope.resolve(ContainerRegistrationKeys.QUERY) as {
+      graph: (args: any) => Promise<{ data: any }>
+    }
 
-      const scResult = await query.graph({
-        entity: "sales_channel",
-        fields: ["id", "name"],
+    const scResult = await query.graph({
+      entity: "sales_channel",
+      fields: ["id", "name"],
+    })
+    const channels = Array.isArray(scResult.data) ? scResult.data : []
+    const sc = channels.find((c: any) => c.name === "Default Sales Channel") || channels[0]
+
+    if (sc) {
+      const prodResult = await query.graph({
+        entity: "product",
+        fields: ["id", "status", "title"],
       })
-      const channels = Array.isArray(scResult.data) ? scResult.data : []
-      const sc = channels.find((c: any) => c.name === "Default Sales Channel") || channels[0]
+      const products = Array.isArray(prodResult.data) ? prodResult.data : []
 
-      if (sc) {
-        const prodResult = await query.graph({
-          entity: "product",
-          fields: ["id"],
-        })
-        const products = Array.isArray(prodResult.data) ? prodResult.data : []
-
-        let linked = 0
-        for (const p of products) {
-          try {
-            await link.create({
-              [Modules.PRODUCT]: { product_id: p.id },
-              [Modules.SALES_CHANNEL]: { sales_channel_id: sc.id },
-            })
-            linked++
-          } catch { /* may exist */ }
-        }
-        results.push(`product_sales_channel_links: ${linked} created`)
+      let linked = 0
+      for (const p of products) {
+        try {
+          await link.create({
+            [Modules.PRODUCT]: { product_id: p.id },
+            [Modules.SALES_CHANNEL]: { sales_channel_id: sc.id },
+          })
+          linked++
+        } catch { /* may exist */ }
       }
-    } catch (e: any) {
-      results.push(`product_sales_channel_links: FAILED — ${(e as Error).message.substring(0, 100)}`)
+      results.push(`product_links: ${linked} created, total_products_in_db: ${products.length}, statuses: ${JSON.stringify([...new Set(products.map((p: any) => p.status))])}`)
     }
 
     res.json({ ok: true, total, tables: results })
