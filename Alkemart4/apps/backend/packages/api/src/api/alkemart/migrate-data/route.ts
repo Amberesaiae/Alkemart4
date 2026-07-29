@@ -19,37 +19,60 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
       graph: (args: any, opts?: any) => Promise<{ data: any[]; metadata?: any }>
     }
 
-    // Exact store product fields from query-config.js
-    const fields = [
-      "id", "title", "subtitle", "description", "handle", "is_giftcard",
-      "discountable", "thumbnail", "collection_id", "type_id",
-      "weight", "length", "height", "width", "hs_code", "origin_country",
-      "mid_code", "material", "created_at", "updated_at",
-      "*type", "*collection", "*options", "*options.values",
-      "*tags", "*images", "*variants", "*variants.options",
-    ]
+    const results: Record<string, any> = {}
 
-    // Same query the store endpoint makes
-    const { data: products, metadata } = await query.graph({
-      entity: "product",
-      fields,
-      filters: { status: ["published"] as any },
-      pagination: { skip: 0, take: 50 },
-      context: {},
-    }, {
-      cache: { enable: true },
-    })
+    // Test 1: query with *variants (no context)
+    try {
+      const r = await query.graph({
+        entity: "product",
+        fields: ["id", "title", "*variants"],
+        filters: { status: ["published"] as any },
+        pagination: { skip: 0, take: 50 },
+        context: {},
+      }, { cache: { enable: true } })
+      results.test1_no_context = {
+        count: r.data.length,
+        with_variants: r.data.filter((p: any) => Array.isArray(p.variants) && p.variants.length > 0).length,
+      }
+    } catch (e: any) {
+      results.test1_no_context = { error: e.message.slice(0, 300) }
+    }
 
-    res.json({
-      count: products.length,
-      metadata,
-      first_three: products.slice(0, 3).map((p: any) => ({
-        id: p.id,
-        title: p.title,
-        status: p.status,
-        has_variants: Array.isArray(p.variants) ? p.variants.length : 0,
-      })),
-    })
+    // Test 2: query with calculated_price context
+    try {
+      const r = await query.graph({
+        entity: "product",
+        fields: ["id", "title", "*variants", "variants.calculated_price"],
+        filters: { status: ["published"] as any },
+        pagination: { skip: 0, take: 50 },
+        context: { variants: { calculated_price: { region_id: "reg_01KXMN5BATYHZ939TA7AN9R52T", currency_code: "ghs" } } },
+      }, { cache: { enable: true } })
+      results.test2_with_calculated_price = {
+        count: r.data.length,
+        with_price: r.data.filter((p: any) =>
+          Array.isArray(p.variants) && p.variants.some((v: any) => v.calculated_price)
+        ).length,
+      }
+    } catch (e: any) {
+      results.test2_with_calculated_price = { error: e.message.slice(0, 300) }
+    }
+
+    // Test 3: variant count directly
+    try {
+      const r = await query.graph({
+        entity: "product_variant",
+        fields: ["id", "product_id", "title", "sku"],
+        pagination: { skip: 0, take: 100 },
+      })
+      results.test3_variants = {
+        count: r.data.length,
+        sample: r.data.slice(0, 3),
+      }
+    } catch (e: any) {
+      results.test3_variants = { error: e.message.slice(0, 300) }
+    }
+
+    res.json(results)
   } catch (e: any) {
     res.status(500).json({ error: (e as Error).message, stack: (e as Error).stack?.slice(0, 500) })
   }
