@@ -14,37 +14,38 @@ import {
 import { asList } from "../../../../../lib/graph-utils"
 export async function GET(req: MedusaRequest, res: MedusaResponse) {
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY) as {
-    graph: (args: unknown) => Promise<{ data: unknown }>
+    graph: (args: unknown) => Promise<{ data: unknown; metadata?: { count?: number } }>
   }
 
-  try {
-    const { data } = await query.graph({
-      entity: "seller",
-      fields: [
-        "id",
-        "name",
-        "handle",
-        "email",
-        "status",
-        "status_reason",
-        "approved_at",
-        "currency_code",
-        "metadata",
-        "created_at",
-        "address.address_1",
-        "address.city",
-        "address.country_code",
-      ],
-    })
+  const limit = Math.min(Number(req.query.limit) || 50, 200)
+  const offset = Number(req.query.offset) || 0
 
-    const sellers = asList(data)
-    const pending = sellers.filter(
-      (s) => String(s.status || "").toLowerCase() === "pending_approval",
+  try {
+    const SELLER_FIELDS = [
+      "id", "name", "handle", "email", "status", "status_reason",
+      "approved_at", "currency_code", "metadata", "created_at",
+      "address.address_1", "address.city", "address.country_code",
+    ]
+
+    const [pendingResult, suspendedResult] = await Promise.all([
+      query.graph({
+        entity: "seller",
+        fields: SELLER_FIELDS,
+        filters: { status: "pending_approval" },
+        pagination: { skip: offset, take: limit },
+      }),
+      query.graph({
+        entity: "seller",
+        fields: SELLER_FIELDS,
+        filters: { status: "suspended" },
+        pagination: { skip: offset, take: limit },
+      }),
+    ])
+
+    const pending = asList(pendingResult.data)
+    const suspendedApps = asList(suspendedResult.data).filter(
+      (s) => !s.approved_at
     )
-    const suspendedApps = sellers.filter((s) => {
-      const st = String(s.status || "").toLowerCase()
-      return st === "suspended" && !s.approved_at
-    })
 
     const enrich = async (row: Record<string, unknown>) => {
       const snap = row as unknown as SellerSnapshot
@@ -86,9 +87,15 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
       Promise.all(suspendedApps.map(enrich)),
     ])
 
+    const pendingCount = pendingResult.metadata?.count ?? 0
+    const suspendedCount = suspendedResult.metadata?.count ?? 0
+
     res.status(200).json({
       pending: pendingRows,
       rejected_applications: rejectedRows,
+      count: pendingCount + suspendedCount,
+      offset,
+      limit,
       reason_codes: SELLER_REASON_CODES,
       actions: {
         approve: "POST /admin/sellers/:id/approve",
