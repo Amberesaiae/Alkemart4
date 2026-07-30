@@ -358,6 +358,7 @@ export const auth = {
    */
   register: async (email: string, password: string) => {
     const data = await post<{ token?: string }>("/auth/member/emailpass/register", { email, password })
+    if (data.token) setToken(data.token)
     return data
   },
 
