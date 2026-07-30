@@ -34,7 +34,7 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
       ? { id: slug }
       : { handle: slug }
 
-  let { data } = await query.graph({
+  const { data } = await query.graph({
     entity: "seller",
     fields: [
       "id",
@@ -49,32 +49,10 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
     filters,
   })
 
-  let seller = Array.isArray(data) ? data[0] : (data as unknown as SellerRow)
+  const seller = Array.isArray(data) ? data[0] : (data as unknown as SellerRow)
 
-  // Fallback: case-insensitive scan by handle if exact filter missed
-  if (!seller?.id && !slug.startsWith("sel_")) {
-    const all = await query.graph({
-      entity: "seller",
-      fields: [
-        "id",
-        "name",
-        "handle",
-        "description",
-        "logo",
-        "status",
-        "email",
-        "metadata",
-      ],
-      filters: {},
-    })
-    const list = Array.isArray(all.data) ? all.data : []
-    seller =
-      list.find(
-        (s) => (s.handle ?? "").toLowerCase() === slug && s.status === "open"
-      ) ??
-      list.find((s) => (s.handle ?? "").toLowerCase() === slug) ??
-      (undefined as unknown as SellerRow)
-  }
+  // Handles are stored lowercase — if exact match missed, the seller doesn't exist.
+  // No unbounded in-memory fallback (prevents OOM on large seller catalogues).
 
   if (!seller?.id) {
     res.status(404).json({ error: "Store not found" })
