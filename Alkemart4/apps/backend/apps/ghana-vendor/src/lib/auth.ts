@@ -63,8 +63,7 @@ export function useRegister() {
         await authApi.logout()
         throw err
       }
-      const me = await sellerApi.memberMe()
-      const sellerId = me.seller_id ?? sellerData.seller.id
+      const sellerId = sellerData.seller.id
       setActiveSellerId(sellerId)
       await sellerApi.select(sellerId).catch(() => {})
       return sellerData
