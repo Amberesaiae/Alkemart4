@@ -131,9 +131,11 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
       lightRows = asList(light.data) as CatalogOfferRow[]
     } catch {
       // Nested filters may not be supported on all graph backends — fallback unfiltered light
+      // with a hard limit to prevent OOM on large catalogues
       const light = await query.graph({
         entity: "offer",
         fields: LIGHT_OFFER_FIELDS,
+        pagination: { take: 200 },
       })
       lightRows = asList(light.data) as CatalogOfferRow[]
     }
