@@ -55,19 +55,23 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
 
     const { data: existing } = await query.graph({
       entity: "product",
-      fields: ["id"],
+      fields: ["id", "metadata"],
       filters: { id },
     })
-    if (asList(existing).length === 0) {
+    const product = asList(existing)[0]
+    if (!product) {
       res.status(404).json({ error: "Product not found." })
       return
     }
 
     const productModule = req.scope.resolve(Modules.PRODUCT) as {
-      updateProducts: (id: string, data: { metadata?: Record<string, string> }) => Promise<unknown>
+      updateProducts: (id: string, data: { metadata?: Record<string, unknown> }) => Promise<unknown>
     }
 
-    await productModule.updateProducts(id, { metadata: { featured } })
+    const existingMeta = (product as Record<string, unknown>).metadata as Record<string, unknown> | undefined
+    await productModule.updateProducts(id, {
+      metadata: { ...existingMeta, featured },
+    })
 
     res.json({ success: true })
   } catch (e) {
