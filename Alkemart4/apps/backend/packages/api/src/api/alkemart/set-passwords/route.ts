@@ -1,10 +1,19 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { Modules } from "@medusajs/framework/utils"
 
-const SECRET = "alkemart-fix-2026"
 const DEFAULT_PASS = "test123"
 
 export async function POST(req: MedusaRequest, res: MedusaResponse) {
+  if (process.env.NODE_ENV === "production") {
+    res.status(403).json({ error: "Not available in production" })
+    return
+  }
+
+  const SECRET = process.env.DEBUG_SECRET || ""
+  if (!SECRET) {
+    return res.status(403).json({ error: "DEBUG_SECRET not configured" })
+  }
+
   try {
     const { secret, email, password } = (req.body || {}) as Record<string, unknown>
     if (secret !== SECRET) {
@@ -25,9 +34,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
 
     // Set password for all non-deleted provider identities
     const { Client } = require("pg")
-    const db = new Client(
-      "postgresql://neondb_owner:npg_FVzAliU4qv2j@ep-blue-mud-aykv89zz.c-5.us-east-2.aws.neon.tech/neondb?sslmode=require"
-    )
+    const db = new Client(process.env.DEBUG_DATABASE_URL || "")
     await db.connect()
 
     const { rows: identities } = await db.query(

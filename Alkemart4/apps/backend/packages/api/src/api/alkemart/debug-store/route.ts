@@ -24,6 +24,11 @@ const mikroFields = [
 ]
 
 export async function GET(req: MedusaRequest, res: MedusaResponse) {
+  if (process.env.NODE_ENV === "production") {
+    res.status(403).json({ error: "Not available in production" })
+    return
+  }
+
   try {
     const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
 
@@ -59,7 +64,7 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
 
     // Raw count from Neon
     const { Client } = require("pg")
-    const neon = new Client("postgresql://neondb_owner:npg_FVzAliU4qv2j@ep-blue-mud-aykv89zz.c-5.us-east-2.aws.neon.tech/neondb?sslmode=require")
+    const neon = new Client(process.env.DEBUG_DATABASE_URL || "")
     await neon.connect()
     const { rows: totalProducts } = await neon.query("SELECT COUNT(*) FROM product WHERE deleted_at IS NULL")
     const { rows: publishedProducts } = await neon.query("SELECT COUNT(*) FROM product WHERE deleted_at IS NULL AND status = 'published'")

@@ -1,13 +1,15 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 
-const NEON =
-  "postgresql://neondb_owner:npg_FVzAliU4qv2j@ep-blue-mud-aykv89zz.c-5.us-east-2.aws.neon.tech/neondb?sslmode=require"
-
-const RAILWAY =
-  "postgresql://postgres:lFNiCsDkeLxwoRXNOxSQPOYcGXBkTqRo@sakura.proxy.rlwy.net:22053/railway"
-
 export async function GET(req: MedusaRequest, res: MedusaResponse) {
+  if (process.env.NODE_ENV === "production") {
+    res.status(403).json({ error: "Not available in production" })
+    return
+  }
+
+  const NEON = process.env.DEBUG_DATABASE_URL || ""
+  const RAILWAY = process.env.DEBUG_DATABASE_URL_2 || ""
+
   try {
     const { Client } = require("pg")
 

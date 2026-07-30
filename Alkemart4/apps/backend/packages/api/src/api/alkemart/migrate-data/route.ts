@@ -4,6 +4,11 @@ import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 const SRC = process.env.MIGRATE_SRC_DATABASE_URL || ""
 
 export async function GET(req: MedusaRequest, res: MedusaResponse) {
+  if (process.env.NODE_ENV === "production") {
+    res.status(403).json({ error: "Not available in production" })
+    return
+  }
+
   try {
     const { Client } = require("pg")
     const src = new Client(SRC)
