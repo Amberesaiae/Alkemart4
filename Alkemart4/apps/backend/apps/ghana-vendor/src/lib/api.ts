@@ -852,9 +852,8 @@ export async function loginAndSelectSeller(
   email: string,
   password: string,
 ): Promise<{ sellerId: string | null; me: AlkemartMe }> {
-  const loginRes = await post<{ token?: string }>("/auth/member/emailpass", { email, password })
-
-  // Token is set as httpOnly cookie by the backend — no localStorage needed.
+  await auth.login(email, password)
+  // auth.login() stores the token via setToken()
 
   const me = await seller.memberMe()
   const sellerId = me.seller_id ?? null
