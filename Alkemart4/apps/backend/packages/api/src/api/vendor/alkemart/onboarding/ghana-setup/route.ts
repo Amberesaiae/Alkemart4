@@ -97,7 +97,7 @@ export async function POST(req: SellerReq, res: MedusaResponse) {
           : undefined,
     })
 
-    void invalidateSellerReadiness(sellerId)
+    void invalidateSellerReadiness(sellerId).catch(() => {})
     res.status(200).json({
       message:
         result.readiness?.phase === "active"

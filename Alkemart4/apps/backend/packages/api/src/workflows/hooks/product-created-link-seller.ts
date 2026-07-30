@@ -57,8 +57,8 @@ createProductsWorkflow.hooks.productsCreated(
             break
           }
         }
-      } catch {
-        /* continue */
+      } catch (e) {
+        logger.warn("[product-created] failed to resolve seller from change_action", { error: e instanceof Error ? e.message : e })
       }
     }
 
@@ -79,12 +79,9 @@ createProductsWorkflow.hooks.productsCreated(
           fields: ["product_id", "seller_id"],
           filters: { product_id: p.id, seller_id: sellerId },
         })
-        const has = Array.isArray(existing)
-          ? existing.length > 0
-          : Boolean(existing)
-        if (has) continue
-      } catch {
-        /* try create anyway */
+        if (Array.isArray(existing) && existing.length > 0) continue
+      } catch (e) {
+        logger.warn("[product-created] failed to check existing link", { productId: p.id, error: e instanceof Error ? e.message : e })
       }
       links.push({
         [Modules.PRODUCT]: { product_id: p.id },

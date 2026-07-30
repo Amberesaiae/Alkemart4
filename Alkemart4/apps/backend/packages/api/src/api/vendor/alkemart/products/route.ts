@@ -67,7 +67,7 @@ export async function GET(req: SellerReq, res: MedusaResponse) {
           typeof r.product_id === "string" ? r.product_id : "",
         )
         .filter(Boolean)
-      void setCachedOwnedProductIds(sellerId, owned)
+      void setCachedOwnedProductIds(sellerId, owned).catch(() => {})
     }
 
     const count = owned.length
@@ -86,7 +86,7 @@ export async function GET(req: SellerReq, res: MedusaResponse) {
 
     const { data: productsRaw } = await query.graph({
       entity: "product",
-      fields: ["id", "title", "handle", "status", "thumbnail"],
+      fields: ["id", "title", "handle", "status", "thumbnail", "metadata"],
       filters: { id: pageIds },
     })
     const rows = asList(productsRaw)
@@ -101,6 +101,7 @@ export async function GET(req: SellerReq, res: MedusaResponse) {
         handle: p!.handle ?? null,
         status: p!.status ?? null,
         thumbnail: p!.thumbnail ?? null,
+        metadata: p!.metadata ?? null,
       }))
 
     res.status(200).json({

@@ -9,42 +9,50 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as IndexRouteImport } from './routes/index'
-import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as LoginRouteImport } from './routes/login'
-import { Route as AuthenticatedAnalyticsRouteImport } from './routes/_authenticated/analytics'
-import { Route as AuthenticatedMarketsRouteImport } from './routes/_authenticated/markets'
-import { Route as AuthenticatedOrdersRouteImport } from './routes/_authenticated/orders'
-import { Route as AuthenticatedProductModerationRouteImport } from './routes/_authenticated/product-moderation'
+import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
+import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedSellersQueueRouteImport } from './routes/_authenticated/sellers-queue'
+import { Route as AuthenticatedReturnsRouteImport } from './routes/_authenticated/returns'
+import { Route as AuthenticatedPromotionsRouteImport } from './routes/_authenticated/promotions'
+import { Route as AuthenticatedProductModerationRouteImport } from './routes/_authenticated/product-moderation'
+import { Route as AuthenticatedPayoutsRouteImport } from './routes/_authenticated/payouts'
+import { Route as AuthenticatedOrdersRouteImport } from './routes/_authenticated/orders'
+import { Route as AuthenticatedMarketsRouteImport } from './routes/_authenticated/markets'
+import { Route as AuthenticatedFeaturedProductsRouteImport } from './routes/_authenticated/featured-products'
+import { Route as AuthenticatedCommissionRatesRouteImport } from './routes/_authenticated/commission-rates'
+import { Route as AuthenticatedAnalyticsRouteImport } from './routes/_authenticated/analytics'
+import { Route as AuthenticatedSellersIdRouteImport } from './routes/_authenticated/sellers.$id'
+import { Route as AuthenticatedOrdersIdRouteImport } from './routes/_authenticated/orders.$id'
 
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedRoute = AuthenticatedRouteImport.update({
   id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
-const LoginRoute = LoginRouteImport.update({
-  id: '/login',
-  path: '/login',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedAnalyticsRoute = AuthenticatedAnalyticsRouteImport.update({
-  id: '/analytics',
-  path: '/analytics',
+const AuthenticatedSellersQueueRoute =
+  AuthenticatedSellersQueueRouteImport.update({
+    id: '/sellers-queue',
+    path: '/sellers-queue',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedReturnsRoute = AuthenticatedReturnsRouteImport.update({
+  id: '/returns',
+  path: '/returns',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
-const AuthenticatedMarketsRoute = AuthenticatedMarketsRouteImport.update({
-  id: '/markets',
-  path: '/markets',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
-const AuthenticatedOrdersRoute = AuthenticatedOrdersRouteImport.update({
-  id: '/orders',
-  path: '/orders',
+const AuthenticatedPromotionsRoute = AuthenticatedPromotionsRouteImport.update({
+  id: '/promotions',
+  path: '/promotions',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedProductModerationRoute =
@@ -53,30 +61,80 @@ const AuthenticatedProductModerationRoute =
     path: '/product-moderation',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
-const AuthenticatedSellersQueueRoute =
-  AuthenticatedSellersQueueRouteImport.update({
-    id: '/sellers-queue',
-    path: '/sellers-queue',
+const AuthenticatedPayoutsRoute = AuthenticatedPayoutsRouteImport.update({
+  id: '/payouts',
+  path: '/payouts',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedOrdersRoute = AuthenticatedOrdersRouteImport.update({
+  id: '/orders',
+  path: '/orders',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedMarketsRoute = AuthenticatedMarketsRouteImport.update({
+  id: '/markets',
+  path: '/markets',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedFeaturedProductsRoute =
+  AuthenticatedFeaturedProductsRouteImport.update({
+    id: '/featured-products',
+    path: '/featured-products',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedCommissionRatesRoute =
+  AuthenticatedCommissionRatesRouteImport.update({
+    id: '/commission-rates',
+    path: '/commission-rates',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedAnalyticsRoute = AuthenticatedAnalyticsRouteImport.update({
+  id: '/analytics',
+  path: '/analytics',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedSellersIdRoute = AuthenticatedSellersIdRouteImport.update({
+  id: '/sellers/$id',
+  path: '/sellers/$id',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedOrdersIdRoute = AuthenticatedOrdersIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => AuthenticatedOrdersRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/analytics': typeof AuthenticatedAnalyticsRoute
+  '/commission-rates': typeof AuthenticatedCommissionRatesRoute
+  '/featured-products': typeof AuthenticatedFeaturedProductsRoute
   '/markets': typeof AuthenticatedMarketsRoute
-  '/orders': typeof AuthenticatedOrdersRoute
+  '/orders': typeof AuthenticatedOrdersRouteWithChildren
+  '/payouts': typeof AuthenticatedPayoutsRoute
   '/product-moderation': typeof AuthenticatedProductModerationRoute
+  '/promotions': typeof AuthenticatedPromotionsRoute
+  '/returns': typeof AuthenticatedReturnsRoute
   '/sellers-queue': typeof AuthenticatedSellersQueueRoute
+  '/orders/$id': typeof AuthenticatedOrdersIdRoute
+  '/sellers/$id': typeof AuthenticatedSellersIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/analytics': typeof AuthenticatedAnalyticsRoute
+  '/commission-rates': typeof AuthenticatedCommissionRatesRoute
+  '/featured-products': typeof AuthenticatedFeaturedProductsRoute
   '/markets': typeof AuthenticatedMarketsRoute
-  '/orders': typeof AuthenticatedOrdersRoute
+  '/orders': typeof AuthenticatedOrdersRouteWithChildren
+  '/payouts': typeof AuthenticatedPayoutsRoute
   '/product-moderation': typeof AuthenticatedProductModerationRoute
+  '/promotions': typeof AuthenticatedPromotionsRoute
+  '/returns': typeof AuthenticatedReturnsRoute
   '/sellers-queue': typeof AuthenticatedSellersQueueRoute
+  '/orders/$id': typeof AuthenticatedOrdersIdRoute
+  '/sellers/$id': typeof AuthenticatedSellersIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -84,10 +142,17 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/login': typeof LoginRoute
   '/_authenticated/analytics': typeof AuthenticatedAnalyticsRoute
+  '/_authenticated/commission-rates': typeof AuthenticatedCommissionRatesRoute
+  '/_authenticated/featured-products': typeof AuthenticatedFeaturedProductsRoute
   '/_authenticated/markets': typeof AuthenticatedMarketsRoute
-  '/_authenticated/orders': typeof AuthenticatedOrdersRoute
+  '/_authenticated/orders': typeof AuthenticatedOrdersRouteWithChildren
+  '/_authenticated/payouts': typeof AuthenticatedPayoutsRoute
   '/_authenticated/product-moderation': typeof AuthenticatedProductModerationRoute
+  '/_authenticated/promotions': typeof AuthenticatedPromotionsRoute
+  '/_authenticated/returns': typeof AuthenticatedReturnsRoute
   '/_authenticated/sellers-queue': typeof AuthenticatedSellersQueueRoute
+  '/_authenticated/orders/$id': typeof AuthenticatedOrdersIdRoute
+  '/_authenticated/sellers/$id': typeof AuthenticatedSellersIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -95,29 +160,50 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/analytics'
+    | '/commission-rates'
+    | '/featured-products'
     | '/markets'
     | '/orders'
+    | '/payouts'
     | '/product-moderation'
+    | '/promotions'
+    | '/returns'
     | '/sellers-queue'
+    | '/orders/$id'
+    | '/sellers/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/login'
     | '/analytics'
+    | '/commission-rates'
+    | '/featured-products'
     | '/markets'
     | '/orders'
+    | '/payouts'
     | '/product-moderation'
+    | '/promotions'
+    | '/returns'
     | '/sellers-queue'
+    | '/orders/$id'
+    | '/sellers/$id'
   id:
     | '__root__'
     | '/'
     | '/_authenticated'
     | '/login'
     | '/_authenticated/analytics'
+    | '/_authenticated/commission-rates'
+    | '/_authenticated/featured-products'
     | '/_authenticated/markets'
     | '/_authenticated/orders'
+    | '/_authenticated/payouts'
     | '/_authenticated/product-moderation'
+    | '/_authenticated/promotions'
+    | '/_authenticated/returns'
     | '/_authenticated/sellers-queue'
+    | '/_authenticated/orders/$id'
+    | '/_authenticated/sellers/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -128,11 +214,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated': {
@@ -142,32 +228,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/login': {
-      id: '/login'
-      path: '/login'
-      fullPath: '/login'
-      preLoaderRoute: typeof LoginRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/analytics': {
-      id: '/_authenticated/analytics'
-      path: '/analytics'
-      fullPath: '/analytics'
-      preLoaderRoute: typeof AuthenticatedAnalyticsRouteImport
+    '/_authenticated/sellers-queue': {
+      id: '/_authenticated/sellers-queue'
+      path: '/sellers-queue'
+      fullPath: '/sellers-queue'
+      preLoaderRoute: typeof AuthenticatedSellersQueueRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/markets': {
-      id: '/_authenticated/markets'
-      path: '/markets'
-      fullPath: '/markets'
-      preLoaderRoute: typeof AuthenticatedMarketsRouteImport
+    '/_authenticated/returns': {
+      id: '/_authenticated/returns'
+      path: '/returns'
+      fullPath: '/returns'
+      preLoaderRoute: typeof AuthenticatedReturnsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/orders': {
-      id: '/_authenticated/orders'
-      path: '/orders'
-      fullPath: '/orders'
-      preLoaderRoute: typeof AuthenticatedOrdersRouteImport
+    '/_authenticated/promotions': {
+      id: '/_authenticated/promotions'
+      path: '/promotions'
+      fullPath: '/promotions'
+      preLoaderRoute: typeof AuthenticatedPromotionsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/product-moderation': {
@@ -177,30 +263,102 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedProductModerationRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/sellers-queue': {
-      id: '/_authenticated/sellers-queue'
-      path: '/sellers-queue'
-      fullPath: '/sellers-queue'
-      preLoaderRoute: typeof AuthenticatedSellersQueueRouteImport
+    '/_authenticated/payouts': {
+      id: '/_authenticated/payouts'
+      path: '/payouts'
+      fullPath: '/payouts'
+      preLoaderRoute: typeof AuthenticatedPayoutsRouteImport
       parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/orders': {
+      id: '/_authenticated/orders'
+      path: '/orders'
+      fullPath: '/orders'
+      preLoaderRoute: typeof AuthenticatedOrdersRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/markets': {
+      id: '/_authenticated/markets'
+      path: '/markets'
+      fullPath: '/markets'
+      preLoaderRoute: typeof AuthenticatedMarketsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/featured-products': {
+      id: '/_authenticated/featured-products'
+      path: '/featured-products'
+      fullPath: '/featured-products'
+      preLoaderRoute: typeof AuthenticatedFeaturedProductsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/commission-rates': {
+      id: '/_authenticated/commission-rates'
+      path: '/commission-rates'
+      fullPath: '/commission-rates'
+      preLoaderRoute: typeof AuthenticatedCommissionRatesRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/analytics': {
+      id: '/_authenticated/analytics'
+      path: '/analytics'
+      fullPath: '/analytics'
+      preLoaderRoute: typeof AuthenticatedAnalyticsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/sellers/$id': {
+      id: '/_authenticated/sellers/$id'
+      path: '/sellers/$id'
+      fullPath: '/sellers/$id'
+      preLoaderRoute: typeof AuthenticatedSellersIdRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/orders/$id': {
+      id: '/_authenticated/orders/$id'
+      path: '/$id'
+      fullPath: '/orders/$id'
+      preLoaderRoute: typeof AuthenticatedOrdersIdRouteImport
+      parentRoute: typeof AuthenticatedOrdersRoute
     }
   }
 }
 
+interface AuthenticatedOrdersRouteChildren {
+  AuthenticatedOrdersIdRoute: typeof AuthenticatedOrdersIdRoute
+}
+
+const AuthenticatedOrdersRouteChildren: AuthenticatedOrdersRouteChildren = {
+  AuthenticatedOrdersIdRoute: AuthenticatedOrdersIdRoute,
+}
+
+const AuthenticatedOrdersRouteWithChildren =
+  AuthenticatedOrdersRoute._addFileChildren(AuthenticatedOrdersRouteChildren)
+
 interface AuthenticatedRouteChildren {
   AuthenticatedAnalyticsRoute: typeof AuthenticatedAnalyticsRoute
+  AuthenticatedCommissionRatesRoute: typeof AuthenticatedCommissionRatesRoute
+  AuthenticatedFeaturedProductsRoute: typeof AuthenticatedFeaturedProductsRoute
   AuthenticatedMarketsRoute: typeof AuthenticatedMarketsRoute
-  AuthenticatedOrdersRoute: typeof AuthenticatedOrdersRoute
+  AuthenticatedOrdersRoute: typeof AuthenticatedOrdersRouteWithChildren
+  AuthenticatedPayoutsRoute: typeof AuthenticatedPayoutsRoute
   AuthenticatedProductModerationRoute: typeof AuthenticatedProductModerationRoute
+  AuthenticatedPromotionsRoute: typeof AuthenticatedPromotionsRoute
+  AuthenticatedReturnsRoute: typeof AuthenticatedReturnsRoute
   AuthenticatedSellersQueueRoute: typeof AuthenticatedSellersQueueRoute
+  AuthenticatedSellersIdRoute: typeof AuthenticatedSellersIdRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedAnalyticsRoute: AuthenticatedAnalyticsRoute,
+  AuthenticatedCommissionRatesRoute: AuthenticatedCommissionRatesRoute,
+  AuthenticatedFeaturedProductsRoute: AuthenticatedFeaturedProductsRoute,
   AuthenticatedMarketsRoute: AuthenticatedMarketsRoute,
-  AuthenticatedOrdersRoute: AuthenticatedOrdersRoute,
+  AuthenticatedOrdersRoute: AuthenticatedOrdersRouteWithChildren,
+  AuthenticatedPayoutsRoute: AuthenticatedPayoutsRoute,
   AuthenticatedProductModerationRoute: AuthenticatedProductModerationRoute,
+  AuthenticatedPromotionsRoute: AuthenticatedPromotionsRoute,
+  AuthenticatedReturnsRoute: AuthenticatedReturnsRoute,
   AuthenticatedSellersQueueRoute: AuthenticatedSellersQueueRoute,
+  AuthenticatedSellersIdRoute: AuthenticatedSellersIdRoute,
 }
 
 const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(

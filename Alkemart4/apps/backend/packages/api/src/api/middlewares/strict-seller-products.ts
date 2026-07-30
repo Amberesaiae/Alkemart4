@@ -107,7 +107,7 @@ export async function resolveOwnedProductIds(
   }
 
   const out = Array.from(ids)
-  void setCachedOwnedProductIds(sellerId, out)
+  void setCachedOwnedProductIds(sellerId, out).catch(() => {})
   return out
 }
 

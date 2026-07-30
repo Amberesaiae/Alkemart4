@@ -41,6 +41,7 @@ const DETAIL_FIELDS = [
   "status",
   "thumbnail",
   "description",
+  "metadata",
   "created_at",
   "updated_at",
   "categories.id",
@@ -140,10 +141,6 @@ export async function PUT(req: SellerReq, res: MedusaResponse) {
     const status = String(existing.status || "").toLowerCase()
     if (status === "published") {
       res.status(400).json({ error: "Cannot edit a published product. Contact support." })
-      return
-    }
-    if (status === "rejected") {
-      res.status(400).json({ error: "Cannot edit a rejected product. Create a new listing." })
       return
     }
 

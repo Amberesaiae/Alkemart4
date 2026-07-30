@@ -1,4 +1,5 @@
 import { createProductsWorkflow } from "@mercurjs/core/workflows"
+import { logger } from "../../lib/logger"
 import {
   scoreProductQuality,
   qualityMetadataSnapshot,
@@ -55,8 +56,8 @@ createProductsWorkflow.hooks.validate(
             quality: qualityMetadataSnapshot(quality),
           },
         }
-      } catch {
-        /* non-fatal */
+      } catch (e) {
+        logger.warn("[validate-product-create] quality scoring failed", { error: e instanceof Error ? e.message : e })
       }
     }
   },

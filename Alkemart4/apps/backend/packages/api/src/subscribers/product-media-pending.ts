@@ -4,7 +4,21 @@
 import type { SubscriberArgs, SubscriberConfig } from "@medusajs/framework"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { logger } from "../lib/logger"
-import { markMediaPending } from "../lib/media/derivatives"
+
+function withMediaMeta(
+  meta: Record<string, unknown>,
+  overrides: Record<string, unknown>,
+): Record<string, unknown> {
+  const alk = (meta.alkemart as Record<string, unknown>) || {}
+  const media = (alk.media as Record<string, unknown>) || {}
+  return {
+    ...meta,
+    alkemart: {
+      ...alk,
+      media: { ...media, ...overrides },
+    },
+  }
+}
 
 export default async function productMediaPending({
   event: { data },
@@ -49,42 +63,17 @@ export default async function productMediaPending({
       logger.warn(
         `[alkemart] media derivatives: max retries (5) reached for product ${id}, marking skipped`,
       )
-      const skipMeta = markMediaPending(meta)
-      const skipAlk =
-        skipMeta.alkemart && typeof skipMeta.alkemart === "object"
-          ? { ...(skipMeta.alkemart as Record<string, unknown>) }
-          : {}
-      const skipMedia =
-        skipAlk.media && typeof skipAlk.media === "object"
-          ? { ...(skipAlk.media as Record<string, unknown>) }
-          : {}
-      skipMedia.derivatives_status = "skipped"
-      skipMedia.retry_count = undefined
-      skipAlk.media = skipMedia
-      skipMeta.alkemart = skipAlk
       const productModule = container.resolve(Modules.PRODUCT) as {
         updateProducts: (
           id: string,
           data: { metadata?: Record<string, unknown> },
         ) => Promise<unknown>
       }
-      await productModule.updateProducts(id, { metadata: skipMeta })
+      await productModule.updateProducts(id, {
+        metadata: withMediaMeta(meta, { derivatives_status: "skipped", retry_count: undefined }),
+      })
       return
     }
-
-    const nextMeta = markMediaPending(meta)
-    // Increment retry counter in metadata
-    const nextAlk =
-      nextMeta.alkemart && typeof nextMeta.alkemart === "object"
-        ? { ...(nextMeta.alkemart as Record<string, unknown>) }
-        : {}
-    const nextMedia =
-      nextAlk.media && typeof nextAlk.media === "object"
-        ? { ...(nextAlk.media as Record<string, unknown>) }
-        : {}
-    nextMedia.retry_count = retryCount + 1
-    nextAlk.media = nextMedia
-    nextMeta.alkemart = nextAlk
 
     const productModule = container.resolve(Modules.PRODUCT) as {
       updateProducts: (
@@ -92,9 +81,11 @@ export default async function productMediaPending({
         data: { metadata?: Record<string, unknown> },
       ) => Promise<unknown>
     }
-    await productModule.updateProducts(id, { metadata: nextMeta })
-  } catch {
-    /* non-fatal */
+    await productModule.updateProducts(id, {
+      metadata: withMediaMeta(meta, { derivatives_status: "pending", retry_count: retryCount + 1 }),
+    })
+  } catch (e) {
+    logger.warn("[alkemart] productMediaPending failed", { productId: id, error: e instanceof Error ? e.message : e })
   }
 }
 

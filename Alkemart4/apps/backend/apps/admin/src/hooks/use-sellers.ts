@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { sellerQueue } from "../lib/api"
+import { toast } from "sonner"
 
 export function useSellers() {
   const queryClient = useQueryClient()
@@ -13,9 +14,10 @@ export function useSellers() {
     mutationFn: sellerQueue.approve,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["sellers-queue"] })
+      toast.success("Seller approved")
     },
     onError: (err) => {
-      console.error("[admin] mutation failed", err)
+      toast.error(err instanceof Error ? err.message : "Failed to approve seller")
     },
   })
 
@@ -23,9 +25,10 @@ export function useSellers() {
     mutationFn: ({ id, reason }: { id: string; reason: string }) => sellerQueue.suspend(id, reason),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["sellers-queue"] })
+      toast.success("Seller suspended")
     },
     onError: (err) => {
-      console.error("[admin] mutation failed", err)
+      toast.error(err instanceof Error ? err.message : "Failed to suspend seller")
     },
   })
 
@@ -34,6 +37,7 @@ export function useSellers() {
     rejected: query.data?.rejected_applications || [],
     isLoading: query.isLoading,
     isError: query.isError,
+    refetch: query.refetch,
     approve: approve.mutateAsync,
     isApproving: approve.isPending,
     suspend: suspend.mutateAsync,

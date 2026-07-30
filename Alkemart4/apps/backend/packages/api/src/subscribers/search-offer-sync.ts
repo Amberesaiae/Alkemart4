@@ -33,7 +33,8 @@ export default async function searchOfferSync({
         row && typeof row === "object"
           ? String((row as { product_id?: string }).product_id || "")
           : undefined
-    } catch {
+    } catch (e) {
+      logger.warn("[search] offer sync: failed to resolve product_id from offer", { offerId: data.id, error: e instanceof Error ? e.message : e })
       return
     }
   }

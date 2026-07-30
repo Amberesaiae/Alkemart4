@@ -28,6 +28,9 @@ const dashboardAppDir = (name: string) => {
  * PAYSTACK_SECRET_KEY is set so local boot works without payment keys.
  */
 const alkemartModules: Array<Record<string, unknown>> = [
+  {
+    resolve: './modules/wishlist',
+  },
   // Auth — emailpass provider for user/member login flows
   {
     resolve: '@medusajs/medusa/auth',
@@ -105,10 +108,25 @@ if (env.PAYSTACK_SECRET_KEY) {
       providers: [
         {
           resolve: './src/modules/paystack',
-          id: 'paystack',
+          id: 'pp_paystack',
           options: {
             secretKey: env.PAYSTACK_SECRET_KEY,
             publicKey: env.PAYSTACK_PUBLIC_KEY,
+          },
+        },
+      ],
+    },
+  })
+
+  alkemartModules.push({
+    resolve: '@mercurjs/core/modules/payout',
+    options: {
+      providers: [
+        {
+          resolve: './src/modules/paystack-payout',
+          id: 'paystack-payout',
+          options: {
+            secretKey: env.PAYSTACK_SECRET_KEY,
           },
         },
       ],

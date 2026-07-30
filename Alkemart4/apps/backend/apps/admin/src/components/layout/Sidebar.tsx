@@ -1,16 +1,20 @@
 import { Link, useRouterState } from "@tanstack/react-router"
-import { ChartColumn, Package, Store, ShoppingCart, Globe, LogOut, PanelLeftClose, PanelLeftOpen } from "lucide-react"
+import { ChartColumn, Package, Store, ShoppingCart, Globe, Percent, Star, Tag, RefreshCw, Wallet, LogOut, PanelLeftClose, PanelLeftOpen, Loader2 } from "lucide-react"
 import { useState } from "react"
 import { useAuth } from "../../hooks/use-auth"
 import { cn } from "@workspace/ui"
-import { t } from "../../lib/t"
 
 const NAV_ITEMS = [
-  { href: "/analytics", label: t("nav.analytics", "Analytics"), icon: ChartColumn },
-  { href: "/product-moderation", label: t("nav.productReview", "Product Review"), icon: Package },
-  { href: "/sellers-queue", label: t("nav.sellerQueue", "Seller Queue"), icon: Store },
-  { href: "/orders", label: t("nav.orders", "Orders"), icon: ShoppingCart },
-  { href: "/markets", label: t("nav.markets", "Markets"), icon: Globe },
+  { href: "/analytics", label: "Analytics", icon: ChartColumn },
+  { href: "/product-moderation", label: "Product Review", icon: Package },
+  { href: "/sellers-queue", label: "Seller Queue", icon: Store },
+  { href: "/orders", label: "Orders", icon: ShoppingCart },
+  { href: "/markets", label: "Markets", icon: Globe },
+  { href: "/commission-rates", label: "Commission", icon: Percent },
+  { href: "/featured-products", label: "Featured", icon: Star },
+  { href: "/promotions", label: "Promotions", icon: Tag },
+  { href: "/returns", label: "Returns", icon: RefreshCw },
+  { href: "/payouts", label: "Payouts", icon: Wallet },
 ]
 
 function NavItem({ href, label, icon: Icon, collapsed, isActive }: {
@@ -41,7 +45,7 @@ function NavItem({ href, label, icon: Icon, collapsed, isActive }: {
 
 export function Sidebar() {
   const router = useRouterState()
-  const { logout } = useAuth()
+  const { logout, isLoggingOut } = useAuth()
   const [collapsed, setCollapsed] = useState(false)
 
   return (
@@ -57,7 +61,7 @@ export function Sidebar() {
           <span className="text-xl font-bold text-white">●</span>
         ) : (
           <h1 className="text-xl font-bold tracking-tight text-white flex items-center gap-2 flex-1">
-            <span className="text-primary">●</span> {t("nav.brand", "Alkemart Ops")}
+            <span className="text-primary">●</span> Alkemart Ops
           </h1>
         )}
         <button
@@ -86,16 +90,18 @@ export function Sidebar() {
       <div className="p-4 pt-3 shrink-0">
         <button
           onClick={() => logout()}
+          disabled={isLoggingOut}
           className={cn(
             "flex items-center gap-3 w-full px-4 py-3 rounded-xl text-sm font-bold transition-all",
             collapsed ? "justify-center px-2" : "",
-            "text-white/70 hover:bg-white/10 hover:text-white"
+            "text-white/70 hover:bg-white/10 hover:text-white",
+            isLoggingOut && "opacity-50 cursor-not-allowed"
           )}
           title={collapsed ? "Sign out" : undefined}
           aria-label="Sign out"
         >
-          <LogOut className="h-5 w-5 shrink-0" aria-hidden="true" />
-          {!collapsed && t("nav.signOut", "Sign out")}
+          {isLoggingOut ? <Loader2 className="h-5 w-5 shrink-0 animate-spin" aria-hidden="true" /> : <LogOut className="h-5 w-5 shrink-0" aria-hidden="true" />}
+          {!collapsed && (isLoggingOut ? "Signing out…" : "Sign out")}
         </button>
       </div>
     </aside>

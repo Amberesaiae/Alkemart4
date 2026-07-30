@@ -7,11 +7,13 @@ import {
   HomeHowItWorks,
   HomeLastOffers,
 } from "@/components/home"
+import { ProductCard } from "@/components/product-card"
+import { ProductGridShell } from "@/components/product-grid"
 import { PageSeo } from "@/components/page-seo"
 import { Skeleton } from "@/components/skeleton"
 import { getMercurVendorUrl } from "@/lib/env"
 import { trackHomepageViewed } from "@/lib/analytics"
-import { listStoreCategories, listStoreProducts } from "@/lib/products"
+import { fetchFeaturedProducts, listStoreCategories, listStoreProducts } from "@/lib/products"
 import { resolveMosaicCategories } from "@/lib/catalog-nav"
 import {
   absoluteUrl,
@@ -38,6 +40,11 @@ function HomePage() {
     queryKey: ["store", "products", "home", HOME_OFFERS_TARGET],
     queryFn: () => listStoreProducts({ limit: HOME_OFFERS_TARGET }),
     staleTime: 60_000,
+  })
+  const featuredQ = useQuery({
+    queryKey: ["store", "featured-products"],
+    queryFn: () => fetchFeaturedProducts(),
+    staleTime: 120_000,
   })
   const catsQ = useQuery({
     queryKey: ["store", "categories"],
@@ -134,6 +141,18 @@ function HomePage() {
       {mosaic.length > 0 ? (
         <CategoryMosaic categories={mosaic} limit={4} />
       ) : null}
+
+      {featuredQ.data && featuredQ.data.length > 0 ? (
+        <section aria-label="Featured products" className="space-y-4">
+          <h2 className="type-section text-foreground">Featured</h2>
+          <ProductGridShell>
+            {featuredQ.data.map((p) => (
+              <ProductCard key={p.id} product={p} size="tile" />
+            ))}
+          </ProductGridShell>
+        </section>
+      ) : null}
+
       <HomeLastOffers products={featured} loading={loadingOffers} />
       {!loadingOffers && featured.length === 0 && mosaic.length === 0 ? (
         <p className="text-center text-sm text-muted-foreground">

@@ -56,7 +56,7 @@ export async function GET(req: SellerReq, res: MedusaResponse) {
         : readiness.phase === "pending_approval"
           ? 45
           : 30
-    void setCachedSellerReadiness(sellerId, readiness, ttl)
+    void setCachedSellerReadiness(sellerId, readiness, ttl).catch(() => {})
     // Cap client poll interval so banner cannot DDOS Neon
     const poll = Math.max(
       readiness.poll_after_seconds || 0,

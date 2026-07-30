@@ -177,7 +177,7 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
         note: "Paginated product ids from offers; empty page",
         strategy: "light_ids_then_heavy_page",
       }
-      void setCatalogCache(cacheParams, emptyBody)
+      void setCatalogCache(cacheParams, emptyBody).catch(() => {})
       res.status(200).json({ ...emptyBody, cache: "miss" })
       return
     }
@@ -226,7 +226,7 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
       note: "Light id pass + heavy page pass; open sellers; GHS preferred",
       strategy: "light_ids_then_heavy_page",
     }
-    void setCatalogCache(cacheParams, body)
+    void setCatalogCache(cacheParams, body).catch(() => {})
     res.status(200).json({ ...body, cache: "miss" })
   } catch (e) {
     res.status(500).json({

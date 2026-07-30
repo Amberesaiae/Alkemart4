@@ -60,6 +60,7 @@ function LoginPage() {
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 placeholder="you@example.com" 
+                autoComplete="email"
                 required 
               />
             </div>
@@ -67,8 +68,10 @@ function LoginPage() {
               <Label htmlFor="password">Password</Label>
               <PasswordInput 
                 id="password" 
+                name="password"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
+                autoComplete="current-password"
                 required 
               />
             </div>

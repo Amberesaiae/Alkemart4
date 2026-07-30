@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router"
-import { LayoutDashboard, Package, ShoppingBag, Settings, LogOut, Store } from "lucide-react"
+import { LayoutDashboard, Package, ShoppingBag, Settings, LogOut, Store, RefreshCw } from "lucide-react"
 import { useCurrentUser, useLogout } from "../lib/auth"
 import { cn, Button, Avatar, AvatarFallback } from "@workspace/ui"
 
@@ -21,6 +21,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
     { name: "Dashboard", to: "/", icon: LayoutDashboard },
     { name: "Products", to: "/products", icon: Package },
     { name: "Orders", to: "/orders", icon: ShoppingBag },
+    { name: "Returns", to: "/returns", icon: RefreshCw },
     { name: "Settings", to: "/settings", icon: Settings },
   ]
 

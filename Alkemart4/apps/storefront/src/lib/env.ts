@@ -113,6 +113,15 @@ export function isMomoLabEnabled(): boolean {
 }
 
 /**
+ * Card payments at checkout.
+ * Default on — Paystack provider handles card natively.
+ * Set VITE_FEATURE_CARD=0 to hide the card option.
+ */
+export function isCardEnabled(): boolean {
+  return flagEnabled("VITE_FEATURE_CARD", true)
+}
+
+/**
  * Prefer ATC-capable products (offer_id) in browse/home.
  * Default on — set VITE_FILTER_STORE_SELLABLE=false only for lab debugging.
  */

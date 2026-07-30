@@ -1,0 +1,79 @@
+import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
+import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
+import { asList } from "../../../lib/graph-utils"
+import { logger } from "../../../lib/logger"
+
+export async function GET(req: MedusaRequest, res: MedusaResponse) {
+  const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
+
+  try {
+    const { data: products } = await query.graph({
+      entity: "product",
+      fields: [
+        "id",
+        "title",
+        "thumbnail",
+        "metadata",
+        "sale_status",
+        "created_at",
+        "seller.name",
+        "seller.handle",
+      ],
+    })
+
+    const featured = (products as Record<string, unknown>[]).filter((p) => {
+      const meta = p.metadata as Record<string, unknown> | null
+      return meta?.featured === "true"
+    })
+
+    res.json({ products: featured })
+  } catch (e) {
+    res.status(500).json({
+      error: e instanceof Error ? e.message : "Failed to list featured products",
+    })
+  }
+}
+
+export async function POST(req: MedusaRequest, res: MedusaResponse) {
+  const body = (req.body || {}) as Record<string, unknown>
+  const id = String(body.id || "").trim()
+  const featured = String(body.featured || "").trim()
+
+  if (!id) {
+    res.status(400).json({ error: "Product id is required." })
+    return
+  }
+  if (featured !== "true" && featured !== "false") {
+    res.status(400).json({ error: "featured must be 'true' or 'false'." })
+    return
+  }
+
+  try {
+    const query = req.scope.resolve(ContainerRegistrationKeys.QUERY) as {
+      graph: (args: unknown) => Promise<{ data: unknown }>
+    }
+
+    const { data: existing } = await query.graph({
+      entity: "product",
+      fields: ["id"],
+      filters: { id },
+    })
+    if (asList(existing).length === 0) {
+      res.status(404).json({ error: "Product not found." })
+      return
+    }
+
+    const productModule = req.scope.resolve(Modules.PRODUCT) as {
+      updateProducts: (id: string, data: { metadata?: Record<string, string> }) => Promise<unknown>
+    }
+
+    await productModule.updateProducts(id, { metadata: { featured } })
+
+    res.json({ success: true })
+  } catch (e) {
+    logger.error("[admin] featured-products toggle failed", { productId: id, error: e instanceof Error ? e.message : e })
+    res.status(500).json({
+      error: e instanceof Error ? e.message : "Failed to toggle featured status",
+    })
+  }
+}

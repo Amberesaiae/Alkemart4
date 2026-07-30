@@ -30,17 +30,10 @@ export default async function searchSellerSync({
       fields: ["id", "seller.id"],
       filters: { seller: { id: sellerId } },
     })
-    let products = asList(data)
-    // Fallback filter shapes
+    const products = asList(data)
     if (!products.length) {
-      const all = await query.graph({
-        entity: "product",
-        fields: ["id", "seller.id"],
-      })
-      products = asList(all.data).filter((p) => {
-        const s = p.seller as { id?: string } | undefined
-        return s?.id === sellerId
-      })
+      logger.warn("[search] seller sync: no products found for seller", { sellerId })
+      return
     }
 
     const ids = products.map((p) => String(p.id)).filter(Boolean)

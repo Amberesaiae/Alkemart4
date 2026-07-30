@@ -66,6 +66,7 @@ function RegisterPage() {
                   id="first_name" 
                   value={formData.first_name}
                   onChange={e => setFormData({ ...formData, first_name: e.target.value })}
+                  autoComplete="given-name"
                   required 
                 />
               </div>
@@ -75,26 +76,30 @@ function RegisterPage() {
                   id="last_name" 
                   value={formData.last_name}
                   onChange={e => setFormData({ ...formData, last_name: e.target.value })}
+                  autoComplete="family-name"
                   required 
                 />
               </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
-              <Input 
-                id="email" 
-                type="email" 
-                value={formData.email}
-                onChange={e => setFormData({ ...formData, email: e.target.value })}
-                required 
-              />
+                <Input 
+                  id="email" 
+                  type="email" 
+                  value={formData.email}
+                  onChange={e => setFormData({ ...formData, email: e.target.value })}
+                  autoComplete="email"
+                  required 
+                />
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
               <PasswordInput 
                 id="password" 
+                name="password"
                 value={formData.password}
                 onChange={e => setFormData({ ...formData, password: e.target.value })}
+                autoComplete="new-password"
                 required 
               />
             </div>
@@ -102,8 +107,10 @@ function RegisterPage() {
               <Label htmlFor="confirm_password">Confirm Password</Label>
               <PasswordInput 
                 id="confirm_password" 
+                name="confirm_password"
                 value={formData.confirm_password}
                 onChange={e => setFormData({ ...formData, confirm_password: e.target.value })}
+                autoComplete="new-password"
                 required 
               />
               {passwordError && (

@@ -3,6 +3,7 @@
  */
 import { ContainerRegistrationKeys, MedusaError } from "@medusajs/framework/utils"
 import { updateOffersWorkflow } from "@mercurjs/core/workflows"
+import { logger } from "../../lib/logger"
 import {
   assertCanSell,
   evaluateSellerReadiness,
@@ -39,8 +40,8 @@ updateOffersWorkflow.hooks.validate(
         if (row && typeof row === "object" && "seller_id" in row) {
           sellerId = String((row as { seller_id?: string }).seller_id || "")
         }
-      } catch {
-        /* continue */
+      } catch (e) {
+        logger.warn("[validate-offer-update] failed to resolve seller_id from offer", { error: e instanceof Error ? e.message : e })
       }
     }
 

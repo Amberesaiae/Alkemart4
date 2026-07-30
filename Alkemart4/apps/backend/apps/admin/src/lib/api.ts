@@ -47,7 +47,52 @@ export type Market = {
   }
 }
 
-const BASE = import.meta.env.VITE_BACKEND_URL || ""
+// Commission Rate
+export type CommissionRate = {
+  id: string
+  name: string
+  code: string
+  type: "percentage" | "fixed"
+  value: number
+  currency_code?: string
+  include_tax: boolean
+  include_shipping: boolean
+  is_enabled: boolean
+  is_default: boolean
+  created_at: string
+  updated_at: string
+  rules?: Array<{ id: string; reference: string; reference_id: string }>
+}
+
+// Featured Product
+export type FeaturedProduct = {
+  id: string
+  title: string
+  thumbnail?: string
+  metadata?: Record<string, string>
+  sale_status?: string
+  created_at: string
+  seller?: { name: string; handle: string }
+}
+
+// Promotion (Medusa)
+export type AdminPromotion = {
+  id: string
+  code: string
+  type: "standard" | "buyget" | "free_shipping"
+  status: string
+  is_automatic: boolean
+  created_at: string
+  application_method?: {
+    value: number
+    type: "fixed" | "percentage"
+    currency_code?: string
+    max_quantity?: number
+    target_type: "items" | "order" | "shipping"
+  }
+}
+
+const BASE = import.meta.env.VITE_MERCUR_BACKEND_URL || ""
 
 const TOKEN_KEY = "alk:admin_token"
 let _token: string | null = null
@@ -138,7 +183,7 @@ export const platformStats = {
 // Product moderation
 export const moderation = {
   listProducts: () => apiFetch<{ proposed: ProposedProduct[] }>("/admin/alkemart/moderation/products"),
-  confirmProduct: (id: string) => apiFetch(`/admin/products/${id}/confirm`, { method: "POST" }),
+  confirmProduct: (id: string) => apiFetch(`/admin/products/${id}/approve`, { method: "POST" }),
   rejectProduct: (id: string, reason: string) =>
     apiFetch(`/admin/products/${id}/reject`, { method: "POST", body: JSON.stringify({ reason }) }),
   requestChanges: (id: string, reason: string) =>
@@ -167,4 +212,169 @@ export const adminOrders = {
 // Markets
 export const markets = {
   list: () => apiFetch<{ markets: Market[] }>("/admin/alkemart/markets"),
+}
+
+// Commission Rates
+export const commissionRates = {
+  list: (params?: { offset?: number; limit?: number }) => {
+    const sp = new URLSearchParams()
+    if (params?.offset) sp.set("offset", String(params.offset))
+    if (params?.limit) sp.set("limit", String(params.limit))
+    return apiFetch<{ commission_rates: CommissionRate[]; count: number }>(`/admin/commission-rates?${sp}`)
+  },
+  create: (data: { name: string; code: string; type: "percentage" | "fixed"; value: number; is_enabled?: boolean; is_default?: boolean }) =>
+    apiFetch<{ commission_rate: CommissionRate }>("/admin/commission-rates", { method: "POST", body: JSON.stringify(data) }),
+  update: (id: string, data: Partial<CommissionRate>) =>
+    apiFetch<{ commission_rate: CommissionRate }>(`/admin/commission-rates/${id}`, { method: "POST", body: JSON.stringify(data) }),
+  delete: (id: string) => apiFetch(`/admin/commission-rates/${id}`, { method: "DELETE" }),
+}
+
+// Featured Products
+export const featuredProducts = {
+  list: () => apiFetch<{ products: FeaturedProduct[] }>("/admin/featured-products"),
+  toggle: (id: string, featured: string) =>
+    apiFetch("/admin/featured-products", { method: "POST", body: JSON.stringify({ id, featured }) }),
+}
+
+// Products (for listing all products)
+export const adminProducts = {
+  list: (params?: { offset?: number; limit?: number; q?: string }) => {
+    const sp = new URLSearchParams()
+    if (params?.offset) sp.set("offset", String(params.offset))
+    if (params?.limit) sp.set("limit", String(params.limit))
+    if (params?.q) sp.set("q", params.q)
+    return apiFetch<{ products: FeaturedProduct[]; count: number }>(`/admin/products?${sp}`)
+  },
+  update: (id: string, data: { metadata?: Record<string, string> }) =>
+    apiFetch(`/admin/products/${id}`, { method: "POST", body: JSON.stringify(data) }),
+}
+
+// Returns (admin overview)
+export type AdminReturn = {
+  id: string
+  display_id: number
+  order_id: string
+  status: string
+  refund_amount?: number | null
+  items_count?: number
+  created_at: string
+  seller?: { id: string; name: string; handle: string }
+}
+
+export const adminReturns = {
+  list: (params?: { status?: string; limit?: number; offset?: number }) => {
+    const sp = new URLSearchParams()
+    if (params?.status) sp.set("status", params.status)
+    if (params?.limit) sp.set("limit", String(params.limit))
+    if (params?.offset) sp.set("offset", String(params.offset))
+    return apiFetch<{ returns: AdminReturn[]; count: number }>(`/admin/returns?${sp}`)
+  },
+}
+
+// Promotions
+export const adminPromotions = {
+  list: (params?: { offset?: number; limit?: number }) => {
+    const sp = new URLSearchParams()
+    if (params?.offset) sp.set("offset", String(params.offset))
+    if (params?.limit) sp.set("limit", String(params.limit))
+    return apiFetch<{ promotions: AdminPromotion[]; count: number }>(`/admin/promotions?${sp}`)
+  },
+  create: (data: { code: string; type: string; value: number; value_type: "fixed" | "percentage" }) =>
+    apiFetch("/admin/promotions", { method: "POST", body: JSON.stringify(data) }),
+}
+
+// Payout
+export type PayoutStatus = "pending" | "processing" | "paid" | "failed" | "canceled"
+export type AdminPayout = {
+  id: string
+  display_id: number
+  account_id: string
+  amount: number
+  currency_code: string
+  status: PayoutStatus
+  data: Record<string, unknown> | null
+  created_at: string
+  updated_at: string
+}
+
+export const adminPayouts = {
+  list: (params?: { limit?: number; offset?: number }) => {
+    const sp = new URLSearchParams()
+    if (params?.limit) sp.set("limit", String(params.limit))
+    if (params?.offset) sp.set("offset", String(params.offset))
+    return apiFetch<{ payouts: AdminPayout[]; count: number }>(`/admin/payouts?${sp}`)
+  },
+  retrieve: (id: string) =>
+    apiFetch<{ payout: AdminPayout }>(`/admin/payouts/${id}`),
+}
+
+// Seller detail
+export type AdminSeller = {
+  id: string
+  name: string
+  handle: string
+  email: string
+  phone: string | null
+  description: string | null
+  logo: string | null
+  banner: string | null
+  status: string
+  status_reason: string | null
+  approved_at: string | null
+  created_at: string
+  updated_at: string
+  address: {
+    address_1: string | null
+    address_2: string | null
+    city: string | null
+    country_code: string | null
+    province: string | null
+    postal_code: string | null
+  } | null
+  members: Array<{
+    id: string
+    is_owner: boolean
+    member: {
+      id: string
+      email: string
+      first_name: string
+      last_name: string
+    }
+  }>
+}
+
+export const adminSellers = {
+  retrieve: (id: string) =>
+    apiFetch<{ seller: AdminSeller }>(`/admin/sellers/${id}`),
+}
+
+// Order detail
+export type AdminOrderItem = {
+  id: string
+  title: string
+  quantity: number
+  unit_price: number
+  thumbnail: string | null
+  variant_title: string | null
+}
+
+export type AdminOrderDetail = AdminOrder & {
+  items: AdminOrderItem[]
+  shipping_address: {
+    first_name: string | null
+    last_name: string | null
+    phone: string | null
+    address_1: string | null
+    address_2: string | null
+    city: string | null
+    country_code: string | null
+    province: string | null
+    postal_code: string | null
+  } | null
+  email: string | null
+}
+
+export const adminOrderDetail = {
+  retrieve: (id: string) =>
+    apiFetch<{ order: AdminOrderDetail }>(`/admin/orders/${id}`),
 }

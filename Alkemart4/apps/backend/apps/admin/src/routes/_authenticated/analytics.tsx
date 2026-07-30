@@ -6,7 +6,6 @@ import { PageShell } from "../../components/page-shell"
 import { PageHeader } from "../../components/page-header"
 import { ShoppingCart, DollarSign, Store, Package } from "lucide-react"
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
-import { t } from "../../lib/t"
 import { currencySymbol } from "../../lib/config"
 
 export const Route = createFileRoute("/_authenticated/analytics")({
@@ -52,7 +51,7 @@ function AnalyticsPage() {
     return (
       <PageShell>
         <div className="bg-destructive/10 text-destructive p-4 rounded-md">
-          {t("analytics.failed", "Failed to load platform stats.")}
+          Failed to load platform stats.
         </div>
       </PageShell>
     )
@@ -61,26 +60,26 @@ function AnalyticsPage() {
   return (
     <PageShell>
       <div className="flex items-end justify-between">
-        <PageHeader title={t("analytics.title", "Platform Analytics")} description={t("analytics.description", "Live marketplace totals — orders, sales value, sellers, and catalog.")} />
+        <PageHeader title="Platform Analytics" description="Live marketplace totals — orders, sales value, sellers, and catalog." />
         {dataUpdatedAt != null && (
           <div className="flex items-center gap-2 text-xs text-muted-foreground whitespace-nowrap pb-1">
             <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-500" />
-            {t("analytics.lastUpdated", "Last updated")}: {Math.round((Date.now() - dataUpdatedAt) / 60000)}{t("analytics.minAgo", "m ago")}
+            Last updated: {Math.round((Date.now() - dataUpdatedAt) / 60000)}m ago
           </div>
         )}
       </div>
-      {isFetching && <div className="text-xs text-muted-foreground text-right -mt-2 mb-2">{t("analytics.refreshing", "Refreshing…")}</div>}
+      {isFetching && <div className="text-xs text-muted-foreground text-right -mt-2 mb-2">Refreshing…</div>}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard title={t("analytics.totalOrders", "Total Orders")} value={(stats.total_orders ?? 0).toLocaleString()} icon={ShoppingCart} />
-        <StatCard title={t("analytics.totalGmv", "Total GMV")} value={`${currencySymbol}${(stats.total_gmv_ghs ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`} icon={DollarSign} />
-        <StatCard title={t("analytics.activeSellers", "Active Sellers")} value={(stats.active_sellers ?? 0).toLocaleString()} icon={Store} />
-        <StatCard title={t("analytics.catalogSize", "Catalog Size")} value={(stats.catalog_size ?? 0).toLocaleString()} icon={Package} />
+        <StatCard title="Total Orders" value={(stats.total_orders ?? 0).toLocaleString()} icon={ShoppingCart} />
+        <StatCard title="Total GMV" value={`${currencySymbol}${(stats.total_gmv_ghs ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`} icon={DollarSign} />
+        <StatCard title="Active Sellers" value={(stats.active_sellers ?? 0).toLocaleString()} icon={Store} />
+        <StatCard title="Catalog Size" value={(stats.catalog_size ?? 0).toLocaleString()} icon={Package} />
       </div>
 
       <Card className="overflow-hidden">
         <CardHeader>
-          <CardTitle>{t("analytics.revenue", "Revenue (Last 30 Days)")}</CardTitle>
+          <CardTitle>Revenue (Last 30 Days)</CardTitle>
         </CardHeader>
         <CardContent>
           {stats.gmv_last_30_days && stats.gmv_last_30_days.length > 0 ? (
@@ -120,7 +119,7 @@ function AnalyticsPage() {
             </div>
           ) : (
             <div className="h-[400px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-md border border-dashed mt-4">
-              {t("analytics.noRevenue", "No revenue data available for the last 30 days")}
+              No revenue data available for the last 30 days
             </div>
           )}
         </CardContent>

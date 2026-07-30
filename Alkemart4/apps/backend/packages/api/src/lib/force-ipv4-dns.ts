@@ -11,3 +11,23 @@ try {
 } catch {
   /* older node */
 }
+
+process.on("unhandledRejection", (reason) => {
+  console.error(JSON.stringify({
+    level: "error",
+    message: "UNHANDLED_REJECTION",
+    reason: reason instanceof Error ? reason.message : String(reason),
+    stack: reason instanceof Error ? reason.stack : undefined,
+    timestamp: new Date().toISOString(),
+  }))
+})
+
+process.on("uncaughtException", (error) => {
+  console.error(JSON.stringify({
+    level: "error",
+    message: "UNCAUGHT_EXCEPTION",
+    reason: error.message,
+    stack: error.stack,
+    timestamp: new Date().toISOString(),
+  }))
+})

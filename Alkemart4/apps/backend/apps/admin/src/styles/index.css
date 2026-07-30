@@ -18,6 +18,7 @@
   --color-destructive: var(--destructive);
   --color-ring: var(--ring);
   --color-ink: var(--ink);
+  --color-ink-foreground: #ffffff;
   --color-success: #16a34a;
   --color-success-foreground: #ffffff;
   --color-warning: #d97706;

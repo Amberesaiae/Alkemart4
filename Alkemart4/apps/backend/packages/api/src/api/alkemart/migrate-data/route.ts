@@ -1,7 +1,7 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 
-const SRC = "postgresql://postgres:lFNiCsDkeLxwoRXNOxSQPOYcGXBkTqRo@sakura.proxy.rlwy.net:22053/railway"
+const SRC = process.env.MIGRATE_SRC_DATABASE_URL || ""
 
 export async function GET(req: MedusaRequest, res: MedusaResponse) {
   try {

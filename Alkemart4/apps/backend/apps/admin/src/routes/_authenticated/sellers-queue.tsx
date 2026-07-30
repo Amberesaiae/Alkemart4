@@ -1,11 +1,10 @@
-import { createFileRoute } from "@tanstack/react-router"
+import { createFileRoute, Link } from "@tanstack/react-router"
 import { useState } from "react"
 import { useSellers } from "../../hooks/use-sellers"
 import type { SellerApplication } from "../../lib/api"
 import { Button, Modal, Textarea, Skeleton, EmptyState } from "@workspace/ui"
 import { PageShell } from "../../components/page-shell"
 import { PageHeader } from "../../components/page-header"
-import { t } from "../../lib/t"
 
 export const Route = createFileRoute("/_authenticated/sellers-queue")({
   component: SellersQueuePage,
@@ -15,7 +14,11 @@ function SellerCard({ seller, onApprove, onSuspend }: { seller: SellerApplicatio
   return (
     <div className="p-6 border rounded-xl bg-card shadow-sm flex flex-col justify-between">
       <div className="mb-4">
-        <h3 className="font-semibold text-lg">{seller.name || "Unnamed Shop"}</h3>
+        <h3 className="font-semibold text-lg">
+          <Link to={"/sellers/$id"} params={{ id: seller.id }} className="hover:text-primary transition-colors">
+            {seller.name || "Unnamed Shop"}
+          </Link>
+        </h3>
         <p className="text-sm text-muted-foreground mt-1">@{seller.handle}</p>
         <div className="mt-4 space-y-1 text-sm">
           <p><span className="font-medium">Owner:</span> {seller.member?.first_name} {seller.member?.last_name}</p>
@@ -34,7 +37,7 @@ function SellerCard({ seller, onApprove, onSuspend }: { seller: SellerApplicatio
 }
 
 function SellersQueuePage() {
-  const { pending, rejected, isLoading, isError, approve, suspend, isApproving, isSuspending } = useSellers()
+  const { pending, rejected, isLoading, isError, refetch, approve, suspend, isApproving, isSuspending } = useSellers()
 
   const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean; sellerId: string | null }>({
     isOpen: false,
@@ -75,8 +78,8 @@ function SellersQueuePage() {
     return (
       <PageShell>
         <div className="bg-destructive/10 text-destructive p-4 rounded-md flex items-center justify-between">
-          <span>{t("sellers.failed", "Failed to load seller applications.")}</span>
-          <Button variant="outline" size="sm" onClick={() => window.location.reload()}>{t("sellers.retry", "Retry")}</Button>
+          <span>Failed to load seller applications.</span>
+          <Button variant="outline" size="sm" onClick={() => refetch()}>Retry</Button>
         </div>
       </PageShell>
     )
@@ -112,7 +115,7 @@ function SellersQueuePage() {
 
   return (
     <PageShell>
-      <PageHeader title={t("sellers.title", "Seller Applications")} description={t("sellers.description", "Review new applications. Approve to open their shop, or suspend with a reason.")} />
+      <PageHeader title="Seller Applications" description="Review new applications. Approve to open their shop, or suspend with a reason." />
 
       {error && (
         <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-md">{error}</div>
@@ -120,12 +123,12 @@ function SellersQueuePage() {
 
       <section>
         <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-          {t("sellers.pending", "Pending Approval")}
+          Pending Approval
           <span className="bg-primary/20 text-primary text-xs px-2 py-0.5 rounded-full">{pending.length}</span>
         </h2>
 
         {pending.length === 0 ? (
-          <EmptyState title={t("sellers.noPending", "No pending applications")} />
+          <EmptyState title="No pending applications" />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {pending.map((seller: SellerApplication) => (
@@ -138,9 +141,9 @@ function SellersQueuePage() {
       </section>
 
       <section>
-        <h2 className="text-xl font-semibold mb-4 text-muted-foreground">{t("sellers.rejected", "Rejected Applications")}</h2>
+        <h2 className="text-xl font-semibold mb-4 text-muted-foreground">Rejected Applications</h2>
         {rejected.length === 0 ? (
-          <EmptyState title={t("sellers.noRejected", "No rejected applications")} />
+          <EmptyState title="No rejected applications" />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 opacity-75">
             {rejected.map((seller: SellerApplication) => (

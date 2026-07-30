@@ -30,8 +30,11 @@ import { Route as ShopsSlugRouteImport } from './routes/shops.$slug'
 import { Route as ProductIdRouteImport } from './routes/product.$id'
 import { Route as OrderIdRouteImport } from './routes/order.$id'
 import { Route as CheckoutPendingRouteImport } from './routes/checkout.pending'
+import { Route as CheckoutCardCallbackRouteImport } from './routes/checkout.card-callback'
 import { Route as CategoriesSlugRouteImport } from './routes/categories.$slug'
 import { Route as BrowseSlugRouteImport } from './routes/browse.$slug'
+import { Route as AccountWishlistRouteImport } from './routes/account.wishlist'
+import { Route as OrderIdReturnRouteImport } from './routes/order.$id.return'
 
 const SigninRoute = SigninRouteImport.update({
   id: '/signin',
@@ -138,6 +141,11 @@ const CheckoutPendingRoute = CheckoutPendingRouteImport.update({
   path: '/pending',
   getParentRoute: () => CheckoutRoute,
 } as any)
+const CheckoutCardCallbackRoute = CheckoutCardCallbackRouteImport.update({
+  id: '/card-callback',
+  path: '/card-callback',
+  getParentRoute: () => CheckoutRoute,
+} as any)
 const CategoriesSlugRoute = CategoriesSlugRouteImport.update({
   id: '/categories/$slug',
   path: '/categories/$slug',
@@ -148,11 +156,21 @@ const BrowseSlugRoute = BrowseSlugRouteImport.update({
   path: '/browse/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AccountWishlistRoute = AccountWishlistRouteImport.update({
+  id: '/wishlist',
+  path: '/wishlist',
+  getParentRoute: () => AccountRoute,
+} as any)
+const OrderIdReturnRoute = OrderIdReturnRouteImport.update({
+  id: '/return',
+  path: '/return',
+  getParentRoute: () => OrderIdRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
-  '/account': typeof AccountRoute
+  '/account': typeof AccountRouteWithChildren
   '/cart': typeof CartRoute
   '/checkout': typeof CheckoutRouteWithChildren
   '/contact': typeof ContactRoute
@@ -166,18 +184,21 @@ export interface FileRoutesByFullPath {
   '/sellers': typeof SellersRoute
   '/shops': typeof ShopsRouteWithChildren
   '/signin': typeof SigninRoute
+  '/account/wishlist': typeof AccountWishlistRoute
   '/browse/$slug': typeof BrowseSlugRoute
   '/categories/$slug': typeof CategoriesSlugRoute
+  '/checkout/card-callback': typeof CheckoutCardCallbackRoute
   '/checkout/pending': typeof CheckoutPendingRoute
-  '/order/$id': typeof OrderIdRoute
+  '/order/$id': typeof OrderIdRouteWithChildren
   '/product/$id': typeof ProductIdRoute
   '/shops/$slug': typeof ShopsSlugRoute
   '/store/$slug': typeof StoreSlugRoute
+  '/order/$id/return': typeof OrderIdReturnRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
-  '/account': typeof AccountRoute
+  '/account': typeof AccountRouteWithChildren
   '/cart': typeof CartRoute
   '/checkout': typeof CheckoutRouteWithChildren
   '/contact': typeof ContactRoute
@@ -191,19 +212,22 @@ export interface FileRoutesByTo {
   '/sellers': typeof SellersRoute
   '/shops': typeof ShopsRouteWithChildren
   '/signin': typeof SigninRoute
+  '/account/wishlist': typeof AccountWishlistRoute
   '/browse/$slug': typeof BrowseSlugRoute
   '/categories/$slug': typeof CategoriesSlugRoute
+  '/checkout/card-callback': typeof CheckoutCardCallbackRoute
   '/checkout/pending': typeof CheckoutPendingRoute
-  '/order/$id': typeof OrderIdRoute
+  '/order/$id': typeof OrderIdRouteWithChildren
   '/product/$id': typeof ProductIdRoute
   '/shops/$slug': typeof ShopsSlugRoute
   '/store/$slug': typeof StoreSlugRoute
+  '/order/$id/return': typeof OrderIdReturnRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
-  '/account': typeof AccountRoute
+  '/account': typeof AccountRouteWithChildren
   '/cart': typeof CartRoute
   '/checkout': typeof CheckoutRouteWithChildren
   '/contact': typeof ContactRoute
@@ -217,13 +241,16 @@ export interface FileRoutesById {
   '/sellers': typeof SellersRoute
   '/shops': typeof ShopsRouteWithChildren
   '/signin': typeof SigninRoute
+  '/account/wishlist': typeof AccountWishlistRoute
   '/browse/$slug': typeof BrowseSlugRoute
   '/categories/$slug': typeof CategoriesSlugRoute
+  '/checkout/card-callback': typeof CheckoutCardCallbackRoute
   '/checkout/pending': typeof CheckoutPendingRoute
-  '/order/$id': typeof OrderIdRoute
+  '/order/$id': typeof OrderIdRouteWithChildren
   '/product/$id': typeof ProductIdRoute
   '/shops/$slug': typeof ShopsSlugRoute
   '/store/$slug': typeof StoreSlugRoute
+  '/order/$id/return': typeof OrderIdReturnRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -244,13 +271,16 @@ export interface FileRouteTypes {
     | '/sellers'
     | '/shops'
     | '/signin'
+    | '/account/wishlist'
     | '/browse/$slug'
     | '/categories/$slug'
+    | '/checkout/card-callback'
     | '/checkout/pending'
     | '/order/$id'
     | '/product/$id'
     | '/shops/$slug'
     | '/store/$slug'
+    | '/order/$id/return'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -269,13 +299,16 @@ export interface FileRouteTypes {
     | '/sellers'
     | '/shops'
     | '/signin'
+    | '/account/wishlist'
     | '/browse/$slug'
     | '/categories/$slug'
+    | '/checkout/card-callback'
     | '/checkout/pending'
     | '/order/$id'
     | '/product/$id'
     | '/shops/$slug'
     | '/store/$slug'
+    | '/order/$id/return'
   id:
     | '__root__'
     | '/'
@@ -294,19 +327,22 @@ export interface FileRouteTypes {
     | '/sellers'
     | '/shops'
     | '/signin'
+    | '/account/wishlist'
     | '/browse/$slug'
     | '/categories/$slug'
+    | '/checkout/card-callback'
     | '/checkout/pending'
     | '/order/$id'
     | '/product/$id'
     | '/shops/$slug'
     | '/store/$slug'
+    | '/order/$id/return'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
-  AccountRoute: typeof AccountRoute
+  AccountRoute: typeof AccountRouteWithChildren
   CartRoute: typeof CartRoute
   CheckoutRoute: typeof CheckoutRouteWithChildren
   ContactRoute: typeof ContactRoute
@@ -322,7 +358,7 @@ export interface RootRouteChildren {
   SigninRoute: typeof SigninRoute
   BrowseSlugRoute: typeof BrowseSlugRoute
   CategoriesSlugRoute: typeof CategoriesSlugRoute
-  OrderIdRoute: typeof OrderIdRoute
+  OrderIdRoute: typeof OrderIdRouteWithChildren
   ProductIdRoute: typeof ProductIdRoute
   StoreSlugRoute: typeof StoreSlugRoute
 }
@@ -476,6 +512,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CheckoutPendingRouteImport
       parentRoute: typeof CheckoutRoute
     }
+    '/checkout/card-callback': {
+      id: '/checkout/card-callback'
+      path: '/card-callback'
+      fullPath: '/checkout/card-callback'
+      preLoaderRoute: typeof CheckoutCardCallbackRouteImport
+      parentRoute: typeof CheckoutRoute
+    }
     '/categories/$slug': {
       id: '/categories/$slug'
       path: '/categories/$slug'
@@ -490,14 +533,41 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BrowseSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/account/wishlist': {
+      id: '/account/wishlist'
+      path: '/wishlist'
+      fullPath: '/account/wishlist'
+      preLoaderRoute: typeof AccountWishlistRouteImport
+      parentRoute: typeof AccountRoute
+    }
+    '/order/$id/return': {
+      id: '/order/$id/return'
+      path: '/return'
+      fullPath: '/order/$id/return'
+      preLoaderRoute: typeof OrderIdReturnRouteImport
+      parentRoute: typeof OrderIdRoute
+    }
   }
 }
 
+interface AccountRouteChildren {
+  AccountWishlistRoute: typeof AccountWishlistRoute
+}
+
+const AccountRouteChildren: AccountRouteChildren = {
+  AccountWishlistRoute: AccountWishlistRoute,
+}
+
+const AccountRouteWithChildren =
+  AccountRoute._addFileChildren(AccountRouteChildren)
+
 interface CheckoutRouteChildren {
+  CheckoutCardCallbackRoute: typeof CheckoutCardCallbackRoute
   CheckoutPendingRoute: typeof CheckoutPendingRoute
 }
 
 const CheckoutRouteChildren: CheckoutRouteChildren = {
+  CheckoutCardCallbackRoute: CheckoutCardCallbackRoute,
   CheckoutPendingRoute: CheckoutPendingRoute,
 }
 
@@ -515,10 +585,21 @@ const ShopsRouteChildren: ShopsRouteChildren = {
 
 const ShopsRouteWithChildren = ShopsRoute._addFileChildren(ShopsRouteChildren)
 
+interface OrderIdRouteChildren {
+  OrderIdReturnRoute: typeof OrderIdReturnRoute
+}
+
+const OrderIdRouteChildren: OrderIdRouteChildren = {
+  OrderIdReturnRoute: OrderIdReturnRoute,
+}
+
+const OrderIdRouteWithChildren =
+  OrderIdRoute._addFileChildren(OrderIdRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
-  AccountRoute: AccountRoute,
+  AccountRoute: AccountRouteWithChildren,
   CartRoute: CartRoute,
   CheckoutRoute: CheckoutRouteWithChildren,
   ContactRoute: ContactRoute,
@@ -534,7 +615,7 @@ const rootRouteChildren: RootRouteChildren = {
   SigninRoute: SigninRoute,
   BrowseSlugRoute: BrowseSlugRoute,
   CategoriesSlugRoute: CategoriesSlugRoute,
-  OrderIdRoute: OrderIdRoute,
+  OrderIdRoute: OrderIdRouteWithChildren,
   ProductIdRoute: ProductIdRoute,
   StoreSlugRoute: StoreSlugRoute,
 }

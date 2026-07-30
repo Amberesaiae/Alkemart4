@@ -2,7 +2,8 @@
   "$schema": "https://registry.mercurjs.com/registry.json",
   "aliases": {
     "api": "packages/api/src",
-    "admin": "apps/admin/src"
+    "admin": "apps/admin/src",
+    "vendor": "apps/ghana-vendor/src"
   },
   "registries": {}
 }

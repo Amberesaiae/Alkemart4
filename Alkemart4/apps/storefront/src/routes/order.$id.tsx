@@ -450,6 +450,21 @@ function OrderDetailPage() {
               <Link to="/orders">Your orders</Link>
             </Button>
           </div>
+
+          {data.fulfillmentStatus === "delivered" || data.fulfillmentStatus === "fulfilled" ? (
+            <div className="text-center">
+              <Button
+                asChild
+                size="lg"
+                variant="outline"
+                className="rounded-xl border-destructive/40 text-destructive hover:bg-destructive/10"
+              >
+                <Link to="/order/$id/return" params={{ id: data.id }}>
+                  Request Return
+                </Link>
+              </Button>
+            </div>
+          ) : null}
         </>
       ) : null}
     </div>

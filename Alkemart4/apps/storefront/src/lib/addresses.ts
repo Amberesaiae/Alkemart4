@@ -51,7 +51,7 @@ export async function listMyAddresses(): Promise<CustomerAddress[]> {
   } as never)
 
   const list =
-    ((customer as { addresses?: Record<string, unknown>[] }).addresses ??
+    ((customer as unknown as { addresses?: Record<string, unknown>[] }).addresses ??
       []) as Record<string, unknown>[]
   return list.map(mapAddress)
 }

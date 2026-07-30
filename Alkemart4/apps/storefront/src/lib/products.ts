@@ -531,15 +531,35 @@ export async function listRelatedProducts(opts: {
 }
 
 /** Categories from store API — empty array is valid (section should hide). */
+/**
+ * Fetch featured products from the storefront API.
+ */
+export async function fetchFeaturedProducts(): Promise<StoreProductCard[]> {
+  try {
+    const base = getBackendUrl()
+    const pk = getPublishableKey()
+    const res = await fetch(`${base}/store/featured-products`, {
+      headers: {
+        Accept: "application/json",
+        "x-publishable-api-key": pk,
+      },
+    })
+    if (!res.ok) return []
+    const data = (await res.json()) as { products?: ProductSlice[] }
+    const raw = (data.products ?? []) as ProductSlice[]
+    return raw.map((p) => mapProduct(p))
+  } catch {
+    return []
+  }
+}
+
 export async function listStoreCategories(): Promise<StoreCategory[]> {
   const sdk = getMedusaClient()
   try {
     const res = await sdk.store.category.list({ limit: 50 })
-    const cats = (res.product_categories ?? res.categories ?? []) as {
-      id: string
-      name?: string
-      handle?: string
-    }[]
+    const cats = (res as unknown as {
+      product_categories: { id: string; name?: string; handle?: string }[]
+    }).product_categories ?? []
     return cats
       .filter((c) => c?.id && c?.name)
       .map((c) => ({

@@ -222,6 +222,7 @@ export type Product = {
   status?: ProductStatus | null
   thumbnail?: string | null
   description?: string | null
+  metadata?: Record<string, unknown> | null
   categories?: { id: string; name?: string | null }[]
   images?: { url: string }[]
   variants?: ProductVariant[]
@@ -658,6 +659,107 @@ export const orders = {
     post<{ fulfillment: Fulfillment }>(
       `/vendor/orders/${orderId}/fulfillments/${fulfillmentId}/mark-as-delivered`,
     ),
+}
+
+// ---------------------------------------------------------------------------
+// Vendor — Returns & Refunds
+// ---------------------------------------------------------------------------
+
+export type ReturnItem = {
+  id: string
+  item_id: string
+  quantity: number
+  received_quantity: number
+  damaged_quantity: number
+  reason_id?: string | null
+  note?: string | null
+  metadata?: Record<string, unknown>
+}
+
+export type ReturnStatus =
+  | "open"
+  | "requested"
+  | "received"
+  | "partially_received"
+  | "canceled"
+
+export type Return = {
+  id: string
+  order_id: string
+  status: ReturnStatus
+  display_id: number
+  refund_amount?: number | null
+  items: ReturnItem[]
+  created_at: string
+  updated_at?: string
+  received_at?: string | null
+  canceled_at?: string | null
+  requested_at?: string | null
+}
+
+export type ReturnReason = {
+  id: string
+  label: string
+  description?: string | null
+}
+
+export const returns = {
+  /**
+   * GET /vendor/returns — Returns for this seller's orders.
+   */
+  list: (params?: { limit?: number; offset?: number; status?: string; order_id?: string }) =>
+    get<{ returns: Return[]; count: number; limit: number; offset: number }>(
+      "/vendor/returns",
+      params,
+    ),
+
+  /**
+   * GET /vendor/returns/:id — Single return detail.
+   */
+  get: (id: string) =>
+    get<{ return: Return }>(`/vendor/returns/${id}`),
+
+  /**
+   * POST /vendor/returns/:id/receive-items — Record items as received.
+   */
+  receiveItems: (
+    returnId: string,
+    input: { items: { id: string; quantity: number; description?: string }[] },
+  ) =>
+    post<{ return: Return }>(`/vendor/returns/${returnId}/receive-items`, input),
+
+  /**
+   * POST /vendor/returns/:id/receive — Confirm receipt of the return.
+   */
+  confirmReceive: (
+    returnId: string,
+    input?: { internal_note?: string; description?: string; metadata?: Record<string, unknown> },
+  ) =>
+    post<{ return: Return }>(`/vendor/returns/${returnId}/receive`, input),
+
+  /**
+   * POST /vendor/returns/:id/dismiss-items — Reject / dismiss items from return.
+   */
+  dismissItems: (
+    returnId: string,
+    input: { items: { id: string; quantity: number; internal_note?: string }[] },
+  ) =>
+    post<{ return: Return }>(`/vendor/returns/${returnId}/dismiss-items`, input),
+
+  /**
+   * POST /vendor/payments/:id/refund — Refund a payment.
+   */
+  refund: (paymentId: string, input: { amount?: number }) =>
+    post<{ refund: { id: string; amount: number } }>(
+      `/vendor/payments/${paymentId}/refund`,
+      input,
+    ),
+
+  /**
+   * GET /vendor/return-reasons — List return reasons.
+   */
+  reasons: () =>
+    get<{ return_reasons: ReturnReason[] }>("/vendor/return-reasons"),
 }
 
 // ---------------------------------------------------------------------------

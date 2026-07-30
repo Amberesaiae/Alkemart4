@@ -124,12 +124,6 @@ export async function POST(req: SellerReq, res: MedusaResponse) {
       res.status(400).json({ error: "Product is already published" })
       return
     }
-    if (status === "rejected") {
-      res.status(400).json({
-        error: "Product was rejected. Create a new listing.",
-      })
-      return
-    }
 
     // Quality is advisory — never blocks
     const quality = scoreProductQuality({
@@ -146,6 +140,7 @@ export async function POST(req: SellerReq, res: MedusaResponse) {
         ? { ...(meta.alkemart as Record<string, unknown>) }
         : {}
     alk.quality = qualityMetadataSnapshot(quality)
+    delete alk.moderation
 
     const productModule = req.scope.resolve(Modules.PRODUCT) as {
       updateProducts: (

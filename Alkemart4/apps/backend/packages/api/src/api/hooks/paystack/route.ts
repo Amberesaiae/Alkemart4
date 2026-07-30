@@ -116,7 +116,8 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
   if (eventId && typeof eventId === "string") {
     if (await isDuplicate(eventId)) {
       logger.info("[paystack-webhook] duplicate event — skipping", { eventId })
-      return Response.json({ status: "duplicate" })
+      res.status(200).json({ status: "duplicate" })
+      return
     }
   }
 

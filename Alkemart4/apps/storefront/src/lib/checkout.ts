@@ -40,7 +40,14 @@ export type MomoPendingResult = {
   provider_status?: string
 }
 
-export type GhanaCheckoutResult = CodCheckoutResult | MomoPendingResult
+export type CardCheckoutResult = {
+  status: "card_redirect"
+  cart_id: string
+  authorization_url: string
+  reference?: string
+}
+
+export type GhanaCheckoutResult = CodCheckoutResult | MomoPendingResult | CardCheckoutResult
 
 export type MomoProvider = "mtn" | "vodafone" | "airteltigo"
 
@@ -163,14 +170,16 @@ export async function placeCodOrder(input: {
 }
 
 /**
- * COD or lab MoMo via /store/ghana-checkout.
+ * COD, MoMo, or Card via /store/ghana-checkout.
  * MoMo may return payment_pending (202) until USSD/pay-offline confirms.
+ * Card returns card_redirect with authorization_url for Paystack redirect.
  */
 export async function placeGhanaOrder(input: {
   address: CheckoutAddress
   email: string
-  paymentMethod: "cod" | "momo"
+  paymentMethod: "cod" | "momo" | "card"
   momoProvider?: MomoProvider
+  callbackUrl?: string
 }): Promise<GhanaCheckoutResult> {
   const cartId = await prepareCartForCod(input)
   const cart = await retrieveCart(cartId)
@@ -202,6 +211,9 @@ export async function placeGhanaOrder(input: {
     }
     body.momo_provider = input.momoProvider
   }
+  if (input.callbackUrl) {
+    body.callback_url = input.callbackUrl
+  }
 
   const res = await fetch(`${base}/store/ghana-checkout`, {
     method: "POST",
@@ -219,8 +231,19 @@ export async function placeGhanaOrder(input: {
     expires_at?: string
     amount_pesewas?: number
     provider_status?: string
+    authorization_url?: string
+    reference?: string
     error?: string
     message?: string
+  }
+
+  if (data.status === "card_redirect" && data.authorization_url) {
+    return {
+      status: "card_redirect",
+      cart_id: data.cart_id ?? cartId,
+      authorization_url: data.authorization_url,
+      reference: data.reference,
+    }
   }
 
   if (res.status === 202 || data.status === "payment_pending") {
@@ -251,7 +274,7 @@ export async function placeGhanaOrder(input: {
   }
 }
 
-/** Poll MoMo pending cart until completed/failed. */
+/** Poll pending cart until completed/failed (works for MoMo and card). */
 export async function pollMomoCheckoutStatus(
   cartId: string,
 ): Promise<GhanaCheckoutResult | { status: "failed" | "idle"; message?: string; cart_id: string }> {

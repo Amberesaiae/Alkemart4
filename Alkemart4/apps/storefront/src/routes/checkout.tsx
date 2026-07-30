@@ -35,7 +35,7 @@ import {
   type MarketAddressValues,
 } from "@/components/market-address-fields"
 import { cn } from "@/lib/utils"
-import { isMomoLabEnabled } from "@/lib/env"
+import { isCardEnabled, isMomoLabEnabled } from "@/lib/env"
 
 function CheckoutErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   return (
@@ -146,7 +146,8 @@ function CheckoutPage() {
   const [country, setCountry] = useState("")
   const [postal, setPostal] = useState("")
   const momoLab = isMomoLabEnabled()
-  const [payMethod, setPayMethod] = useState<"cod" | "momo">("cod")
+  const cardEnabled = isCardEnabled()
+  const [payMethod, setPayMethod] = useState<"cod" | "momo" | "card">("cod")
   const [momoProvider, setMomoProvider] = useState<MomoProvider>("mtn")
 
   const setters = {
@@ -230,10 +231,32 @@ function CheckoutPage() {
         email: effectiveEmail,
         paymentMethod: payMethod,
         momoProvider: payMethod === "momo" ? momoProvider : undefined,
+        callbackUrl:
+          payMethod === "card"
+            ? `${window.location.origin}/checkout/card-callback`
+            : undefined,
       })
     },
     onSuccess: (result) => {
       const cart = cartQ.data
+      if (result.status === "card_redirect") {
+        try {
+          sessionStorage.setItem(
+            "alkemart.storefront.card_cart_id",
+            result.cart_id,
+          )
+          if (effectiveEmail) {
+            sessionStorage.setItem(
+              "alkemart.storefront.order_lookup_email",
+              effectiveEmail,
+            )
+          }
+        } catch {
+          /* private mode */
+        }
+        window.location.href = result.authorization_url
+        return
+      }
       if (result.status === "payment_pending") {
         try {
           if (effectiveEmail) {
@@ -314,9 +337,11 @@ function CheckoutPage() {
           Checkout
         </h1>
         <p className="text-sm text-muted-foreground">
-          {payMethod === "momo" && momoLab
-            ? "Mobile Money — approve the payment prompt on your phone."
-            : "Cash on delivery. Delivery options are confirmed when you place the order."}
+          {payMethod === "card"
+            ? "Card — you will be redirected to Paystack to complete payment."
+            : payMethod === "momo" && momoLab
+              ? "Mobile Money — approve the payment prompt on your phone."
+              : "Cash on delivery. Delivery options are confirmed when you place the order."}
         </p>
       </header>
 
@@ -586,6 +611,32 @@ function CheckoutPage() {
                     </span>
                   </span>
                 </label>
+                {cardEnabled ? (
+                  <label
+                    className={cn(
+                      "flex cursor-pointer items-start gap-3 rounded-xl border p-3",
+                      payMethod === "card"
+                        ? "border-primary bg-primary/10"
+                        : "border-border",
+                    )}
+                  >
+                    <input
+                      type="radio"
+                      name="pay"
+                      checked={payMethod === "card"}
+                      onChange={() => setPayMethod("card")}
+                      className="mt-1"
+                    />
+                    <span>
+                      <span className="font-semibold text-foreground">
+                        Credit or Debit Card
+                      </span>
+                      <span className="mt-0.5 block text-muted-foreground">
+                        Pay securely with your card via Paystack.
+                      </span>
+                    </span>
+                  </label>
+                ) : null}
                 {momoLab ? (
                   <>
                     <label
@@ -646,10 +697,14 @@ function CheckoutPage() {
                 {place.isPending
                   ? payMethod === "momo"
                     ? "Starting MoMo…"
-                    : "Placing order…"
+                    : payMethod === "card"
+                      ? "Redirecting to Paystack…"
+                      : "Placing order…"
                   : payMethod === "momo"
                     ? "Pay with Mobile Money"
-                    : "Confirm order"}
+                    : payMethod === "card"
+                      ? "Pay with Card"
+                      : "Confirm order"}
               </Button>
             </form>
           </div>
@@ -717,7 +772,9 @@ function CheckoutPage() {
               ? "…"
               : payMethod === "momo"
                 ? "Pay with MoMo"
-                : "Place order"}
+                : payMethod === "card"
+                  ? "Pay with Card"
+                  : "Place order"}
           </Button>
         </BottomBar>
       ) : null}

@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { moderation } from "../lib/api"
+import { toast } from "sonner"
 
 export function useProducts() {
   const queryClient = useQueryClient()
@@ -13,9 +14,10 @@ export function useProducts() {
     mutationFn: moderation.confirmProduct,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["products-queue"] })
+      toast.success("Product confirmed")
     },
     onError: (err) => {
-      console.error("[admin] mutation failed", err)
+      toast.error(err instanceof Error ? err.message : "Failed to confirm product")
     },
   })
 
@@ -23,9 +25,10 @@ export function useProducts() {
     mutationFn: ({ id, reason }: { id: string; reason: string }) => moderation.rejectProduct(id, reason),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["products-queue"] })
+      toast.success("Product rejected")
     },
     onError: (err) => {
-      console.error("[admin] mutation failed", err)
+      toast.error(err instanceof Error ? err.message : "Failed to reject product")
     },
   })
 
@@ -33,9 +36,10 @@ export function useProducts() {
     mutationFn: ({ id, reason }: { id: string; reason: string }) => moderation.requestChanges(id, reason),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["products-queue"] })
+      toast.success("Changes requested")
     },
     onError: (err) => {
-      console.error("[admin] mutation failed", err)
+      toast.error(err instanceof Error ? err.message : "Failed to request changes")
     },
   })
 
@@ -43,6 +47,7 @@ export function useProducts() {
     products: query.data?.proposed || [],
     isLoading: query.isLoading,
     isError: query.isError,
+    refetch: query.refetch,
     confirm: confirm.mutateAsync,
     isConfirming: confirm.isPending,
     reject: reject.mutateAsync,

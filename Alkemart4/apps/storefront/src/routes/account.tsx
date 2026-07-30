@@ -246,6 +246,14 @@ function AccountPage() {
             <Link to="/orders">Your orders</Link>
           </Button>
           <Button
+            asChild
+            size="sm"
+            variant="outline"
+            className="border-ink/25 bg-transparent text-primary-foreground hover:bg-ink/10"
+          >
+            <Link to="/account/wishlist">Wishlist</Link>
+          </Button>
+          <Button
             type="button"
             size="sm"
             variant="outline"

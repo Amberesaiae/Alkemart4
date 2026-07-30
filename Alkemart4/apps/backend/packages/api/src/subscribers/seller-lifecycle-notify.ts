@@ -31,7 +31,8 @@ async function resolveSeller(
     })
     const row = Array.isArray(data) ? data[0] : data
     return (row as { email?: string; name?: string; phone?: string; status_reason?: string }) || null
-  } catch {
+  } catch (e) {
+    logger.warn("[seller-lifecycle] resolveSeller query failed", { sellerId: id, error: e instanceof Error ? e.message : e })
     return null
   }
 }

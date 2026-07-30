@@ -74,7 +74,9 @@ const completingLocks = new Set<string>()
 
 export type CheckoutInput = {
   cartId: string
-  paymentMethod: "cod" | "momo"
+  paymentMethod: "cod" | "momo" | "card"
+  /** Storefront origin for Paystack callback redirect after card payment */
+  callbackUrl?: string
   email?: string
   phone?: string
   momoProvider?: MomoProvider
@@ -96,6 +98,12 @@ export type CheckoutResult =
       expires_at?: string
       amount_pesewas?: number
       provider_status?: string
+    }
+  | {
+      status: "card_redirect"
+      cart_id: string
+      authorization_url: string
+      reference?: string
     }
 
 export class CheckoutHttpError extends Error {
@@ -139,7 +147,12 @@ type LoadedCart = {
   metadata?: Record<string, unknown> | null
   payment_collection?: {
     id: string
-    payment_sessions?: { id: string; status?: string; provider_id?: string }[]
+    payment_sessions?: {
+      id: string
+      status?: string
+      provider_id?: string
+      data?: Record<string, unknown>
+    }[]
   } | null
   items?: { id: string; quantity?: number }[] | null
   shipping_methods?: { id: string; shipping_option_id?: string | null }[] | null
@@ -173,6 +186,7 @@ export async function loadCheckoutCart(
       "payment_collection.payment_sessions.id",
       "payment_collection.payment_sessions.status",
       "payment_collection.payment_sessions.provider_id",
+      "payment_collection.payment_sessions.data",
     ],
     filters: { id: cartId },
   })
@@ -434,6 +448,103 @@ export async function runCodCheckout(
   }
 }
 
+export async function runCardCheckout(
+  container: MedusaContainer,
+  input: CheckoutInput
+): Promise<CheckoutResult> {
+  const secretKey = process.env.PAYSTACK_SECRET_KEY?.trim()
+  if (!secretKey) {
+    throw new CheckoutHttpError(
+      503,
+      "Card payments require PAYSTACK_SECRET_KEY. Use cash on delivery for local E2E."
+    )
+  }
+
+  if (!input.email?.trim()) {
+    throw new CheckoutHttpError(400, "email is required for card")
+  }
+
+  let cart = await loadCheckoutCart(container, input.cartId)
+  await ensureCartBoundToCustomer(container, cart, input.customerId)
+  if (input.customerId) {
+    cart = await loadCheckoutCart(container, input.cartId)
+  }
+  await requireCartReadyForCheckout(container, cart)
+
+  // Resume: already completed
+  if (cart.completed_at && cart.metadata?.ghana_order_id) {
+    return {
+      status: "completed",
+      order_id: String(cart.metadata.ghana_order_id),
+      cart_id: cart.id,
+    }
+  }
+
+  const currency = (cart.currency_code || "ghs").toLowerCase()
+  const totalMajor = Number(cart.total ?? 0)
+  if (!Number.isFinite(totalMajor) || totalMajor <= 0) {
+    throw new CheckoutHttpError(400, "Cart total must be greater than zero")
+  }
+
+  // Create payment collection if needed
+  let paymentCollectionId = cart.payment_collection?.id
+  if (!paymentCollectionId) {
+    await createPaymentCollectionForCartWorkflow(container).run({
+      input: { cart_id: cart.id },
+    })
+    const refreshed = await loadCheckoutCart(container, cart.id)
+    paymentCollectionId = refreshed.payment_collection?.id
+  }
+  if (!paymentCollectionId) {
+    throw new CheckoutHttpError(500, "Failed to create payment collection")
+  }
+
+  // Create Paystack payment session to get authorization_url
+  const sessionData: Record<string, unknown> = {
+    cart_id: cart.id,
+    email: input.email.trim(),
+  }
+  if (input.callbackUrl) {
+    sessionData.callback_url = input.callbackUrl
+  }
+  await createPaymentSessionsWorkflow(container).run({
+    input: {
+      payment_collection_id: paymentCollectionId,
+      provider_id: "pp_paystack",
+      data: sessionData,
+    },
+  })
+
+  // Reload cart to get session data with authorization_url
+  const updated = await loadCheckoutCart(container, cart.id)
+  const sessions = updated.payment_collection?.payment_sessions || []
+  const paystackSession = sessions.find(
+    (s) => s.provider_id === "pp_paystack"
+  )
+
+  if (!paystackSession?.data?.authorization_url) {
+    throw new CheckoutHttpError(500, "Paystack did not return an authorization URL")
+  }
+
+  const authorizationUrl = String(paystackSession.data.authorization_url)
+  const ref = String(paystackSession.data.reference || "")
+
+  // Store card payment metadata
+  await mergeCartMetadata(container, cart.id, {
+    ghana_payment: "card",
+    ghana_payment_status: "pending",
+    paystack_reference: ref,
+    ghana_amount_pesewas: paystackSession.data?.amount_pesewas,
+  })
+
+  return {
+    status: "card_redirect",
+    cart_id: cart.id,
+    authorization_url: authorizationUrl,
+    reference: ref,
+  }
+}
+
 /**
  * Confirm MoMo payment by Paystack reference (webhook or poll).
  * Idempotent when cart already completed.
@@ -506,7 +617,6 @@ export async function confirmMomoByPaystackReference(
   try {
     await transitionPaymentStatus(container, cartId, "succeeded")
     await mergeCartMetadata(container, cartId, {
-      ghana_payment: "momo",
       paystack_reference: reference,
     })
     const { order_id } = await ensureSystemPaymentAndCompleteCart(
@@ -728,7 +838,7 @@ export async function getMomoCheckoutStatus(
     }
   }
 
-  if (meta.ghana_payment !== "momo") {
+  if (meta.ghana_payment !== "momo" && meta.ghana_payment !== "card") {
     return { status: "idle", cart_id: cartId }
   }
 
@@ -787,5 +897,8 @@ export async function runGhanaCheckout(
   if (input.paymentMethod === "momo") {
     return runMomoCheckout(container, input)
   }
-  throw new CheckoutHttpError(400, "payment_method must be cod or momo")
+  if (input.paymentMethod === "card") {
+    return runCardCheckout(container, input)
+  }
+  throw new CheckoutHttpError(400, "payment_method must be cod, momo, or card")
 }

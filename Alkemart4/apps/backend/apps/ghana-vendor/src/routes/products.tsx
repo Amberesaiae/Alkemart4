@@ -19,11 +19,27 @@ function ProductsPage() {
     propose.mutate(id)
   }
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (status: string, product?: Record<string, unknown>) => {
     switch (status) {
       case "published": return <Badge variant="success" className="gap-1"><CheckCircle className="h-3 w-3"/> Published</Badge>
       case "proposed": return <Badge variant="warning" className="gap-1"><Clock className="h-3 w-3"/> In Review</Badge>
-      case "rejected": return <Badge variant="destructive" className="gap-1"><AlertCircle className="h-3 w-3"/> Rejected</Badge>
+      case "rejected": {
+        const meta = product?.metadata as Record<string, unknown> | undefined
+        const alk = meta?.alkemart as Record<string, unknown> | undefined
+        const mod = alk?.moderation as Record<string, unknown> | undefined
+        const reason = mod?.reason as string | undefined
+        return (
+          <Badge variant="destructive" className="gap-1 group relative" title={reason || "Rejected"}>
+            <AlertCircle className="h-3 w-3" />
+            Rejected
+            {reason && (
+              <span className="absolute bottom-full right-0 mb-2 hidden group-hover:block bg-popover text-popover-foreground text-xs rounded-lg px-3 py-2 shadow-lg whitespace-nowrap z-10 max-w-64 overflow-hidden text-ellipsis border">
+                {reason}
+              </span>
+            )}
+          </Badge>
+        )
+      }
       default: return <Badge variant="secondary" className="gap-1">Draft</Badge>
     }
   }
@@ -84,7 +100,7 @@ function ProductsPage() {
                   </div>
                 )}
                 <div className="absolute top-2 right-2">
-                  {getStatusBadge(product.status || "draft")}
+                  {getStatusBadge(product.status || "draft", product)}
                 </div>
               </div>
               <div className="p-4 flex-1 flex flex-col">

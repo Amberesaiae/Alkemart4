@@ -166,3 +166,11 @@ export function productRejectedSms(opts: {
   const note = opts.message ? ` Reason: ${opts.message.slice(0, 60)}` : ""
   return `Alkemart: "${opts.title.slice(0, 30)}" was not approved.${note} Edit and resubmit in your Seller Hub.`
 }
+
+export function productChangeRequestedSms(opts: {
+  title:   string
+  message?: string | null
+}): string {
+  const note = opts.message ? ` ${opts.message.slice(0, 60)}` : ""
+  return `Alkemart: Changes requested for "${opts.title.slice(0, 30)}".${note} Edit in your Seller Hub.`
+}

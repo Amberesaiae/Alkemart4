@@ -1,9 +1,10 @@
-import { createFileRoute, useNavigate, Link } from "@tanstack/react-router"
+import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { useState } from "react"
-import { useProduct, useUpdateProduct, useDeleteProduct, useCategories } from "../lib/hooks"
+import { useQueryClient } from "@tanstack/react-query"
+import { useProduct, useUpdateProduct, useDeleteProduct, useCategories, useProposeProduct } from "../lib/hooks"
 import { type ProductStatus } from "../lib/api"
 import { Card, Button, Input, Label, Textarea, Select, Skeleton } from "@workspace/ui"
-import { ArrowLeft, Save, Trash2, AlertCircle } from "lucide-react"
+import { ArrowLeft, Save, Trash2, AlertCircle, Clock, SendHorizonal } from "lucide-react"
 import { PageShell } from "../components/page-shell"
 
 export const Route = createFileRoute('/products/$id')({
@@ -19,9 +20,11 @@ interface ProductFormData {
 function ProductDetailPage() {
   const { id } = Route.useParams()
   const navigate = useNavigate()
+  const qc = useQueryClient()
   const { data, isLoading, isError } = useProduct(id)
   const update = useUpdateProduct()
   const del = useDeleteProduct()
+  const propose = useProposeProduct()
   const { data: categoriesData } = useCategories()
 
   const [editing, setEditing] = useState(false)
@@ -31,6 +34,22 @@ function ProductDetailPage() {
   const [confirmDelete, setConfirmDelete] = useState(false)
 
   const product = data?.product
+  const meta = product?.metadata as Record<string, unknown> | undefined
+  const alkemartMeta = meta?.alkemart as Record<string, unknown> | undefined
+  const moderation = alkemartMeta?.moderation as Record<string, unknown> | undefined
+  const rejectionReason = product?.status === "rejected" ? (moderation?.reason as string | undefined) : undefined
+  const changesRequestedReason = moderation?.action === "changes_requested" ? (moderation?.reason as string | undefined) : undefined
+
+  const handleReSubmit = async () => {
+    try {
+      setError(null)
+      await propose.mutateAsync(id)
+      setSuccess("Product re-submitted for review.")
+      qc.invalidateQueries({ queryKey: ["vendor", "products", id] })
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to re-submit.")
+    }
+  }
 
   const startEditing = () => {
     if (!product) return
@@ -115,7 +134,7 @@ function ProductDetailPage() {
     }
     return (
       <span className={`px-3 py-1 rounded-full text-xs font-bold ${map[status] || "bg-muted"}`}>
-        {status.charAt(0).toUpperCase() + status.slice(1)}
+        {status === "proposed" ? "In Review" : status.charAt(0).toUpperCase() + status.slice(1)}
       </span>
     )
   }
@@ -143,6 +162,31 @@ function ProductDetailPage() {
         </div>
       )}
 
+      {rejectionReason && (
+        <div className="mb-4 p-4 bg-destructive/10 border border-destructive/20 rounded-xl">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <h3 className="font-bold text-sm text-destructive mb-1">Product Rejected</h3>
+              <p className="text-sm text-destructive/90">{rejectionReason}</p>
+              <p className="text-xs text-destructive/60 mt-2">Edit the product to address the feedback, then re-submit for review.</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {changesRequestedReason && !rejectionReason && (
+        <div className="mb-4 p-4 bg-warning/10 border border-warning/20 rounded-xl">
+          <div className="flex items-start gap-3">
+            <Clock className="h-5 w-5 text-warning shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <h3 className="font-bold text-sm text-warning mb-1">Changes Requested</h3>
+              <p className="text-sm text-warning/90">{changesRequestedReason}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="grid gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-1 overflow-hidden">
           {product.thumbnail ? (
@@ -165,6 +209,17 @@ function ProductDetailPage() {
                 {!editing && (
                   <Button onClick={startEditing} variant="outline" size="sm">
                     Edit
+                  </Button>
+                )}
+                {product.status === "rejected" && (
+                  <Button
+                    size="sm"
+                    className="gap-1"
+                    onClick={handleReSubmit}
+                    isLoading={propose.isPending}
+                  >
+                    <SendHorizonal className="h-4 w-4" />
+                    Re-submit
                   </Button>
                 )}
                 {!confirmDelete ? (

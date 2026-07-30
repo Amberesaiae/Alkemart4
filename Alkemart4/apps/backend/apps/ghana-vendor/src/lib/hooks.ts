@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
-import { products, orders, stats, seller, catalog, ApiError } from "./api"
+import { products, orders, stats, seller, catalog, returns, ApiError } from "./api"
 import { getActiveSellerId } from "./api"
 
 // --- Stats ---
@@ -166,6 +166,78 @@ export function useUpdatePayment() {
   return useMutation({
     mutationFn: ({ id, data }: { id: string, data: Parameters<typeof seller.updatePaymentDetails>[1] }) => seller.updatePaymentDetails(id, data),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["vendor", "profile"] })
+  })
+}
+
+// --- Returns ---
+export function useReturns(params?: Record<string, string | number | boolean | undefined>) {
+  return useQuery({
+    queryKey: ["vendor", "returns", params],
+    queryFn: () => returns.list(params),
+    staleTime: 15_000,
+  })
+}
+
+export function useReturn(id: string) {
+  return useQuery({
+    queryKey: ["vendor", "returns", id],
+    queryFn: () => returns.get(id),
+    enabled: !!id,
+    staleTime: 15_000,
+  })
+}
+
+export function useReturnReasons() {
+  return useQuery({
+    queryKey: ["vendor", "return-reasons"],
+    queryFn: () => returns.reasons(),
+    staleTime: 300_000,
+  })
+}
+
+export function useReceiveReturnItems() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ returnId, items }: { returnId: string; items: { id: string; quantity: number }[] }) =>
+      returns.receiveItems(returnId, { items }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["vendor", "returns"] })
+    }
+  })
+}
+
+export function useConfirmReceiveReturn() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ returnId }: { returnId: string }) =>
+      returns.confirmReceive(returnId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["vendor", "returns"] })
+    }
+  })
+}
+
+export function useDismissReturnItems() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ returnId, items }: { returnId: string; items: { id: string; quantity: number; internal_note?: string }[] }) =>
+      returns.dismissItems(returnId, { items }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["vendor", "returns"] })
+    }
+  })
+}
+
+export function useRefundPayment() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ paymentId, amount }: { paymentId: string; amount?: number }) =>
+      returns.refund(paymentId, { amount }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["vendor", "returns"] })
+      qc.invalidateQueries({ queryKey: ["vendor", "orders"] })
+      qc.invalidateQueries({ queryKey: ["vendor", "stats"] })
+    }
   })
 }
 

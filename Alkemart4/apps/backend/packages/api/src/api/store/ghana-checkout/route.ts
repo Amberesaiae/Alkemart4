@@ -11,10 +11,11 @@ import {
 const bodySchema = z
   .object({
     cart_id: z.string().min(1),
-    payment_method: z.enum(["cod", "momo"]),
+    payment_method: z.enum(["cod", "momo", "card"]),
     email: z.string().email().optional(),
     phone: z.string().min(6).optional(),
     momo_provider: z.enum(["mtn", "vodafone", "airteltigo"]).optional(),
+    callback_url: z.string().url().optional(),
   })
   .superRefine((data, ctx) => {
     if (data.payment_method === "momo") {
@@ -68,6 +69,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
       email: body.email,
       phone: body.phone,
       momoProvider: body.momo_provider,
+      callbackUrl: body.callback_url,
       customerId,
     })
 

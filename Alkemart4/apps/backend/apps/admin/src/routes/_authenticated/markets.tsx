@@ -5,8 +5,6 @@ import { Card, CardContent, CardHeader, CardTitle, Badge, Skeleton, EmptyState }
 import { PageShell } from "../../components/page-shell"
 import { PageHeader } from "../../components/page-header"
 import { Globe2 } from "lucide-react"
-import { t } from "../../lib/t"
-
 export const Route = createFileRoute("/_authenticated/markets")({
   component: MarketsPage,
 })
@@ -37,7 +35,7 @@ function MarketsPage() {
     return (
       <PageShell>
         <div className="bg-destructive/10 text-destructive p-4 rounded-md">
-          {t("markets.failed", "Failed to load markets.")}
+          Failed to load markets.
         </div>
       </PageShell>
     )
@@ -47,12 +45,12 @@ function MarketsPage() {
 
   return (
     <PageShell>
-      <PageHeader title={t("markets.title", "Operating Markets")} description={t("markets.description", "Countries currently in operation. Used for localized routing, currency, and address rules.")} />
+      <PageHeader title="Operating Markets" description="Countries currently in operation. Used for localized routing, currency, and address rules." />
 
       {markets.length === 0 ? (
         <EmptyState icon={<Globe2 className="h-12 w-12 text-muted-foreground/50" />}
-          title={t("markets.empty", "No active markets")}
-          description={t("markets.emptyHint", "Configure regions via backend to see markets here.")} />
+          title="No active markets"
+          description="Configure regions via backend to see markets here." />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {markets.map((market: Market) => (

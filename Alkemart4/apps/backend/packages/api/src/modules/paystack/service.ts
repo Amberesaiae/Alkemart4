@@ -132,17 +132,25 @@ class PaystackPaymentProvider extends AbstractPaymentProvider<Options> {
       }
     }
 
-    const data = await this.api<{
-      reference: string
-      authorization_url: string
-      access_code: string
-    }>("/transaction/initialize", {
+    const callbackUrl = dataMeta.callback_url as string | undefined
+
+    const initializePayload: Record<string, unknown> = {
       amount: amountPesewas,
       currency: currency.toUpperCase(),
       email,
       reference,
       metadata,
-    })
+    }
+
+    if (callbackUrl) {
+      initializePayload.callback_url = callbackUrl
+    }
+
+    const data = await this.api<{
+      reference: string
+      authorization_url: string
+      access_code: string
+    }>("/transaction/initialize", initializePayload)
 
     return {
       id: data.reference,

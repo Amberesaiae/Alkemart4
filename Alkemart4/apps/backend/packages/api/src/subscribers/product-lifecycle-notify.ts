@@ -7,7 +7,7 @@
 import type { SubscriberArgs, SubscriberConfig } from "@medusajs/framework"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { sendEmail, productLifecycleEmail } from "../lib/email"
-import { sendSms, productPublishedSms, productRejectedSms } from "../lib/sms"
+import { sendSms, productPublishedSms, productRejectedSms, productChangeRequestedSms } from "../lib/sms"
 import { logger } from "../lib/logger"
 
 type ProductEvent = {
@@ -39,7 +39,8 @@ async function resolveProductNotify(
       sellerEmail: row.seller?.email,
       sellerPhone: row.seller?.phone,
     }
-  } catch {
+  } catch (e) {
+    logger.warn("[product-lifecycle] resolveProductNotify query failed", { productId, error: e instanceof Error ? e.message : e })
     return null
   }
 }
@@ -64,9 +65,7 @@ export default async function productLifecycleNotify({
   let smsBody: string | null = null
   if (event.name === "product.published")        smsBody = productPublishedSms({ title })
   else if (event.name === "product.rejected")    smsBody = productRejectedSms({ title, message })
-  else if (event.name === "product.change-requested") {
-    smsBody = `Alkemart: Changes requested for "${title.slice(0, 40)}".${message ? ` ${message.slice(0, 80)}` : ""} Edit in your Seller Hub.`
-  }
+  else if (event.name === "product.change-requested") smsBody = productChangeRequestedSms({ title, message })
 
   // Run email + SMS in parallel — neither blocks the other
   const tasks: Promise<unknown>[] = []

@@ -263,7 +263,7 @@ function QuickSellPage() {
                 isLoading={upload.isPending || quickSell.isPending}
               >
                 <CheckCircle2 className="h-5 w-5" />
-                Publish to Store
+                Submit for Review
               </Button>
             </div>
           </form>
