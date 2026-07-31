@@ -73,6 +73,14 @@ export default defineMiddlewares({
       middlewares: [csrfProtection],
     },
     {
+      method: ["POST"],
+      matcher: "/hooks/paystack",
+      bodyParser: {
+        preserveRawBody: true,
+        sizeLimit: "1mb",
+      },
+    },
+    {
       matcher: "/*",
       middlewares: [inputSanitize],
     },

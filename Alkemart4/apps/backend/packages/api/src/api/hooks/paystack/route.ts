@@ -84,15 +84,12 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
     (req.headers["x-paystack-signature"] as string | undefined) ||
     (req.headers["X-Paystack-Signature"] as string | undefined)
 
-  const rawBody: string =
-    typeof (req as { rawBody?: unknown }).rawBody === "string"
-      ? ((req as { rawBody: string }).rawBody as string)
-      : Buffer.isBuffer((req as { rawBody?: unknown }).rawBody)
-        ? (req as { rawBody: Buffer }).rawBody.toString("utf8")
-        : (() => {
-            logger.warn("[paystack] rawBody not available on request — JSON.stringify may cause HMAC mismatch")
-            return JSON.stringify(req.body ?? {})
-          })()
+  const buf = (req as { rawBody?: unknown }).rawBody
+  const rawBody: string = Buffer.isBuffer(buf)
+    ? buf.toString("utf8")
+    : typeof buf === "string"
+      ? buf
+      : JSON.stringify(req.body ?? {})
 
   const signatureOk = verifyPaystackWebhookSignature(rawBody, signatureHeader, secretKey)
   if (!signatureOk) {
