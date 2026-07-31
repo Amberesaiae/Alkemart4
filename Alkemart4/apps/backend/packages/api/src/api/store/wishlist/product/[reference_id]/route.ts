@@ -11,9 +11,15 @@ export const DELETE = async (
   req: AuthenticatedMedusaRequest,
   res: MedusaResponse
 ) => {
+  const customerId = req.auth_context?.actor_id;
+
+  if (!customerId) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
+
   const wishlist = await getWishlistFromCustomerId(
     req.scope,
-    req.auth_context.actor_id
+    customerId
   );
 
   if (!wishlist) {

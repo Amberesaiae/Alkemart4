@@ -17,11 +17,17 @@ export const POST = async (
   req: AuthenticatedMedusaRequest<StoreCreateWishlistType>,
   res: MedusaResponse
 ) => {
+  const customer_id = req.auth_context?.actor_id;
+
+  if (!customer_id) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
+
   const { result } = await createWishlistEntryWorkflow.run({
     container: req.scope,
     input: {
       ...req.validatedBody,
-      customer_id: req.auth_context.actor_id,
+      customer_id,
     },
   });
 
@@ -45,7 +51,11 @@ export const GET = async (
   res: MedusaResponse
 ) => {
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY);
-  const customerId = req.auth_context.actor_id;
+  const customerId = req.auth_context?.actor_id;
+
+  if (!customerId) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
 
   const {
     data: [wishlist],
