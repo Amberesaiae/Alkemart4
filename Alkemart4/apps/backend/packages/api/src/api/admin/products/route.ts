@@ -15,7 +15,7 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
   }
 
   const fields = [
-    "id", "title", "thumbnail", "metadata", "sale_status", "created_at",
+    "id", "title", "thumbnail", "metadata", "created_at",
     "seller.name", "seller.handle",
   ]
 
@@ -32,7 +32,6 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
       title: p.title,
       thumbnail: p.thumbnail ?? null,
       metadata: (p.metadata as Record<string, unknown> | null) ?? null,
-      sale_status: p.sale_status,
       created_at: p.created_at,
       seller: p.seller ?? null,
     }))

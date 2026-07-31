@@ -22,7 +22,10 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
 
     const enriched = (promotions as Record<string, unknown>[]).map((p) => {
       const method = p.application_method as Record<string, unknown> | null
-      const freeShipping = p.type === "standard" && method?.target_type === "shipping_methods"
+      const freeShipping =
+        p.type === "standard" &&
+        method?.target_type === "shipping_methods" &&
+        Number(method?.value) === 100
       return { ...p, type: freeShipping ? "free_shipping" : p.type }
     })
 
@@ -70,6 +73,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
               target_type: isFreeShipping ? "shipping_methods" : "items",
               allocation: "across",
               value,
+              currency_code: valueType === "fixed" ? "ghs" : undefined,
             },
           },
         ],

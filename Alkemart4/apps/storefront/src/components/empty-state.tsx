@@ -15,6 +15,8 @@ type EmptyStateProps = {
   illustration?: IllustrationKey
   /** Optional path params for file routes like /categories/$slug */
   actionParams?: Record<string, string>
+  /** Optional click handler (used instead of Link when actionTo is omitted) */
+  actionOnClick?: () => void
 }
 
 export function EmptyState({
@@ -24,6 +26,7 @@ export function EmptyState({
   actionTo,
   actionSearch,
   actionParams,
+  actionOnClick,
   className,
   illustration: art,
 }: EmptyStateProps) {
@@ -54,6 +57,10 @@ export function EmptyState({
           >
             {actionLabel}
           </Link>
+        </Button>
+      ) : actionLabel && actionOnClick ? (
+        <Button onClick={actionOnClick} className="mt-5 min-h-11" size="sm">
+          {actionLabel}
         </Button>
       ) : null}
     </div>
