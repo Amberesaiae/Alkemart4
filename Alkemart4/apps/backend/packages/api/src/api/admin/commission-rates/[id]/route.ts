@@ -1,6 +1,7 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { updateCommissionRatesWorkflow, deleteCommissionRatesWorkflow } from "@mercurjs/core/workflows"
+import type { UpdateCommissionRateDTO } from "@mercurjs/types"
 
 const FIELDS = [
   "id", "name", "code", "type", "value", "currency_code",
@@ -35,8 +36,9 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
     res.status(400).json({ error: "Commission rate id required" })
     return
   }
+  const updates = (req.validatedBody || req.body) as UpdateCommissionRateDTO
   const { result } = await updateCommissionRatesWorkflow(req.scope).run({
-    input: [{ id: rateId, ...(req.validatedBody || req.body) }],
+    input: [{ ...updates, id: rateId }],
   })
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY) as {
     graph: (args: unknown) => Promise<{ data: unknown[] }>

@@ -3,23 +3,26 @@ import {
   requireOperatingMarket,
   normalizePhoneForCountry,
   marketByCountry,
+  profileForCountry,
   type OperatingMarket,
 } from "../operating-markets"
 
 const ghana: OperatingMarket = {
-  id: "mrk_gh",
-  country_code: "gh",
+  region_id: "reg_gh",
+  region_name: "Ghana",
   currency_code: "ghs",
+  country_code: "gh",
   display_name: "Ghana",
-  regions: [{ id: "reg_gh", name: "Ghana" }],
+  locale: profileForCountry("gh", "ghs"),
 }
 
 const nigeria: OperatingMarket = {
-  id: "mrk_ng",
-  country_code: "ng",
+  region_id: "reg_ng",
+  region_name: "Nigeria",
   currency_code: "ngn",
+  country_code: "ng",
   display_name: "Nigeria",
-  regions: [{ id: "reg_ng", name: "Nigeria" }],
+  locale: profileForCountry("ng", "ngn"),
 }
 
 const markets = [ghana, nigeria]

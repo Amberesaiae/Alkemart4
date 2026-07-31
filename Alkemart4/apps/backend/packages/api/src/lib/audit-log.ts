@@ -4,6 +4,7 @@ export type AuditAction =
   | "seller.created"
   | "seller.updated"
   | "seller.suspended"
+  | "seller.approved"
   | "product.created"
   | "product.updated"
   | "product.deleted"

@@ -10,7 +10,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
   }
 
   try {
-    const reason = req.body?.reason as string | undefined
+    const reason = (req.body as { reason?: string } | undefined)?.reason
     if (!reason) {
       res.status(400).json({ error: "Reason is required to suspend a seller" })
       return

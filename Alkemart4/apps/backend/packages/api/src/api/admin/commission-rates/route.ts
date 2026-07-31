@@ -1,6 +1,7 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { createCommissionRatesWorkflow } from "@mercurjs/core/workflows"
+import type { CreateCommissionRateDTO } from "@mercurjs/types"
 
 export async function GET(req: MedusaRequest, res: MedusaResponse) {
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY) as {
@@ -24,8 +25,9 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
 }
 
 export async function POST(req: MedusaRequest, res: MedusaResponse) {
+  const body = (req.validatedBody || req.body) as CreateCommissionRateDTO
   const { result } = await createCommissionRatesWorkflow(req.scope).run({
-    input: [req.validatedBody || req.body],
+    input: [body],
   })
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY) as {
     graph: (args: unknown) => Promise<{ data: unknown[] }>

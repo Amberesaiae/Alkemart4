@@ -9,7 +9,10 @@ type MemberRow = {
 }
 
 export async function GET(req: MedusaRequest, res: MedusaResponse) {
-  const auth = req.auth_context
+  // Medusa attaches auth_context after authenticate middleware; not on base types
+  const auth = (req as MedusaRequest & {
+    auth_context?: { actor_id?: string; auth_identity_id?: string }
+  }).auth_context
 
   if (!auth) {
     res.status(401).json({ error: "Not authenticated" })
