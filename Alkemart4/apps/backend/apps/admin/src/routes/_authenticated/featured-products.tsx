@@ -30,7 +30,7 @@ function FeaturedProductsPage() {
 
   const toggleMutation = useMutation({
     mutationFn: ({ id, featured }: { id: string; featured: boolean }) =>
-      adminProducts.update(id, { metadata: { featured: String(featured) } }),
+      featuredProducts.toggle(id, String(featured)),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-products"] })
       queryClient.invalidateQueries({ queryKey: ["featured-products"] })

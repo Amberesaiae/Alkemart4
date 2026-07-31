@@ -20,7 +20,10 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
         "status", "status_reason", "approved_at", "created_at",
         "address.address_1", "address.city", "address.country_code",
         "address.province", "address.postal_code",
-        "metadata", "members.id", "members.name", "members.email",
+        "metadata",
+        "members.id", "members.is_owner",
+        "members.member.id", "members.member.email",
+        "members.member.first_name", "members.member.last_name",
       ],
       filters: { id: sellerId },
     })

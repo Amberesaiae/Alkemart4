@@ -16,6 +16,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const { data: user } = useCurrentUser()
   const logout = useLogout()
   const router = useRouterState()
+  const pathname = router.location.pathname
 
   const navItems = [
     { name: "Dashboard", to: "/", icon: LayoutDashboard },
@@ -24,6 +25,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
     { name: "Returns", to: "/returns", icon: RefreshCw },
     { name: "Settings", to: "/settings", icon: Settings },
   ]
+
+  const navIsActive = (to: string) =>
+    to === "/" ? pathname === "/" : pathname.startsWith(to)
 
   return (
     <div className="flex min-h-[100dvh] w-full bg-background flex-col md:flex-row">
@@ -47,7 +51,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         </div>
         <nav aria-label="Main navigation" className="flex-1 p-4 space-y-1">
           {navItems.map((item) => {
-            const isActive = item.to === "/" ? router.location.pathname === "/seller" || router.location.pathname === "/seller/" : router.location.pathname.startsWith(`/seller${item.to}`)
+            const isActive = navIsActive(item.to)
             return (
               <Link
                 key={item.to}
@@ -97,7 +101,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
       {/* Mobile Bottom Tab Bar */}
       <nav aria-label="Mobile navigation" className="md:hidden fixed bottom-0 left-0 right-0 bg-ink text-ink-foreground/70 border-t border-ink-foreground/10 flex justify-around items-center p-2 pb-safe z-50">
         {navItems.map((item) => {
-          const isActive = item.to === "/" ? router.location.pathname === "/seller" || router.location.pathname === "/seller/" : router.location.pathname.startsWith(`/seller${item.to}`)
+          const isActive = navIsActive(item.to)
           return (
               <Link
                 key={item.to}

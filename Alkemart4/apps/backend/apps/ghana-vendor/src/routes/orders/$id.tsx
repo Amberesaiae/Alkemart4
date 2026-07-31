@@ -23,6 +23,7 @@ function OrderDetailPage() {
   const deliver = useDeliverOrder()
 
   const [tracking, setTracking] = useState("")
+  const [trackingUrl, setTrackingUrl] = useState("")
 
   const formatGhs = (amount = 0) => 
     new Intl.NumberFormat('en-GH', { style: 'currency', currency: 'GHS' }).format(amount)
@@ -78,7 +79,7 @@ function OrderDetailPage() {
 
   const handleShip = () => {
     if (!fulfillment) return
-    ship.mutate({ orderId: order.id, fulfillmentId: fulfillment.id, tracking })
+    ship.mutate({ orderId: order.id, fulfillmentId: fulfillment.id, tracking, trackingUrl })
   }
 
   const handleDeliver = () => {
@@ -195,6 +196,13 @@ function OrderDetailPage() {
                         placeholder="Rider Phone or Tracking (Optional)" 
                         value={tracking}
                         onChange={e => setTracking(e.target.value)}
+                        className="h-10"
+                      />
+                      <Input 
+                        placeholder="Tracking URL (Optional)"
+                        type="url"
+                        value={trackingUrl}
+                        onChange={e => setTrackingUrl(e.target.value)}
                         className="h-10"
                       />
                       <Button 

@@ -690,6 +690,8 @@ export type Return = {
   status: ReturnStatus
   display_id: number
   refund_amount?: number | null
+  payment_id?: string | null
+  payment_status?: string | null
   items: ReturnItem[]
   created_at: string
   updated_at?: string
@@ -706,11 +708,12 @@ export type ReturnReason = {
 
 export const returns = {
   /**
-   * GET /vendor/returns — Returns for this seller's orders.
+   * GET /vendor/alkemart/returns — Returns for this seller's orders,
+   * enriched with each order's payment_id (required for refunds).
    */
   list: (params?: { limit?: number; offset?: number; status?: string; order_id?: string }) =>
     get<{ returns: Return[]; count: number; limit: number; offset: number }>(
-      "/vendor/returns",
+      "/vendor/alkemart/returns",
       params,
     ),
 
@@ -860,7 +863,7 @@ export async function loginAndSelectSeller(
 
   if (sellerId) {
     setActiveSellerId(sellerId)
-    await seller.select(sellerId).catch(() => {})
+    await seller.select(sellerId)
   }
 
   return { sellerId, me }

@@ -181,12 +181,12 @@ function ReturnsPage() {
                         <XCircle className="h-4 w-4 mr-1" />
                         Decline
                       </Button>
-                      {ret.refund_amount != null ? (
+                      {ret.refund_amount != null && ret.payment_id ? (
                         <Button
                           size="sm"
                           variant="outline"
                           onClick={() => {
-                            refund.mutate({ paymentId: ret.id, amount: ret.refund_amount! })
+                            refund.mutate({ paymentId: ret.payment_id!, amount: ret.refund_amount! })
                           }}
                           isLoading={refund.isPending}
                         >

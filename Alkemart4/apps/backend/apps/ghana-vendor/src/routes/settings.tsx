@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { useState, useEffect } from "react"
-import { useSellerProfile, useUpdateProfile, useUpdateAddress, useUpdatePayment } from "../lib/hooks"
+import { useSellerProfile, useUpdateProfile, useGhanaSetup, useUpdatePayment } from "../lib/hooks"
 import { Card, Button, Input, Label, Select, Skeleton } from "@workspace/ui"
 import { PageShell } from "../components/page-shell"
 import { PageHeader } from "../components/page-header"
@@ -25,20 +25,29 @@ function SettingsPage() {
   const navigate = useNavigate()
   const { data, isLoading, isError } = useSellerProfile()
   const seller = data?.seller
-  const updateProfile  = useUpdateProfile()
-  const updateAddress  = useUpdateAddress()
-  const updatePayment  = useUpdatePayment()
+  const updateProfile = useUpdateProfile()
+  const ghanaSetup    = useGhanaSetup()
+  const updatePayment = useUpdatePayment()
 
   const [activeTab, setActiveTab] = useState<"profile" | "dispatch" | "momo">("profile")
 
   const [profileForm, setProfileForm] = useState({ name: "", handle: "" })
-  const [addressForm, setAddressForm] = useState({
+  const [addressForm, setAddressForm] = useState<{
+    address_1: string
+    address_2: string
+    city: string
+    province: string
+    postal_code: string
+    country_code: string
+    delivery_fee_ghs: number | undefined
+  }>({
     address_1: "",
-    address_2: "",   // landmark — mirrors operating-markets address_2 field
+    address_2: "",
     city: "",
-    province: "",    // region — mirrors operating-markets province field
-    postal_code: "", // GhanaPostGPS (optional)
+    province: "",
+    postal_code: "",
     country_code: "gh",
+    delivery_fee_ghs: undefined,
   })
   const [phoneRaw,  setPhoneRaw]  = useState("")
   const [provider,  setProvider]  = useState<MomoProvider>("mtn")
@@ -60,6 +69,7 @@ function SettingsPage() {
         province:    seller.address.province    || "",
         postal_code: seller.address.postal_code || "",
         country_code: "gh",
+        delivery_fee_ghs: undefined,
       })
     }
     if (seller.payment_details) {
@@ -80,7 +90,13 @@ function SettingsPage() {
 
   const handleAddressSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (seller) updateAddress.mutate({ id: seller.id, data: addressForm })
+    ghanaSetup.mutate({
+      address_1: addressForm.address_1,
+      city: addressForm.city,
+      region: addressForm.province,
+      postal_code: addressForm.postal_code,
+      delivery_fee_ghs: addressForm.delivery_fee_ghs,
+    })
   }
 
   const handlePaymentSubmit = (e: React.FormEvent) => {
@@ -276,11 +292,37 @@ function SettingsPage() {
                   </p>
                 </div>
 
-                <StatusRow mutation={updateAddress} successText="Address saved" />
+                {/* delivery_fee_ghs — flat delivery fee in GH₵ */}
+                <div className="space-y-2">
+                  <Label>Delivery Fee (GH₵)</Label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-muted-foreground select-none pointer-events-none">
+                      ₵
+                    </span>
+                    <Input
+                      type="number"
+                      className="pl-8"
+                      value={addressForm.delivery_fee_ghs ?? ""}
+                      onChange={e => {
+                        const raw = e.target.value
+                        setAddressForm({ ...addressForm, delivery_fee_ghs: raw === "" ? undefined : Math.max(0, Number(raw)) })
+                      }}
+                      placeholder="e.g. 20"
+                      min={0}
+                      max={500}
+                      step={0.5}
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Flat fee buyers pay for delivery anywhere in Ghana
+                  </p>
+                </div>
+
+                <StatusRow mutation={ghanaSetup} successText="Ghana delivery setup complete" />
 
                 <div className="flex justify-end pt-2">
-                  <Button type="submit" isLoading={updateAddress.isPending} className="gap-2 px-8">
-                    <Save className="h-4 w-4" /> Save Address
+                  <Button type="submit" isLoading={ghanaSetup.isPending} className="gap-2 px-8">
+                    <Save className="h-4 w-4" /> Complete Delivery Setup
                   </Button>
                 </div>
               </form>
@@ -419,11 +461,28 @@ function StatusRow({
   mutation,
   successText,
 }: {
-  mutation: { isSuccess: boolean; isError: boolean }
+  mutation: { isPending?: boolean; isSuccess: boolean; isError: boolean }
   successText: string
 }) {
-  if (!mutation.isSuccess && !mutation.isError) return null
-  if (mutation.isSuccess) {
+  const [visible, setVisible] = useState<"success" | "error" | null>(null)
+
+  useEffect(() => {
+    if (mutation.isPending) {
+      setVisible(null)
+      return
+    }
+    if (mutation.isSuccess) setVisible("success")
+    else if (mutation.isError) setVisible("error")
+  }, [mutation.isPending, mutation.isSuccess, mutation.isError])
+
+  useEffect(() => {
+    if (!visible) return
+    const t = setTimeout(() => setVisible(null), 6000)
+    return () => clearTimeout(t)
+  }, [visible])
+
+  if (!visible) return null
+  if (visible === "success") {
     return (
       <div className="flex items-center gap-2 p-3 rounded-lg bg-success/10 text-success text-sm font-semibold border border-success/20" role="status">
         <CheckCircle2 className="h-4 w-4 shrink-0" /> {successText}

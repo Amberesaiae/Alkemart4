@@ -65,7 +65,7 @@ export function useRegister() {
       }
       const sellerId = sellerData.seller.id
       setActiveSellerId(sellerId)
-      await sellerApi.select(sellerId).catch(() => {})
+      await sellerApi.select(sellerId)
       return sellerData
     },
     onSuccess: () => {

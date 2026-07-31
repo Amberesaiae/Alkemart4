@@ -2,9 +2,11 @@ import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 
 const FIELDS = [
-  "id", "seller_id", "seller.name", "seller.email",
-  "amount", "currency_code", "status", "period_start", "period_end",
-  "paid_at", "created_at", "updated_at",
+  "id", "display_id", "seller_id", "seller.name", "seller.handle",
+  "account.id", "account.status",
+  "amount", "currency_code", "status", "data",
+  "period_start", "period_end", "paid_at",
+  "created_at", "updated_at",
 ]
 
 export async function GET(req: MedusaRequest, res: MedusaResponse) {

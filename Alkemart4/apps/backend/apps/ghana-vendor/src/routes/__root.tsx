@@ -1,8 +1,7 @@
-import { createRootRouteWithContext, Outlet, useNavigate, useLocation } from "@tanstack/react-router"
+import { createRootRouteWithContext, Outlet, Navigate, useLocation } from "@tanstack/react-router"
 import type { QueryClient } from "@tanstack/react-query"
 import { useCurrentUser } from "../lib/auth"
 import { Layout } from "../components/layout"
-import { useEffect } from "react"
 
 interface RouterContext {
   queryClient: QueryClient
@@ -10,30 +9,16 @@ interface RouterContext {
 
 function RootComponent() {
   const { data: user, isLoading, isError } = useCurrentUser()
-  const navigate = useNavigate()
   const location = useLocation()
-  
+
   const pathname = location.pathname
   const isPublicPage = pathname.includes("/login") || pathname.includes("/register")
 
-  useEffect(() => {
-    if (!isLoading && !isPublicPage && (isError || !user)) {
-      navigate({ to: "/login", search: { redirect: pathname }, replace: true })
-    }
-  }, [isLoading, isPublicPage, isError, user, navigate])
-
-  if (isLoading) {
-    return (
-      <div className="flex min-h-[100dvh] items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-4">
-          <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-          <p className="text-sm font-semibold text-muted-foreground animate-pulse">Loading Alkemart...</p>
-        </div>
-      </div>
-    )
+  if (!isPublicPage && !isLoading && (isError || !user)) {
+    return <Navigate to="/login" search={{ redirect: pathname }} replace />
   }
 
-  if (!isPublicPage && (isError || !user)) {
+  if (isLoading) {
     return (
       <div className="flex min-h-[100dvh] items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">

@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
-import { products, orders, stats, seller, catalog, returns, ApiError } from "./api"
+import { products, orders, stats, seller, catalog, returns, onboarding, ApiError } from "./api"
 import { getActiveSellerId } from "./api"
 
 // --- Stats ---
@@ -47,8 +47,8 @@ export function useFulfillOrder() {
 export function useShipOrder() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: ({ orderId, fulfillmentId, tracking }: { orderId: string, fulfillmentId: string, tracking?: string }) => 
-      orders.markShipped(orderId, fulfillmentId, tracking ? [{ tracking_number: tracking }] : []),
+    mutationFn: ({ orderId, fulfillmentId, tracking, trackingUrl }: { orderId: string, fulfillmentId: string, tracking?: string, trackingUrl?: string }) => 
+      orders.markShipped(orderId, fulfillmentId, tracking || trackingUrl ? [{ tracking_number: tracking || "", tracking_url: trackingUrl || undefined }] : []),
     onSuccess: (_, { orderId }) => {
       qc.invalidateQueries({ queryKey: ["vendor", "orders", orderId] })
       qc.invalidateQueries({ queryKey: ["vendor", "orders"] })
@@ -158,6 +158,17 @@ export function useUpdateAddress() {
   return useMutation({
     mutationFn: ({ id, data }: { id: string, data: Parameters<typeof seller.updateAddress>[1] }) => seller.updateAddress(id, data),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["vendor", "profile"] })
+  })
+}
+
+export function useGhanaSetup() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (input: Parameters<typeof onboarding.ghanaSetup>[0]) => onboarding.ghanaSetup(input),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["vendor", "profile"] })
+      qc.invalidateQueries({ queryKey: ["vendor", "readiness"] })
+    }
   })
 }
 
