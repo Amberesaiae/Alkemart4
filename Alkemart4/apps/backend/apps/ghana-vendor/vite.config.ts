@@ -19,8 +19,9 @@ export default defineConfig({
   },
   server: {
     host: true,
-    port: 3002,
+    port: 7002,
     proxy: {
+      '/alkemart': 'http://localhost:9000',
       '/vendor': 'http://localhost:9000',
       '/admin': 'http://localhost:9000',
       '/auth': 'http://localhost:9000',

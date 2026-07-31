@@ -202,7 +202,7 @@ export const sellerQueue = {
 export const adminOrders = {
   list: (params?: { status?: string; limit?: number; offset?: number }) => {
     const sp = new URLSearchParams()
-    if (params?.status) sp.set("status[]", params.status)
+    if (params?.status) sp.set("status", params.status)
     if (params?.limit) sp.set("limit", String(params.limit))
     if (params?.offset) sp.set("offset", String(params.offset))
     return apiFetch<{ orders: AdminOrder[]; count: number }>(`/admin/orders?${sp}`)

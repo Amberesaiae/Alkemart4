@@ -1,12 +1,3 @@
-/**
- * GET /alkemart/member/me — Resolve seller_id from JWT (no Mercur ensureSeller).
- *
- * This is the login bootstrap endpoint: the vendor SPA calls it right after
- * POST /auth/member/emailpass to learn which seller belongs to the member.
- *
- * Unlike /vendor/alkemart/me, this path sits OUTSIDE the /vendor/* prefix so
- * Mercur's global ensureSeller middleware does not intercept it.
- */
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 
@@ -18,18 +9,24 @@ type MemberRow = {
 }
 
 export async function GET(req: MedusaRequest, res: MedusaResponse) {
-  const auth = (req as MedusaRequest & {
-    auth_context?: { actor_id?: string; auth_identity_id?: string }
-  }).auth_context
+  const auth = req.auth_context
 
-  if (!auth?.actor_id) {
+  if (!auth) {
     res.status(401).json({ error: "Not authenticated" })
     return
   }
 
-  const query = req.scope.resolve(ContainerRegistrationKeys.QUERY) as {
-    graph: (args: unknown) => Promise<{ data: unknown }>
+  // actor_id is empty — user has a valid JWT but hasn't registered as a
+  // seller yet. Tell the SPA to show the registration form.
+  if (!auth.actor_id) {
+    res.status(404).json({
+      error: "No seller member found",
+      detail: "register_seller",
+    })
+    return
   }
+
+  const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
 
   try {
     const { data } = await query.graph({
@@ -37,18 +34,21 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
       fields: ["id", "name", "email", "member.id", "seller.id", "seller.name"],
       filters: { member_id: auth.actor_id },
     })
-    const list = Array.isArray(data) ? data : data ? [data] : []
+
+    const list = Array.isArray(data) ? data : [data].filter(Boolean)
     const member = list[0] as MemberRow | undefined
+
     if (!member) {
       res.status(404).json({ error: "Seller member not found" })
       return
     }
+
     res.status(200).json({
       id: member.id,
-      name: member.name || null,
-      email: member.email || null,
-      seller_id: member.seller?.id || null,
-      seller_name: member.seller?.name || null,
+      name: member.name ?? null,
+      email: member.email ?? null,
+      seller_id: member.seller?.id ?? null,
+      seller_name: member.seller?.name ?? null,
     })
   } catch (e) {
     res.status(500).json({

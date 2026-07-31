@@ -72,6 +72,7 @@ describe("loadAppEnv", () => {
     JWT_SECRET: "production_secret_key_that_is_long",
     COOKIE_SECRET: "production_cookie_secret_that_is_long",
     PAYSTACK_SECRET_KEY: "sk_live_xxx",
+    PAYSTACK_PUBLIC_KEY: "pk_live_xxx",
     FILE_DRIVER: "s3",
     S3_FILE_URL: "https://cdn.example.com",
     S3_BUCKET: "alkemart-media",
@@ -111,7 +112,7 @@ describe("loadAppEnv", () => {
   })
 
   it("warns but allows FILE_DRIVER=local in production", () => {
-    const warnSpy = jest.spyOn(console, "warn").mockImplementation()
+    const warnSpy = jest.spyOn(console, "log").mockImplementation()
     const env = {
       ...prodBase,
       FILE_DRIVER: "local",

@@ -12,6 +12,7 @@ import {
   createSellerShippingOptionsWorkflow,
   createSellerShippingProfilesWorkflow,
   createSellerStockLocationsWorkflow,
+  updateSellerAddressWorkflow,
 } from "@mercurjs/core/workflows"
 import {
   createLocationFulfillmentSetWorkflow,
@@ -366,6 +367,21 @@ export async function runGhanaSellerSetup(
     })
     shipping_option_created = true
   }
+
+  // Persist address on seller entity so readiness checklist passes
+  await updateSellerAddressWorkflow(container).run({
+    input: {
+      seller_id: sellerId,
+      data: {
+        address_1: address1,
+        city,
+        country_code: "GH",
+        province,
+        postal_code: str(input.postal_code) || undefined,
+        phone: str(input.phone) || undefined,
+      },
+    },
+  })
 
   const readiness = await evaluateSellerReadiness(query, sellerId)
 
