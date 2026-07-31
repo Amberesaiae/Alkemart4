@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router"
 import { useState } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { adminProducts, featuredProducts } from "../../lib/api"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Badge, Button, Skeleton, EmptyState, Switch, Input } from "@workspace/ui"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Button, Skeleton, EmptyState, Switch, Input } from "@workspace/ui"
 import { PageShell } from "../../components/page-shell"
 import { PageHeader } from "../../components/page-header"
 import { Search } from "lucide-react"
@@ -82,7 +82,6 @@ function FeaturedProductsPage() {
             <TableRow>
               <TableHead>Product</TableHead>
               <TableHead>Seller</TableHead>
-              <TableHead>Status</TableHead>
               <TableHead>Featured</TableHead>
             </TableRow>
           </TableHeader>
@@ -92,13 +91,12 @@ function FeaturedProductsPage() {
                 <TableRow key={i}>
                   <TableCell><Skeleton className="h-4 w-48" /></TableCell>
                   <TableCell><Skeleton className="h-4 w-32" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-16" /></TableCell>
                   <TableCell><Skeleton className="h-4 w-12" /></TableCell>
                 </TableRow>
               ))
             ) : products.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={4}>
+                <TableCell colSpan={3}>
                   <EmptyState title="No products found" description={search ? "Try a different search term." : "No products have been created yet."} />
                 </TableCell>
               </TableRow>
@@ -108,11 +106,6 @@ function FeaturedProductsPage() {
                   <TableCell className="font-medium">{product.title || "Untitled"}</TableCell>
                   <TableCell className="text-muted-foreground">
                     {product.seller?.name || "—"}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={product.sale_status === "active" ? "success" : "secondary"} className="capitalize">
-                      {product.sale_status || "draft"}
-                    </Badge>
                   </TableCell>
                   <TableCell>
                     <Switch
