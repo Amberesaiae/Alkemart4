@@ -12,18 +12,7 @@ export const Route = createFileRoute('/quick-sell')({
   component: QuickSellPage,
 })
 
-type Axis = { name: string; values: string }
-
-function parseValues(s: string): string[] {
-  return s.split(",").map(v => v.trim()).filter(Boolean)
-}
-
-function cartesianProduct(lists: string[][]): string[][] {
-  return lists.reduce<string[][]>(
-    (acc, list) => (acc.length === 0 ? list.map(v => [v]) : acc.flatMap(a => list.map(v => [...a, v]))),
-    [],
-  )
-}
+type VariationRow = { values: string[]; quantity: string; price: string }
 
 function QuickSellPage() {
   const navigate = useNavigate()
@@ -39,16 +28,56 @@ function QuickSellPage() {
   const [categoryId, setCategoryId] = useState("")
   const [quantity, setQuantity] = useState(1)
   const [hasVariations, setHasVariations] = useState(false)
-  const [axes, setAxes] = useState<Axis[]>([{ name: "", values: "" }])
-  const [rowData, setRowData] = useState<Record<number, { price: string; quantity: string }>>({})
+  const [variationTypes, setVariationTypes] = useState<string[]>([""])
+  const [variations, setVariations] = useState<VariationRow[]>([{ values: [""], quantity: "", price: "" }])
 
-  const parsedAxes = axes.map(a => ({ name: a.name.trim(), values: parseValues(a.values) })).filter(a => a.name && a.values.length > 0)
-  const combos = hasVariations && parsedAxes.length > 0
-    ? cartesianProduct(parsedAxes.map(a => a.values))
-    : []
+  const entries = variations
+    .map(row => {
+      const options: Record<string, string> = {}
+      variationTypes.forEach((name, i) => {
+        const n = name.trim()
+        const v = row.values[i]?.trim()
+        if (n && v) options[n] = v
+      })
+      return { options, quantity: row.quantity, price: row.price }
+    })
+    .filter(e => Object.keys(e.options).length > 0)
 
-  useEffect(() => { setRowData({}) }, [axes])
-  
+  const toggleVariations = () => {
+    const next = !hasVariations
+    setHasVariations(next)
+    if (next) {
+      const types = variationTypes.length ? variationTypes : [""]
+      setVariationTypes(types)
+      setVariations(rows =>
+        rows.length
+          ? rows.map(r => ({ ...r, values: types.map((_, i) => r.values[i] ?? "") }))
+          : [{ values: types.map(() => ""), quantity: "", price: "" }],
+      )
+    }
+  }
+
+  const syncTypes = (next: string[]) => {
+    setVariationTypes(next)
+    setVariations(rows => rows.map(r => ({ ...r, values: next.map((_, i) => r.values[i] ?? "") })))
+  }
+
+  const removeType = (i: number) => {
+    setVariationTypes(ts => ts.filter((_, k) => k !== i))
+    setVariations(rows => rows.map(r => ({ ...r, values: r.values.filter((_, k) => k !== i) })))
+  }
+
+  const updateVariationValue = (i: number, j: number, value: string) =>
+    setVariations(rows => rows.map((r, k) => (k === i ? { ...r, values: r.values.map((v, l) => (l === j ? value : v)) } : r)))
+
+  const updateVariation = (i: number, key: "quantity" | "price", value: string) =>
+    setVariations(rows => rows.map((r, k) => (k === i ? { ...r, [key]: value } : r)))
+
+  const removeVariation = (i: number) => setVariations(rows => rows.filter((_, k) => k !== i))
+
+  const addVariation = () =>
+    setVariations(rows => [...rows, { values: variationTypes.map(() => ""), quantity: "", price: "" }])
+
   const upload = useUploadImage()
   const quickSell = useQuickSell()
   const { data: categoriesData } = useCategories()
@@ -76,15 +105,26 @@ function QuickSellPage() {
     if (!priceGhs || Number(priceGhs) < 0.5) return "Price must be at least GH₵0.50."
     if (Number(priceGhs) > 500_000) return "Price must not exceed GH₵500,000."
     if (hasVariations) {
-      const incomplete = axes.some(a => a.name.trim() && parseValues(a.values).length < 2)
-      if (axes.some(a => !a.name.trim() && a.values.trim())) return "Give every variation type a name (e.g. Size)."
-      if (axes.some(a => a.name.trim() && !a.values.trim())) return `Add options for "${axes.find(a => a.name.trim() && !a.values.trim())?.name}" (e.g. Small, Medium, Large).`
-      if (incomplete) return "Each variation type needs at least 2 options."
-      if (combos.length > 40) return "Too many combinations. Keep it under 40."
-      for (const row of Object.values(rowData)) {
-        if (row.price && (Number(row.price) < 0.5 || Number(row.price) > 500_000)) return "Variant prices must be between GH₵0.50 and GH₵500,000."
-        if (row.quantity && Number(row.quantity) < 1) return "Variant quantities must be at least 1."
+      const usedTypeNames = variationTypes.map(n => n.trim()).filter(Boolean)
+      if (usedTypeNames.length === 0 && variations.some(r => r.values.some(v => v.trim()))) {
+        return "Name each variation type you're using (e.g. Size)."
       }
+      if (usedTypeNames.length === 0) return null
+      for (const row of variations) {
+        const hasAny = row.values.some(v => v.trim()) || row.quantity.trim() || row.price.trim()
+        if (!hasAny) continue
+        if (row.values.some((v, i) => v.trim() && !variationTypes[i]?.trim())) {
+          return "Every filled variation needs a type name."
+        }
+        if (variationTypes.some((n, i) => n.trim() && !(row.values[i] ?? "").trim())) {
+          return "Fill in every column of each variation row, or remove the row."
+        }
+        if (row.price && (Number(row.price) < 0.5 || Number(row.price) > 500_000)) {
+          return "Variation prices must be between GH₵0.50 and GH₵500,000."
+        }
+        if (row.quantity && Number(row.quantity) < 1) return "Variation quantities must be at least 1."
+      }
+      if (entries.length > 40) return "Too many variations. Keep it under 40."
     }
     return null
   }
@@ -104,20 +144,11 @@ function QuickSellPage() {
         imageUrl = await upload.mutateAsync(file)
       }
 
-      const variant_options = hasVariations && parsedAxes.length > 0
-        ? parsedAxes.map(a => ({ name: a.name, values: a.values }))
-        : undefined
-
-      const variant_entries = combos.map((combo, i) => {
-        const options: Record<string, string> = {}
-        parsedAxes.forEach((a, j) => { options[a.name] = combo[j] })
-        const row = rowData[i]
-        return {
-          options,
-          ...(row?.price && row.price.trim() ? { price_ghs: Number(row.price) } : {}),
-          ...(row?.quantity && row.quantity.trim() ? { quantity: Number(row.quantity) } : {}),
-        }
-      })
+      const variant_entries = entries.map(e => ({
+        options: e.options,
+        ...(e.price && e.price.trim() ? { price_ghs: Number(e.price) } : {}),
+        ...(e.quantity && e.quantity.trim() ? { quantity: Number(e.quantity) } : {}),
+      }))
 
       await quickSell.mutateAsync({
         title,
@@ -126,7 +157,6 @@ function QuickSellPage() {
         quantity,
         category_id: categoryId || undefined,
         image_url: imageUrl,
-        variant_options,
         ...(variant_entries.length ? { variant_entries } : {}),
       })
 
@@ -142,7 +172,6 @@ function QuickSellPage() {
     ? readiness.mercur_status === "open" && readiness.setup_complete
     : false
   const blocked = Boolean(readiness && !canSell)
-  const validAxes = parsedAxes.length > 0
 
   return (
     <PageShell className="max-w-2xl">
@@ -317,7 +346,7 @@ function QuickSellPage() {
                       variant="outline"
                       size="sm"
                       className="gap-1.5"
-                      onClick={() => setHasVariations(v => !v)}
+                       onClick={toggleVariations}
                     >
                       <ListTree className="h-4 w-4" />
                       {hasVariations ? "Remove variations" : "Add variations"}
@@ -326,94 +355,120 @@ function QuickSellPage() {
                   {hasVariations && (
                     <div className="space-y-4 rounded-xl border-2 border-border p-4">
                       <p className="text-xs text-muted-foreground font-semibold">
-                        e.g. Colour (Red, Blue) or Size (Small, Medium, Large) — each combination gets its own stock and price.
+                        List each variation you have — each row is its own combination with its own stock and price.
                       </p>
 
-                      {axes.map((axis, i) => (
-                        <div key={i} className="space-y-2">
-                          <div className="flex items-center justify-between">
-                            <Label className="text-sm font-bold">Variation {i + 1}</Label>
-                            {axes.length > 1 && (
+                      <div className="space-y-2">
+                        <Label className="text-sm font-bold">Variation types</Label>
+                        {variationTypes.map((name, i) => (
+                          <div key={i} className="flex items-center gap-2">
+                            <Input
+                              value={name}
+                              onChange={e => syncTypes(variationTypes.map((n, j) => (j === i ? e.target.value : n)))}
+                              placeholder={i === 0 ? "e.g. Size" : `Variation type ${i + 1}`}
+                              className="h-9"
+                            />
+                            {variationTypes.length > 1 && (
                               <Button
                                 type="button"
                                 variant="ghost"
                                 size="sm"
-                                className="text-destructive gap-1"
-                                onClick={() => setAxes(axes.filter((_, j) => j !== i))}
+                                className="text-destructive shrink-0"
+                                onClick={() => removeType(i)}
                               >
-                                <Trash2 className="h-4 w-4" /> Remove
+                                <Trash2 className="h-4 w-4" />
                               </Button>
                             )}
                           </div>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                            <Input
-                              value={axis.name}
-                              onChange={e => setAxes(axes.map((a, j) => j === i ? { ...a, name: e.target.value } : a))}
-                              placeholder="Variation name (e.g. Size)"
-                            />
-                            <Input
-                              value={axis.values}
-                              onChange={e => setAxes(axes.map((a, j) => j === i ? { ...a, values: e.target.value } : a))}
-                              placeholder="Options, comma-separated (e.g. Small, Medium, Large)"
-                            />
+                        ))}
+                        {variationTypes.length < 3 && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="gap-1.5"
+                            onClick={() => syncTypes([...variationTypes, ""])}
+                          >
+                            <Plus className="h-4 w-4" /> Add variation type
+                          </Button>
+                        )}
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label className="text-sm font-bold">Your variations</Label>
+                        <div className="rounded-lg border-2 border-border overflow-hidden">
+                          <div
+                            className="grid gap-2 items-center px-3 py-2 bg-muted text-xs font-bold text-muted-foreground uppercase tracking-wide"
+                            style={{ gridTemplateColumns: `repeat(${variationTypes.length}, minmax(0, 1fr)) 4.5rem 5.5rem 2rem` }}
+                          >
+                            {variationTypes.map((name, i) => (
+                              <span key={i}>{name.trim() || `Type ${i + 1}`}</span>
+                            ))}
+                            <span className="text-right">Qty</span>
+                            <span className="text-right">Price ₵</span>
+                            <span />
                           </div>
-                        </div>
-                      ))}
-
-                      {axes.length < 3 && (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          className="gap-1.5"
-                          onClick={() => setAxes([...axes, { name: "", values: "" }])}
-                        >
-                          <Plus className="h-4 w-4" /> Add variation type
-                        </Button>
-                      )}
-
-                      {validAxes && combos.length > 0 && (
-                        <div className="space-y-2">
-                          <Label className="text-sm font-bold">Stock &amp; price per variation</Label>
-                          <div className="rounded-lg border-2 border-border overflow-hidden">
-                            <div className="grid grid-cols-[1fr_4.5rem_5.5rem] gap-2 items-center px-3 py-2 bg-muted text-xs font-bold text-muted-foreground uppercase tracking-wide">
-                              <span>Variation</span>
-                              <span className="text-right">Qty</span>
-                              <span className="text-right">Price ₵</span>
+                          {variations.map((row, i) => (
+                            <div
+                              key={i}
+                              className="grid gap-2 items-center px-3 py-2 border-t-2 border-border"
+                              style={{ gridTemplateColumns: `repeat(${variationTypes.length}, minmax(0, 1fr)) 4.5rem 5.5rem 2rem` }}
+                            >
+                              {variationTypes.map((_, j) => (
+                                <Input
+                                  key={j}
+                                  className="h-9"
+                                  placeholder={j === 0 ? "e.g. Large" : "e.g. Red"}
+                                  value={row.values[j] ?? ""}
+                                  onChange={e => updateVariationValue(i, j, e.target.value)}
+                                />
+                              ))}
+                              <Input
+                                type="number"
+                                min="1"
+                                step="1"
+                                className="h-9 text-right"
+                                value={row.quantity}
+                                placeholder={String(quantity)}
+                                onChange={e => updateVariation(i, "quantity", e.target.value)}
+                              />
+                              <Input
+                                type="number"
+                                min="0.5"
+                                max="500000"
+                                step="0.01"
+                                className="h-9 text-right"
+                                value={row.price}
+                                placeholder={priceGhs}
+                                onChange={e => updateVariation(i, "price", e.target.value)}
+                              />
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="text-destructive shrink-0"
+                                onClick={() => removeVariation(i)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
                             </div>
-                            {combos.map((combo, i) => {
-                              const label = parsedAxes.map((a, j) => combo[j]).join(" / ")
-                              return (
-                                <div key={i} className="grid grid-cols-[1fr_4.5rem_5.5rem] gap-2 items-center px-3 py-2 border-t-2 border-border">
-                                  <span className="text-sm font-semibold truncate">{label}</span>
-                                  <Input
-                                    type="number"
-                                    min="1"
-                                    step="1"
-                                    className="h-9 text-right"
-                                    value={rowData[i]?.quantity ?? ""}
-                                    placeholder={String(quantity)}
-                                    onChange={e => setRowData({ ...rowData, [i]: { ...rowData[i], quantity: e.target.value } })}
-                                  />
-                                  <Input
-                                    type="number"
-                                    min="0.5"
-                                    max="500000"
-                                    step="0.01"
-                                    className="h-9 text-right"
-                                    value={rowData[i]?.price ?? ""}
-                                    placeholder={priceGhs}
-                                    onChange={e => setRowData({ ...rowData, [i]: { ...rowData[i], price: e.target.value } })}
-                                  />
-                                </div>
-                              )
-                            })}
-                          </div>
+                          ))}
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="gap-1.5"
+                            onClick={addVariation}
+                          >
+                            <Plus className="h-4 w-4" /> Add variation
+                          </Button>
                           <p className="text-xs text-muted-foreground font-semibold">
-                            {combos.length} combination{combos.length === 1 ? "" : "s"} · Blank fields use your base quantity ({quantity}) and price (₵{priceGhs || "0"}).
+                            {entries.length} variation{entries.length === 1 ? "" : "s"} · Blank fields use your base quantity ({quantity}) and price (₵{priceGhs || "0"}).
                           </p>
                         </div>
-                      )}
+                      </div>
                     </div>
                   )}
                 </div>

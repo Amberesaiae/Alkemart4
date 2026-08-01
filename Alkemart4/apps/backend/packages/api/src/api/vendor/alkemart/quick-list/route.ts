@@ -33,46 +33,10 @@ type SellerReq = MedusaRequest & {
   session?: { seller_id?: string }
 }
 
-type VariantAxis = { name: string; values: string[] }
 type VariantEntry = {
   options: Record<string, string>
   price_ghs?: number
   quantity?: number
-}
-
-function parseVariantAxes(body: Record<string, unknown>): VariantAxis[] {
-  const raw = body.variant_options
-  if (raw === undefined || raw === null) return []
-  if (!Array.isArray(raw)) {
-    throw new MedusaError(MedusaError.Types.INVALID_DATA, "variant_options must be an array.")
-  }
-
-  const out: VariantAxis[] = []
-  for (const item of raw) {
-    const rec = item as Record<string, unknown>
-    const name = String(rec.name || "").trim()
-    const rawValues = rec.values
-    const values = Array.isArray(rawValues)
-      ? rawValues.map((v) => String(v).trim()).filter(Boolean)
-      : typeof rawValues === "string"
-        ? rawValues.split(",").map((v) => v.trim()).filter(Boolean)
-        : []
-    if (name && values.length > 0) {
-      out.push({ name, values: Array.from(new Set(values)) })
-    }
-  }
-
-  if (out.length > MAX_AXES) {
-    throw new MedusaError(MedusaError.Types.INVALID_DATA, `At most ${MAX_AXES} variation types.`)
-  }
-  const combos = out.reduce((acc, o) => acc * o.values.length, 1)
-  if (combos > MAX_COMBOS) {
-    throw new MedusaError(
-      MedusaError.Types.INVALID_DATA,
-      `Too many variations. Keep combinations under ${MAX_COMBOS}.`,
-    )
-  }
-  return out
 }
 
 function parseVariantEntries(body: Record<string, unknown>): VariantEntry[] {
@@ -129,13 +93,6 @@ function parseVariantEntries(body: Record<string, unknown>): VariantEntry[] {
   return out
 }
 
-function cartesian<T extends Record<string, unknown>>(lists: T[][]): T[] {
-  return lists.reduce<T[]>((acc, list) => {
-    if (acc.length === 0) return list
-    return acc.flatMap((a) => list.map((b) => ({ ...a, ...b })))
-  }, [])
-}
-
 function comboKey(options: Record<string, string>): string {
   return JSON.stringify(Object.entries(options).sort(([a], [b]) => a.localeCompare(b)))
 }
@@ -179,7 +136,6 @@ export async function POST(req: SellerReq, res: MedusaResponse) {
     }
   }
   const baseQuantity = Math.max(1, Math.floor(Number(body.quantity) || 1))
-  const variantAxes = parseVariantAxes(body)
   const variantEntries = parseVariantEntries(body)
 
   if (!title || title.length < 3) {
@@ -253,30 +209,51 @@ export async function POST(req: SellerReq, res: MedusaResponse) {
 
     const memberId = req.seller_context?.member_id || sellerId
 
-    const attributes = variantAxes.map((o) => ({
-      title: o.name,
-      values: o.values,
+    const axisNames: string[] = []
+    const axisValues = new Map<string, Set<string>>()
+    for (const entry of variantEntries) {
+      for (const [name, value] of Object.entries(entry.options)) {
+        if (!axisValues.has(name)) {
+          axisValues.set(name, new Set())
+          axisNames.push(name)
+        }
+        axisValues.get(name)!.add(value)
+      }
+    }
+    if (axisNames.length > MAX_AXES) {
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        `At most ${MAX_AXES} variation types.`,
+      )
+    }
+    if (variantEntries.length > MAX_COMBOS) {
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        `Too many variations. Keep it under ${MAX_COMBOS}.`,
+      )
+    }
+
+    const attributes = axisNames.map((name) => ({
+      title: name,
+      values: [...(axisValues.get(name) ?? [])],
       is_variant_axis: true,
     }))
 
-    // One entry per combination; missing entries fall back to base price/quantity.
-    const combos = variantAxes.length
-      ? cartesian(variantAxes.map((o) => o.values.map((v) => ({ [o.name]: v }))))
-      : [{}]
-    const entriesByKey = new Map(
-      variantEntries.map((e) => [comboKey(e.options), e]),
-    )
-    const variantSpecs = combos.map((combo) => {
-      const options = combo as Record<string, string>
-      const key = comboKey(options)
-      const entry = entriesByKey.get(key)
-      return {
-        title: Object.keys(options).length ? Object.values(options).join(" / ") : "Default",
-        options,
-        price_ghs: entry?.price_ghs ?? basePrice,
-        quantity: entry?.quantity ?? baseQuantity,
-      }
-    })
+    const variantSpecs = variantEntries.length
+      ? variantEntries.map((entry) => ({
+          title: Object.keys(entry.options).length
+            ? Object.values(entry.options).join(" / ")
+            : "Default",
+          options: entry.options,
+          price_ghs: entry.price_ghs ?? basePrice,
+          quantity: entry.quantity ?? baseQuantity,
+        }))
+      : [{
+          title: "Default",
+          options: {},
+          price_ghs: basePrice,
+          quantity: baseQuantity,
+        }]
 
     const { result: createdProducts } = await createProductsWorkflow(
       req.scope,
