@@ -44,6 +44,7 @@ export async function GET(req: SellerReq, res: MedusaResponse) {
             can_propose_products: readiness.can_propose_products,
             can_create_offers: readiness.can_create_offers,
             checklist: readiness.checklist,
+            checklist_labels: readiness.checklist_labels,
             next_action: readiness.next_action,
             mercur_status: readiness.mercur_status,
           }

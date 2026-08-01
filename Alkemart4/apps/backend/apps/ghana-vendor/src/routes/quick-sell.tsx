@@ -1,9 +1,10 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { useState, useRef, useEffect } from "react"
-import { useUploadImage, useQuickSell, useCategories } from "../lib/hooks"
+import { useUploadImage, useQuickSell, useCategories, useReadiness } from "../lib/hooks"
+import type { SellerReadiness } from "../lib/api"
 import { useQueryClient } from "@tanstack/react-query"
-import { Button, Input, Label, Card, Textarea, Select } from "@workspace/ui"
-import { UploadCloud, Image as ImageIcon, ArrowRight, CheckCircle2, ChevronLeft } from "lucide-react"
+import { Button, Input, Label, Card, Textarea, Select, Skeleton } from "@workspace/ui"
+import { UploadCloud, Image as ImageIcon, ArrowRight, CheckCircle2, ChevronLeft, AlertCircle, Clock } from "lucide-react"
 import { PageShell } from "../components/page-shell"
 import { PageHeader } from "../components/page-header"
 
@@ -28,6 +29,7 @@ function QuickSellPage() {
   const upload = useUploadImage()
   const quickSell = useQuickSell()
   const { data: categoriesData } = useCategories()
+  const { data: readiness, isLoading: readinessLoading } = useReadiness()
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -85,6 +87,11 @@ function QuickSellPage() {
     }
   }
 
+  const canSell = readiness
+    ? readiness.mercur_status === "open" && readiness.setup_complete
+    : false
+  const blocked = Boolean(readiness && !canSell)
+
   return (
     <PageShell className="max-w-2xl">
       <div className="flex items-center gap-4">
@@ -94,6 +101,16 @@ function QuickSellPage() {
         <PageHeader title="Quick Sell" description="List an item in under a minute." />
       </div>
 
+      {readinessLoading ? (
+        <Card className="border-2 shadow-lg overflow-hidden">
+          <div className="p-8">
+            <Skeleton className="h-40 w-full" />
+          </div>
+        </Card>
+      ) : blocked && readiness ? (
+        <SetupGate readiness={readiness} />
+      ) : (
+      <>
       <div className="flex items-center justify-center mb-8">
         <div className="flex items-center gap-2">
           <div className={`h-8 w-8 rounded-full flex items-center justify-center font-bold text-sm transition-colors ${step === 1 ? 'bg-primary text-primary-foreground' : 'bg-primary text-primary-foreground'}`}>1</div>
@@ -269,6 +286,79 @@ function QuickSellPage() {
           </form>
         )}
       </Card>
+      </>
+      )}
     </PageShell>
+  )
+}
+
+function SetupGate({ readiness }: { readiness: SellerReadiness }) {
+  const navigate = useNavigate()
+
+  if (readiness.mercur_status !== "open") {
+    const title =
+      readiness.mercur_status === "pending_approval"
+        ? "Your shop is under review"
+        : readiness.mercur_status === "suspended"
+          ? "Your shop is paused"
+          : "Cannot list products right now"
+    return (
+      <Card className="border-2 shadow-lg overflow-hidden">
+        <div className="p-8 sm:p-12 text-center">
+          <Clock className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+          <h2 className="text-2xl font-bold mb-2">{title}</h2>
+          <p className="text-muted-foreground font-medium max-w-sm mx-auto">
+            {readiness.next_action?.label || "Check back soon."}
+          </p>
+        </div>
+      </Card>
+    )
+  }
+
+  const items = Object.entries(readiness.checklist)
+  const targetTab: "profile" | "dispatch" = readiness.checklist.profile ? "dispatch" : "profile"
+  const missing = items.filter(([, done]) => !done).length
+
+  return (
+    <Card className="border-2 shadow-lg overflow-hidden">
+      <div className="p-8 sm:p-12">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="h-11 w-11 rounded-full bg-warning/10 text-warning flex items-center justify-center shrink-0">
+            <AlertCircle className="h-6 w-6" />
+          </div>
+          <div>
+            <h2 className="text-xl font-bold">Finish setting up your shop</h2>
+            <p className="text-sm text-muted-foreground font-medium">
+              One-time setup so buyers know where to pick up. {missing} step{missing === 1 ? "" : "s"} left.
+            </p>
+          </div>
+        </div>
+
+        <ul className="space-y-2 mb-8">
+          {items.map(([key, done]) => (
+            <li key={key} className="flex items-center gap-3 p-3 rounded-xl border-2 border-border">
+              {done ? (
+                <CheckCircle2 className="h-5 w-5 text-success shrink-0" />
+              ) : (
+                <AlertCircle className="h-5 w-5 text-warning shrink-0" />
+              )}
+              <span className="font-semibold text-sm">
+                {readiness.checklist_labels?.[key] ?? key}
+              </span>
+            </li>
+          ))}
+        </ul>
+
+        <div className="flex justify-end">
+          <Button
+            size="lg"
+            className="gap-2 px-8"
+            onClick={() => navigate({ to: "/settings", search: { tab: targetTab } })}
+          >
+            Complete setup <ArrowRight className="h-5 w-5" />
+          </Button>
+        </div>
+      </div>
+    </Card>
   )
 }

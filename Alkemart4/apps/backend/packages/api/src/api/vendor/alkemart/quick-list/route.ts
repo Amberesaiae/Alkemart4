@@ -98,7 +98,7 @@ export async function POST(req: SellerReq, res: MedusaResponse) {
 
     if (readiness.phase === "setup_incomplete") {
       res.status(400).json({
-        error: "Set your pack address and delivery fee first (use the form on your dashboard).",
+        error: "Set your pack address first (Settings → Dispatch Address).",
         readiness,
       })
       return
@@ -123,7 +123,7 @@ export async function POST(req: SellerReq, res: MedusaResponse) {
 
     if (!stockLocationId || !shippingProfileId) {
       res.status(400).json({
-        error: "Set your pack address and delivery fee first (use the form on your dashboard).",
+        error: "Set your pack address first (Settings → Dispatch Address).",
       })
       return
     }

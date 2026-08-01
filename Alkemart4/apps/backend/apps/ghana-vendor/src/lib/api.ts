@@ -308,6 +308,7 @@ export type VendorStats = {
     can_propose_products: boolean
     can_create_offers: boolean
     checklist: Record<string, boolean>
+    checklist_labels?: Record<string, string>
     next_action?: { code: string; label: string } | null
   } | null
   series?: {
@@ -325,7 +326,9 @@ export type SellerReadiness = {
   can_propose_products: boolean
   can_create_offers: boolean
   checklist: Record<string, boolean>
+  checklist_labels?: Record<string, string>
   next_action?: { code: string; label: string } | null
+  quick_setup_available?: boolean
   poll_after_seconds?: number
   cache?: string
 }

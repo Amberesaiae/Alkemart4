@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router"
 import { useQueryClient } from "@tanstack/react-query"
 import { useDashboardStats, useOrders } from "../lib/hooks"
 import { Card, Button, Badge, cn, Skeleton, Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@workspace/ui"
-import { ArrowRight, Package, TrendingUp, ShoppingBag, Clock, PlusCircle, AlertCircle } from "lucide-react"
+import { ArrowRight, Package, TrendingUp, ShoppingBag, Clock, PlusCircle, AlertCircle, CheckCircle2 } from "lucide-react"
 import { format } from "date-fns"
 import { PageShell } from "../components/page-shell"
 import { PageHeader } from "../components/page-header"
@@ -31,6 +31,41 @@ function DashboardPage() {
           </Button>
         </Link>
       </div>
+
+      {stats?.readiness && !stats.readiness.setup_complete && stats.readiness.phase === "setup_incomplete" && (
+        <Card className="p-5 border-2 border-warning/30 bg-warning/5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h2 className="font-black flex items-center gap-2">
+                <AlertCircle className="h-5 w-5 text-warning shrink-0" />
+                Finish setting up your shop
+              </h2>
+              <p className="text-sm text-muted-foreground font-medium mt-1">
+                {stats.readiness.next_action?.label || "Complete your shop setup to start selling."}
+              </p>
+              <ul className="mt-3 space-y-1.5">
+                {Object.entries(stats.readiness.checklist || {}).map(([key, done]) => (
+                  <li key={key} className="flex items-center gap-2 text-sm font-semibold">
+                    {done
+                      ? <CheckCircle2 className="h-4 w-4 text-success shrink-0" />
+                      : <AlertCircle className="h-4 w-4 text-warning shrink-0" />}
+                    {stats.readiness?.checklist_labels?.[key] ?? key}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <Link
+              to="/settings"
+              search={{ tab: stats.readiness.checklist?.profile ? "dispatch" : "profile" }}
+              className="shrink-0"
+            >
+              <Button className="gap-2">
+                Continue setup <ArrowRight className="h-4 w-4" />
+              </Button>
+            </Link>
+          </div>
+        </Card>
+      )}
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard 

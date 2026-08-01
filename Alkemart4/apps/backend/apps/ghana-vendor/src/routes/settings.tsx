@@ -18,6 +18,12 @@ import {
 import { Store, MapPin, CreditCard, Save, CheckCircle2, AlertCircle, Smartphone } from "lucide-react"
 
 export const Route = createFileRoute('/settings')({
+  validateSearch: (search: Record<string, unknown>) => {
+    const result: { tab?: "profile" | "dispatch" | "momo" } = {}
+    const raw = search.tab
+    if (raw === "profile" || raw === "dispatch" || raw === "momo") result.tab = raw
+    return result
+  },
   component: SettingsPage,
 })
 
@@ -28,8 +34,13 @@ function SettingsPage() {
   const updateProfile = useUpdateProfile()
   const ghanaSetup    = useGhanaSetup()
   const updatePayment = useUpdatePayment()
+  const { tab: searchTab } = Route.useSearch()
 
   const [activeTab, setActiveTab] = useState<"profile" | "dispatch" | "momo">("profile")
+
+  useEffect(() => {
+    if (searchTab) setActiveTab(searchTab)
+  }, [searchTab])
 
   const [profileForm, setProfileForm] = useState({ name: "", handle: "" })
   const [addressForm, setAddressForm] = useState<{
@@ -39,7 +50,6 @@ function SettingsPage() {
     province: string
     postal_code: string
     country_code: string
-    delivery_fee_ghs: number | undefined
   }>({
     address_1: "",
     address_2: "",
@@ -47,7 +57,6 @@ function SettingsPage() {
     province: "",
     postal_code: "",
     country_code: "gh",
-    delivery_fee_ghs: undefined,
   })
   const [phoneRaw,  setPhoneRaw]  = useState("")
   const [provider,  setProvider]  = useState<MomoProvider>("mtn")
@@ -69,7 +78,6 @@ function SettingsPage() {
         province:    seller.address.province    || "",
         postal_code: seller.address.postal_code || "",
         country_code: "gh",
-        delivery_fee_ghs: undefined,
       })
     }
     if (seller.payment_details) {
@@ -95,7 +103,6 @@ function SettingsPage() {
       city: addressForm.city,
       region: addressForm.province,
       postal_code: addressForm.postal_code,
-      delivery_fee_ghs: addressForm.delivery_fee_ghs,
     })
   }
 
@@ -289,32 +296,6 @@ function SettingsPage() {
                   />
                   <p className="text-xs text-muted-foreground">
                     Your GhanaPost digital address — helps riders find you precisely
-                  </p>
-                </div>
-
-                {/* delivery_fee_ghs — flat delivery fee in GH₵ */}
-                <div className="space-y-2">
-                  <Label>Delivery Fee (GH₵)</Label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-muted-foreground select-none pointer-events-none">
-                      ₵
-                    </span>
-                    <Input
-                      type="number"
-                      className="pl-8"
-                      value={addressForm.delivery_fee_ghs ?? ""}
-                      onChange={e => {
-                        const raw = e.target.value
-                        setAddressForm({ ...addressForm, delivery_fee_ghs: raw === "" ? undefined : Math.max(0, Number(raw)) })
-                      }}
-                      placeholder="e.g. 20"
-                      min={0}
-                      max={500}
-                      step={0.5}
-                    />
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Flat fee buyers pay for delivery anywhere in Ghana
                   </p>
                 </div>
 

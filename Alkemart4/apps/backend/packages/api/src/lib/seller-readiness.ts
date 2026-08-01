@@ -156,7 +156,7 @@ export function nextActionFor(
       }
       return {
         code: "ghana_quick_setup",
-        label: "Set pack address and delivery fee (GH₵).",
+        label: "Set your pack address (where riders pick up).",
       }
     default:
       return null

@@ -172,6 +172,14 @@ export function useGhanaSetup() {
   })
 }
 
+export function useReadiness() {
+  return useQuery({
+    queryKey: ["vendor", "readiness"],
+    queryFn: () => stats.readiness(),
+    staleTime: 30_000,
+  })
+}
+
 export function useUpdatePayment() {
   const qc = useQueryClient()
   return useMutation({
