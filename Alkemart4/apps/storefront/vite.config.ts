@@ -33,8 +33,10 @@ export default defineConfig({
       manifestFilename: "manifest.webmanifest",
       includeAssets: ["offline.html", "icons/*.png", "favicon.ico"],
       workbox: {
-        // Shell: always network-first so deploys propagate quickly
-        navigateFallback: "/offline.html",
+        // SPA shell fallback: any non-precached client route serves the app,
+        // not the offline page. offline.html is precached but only shown when
+        // the network is genuinely unavailable (explicit app offline state).
+        navigateFallback: "/index.html",
         navigateFallbackDenylist: [/^\/api\//],
         // API calls: network-first, 10s timeout → cache → offline
         runtimeCaching: [
