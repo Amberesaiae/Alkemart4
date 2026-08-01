@@ -56,6 +56,12 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
   res.status(200).json({
     vendors: page.map((s) => {
       const meta = s.metadata ?? {}
+      const alkemartMeta =
+        (meta.alkemart as Record<string, unknown> | undefined) ?? {}
+      const coverImageUrl =
+        (alkemartMeta.cover_image_url as string | undefined) ||
+        (meta.cover_image_url as string | undefined) ||
+        null
       return {
         id: s.id,
         name: s.name,
@@ -63,6 +69,7 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
         handle: s.handle,
         bio: s.description ?? null,
         logoImageUrl: s.logo ?? null,
+        coverImageUrl: coverImageUrl ?? null,
         ratingAvgX100: Number(meta.rating_avg_x100 ?? 0) || 0,
         ratingCount: Number(meta.rating_count ?? 0) || 0,
         badgeTopSeller: Boolean(meta.badge_top_seller),

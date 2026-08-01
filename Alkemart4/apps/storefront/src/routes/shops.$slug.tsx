@@ -5,12 +5,13 @@ import { ProductCard } from "@/components/product-card"
 import { ProductGridShell } from "@/components/product-grid"
 import { EmptyState } from "@/components/empty-state"
 import { ProductGridSkeleton, Skeleton } from "@/components/skeleton"
-import { Avatar, AvatarFallback } from "@workspace/ui"
+import { Avatar, AvatarFallback, AvatarImage, Badge } from "@workspace/ui"
 import { getBackendUrl, getPublishableKey } from "@/lib/env"
 import { listStoreProducts, type StoreProductCard } from "@/lib/products"
 import { trackSellerStoreViewed } from "@/lib/analytics"
 import { PageSeo } from "@/components/page-seo"
 import { storeJsonLd, stripHtml, truncateMeta } from "@/lib/seo"
+import { ProductRating } from "@/components/product/ProductRating"
 
 export const Route = createFileRoute("/shops/$slug")({
   component: StorePage,
@@ -22,6 +23,13 @@ type VendorPayload = {
     name?: string
     slug?: string
     bio?: string | null
+    logoImageUrl?: string | null
+    coverImageUrl?: string | null
+    ratingAvgX100?: number
+    ratingCount?: number
+    badgeTopSeller?: boolean
+    badgeFastShipper?: boolean
+    status?: string
   }
 }
 
@@ -129,7 +137,7 @@ function StorePage() {
 
       {vendorQ.isLoading ? (
         <div className="space-y-3" role="status" aria-label="Loading store">
-          <Skeleton className="h-28 w-full rounded-3xl" />
+          <Skeleton className="h-56 w-full rounded-3xl" />
         </div>
       ) : null}
 
@@ -148,57 +156,96 @@ function StorePage() {
       ) : null}
 
       {vendor && name ? (
-        <header className="store-hero overflow-hidden rounded-3xl border border-border p-6 shadow-sm sm:p-8">
-          <div className="flex flex-wrap items-start gap-4">
-            <Avatar className="h-16 w-16 rounded-2xl text-2xl font-bold">
-              <AvatarFallback className="rounded-2xl bg-primary text-primary-foreground">
-                {name.slice(0, 1).toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
-            <div className="min-w-0 space-y-2">
-              <p className="type-sm font-semibold uppercase tracking-[0.14em] text-primary">
-                Seller store
-              </p>
-              <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
-                {name}
-              </h1>
-              {vendor.bio ? (
-                <p className="max-w-2xl type-sm leading-relaxed text-primary-foreground/70">
-                  {vendor.bio}
-                </p>
-              ) : null}
-              {products.length > 0 ? (
-                <p className="type-sm text-primary-foreground/55">
-                  {products.length} product{products.length === 1 ? "" : "s"} in
-                  catalog
-                  {sections.length > 1
-                    ? ` · ${sections.length} departments`
-                    : ""}
-                </p>
-              ) : null}
-              {/* Derived multi-category chips (product taxonomy, not seller SoR) */}
-              {sections.length > 1 ? (
-                <ul className="flex flex-wrap gap-2 pt-1">
-                  {sections.map((s) =>
-                    s.title ? (
-                      <li key={s.title}>
-                        <a
-                          href={`#store-cat-${slugify(s.title)}`}
-                          className="inline-flex rounded-full bg-ink/10 px-3 py-1 type-sm font-semibold text-primary-foreground/90 ring-1 ring-ink/15 hover:bg-ink/15"
-                        >
-                          {s.title}
-                          <span className="ml-1.5 opacity-60">
-                            {s.products.length}
-                          </span>
-                        </a>
-                      </li>
-                    ) : null,
-                  )}
-                </ul>
-              ) : null}
+        <div className="space-y-4">
+          {vendor.coverImageUrl ? (
+            <div className="aspect-video w-full overflow-hidden rounded-3xl">
+              <img
+                src={vendor.coverImageUrl}
+                alt=""
+                className="h-full w-full object-cover object-center"
+                loading="lazy"
+              />
             </div>
-          </div>
-        </header>
+          ) : (
+            <div className="aspect-video w-full overflow-hidden rounded-3xl bg-gradient-to-b from-primary/25 via-primary/10 to-muted/30" />
+          )}
+
+          <header className="store-hero overflow-hidden rounded-3xl border border-border p-6 shadow-sm sm:p-8">
+            <div className="flex flex-wrap items-start gap-4">
+              <Avatar className="h-16 w-16 rounded-2xl text-2xl font-bold ring-2 ring-background">
+                <AvatarImage
+                  src={vendor.logoImageUrl ?? undefined}
+                  alt={`${name} logo`}
+                  className="h-full w-full object-cover"
+                />
+                <AvatarFallback className="rounded-2xl bg-primary text-primary-foreground">
+                  {name.slice(0, 1).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <div className="min-w-0 space-y-2">
+                <p className="type-sm font-semibold uppercase tracking-[0.14em] text-primary">
+                  Seller store
+                </p>
+                <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
+                  {name}
+                </h1>
+                {vendor.bio ? (
+                  <p className="max-w-2xl type-sm leading-relaxed text-primary-foreground/70">
+                    {vendor.bio}
+                  </p>
+                ) : null}
+                {vendor.ratingCount ? (
+                  <div className="flex items-center gap-2.5">
+                    <ProductRating
+                      value={(vendor.ratingAvgX100 ?? 0) / 100}
+                      size={14}
+                    />
+                    <span className="type-sm text-muted-foreground">
+                      {(vendor.ratingAvgX100 ?? 0) / 100} ·{" "}
+                      {vendor.ratingCount} review
+                      {vendor.ratingCount === 1 ? "" : "s"}
+                    </span>
+                    {vendor.badgeTopSeller ? (
+                      <Badge className="font-semibold">Top seller</Badge>
+                    ) : null}
+                    {vendor.badgeFastShipper ? (
+                      <Badge className="font-semibold">Fast shipper</Badge>
+                    ) : null}
+                  </div>
+                ) : null}
+                {products.length > 0 ? (
+                  <p className="type-sm text-primary-foreground/55">
+                    {products.length} product{products.length === 1 ? "" : "s"} in
+                    catalog
+                    {sections.length > 1
+                      ? ` · ${sections.length} departments`
+                      : ""}
+                  </p>
+                ) : null}
+                {/* Derived multi-category chips (product taxonomy, not seller SoR) */}
+                {sections.length > 1 ? (
+                  <ul className="flex flex-wrap gap-2 pt-1">
+                    {sections.map((s) =>
+                      s.title ? (
+                        <li key={s.title}>
+                          <a
+                            href={`#store-cat-${slugify(s.title)}`}
+                            className="inline-flex rounded-full bg-ink/10 px-3 py-1 type-sm font-semibold text-primary-foreground/90 ring-1 ring-ink/15 hover:bg-ink/15"
+                          >
+                            {s.title}
+                            <span className="ml-1.5 opacity-60">
+                              {s.products.length}
+                            </span>
+                          </a>
+                        </li>
+                      ) : null,
+                    )}
+                  </ul>
+                ) : null}
+              </div>
+            </div>
+          </header>
+        </div>
       ) : null}
 
       {vendor && productsQ.isLoading ? <ProductGridSkeleton count={8} /> : null}
