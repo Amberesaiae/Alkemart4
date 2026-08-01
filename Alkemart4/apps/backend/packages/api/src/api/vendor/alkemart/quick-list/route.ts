@@ -128,17 +128,21 @@ export async function POST(req: SellerReq, res: MedusaResponse) {
       return
     }
 
-    // productModule.create() — under Medusa v2 this calls the ProductModuleService.create method
-    const productModule = req.scope.resolve(Modules.PRODUCT) as unknown as Record<string, (...args: unknown[]) => Promise<unknown>>
+    const productModule = req.scope.resolve(Modules.PRODUCT) as {
+      createProducts: (data: any[]) => Promise<any[]>
+    }
 
-    const product = await productModule.create({
-      title,
-      description: description || undefined,
-      thumbnail: image_url || undefined,
-      categories: category_id ? [{ id: category_id }] : undefined,
-      status: "proposed",
-      metadata: { alkemart: { origin: "quick-list", price_ghs } },
-    }) as Record<string, unknown> | undefined
+    const created = await productModule.createProducts([
+      {
+        title,
+        description: description || undefined,
+        thumbnail: image_url || undefined,
+        categories: category_id ? [{ id: category_id }] : undefined,
+        status: "proposed",
+        metadata: { alkemart: { origin: "quick-list", price_ghs } },
+      },
+    ])
+    const product = created[0] as Record<string, unknown> | undefined
 
     if (!product?.id) {
       res.status(500).json({ error: "Product creation failed." })
