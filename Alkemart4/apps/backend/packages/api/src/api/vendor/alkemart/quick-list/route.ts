@@ -6,7 +6,10 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { ContainerRegistrationKeys, Modules, MedusaError } from "@medusajs/framework/utils"
 import { MercurModules } from "@mercurjs/types"
-import { createOffersWorkflow } from "@mercurjs/core/workflows"
+import {
+  createOffersWorkflow,
+  createProductsWorkflow,
+} from "@mercurjs/core/workflows"
 import { evaluateSellerReadiness } from "../../../../lib/seller-readiness"
 import { invalidateSellerOwnedProductIds } from "../../../../lib/seller-owned-products-cache"
 import { checkRateLimit } from "../../../../lib/rate-limiter"
@@ -76,7 +79,6 @@ export async function POST(req: SellerReq, res: MedusaResponse) {
   }
 
   let createdProductId: string | null = null
-  let linkCreated = false
 
   try {
     const readiness = await evaluateSellerReadiness(query, sellerId)
@@ -128,40 +130,32 @@ export async function POST(req: SellerReq, res: MedusaResponse) {
       return
     }
 
-    const productModule = req.scope.resolve(Modules.PRODUCT) as {
-      createProducts: (data: any[]) => Promise<any[]>
-    }
+    const memberId = req.seller_context?.member_id || sellerId
 
-    const created = await productModule.createProducts([
-      {
-        title,
-        description: description || undefined,
-        thumbnail: image_url || undefined,
-        categories: category_id ? [{ id: category_id }] : undefined,
-        status: "proposed",
-        metadata: { alkemart: { origin: "quick-list", price_ghs } },
+    const { result: createdProducts } = await createProductsWorkflow(
+      req.scope,
+    ).run({
+      input: {
+        created_by: memberId,
+        products: [{
+          title,
+          description: description || undefined,
+          thumbnail: image_url || undefined,
+          category_ids: category_id ? [category_id] : undefined,
+          status: "proposed",
+          seller_ids: [sellerId],
+          variants: [{ title: "Default" }],
+          metadata: { alkemart: { origin: "quick-list", price_ghs } },
+        }],
       },
-    ])
-    const product = created[0] as Record<string, unknown> | undefined
+    })
+    const product = asList(createdProducts)[0] as Record<string, unknown> | undefined
 
     if (!product?.id) {
       res.status(500).json({ error: "Product creation failed." })
       return
     }
     createdProductId = product.id as string
-
-    const link = req.scope.resolve(ContainerRegistrationKeys.LINK) as {
-      create: (data: unknown) => Promise<unknown>
-    }
-
-    await link.create({
-      [Modules.PRODUCT]: { product_id: product.id },
-      [MercurModules.SELLER]: { seller_id: sellerId },
-    }).catch((linkErr) => {
-      logger.error("[alkemart] quick-list: product_seller link failed", { sellerId, productId: product.id, error: linkErr instanceof Error ? linkErr.message : linkErr })
-      throw linkErr
-    })
-    linkCreated = true
     void invalidateSellerOwnedProductIds(sellerId).catch(() => {})
 
     const { data: productData } = await query.graph({
@@ -174,8 +168,10 @@ export async function POST(req: SellerReq, res: MedusaResponse) {
     const variantId = variants[0]?.id
 
     if (!variantId) {
-      res.status(500).json({ error: "Product created but no variant found." })
-      return
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        "Product was created without a variant — cannot attach price or stock.",
+      )
     }
 
     const offerSku = `QL-${String(product.id).slice(0, 8)}`
@@ -183,7 +179,7 @@ export async function POST(req: SellerReq, res: MedusaResponse) {
       input: {
         offers: [{
           seller_id: sellerId,
-          created_by: req.seller_context?.member_id || sellerId,
+          created_by: memberId,
           variant_id: variantId,
           shipping_profile_id: shippingProfileId,
           sku: offerSku,
@@ -208,18 +204,16 @@ export async function POST(req: SellerReq, res: MedusaResponse) {
     const msg = e instanceof Error ? e.message : "Quick list failed"
     logger.error("[alkemart] quick-list error", { sellerId, error: msg })
 
-    // Clean up partial state
+    // Clean up partial state (product + seller link only if offer step failed)
     if (createdProductId) {
       try {
-        if (linkCreated) {
-          const link = req.scope.resolve(ContainerRegistrationKeys.LINK) as {
-            dismiss: (data: unknown) => Promise<unknown>
-          }
-          await link.dismiss({
-            [Modules.PRODUCT]: { product_id: createdProductId },
-            [MercurModules.SELLER]: { seller_id: sellerId },
-          })
+        const link = req.scope.resolve(ContainerRegistrationKeys.LINK) as {
+          dismiss: (data: unknown) => Promise<unknown>
         }
+        await link.dismiss({
+          [Modules.PRODUCT]: { product_id: createdProductId },
+          [MercurModules.SELLER]: { seller_id: sellerId },
+        }).catch(() => {})
         const pm = req.scope.resolve(Modules.PRODUCT) as {
           deleteProducts?: (ids: string[]) => Promise<unknown>
         }
