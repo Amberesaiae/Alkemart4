@@ -116,9 +116,17 @@ async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
   })
 
   if (res.status === 401) {
-    // Session expired — clear seller context so UI redirects to login
+    // Unauthenticated — clear seller context so UI redirects to login,
+    // but surface the server's real reason instead of a generic "Session
+    // expired": login failures say "Invalid email or password", expired
+    // tokens say "Not authenticated".
     setActiveSellerId(null)
-    throw new ApiError(401, "Session expired. Please sign in again.")
+    const body = await res.json().catch(() => ({})) as unknown as ApiErrorBody
+    const msg =
+      body.error ||
+      body.message ||
+      "Session expired. Please sign in again."
+    throw new ApiError(401, msg)
   }
 
   if (!res.ok) {
