@@ -4,7 +4,7 @@ import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 export async function GET(req: MedusaRequest, res: MedusaResponse) {
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
 
-  const { data: products } = await query.graph({
+  const { data } = await query.graph({
     entity: "product",
     fields: [
       "id",
@@ -14,8 +14,9 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
       "description",
       "metadata",
       "sale_status",
-      "seller.name",
-      "seller.handle",
+      "sellers.id",
+      "sellers.name",
+      "sellers.handle",
       "images.url",
     ],
     filters: {
@@ -23,9 +24,13 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
     },
   })
 
-  const featured = (products as Record<string, unknown>[]).filter((p) => {
+  const featured = (data as Record<string, unknown>[]).filter((p) => {
     const meta = p.metadata as Record<string, unknown> | null
     return meta?.featured === "true"
+  }).map((p) => {
+    const sellers = (p.sellers as Array<Record<string, unknown>> | undefined) ?? []
+    const seller = sellers[0] ?? null
+    return { ...p, seller }
   })
 
   res.json({ products: featured })

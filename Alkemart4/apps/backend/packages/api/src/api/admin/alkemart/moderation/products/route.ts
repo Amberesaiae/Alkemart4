@@ -31,9 +31,9 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
         "created_at",
         "updated_at",
         "categories.id",
-        "seller.id",
-        "seller.name",
-        "seller.handle",
+        "sellers.id",
+        "sellers.name",
+        "sellers.handle",
         "images.url",
       ],
       filters: { status: "proposed" },
@@ -51,7 +51,8 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
         images: p.images as Array<{ url?: string }>,
         categories: p.categories as Array<{ id?: string }>,
       })
-      const seller = p.seller as Record<string, unknown> | null
+      const sellers = (p.sellers as Array<Record<string, unknown>> | undefined) ?? []
+      const seller = sellers[0] ?? null
       return {
         id: p.id,
         title: p.title,

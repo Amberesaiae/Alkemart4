@@ -28,10 +28,10 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
         "variants.id",
         "variants.prices.amount",
         "variants.prices.currency_code",
-        "seller.id",
-        "seller.name",
-        "seller.stock_locations.id",
-        "seller.shipping_profiles.id",
+        "sellers.id",
+        "sellers.name",
+        "sellers.stock_locations.id",
+        "sellers.shipping_profiles.id",
       ],
       filters: { id: productId },
     })
@@ -53,7 +53,8 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
 
     await productModule.updateProducts(productId, { status: "published" })
 
-    const seller = product.seller as Record<string, unknown> | undefined
+    const sellers = (product.sellers as Array<Record<string, unknown>> | undefined) ?? []
+    const seller = sellers[0] as Record<string, unknown> | undefined
     const sellerId = seller?.id as string | undefined
     const variants = (product.variants || []) as Array<{ id: string; prices?: Array<{ amount: number; currency_code: string }> }>
     const variantId = variants[0]?.id

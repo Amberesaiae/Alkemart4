@@ -7,7 +7,7 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
 
   try {
-    const { data: products } = await query.graph({
+    const { data } = await query.graph({
       entity: "product",
       fields: [
         "id",
@@ -16,15 +16,22 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
         "metadata",
         "sale_status",
         "created_at",
-        "seller.name",
-        "seller.handle",
+        "sellers.id",
+        "sellers.name",
+        "sellers.handle",
       ],
     })
 
-    const featured = (products as Record<string, unknown>[]).filter((p) => {
-      const meta = p.metadata as Record<string, unknown> | null
-      return meta?.featured === "true"
-    })
+    const productsRaw = asList(data) as Record<string, unknown>[]
+    const featured = productsRaw
+      .filter((p) => {
+        const meta = p.metadata as Record<string, unknown> | null
+        return meta?.featured === "true"
+      })
+      .map((p) => {
+        const sellers = (p.sellers as Array<Record<string, unknown>> | undefined) ?? []
+        return { ...p, seller: sellers[0] ?? null }
+      })
 
     res.json({ products: featured })
   } catch (e) {

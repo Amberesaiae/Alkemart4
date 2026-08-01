@@ -16,9 +16,8 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
 
   const fields = [
     "id", "title", "thumbnail", "metadata", "created_at",
-    "seller.name", "seller.handle",
+    "sellers.name", "sellers.handle",
   ]
-
   try {
     const { data, metadata } = await query.graph({
       entity: "product",
@@ -27,14 +26,17 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
       pagination: { skip: Number(offset), take: Number(limit) },
     })
 
-    const products = (asList(data) as Record<string, unknown>[]).map((p) => ({
-      id: p.id,
-      title: p.title,
-      thumbnail: p.thumbnail ?? null,
-      metadata: (p.metadata as Record<string, unknown> | null) ?? null,
-      created_at: p.created_at,
-      seller: p.seller ?? null,
-    }))
+    const products = (asList(data) as Record<string, unknown>[]).map((p) => {
+      const sellers = (p.sellers as Array<Record<string, unknown>> | undefined) ?? []
+      return ({
+        id: p.id,
+        title: p.title,
+        thumbnail: p.thumbnail ?? null,
+        metadata: (p.metadata as Record<string, unknown> | null) ?? null,
+        created_at: p.created_at,
+        seller: sellers[0] ?? null,
+      })
+    })
 
     res.json({
       products,
