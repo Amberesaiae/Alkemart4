@@ -551,6 +551,8 @@ export const products = {
     quantity?: number
     category_id?: string
     image_url?: string
+    variant_options?: { name: string; values: string[] }[]
+    variant_entries?: { options: Record<string, string>; price_ghs?: number; quantity?: number }[]
   }) =>
     post<{ product_id: string; status: string; message: string }>(
       "/vendor/alkemart/quick-list",

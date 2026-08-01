@@ -4,13 +4,26 @@ import { useUploadImage, useQuickSell, useCategories, useReadiness } from "../li
 import type { SellerReadiness } from "../lib/api"
 import { useQueryClient } from "@tanstack/react-query"
 import { Button, Input, Label, Card, Textarea, Select, Skeleton } from "@workspace/ui"
-import { UploadCloud, Image as ImageIcon, ArrowRight, CheckCircle2, ChevronLeft, AlertCircle, Clock } from "lucide-react"
+import { UploadCloud, Image as ImageIcon, ArrowRight, CheckCircle2, ChevronLeft, AlertCircle, Clock, ListTree, Plus, Trash2 } from "lucide-react"
 import { PageShell } from "../components/page-shell"
 import { PageHeader } from "../components/page-header"
 
 export const Route = createFileRoute('/quick-sell')({
   component: QuickSellPage,
 })
+
+type Axis = { name: string; values: string }
+
+function parseValues(s: string): string[] {
+  return s.split(",").map(v => v.trim()).filter(Boolean)
+}
+
+function cartesianProduct(lists: string[][]): string[][] {
+  return lists.reduce<string[][]>(
+    (acc, list) => (acc.length === 0 ? list.map(v => [v]) : acc.flatMap(a => list.map(v => [...a, v]))),
+    [],
+  )
+}
 
 function QuickSellPage() {
   const navigate = useNavigate()
@@ -25,6 +38,16 @@ function QuickSellPage() {
   const [description, setDescription] = useState("")
   const [categoryId, setCategoryId] = useState("")
   const [quantity, setQuantity] = useState(1)
+  const [hasVariations, setHasVariations] = useState(false)
+  const [axes, setAxes] = useState<Axis[]>([{ name: "", values: "" }])
+  const [rowData, setRowData] = useState<Record<number, { price: string; quantity: string }>>({})
+
+  const parsedAxes = axes.map(a => ({ name: a.name.trim(), values: parseValues(a.values) })).filter(a => a.name && a.values.length > 0)
+  const combos = hasVariations && parsedAxes.length > 0
+    ? cartesianProduct(parsedAxes.map(a => a.values))
+    : []
+
+  useEffect(() => { setRowData({}) }, [axes])
   
   const upload = useUploadImage()
   const quickSell = useQuickSell()
@@ -52,6 +75,17 @@ function QuickSellPage() {
     if (!title || title.trim().length < 3) return "Title must be at least 3 characters."
     if (!priceGhs || Number(priceGhs) < 0.5) return "Price must be at least GH₵0.50."
     if (Number(priceGhs) > 500_000) return "Price must not exceed GH₵500,000."
+    if (hasVariations) {
+      const incomplete = axes.some(a => a.name.trim() && parseValues(a.values).length < 2)
+      if (axes.some(a => !a.name.trim() && a.values.trim())) return "Give every variation type a name (e.g. Size)."
+      if (axes.some(a => a.name.trim() && !a.values.trim())) return `Add options for "${axes.find(a => a.name.trim() && !a.values.trim())?.name}" (e.g. Small, Medium, Large).`
+      if (incomplete) return "Each variation type needs at least 2 options."
+      if (combos.length > 40) return "Too many combinations. Keep it under 40."
+      for (const row of Object.values(rowData)) {
+        if (row.price && (Number(row.price) < 0.5 || Number(row.price) > 500_000)) return "Variant prices must be between GH₵0.50 and GH₵500,000."
+        if (row.quantity && Number(row.quantity) < 1) return "Variant quantities must be at least 1."
+      }
+    }
     return null
   }
 
@@ -70,13 +104,30 @@ function QuickSellPage() {
         imageUrl = await upload.mutateAsync(file)
       }
 
+      const variant_options = hasVariations && parsedAxes.length > 0
+        ? parsedAxes.map(a => ({ name: a.name, values: a.values }))
+        : undefined
+
+      const variant_entries = combos.map((combo, i) => {
+        const options: Record<string, string> = {}
+        parsedAxes.forEach((a, j) => { options[a.name] = combo[j] })
+        const row = rowData[i]
+        return {
+          options,
+          ...(row?.price && row.price.trim() ? { price_ghs: Number(row.price) } : {}),
+          ...(row?.quantity && row.quantity.trim() ? { quantity: Number(row.quantity) } : {}),
+        }
+      })
+
       await quickSell.mutateAsync({
         title,
         price_ghs: Number(priceGhs),
         description,
         quantity,
         category_id: categoryId || undefined,
-        image_url: imageUrl
+        image_url: imageUrl,
+        variant_options,
+        ...(variant_entries.length ? { variant_entries } : {}),
       })
 
       qc.invalidateQueries({ queryKey: ["vendor"] })
@@ -91,6 +142,7 @@ function QuickSellPage() {
     ? readiness.mercur_status === "open" && readiness.setup_complete
     : false
   const blocked = Boolean(readiness && !canSell)
+  const validAxes = parsedAxes.length > 0
 
   return (
     <PageShell className="max-w-2xl">
@@ -255,6 +307,115 @@ function QuickSellPage() {
                       <option key={cat.id} value={cat.id}>{cat.name}</option>
                     ))}
                   </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-base">Variations <span className="text-muted-foreground font-normal">(Optional)</span></Label>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="gap-1.5"
+                      onClick={() => setHasVariations(v => !v)}
+                    >
+                      <ListTree className="h-4 w-4" />
+                      {hasVariations ? "Remove variations" : "Add variations"}
+                    </Button>
+                  </div>
+                  {hasVariations && (
+                    <div className="space-y-4 rounded-xl border-2 border-border p-4">
+                      <p className="text-xs text-muted-foreground font-semibold">
+                        e.g. Colour (Red, Blue) or Size (Small, Medium, Large) — each combination gets its own stock and price.
+                      </p>
+
+                      {axes.map((axis, i) => (
+                        <div key={i} className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <Label className="text-sm font-bold">Variation {i + 1}</Label>
+                            {axes.length > 1 && (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="text-destructive gap-1"
+                                onClick={() => setAxes(axes.filter((_, j) => j !== i))}
+                              >
+                                <Trash2 className="h-4 w-4" /> Remove
+                              </Button>
+                            )}
+                          </div>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            <Input
+                              value={axis.name}
+                              onChange={e => setAxes(axes.map((a, j) => j === i ? { ...a, name: e.target.value } : a))}
+                              placeholder="Variation name (e.g. Size)"
+                            />
+                            <Input
+                              value={axis.values}
+                              onChange={e => setAxes(axes.map((a, j) => j === i ? { ...a, values: e.target.value } : a))}
+                              placeholder="Options, comma-separated (e.g. Small, Medium, Large)"
+                            />
+                          </div>
+                        </div>
+                      ))}
+
+                      {axes.length < 3 && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="gap-1.5"
+                          onClick={() => setAxes([...axes, { name: "", values: "" }])}
+                        >
+                          <Plus className="h-4 w-4" /> Add variation type
+                        </Button>
+                      )}
+
+                      {validAxes && combos.length > 0 && (
+                        <div className="space-y-2">
+                          <Label className="text-sm font-bold">Stock &amp; price per variation</Label>
+                          <div className="rounded-lg border-2 border-border overflow-hidden">
+                            <div className="grid grid-cols-[1fr_4.5rem_5.5rem] gap-2 items-center px-3 py-2 bg-muted text-xs font-bold text-muted-foreground uppercase tracking-wide">
+                              <span>Variation</span>
+                              <span className="text-right">Qty</span>
+                              <span className="text-right">Price ₵</span>
+                            </div>
+                            {combos.map((combo, i) => {
+                              const label = parsedAxes.map((a, j) => combo[j]).join(" / ")
+                              return (
+                                <div key={i} className="grid grid-cols-[1fr_4.5rem_5.5rem] gap-2 items-center px-3 py-2 border-t-2 border-border">
+                                  <span className="text-sm font-semibold truncate">{label}</span>
+                                  <Input
+                                    type="number"
+                                    min="1"
+                                    step="1"
+                                    className="h-9 text-right"
+                                    value={rowData[i]?.quantity ?? ""}
+                                    placeholder={String(quantity)}
+                                    onChange={e => setRowData({ ...rowData, [i]: { ...rowData[i], quantity: e.target.value } })}
+                                  />
+                                  <Input
+                                    type="number"
+                                    min="0.5"
+                                    max="500000"
+                                    step="0.01"
+                                    className="h-9 text-right"
+                                    value={rowData[i]?.price ?? ""}
+                                    placeholder={priceGhs}
+                                    onChange={e => setRowData({ ...rowData, [i]: { ...rowData[i], price: e.target.value } })}
+                                  />
+                                </div>
+                              )
+                            })}
+                          </div>
+                          <p className="text-xs text-muted-foreground font-semibold">
+                            {combos.length} combination{combos.length === 1 ? "" : "s"} · Blank fields use your base quantity ({quantity}) and price (₵{priceGhs || "0"}).
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 <div className="space-y-2">
