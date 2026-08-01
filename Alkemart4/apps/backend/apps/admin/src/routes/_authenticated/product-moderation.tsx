@@ -142,7 +142,7 @@ function ProductModerationPage() {
                   <div>
                     <h3 className="font-semibold text-lg">{p.title}</h3>
                     <p className="text-sm text-muted-foreground">
-                      Seller: <span className="font-medium text-foreground">{p.seller.name}</span> (@{p.seller.handle})
+                      Seller: <span className="font-medium text-foreground">{p.seller?.name ?? "Unknown"}</span> (@{p.seller?.handle ?? p.seller?.id ?? "…"})
                     </p>
                   </div>
                   {p.quality_score !== undefined && (

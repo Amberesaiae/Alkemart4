@@ -12,7 +12,7 @@ export type ProposedProduct = {
   id: string; title: string; thumbnail?: string
   status: "proposed"
   quality_score?: number
-  seller: { id: string; name: string; handle: string }
+  seller: { id: string; name: string; handle: string } | null
   created_at: string
 }
 
