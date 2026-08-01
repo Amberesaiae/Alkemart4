@@ -58,7 +58,7 @@ function parseVariantAxes(body: Record<string, unknown>): VariantAxis[] {
         ? rawValues.split(",").map((v) => v.trim()).filter(Boolean)
         : []
     if (name && values.length > 0) {
-      out.push({ name, values })
+      out.push({ name, values: Array.from(new Set(values)) })
     }
   }
 
@@ -308,18 +308,21 @@ export async function POST(req: SellerReq, res: MedusaResponse) {
     createdProductId = product.id as string
     void invalidateSellerOwnedProductIds(sellerId).catch(() => {})
 
-    let productVariants = Array.isArray(product.variants)
-      ? (product.variants as Array<{ id: string }>)
-      : []
-    if (productVariants.length === 0) {
-      const { data: productData } = await query.graph({
-        entity: "product",
-        fields: ["id", "variants.id"],
-        filters: { id: product.id },
-      })
-      const prodRow = asList(productData)[0] as Record<string, unknown> | undefined
-      productVariants = ((prodRow?.variants || []) as Array<{ id: string }>)
-    }
+    const { data: productData } = await query.graph({
+      entity: "product",
+      fields: [
+        "id",
+        "variants.id",
+        "variants.options.value",
+        "variants.options.option.title",
+      ],
+      filters: { id: product.id },
+    })
+    const prodRow = asList(productData)[0] as Record<string, unknown> | undefined
+    const productVariants = ((prodRow?.variants || []) as Array<{
+      id: string
+      options?: Array<{ value?: string; option?: { title?: string } }>
+    }>)
 
     if (productVariants.length === 0) {
       throw new MedusaError(
@@ -328,14 +331,47 @@ export async function POST(req: SellerReq, res: MedusaResponse) {
       )
     }
 
-    // Offers are indexed 1:1 with the requested variant specs.
-    const offers = productVariants.map((variant, i) => {
-      const spec = variantSpecs[i] ?? { price_ghs: basePrice, quantity: baseQuantity }
+    const variantIdByCombo = new Map<string, string>()
+    const seenComboKeys = new Set<string>()
+    for (const variant of productVariants) {
+      const options: Record<string, string> = {}
+      for (const opt of variant.options ?? []) {
+        const axisName = String(opt.option?.title ?? "").trim()
+        const optionValue = String(opt.value ?? "").trim()
+        if (axisName && optionValue) options[axisName] = optionValue
+      }
+      if (Object.keys(options).length === 0) continue
+      const key = comboKey(options)
+      if (seenComboKeys.has(key)) {
+        throw new MedusaError(
+          MedusaError.Types.INVALID_DATA,
+          "Product created with a duplicate variation combination.",
+        )
+      }
+      seenComboKeys.add(key)
+      variantIdByCombo.set(key, variant.id)
+    }
+
+    const resolveVariantId = (spec: { options: Record<string, string> }): string => {
+      if (Object.keys(spec.options).length > 0) {
+        return variantIdByCombo.get(comboKey(spec.options)) ?? ""
+      }
+      return productVariants[0]?.id ?? ""
+    }
+
+    const offers = variantSpecs.map((spec, i) => {
+      const variantId = resolveVariantId(spec)
+      if (!variantId) {
+        throw new MedusaError(
+          MedusaError.Types.INVALID_DATA,
+          `Created product is missing the "${spec.title}" variation.`,
+        )
+      }
       const offerSku = `QL-${String(product.id).slice(0, 8)}-${i + 1}`
       return {
         seller_id: sellerId,
         created_by: memberId,
-        variant_id: variant.id,
+        variant_id: variantId,
         shipping_profile_id: shippingProfileId,
         sku: offerSku,
         inventory_items: [{
@@ -350,15 +386,12 @@ export async function POST(req: SellerReq, res: MedusaResponse) {
     })
     await createOffersWorkflow(req.scope).run({ input: { offers } })
 
-    const variantsSummary = productVariants.map((variant, i) => {
-      const spec = variantSpecs[i] ?? { price_ghs: basePrice, quantity: baseQuantity }
-      return {
-        variant_id: variant.id,
-        title: spec.title,
-        price_ghs: spec.price_ghs,
-        quantity: spec.quantity,
-      }
-    })
+    const variantsSummary = variantSpecs.map((spec) => ({
+      variant_id: resolveVariantId(spec),
+      title: spec.title,
+      price_ghs: spec.price_ghs,
+      quantity: spec.quantity,
+    }))
 
     res.status(201).json({
       product_id: product.id,
