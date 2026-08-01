@@ -1,11 +1,13 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { ContainerRegistrationKeys, Modules, MedusaError } from "@medusajs/framework/utils"
 import { MercurModules } from "@mercurjs/types"
+import { updateOffersWorkflow } from "@mercurjs/core/workflows"
 import { checkRateLimit } from "../../../../../lib/simple-rate-limit"
 import { asList } from "../../../../../lib/graph-utils"
 import { logger } from "../../../../../lib/logger"
 import { invalidateSellerOwnedProductIds } from "../../../../../lib/seller-owned-products-cache"
 import { z } from "zod"
+import { buildOfferPriceUpdates, type OfferRow } from "../../../../../lib/offer-pricing"
 
 type SellerReq = MedusaRequest & {
   seller_context?: { seller_id?: string }
@@ -206,7 +208,80 @@ export async function PUT(req: SellerReq, res: MedusaResponse) {
       update.metadata = { ...meta, alkemart: { ...alk } }
     }
 
-    if (Object.keys(update).length === 0) {
+    let variantsEdited = false
+    if (body.variants !== undefined) {
+      variantsEdited = true
+      if (!Array.isArray(body.variants)) {
+        throw new MedusaError(
+          MedusaError.Types.INVALID_DATA,
+          "Invalid variants: expected an array",
+        )
+      }
+      const parsed = z
+        .array(
+          z.object({
+            id: z.string(),
+            price_ghs: z.union([z.number(), z.string()]).optional(),
+          }),
+        )
+        .safeParse(body.variants)
+      if (!parsed.success) {
+        throw new MedusaError(
+          MedusaError.Types.INVALID_DATA,
+          "Invalid variants: each must be { id: string, price_ghs?: number|string }",
+        )
+      }
+
+      // ownership-safe: edited variant ids must belong to this owned product
+      const { data: varData } = await query.graph({
+        entity: "product",
+        fields: ["variants.id"],
+        filters: { id: productId },
+      })
+      const productRow = asList(varData)[0] as
+        | { variants?: Array<{ id: string }> }
+        | undefined
+      const ownedVariants = new Set(productRow?.variants?.map((v) => v.id) ?? [])
+      const edits = parsed.data.filter((e) => ownedVariants.has(e.id))
+      if (edits.length !== parsed.data.length) {
+        res
+          .status(403)
+          .json({ error: "One or more variants do not belong to this product." })
+        return
+      }
+
+      // map variant_id -> owned offer + price row, then build price upserts
+      const { data: offerData } = await query.graph({
+        entity: "offer",
+        fields: ["id", "variant_id", "prices.id", "prices.amount", "prices.currency_code"],
+        filters: { seller_id: sid },
+      })
+      const { updates, unmatched, invalid } = buildOfferPriceUpdates(
+        edits,
+        asList(offerData) as unknown as OfferRow[],
+      )
+      if (invalid.length > 0) {
+        throw new MedusaError(
+          MedusaError.Types.INVALID_DATA,
+          `Invalid price for variant(s): ${invalid.join(", ")}. Minimum is GH₵0.50.`,
+        )
+      }
+      if (unmatched.length > 0) {
+        res
+          .status(403)
+          .json({ error: `No owned offer for variant(s): ${unmatched.join(", ")}` })
+        return
+      }
+
+      if (updates.length > 0) {
+        // seller_id is required by updateOffersWorkflow's validate hook (readiness);
+        // the offer rows themselves are already owned by this seller.
+        const offers = updates.map((u) => ({ ...u, seller_id: sid }))
+        await updateOffersWorkflow(req.scope).run({ input: { offers } })
+      }
+    }
+
+    if (Object.keys(update).length === 0 && !variantsEdited) {
       res.status(400).json({ error: "No fields to update." })
       return
     }
