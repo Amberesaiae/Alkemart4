@@ -129,7 +129,7 @@ export async function PUT(req: SellerReq, res: MedusaResponse) {
 
     const { data } = await query.graph({
       entity: "product",
-      fields: ["id", "status"],
+      fields: ["id", "status", "metadata"],
       filters: { id: productId },
     })
     const existing = asList(data)[0]
@@ -140,7 +140,14 @@ export async function PUT(req: SellerReq, res: MedusaResponse) {
 
     const status = String(existing.status || "").toLowerCase()
     if (status === "published") {
-      res.status(400).json({ error: "Cannot edit a published product. Contact support." })
+      res.status(409).json({
+        error: "Published products cannot be edited while live.",
+        next_action: {
+          unpublish: `POST /vendor/alkemart/products/${productId}/unpublish`,
+          message:
+            "Unpublish the product first (returns it to proposed), then edit and re-propose for admin re-approval.",
+        },
+      })
       return
     }
 
@@ -180,6 +187,23 @@ export async function PUT(req: SellerReq, res: MedusaResponse) {
       update.categories = raw.map((c: unknown) =>
         typeof c === "string" ? { id: c } : c,
       )
+    }
+
+    if (body.seo !== undefined) {
+      const parsed = z.record(z.string()).safeParse(body.seo)
+      if (!parsed.success) {
+        throw new MedusaError(
+          MedusaError.Types.INVALID_DATA,
+          "Invalid seo: expected an object of string fields.",
+        )
+      }
+      const meta = (existing?.metadata as Record<string, unknown>) || {}
+      const alk =
+        meta.alkemart && typeof meta.alkemart === "object"
+          ? { ...(meta.alkemart as Record<string, unknown>) }
+          : {}
+      alk.seo = parsed.data
+      update.metadata = { ...meta, alkemart: { ...alk } }
     }
 
     if (Object.keys(update).length === 0) {
@@ -251,7 +275,14 @@ export async function DELETE(req: SellerReq, res: MedusaResponse) {
 
     const status = String(existing.status || "").toLowerCase()
     if (status === "published") {
-      res.status(400).json({ error: "Cannot delete a published product. Contact support." })
+      res.status(409).json({
+        error: "Published products cannot be deleted while live.",
+        next_action: {
+          unpublish: `POST /vendor/alkemart/products/${productId}/unpublish`,
+          message:
+            "Unpublish the product first (returns it to proposed), then delete.",
+        },
+      })
       return
     }
 

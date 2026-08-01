@@ -8,8 +8,10 @@ export type AuditAction =
   | "product.created"
   | "product.updated"
   | "product.deleted"
-  | "product.approved"
+   | "product.approved"
   | "product.rejected"
+  | "product.unpublished"
+  | "product.deleted"
   | "order.fulfilled"
   | "order.shipped"
   | "order.refunded"
@@ -21,7 +23,7 @@ export type AuditAction =
 export type AuditEntry = {
   action: AuditAction
   actorId: string
-  actorType: "user" | "member" | "customer" | "system"
+  actorType: "user" | "member" | "customer" | "seller" | "system"
   resourceId?: string
   resourceType?: string
   details?: Record<string, unknown>
