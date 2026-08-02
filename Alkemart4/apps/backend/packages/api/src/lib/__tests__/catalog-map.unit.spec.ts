@@ -134,6 +134,47 @@ describe("accumulateOffersToCards", () => {
     expect(cards[0].seller?.handle).toBe("b")
   })
 
+  it("surfaces processed image derivatives from product.metadata", () => {
+    const rows: any[] = [
+      {
+        id: "off_1",
+        product_id: "prod_1",
+        prices: [{ amount: 55, currency_code: "ghs" }],
+        product: {
+          id: "prod_1",
+          title: "Palm",
+          status: "published",
+          categories: [{ handle: "oils", name: "Oils" }],
+          metadata: {
+            alkemart: {
+              media: { thumb_url: "https://x/a-400.webp", web_url: "https://x/a-1600.webp" },
+            },
+          },
+        },
+        seller: { id: "sel_b", name: "B", handle: "b", status: "open" },
+      },
+    ]
+    const cards = accumulateOffersToCards(rows, {})
+    expect(cards[0].thumb_url).toBe("https://x/a-400.webp")
+    expect(cards[0].web_url).toBe("https://x/a-1600.webp")
+  })
+
+  it("falls back to null derivatives when metadata missing", () => {
+    const rows: any[] = [
+      {
+        id: "off_1",
+        product_id: "prod_1",
+        prices: [{ amount: 55, currency_code: "ghs" }],
+        product: { id: "prod_1", title: "Palm", status: "published" },
+        seller: { id: "sel_b", name: "B", handle: "b", status: "open" },
+      },
+    ]
+    const [card] = accumulateOffersToCards(rows, {})
+    expect(card.thumb_url).toBeNull()
+    expect(card.web_url).toBeNull()
+  })
+
+
   it("filters by seller_handle and category_handle", () => {
     const rows = [
       {

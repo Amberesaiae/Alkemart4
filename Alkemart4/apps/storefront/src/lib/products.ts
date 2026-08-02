@@ -19,6 +19,10 @@ export type StoreProductCard = {
   /** Major currency units from calculated_price — only if API returns them. */
   amount?: number | null
   currencyCode?: string | null
+  /** Processed webp thumbnail (thumb_url) when available. */
+  thumbUrl?: string | null
+  /** Processed webp full-size (web_url) when available. */
+  webUrl?: string | null
   /** Seller identity if store API returns it — omit when missing. */
   seller?: SellerRef | null
   /**
@@ -58,6 +62,23 @@ type ProductSlice = {
   metadata?: Record<string, unknown> | null
 }
 
+function readAlkemartImageMeta(meta: Record<string, unknown> | null | undefined): {
+  thumbUrl: string | null
+  webUrl: string | null
+} {
+  if (!meta) return { thumbUrl: null, webUrl: null }
+  const alk = meta.alkemart
+  const media =
+    alk && typeof alk === "object" && (alk as Record<string, unknown>).media
+      ? (alk as Record<string, unknown>).media as Record<string, unknown>
+      : {}
+  const thumb =
+    typeof media.thumb_url === "string" && media.thumb_url ? media.thumb_url : null
+  const web =
+    typeof media.web_url === "string" && media.web_url ? media.web_url : null
+  return { thumbUrl: thumb, webUrl: web }
+}
+
 function extractSeller(p: ProductSlice): SellerRef | null {
   if (p.seller?.name) {
     return {
@@ -93,9 +114,10 @@ function mapProduct(p: ProductSlice): StoreProductCard {
       calc?.calculated_amount != null
         ? Number(calc.calculated_amount)
         : null,
-    currencyCode: calc?.currency_code ?? null,
-    seller: extractSeller(p),
-  }
+         currencyCode: calc?.currency_code ?? null,
+         seller: extractSeller(p),
+         ...readAlkemartImageMeta(p.metadata),
+       }
 }
 
 /**
@@ -150,7 +172,7 @@ async function enrichSellersFromOffers(
   }
 }
 
-const LIST_FIELDS = "*variants.calculated_price,*seller,images.url"
+const LIST_FIELDS = "*variants.calculated_price,*seller,images.url,*metadata"
 
 /**
  * Prefer products that can be added to cart (have offer_id).
@@ -210,22 +232,24 @@ async function listFromAlkemartCatalog(opts: CatalogQuery): Promise<{
     )
     if (!res.ok) return null
     const data = (await res.json()) as {
-      products?: Array<{
-        id?: string
-        title?: string
-        handle?: string | null
-        thumbnail?: string | null
-        description?: string | null
-        offer_id?: string | null
-        category_label?: string | null
-        min_price?: number | null
-        currency_code?: string | null
-        seller?: {
-          id?: string | null
-          name?: string | null
-          handle?: string | null
-        } | null
-      }>
+       products?: Array<{
+         id?: string
+         title?: string
+         handle?: string | null
+         thumbnail?: string | null
+         description?: string | null
+         offer_id?: string | null
+         category_label?: string | null
+         min_price?: number | null
+         currency_code?: string | null
+         thumb_url?: string | null
+         web_url?: string | null
+         seller?: {
+           id?: string | null
+           name?: string | null
+           handle?: string | null
+         } | null
+       }>
       count?: number
     }
     const products: StoreProductCard[] = (data.products ?? [])
@@ -238,9 +262,11 @@ async function listFromAlkemartCatalog(opts: CatalogQuery): Promise<{
         description: p.description ?? null,
         offerId: p.offer_id ?? null,
         amount: p.min_price != null ? Number(p.min_price) : null,
-        currencyCode: p.currency_code ?? null,
-        categoryLabel: p.category_label?.trim() || null,
-        seller: p.seller?.name
+         currencyCode: p.currency_code ?? null,
+         categoryLabel: p.category_label?.trim() || null,
+         thumbUrl: p.thumb_url ?? null,
+         webUrl: p.web_url ?? null,
+         seller: p.seller?.name
           ? {
               id: p.seller.id ?? null,
               name: p.seller.name,
@@ -328,10 +354,13 @@ export async function listStoreProducts(opts?: {
             offerId: full.offerId || p.offerId,
             seller: full.seller || p.seller,
             // Preserve catalog taxonomy — product.list may omit categories
-            categoryLabel: p.categoryLabel || full.categoryLabel || null,
+             categoryLabel: p.categoryLabel || full.categoryLabel || null,
             // Prefer region calculated_price; fall back to catalog min_price
             amount: full.amount ?? p.amount,
             currencyCode: full.currencyCode ?? p.currencyCode,
+            // Prefer hydrated metadata; fall back to catalog derivatives
+            thumbUrl: full.thumbUrl ?? p.thumbUrl,
+            webUrl: full.webUrl ?? p.webUrl,
           }
         })
         return {

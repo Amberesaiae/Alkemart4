@@ -156,9 +156,19 @@ function Media(props: {
 }) {
   const { product, detailId, className, showWish } = props
   const title = (product.title || "Product").trim()
-  const inner = product.thumbnail ? (
+  // Prefer processed webp derivatives; fall back to raw thumbnail/images/original
+  const web = product.webUrl
+  const thumb = product.thumbUrl
+  const fallback =
+    product.thumbnail ||
+    product.images?.[0]?.url ||
+    undefined
+  const src = web ?? thumb ?? fallback
+  const inner = src ? (
     <img
-      src={product.thumbnail}
+      src={fallback ?? ""}
+      srcSet={buildSrcSet(web, thumb, fallback)}
+      sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
       alt=""
       className="h-full w-full object-contain p-2 transition duration-200 group-hover:scale-[1.03] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
       loading="lazy"
@@ -224,4 +234,16 @@ function ErrorLine({ message }: { message: string }) {
       {message}
     </p>
   )
+}
+
+function buildSrcSet(
+  web: string | null | undefined,
+  thumb: string | null | undefined,
+  fallback: string | undefined,
+): string {
+  const parts: string[] = []
+  if (web) parts.push(`${web} 1600w`)
+  if (thumb) parts.push(`${thumb} 400w`)
+  if (fallback) parts.push(`${fallback} 1200w`)
+  return parts.join(", ")
 }

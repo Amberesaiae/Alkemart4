@@ -1,5 +1,6 @@
 import { asList } from "./graph-utils"
 import { logger } from "./logger"
+import { readProductMediaMeta } from "./media/derivatives"
 
 /**
  * Pure helpers for /store/alkemart/catalog product mapping + pagination.
@@ -20,6 +21,8 @@ export type CatalogCard = {
   title: unknown
   handle: unknown
   thumbnail: unknown
+  thumb_url: string | null
+  web_url: string | null
   description: unknown
   offer_id: string
   category_label: string | null
@@ -46,6 +49,7 @@ export type CatalogOfferRow = {
     description?: unknown
     status?: unknown
     categories?: unknown
+    metadata?: unknown
   } | null
   seller?: {
     id?: unknown
@@ -182,12 +186,17 @@ export function accumulateOffersToCards(
 
     let acc = byProduct.get(productId)
     if (!acc) {
+      const media = readProductMediaMeta(
+        product?.metadata as Record<string, unknown> | null,
+      )
       acc = {
         card: {
           id: productId,
           title: product?.title,
           handle: product?.handle,
           thumbnail: product?.thumbnail,
+          thumb_url: media.thumbUrl,
+          web_url: media.webUrl,
           // PLP: description loaded on PDP only (P1.2)
           description: null,
           offer_id: offerId,
@@ -294,6 +303,8 @@ export function mapPublishedProductWithOffer(
     title: p.title,
     handle: p.handle,
     thumbnail: p.thumbnail,
+    thumb_url: null,
+    web_url: null,
     description: p.description,
     offer_id: offerId,
     category_label: null,

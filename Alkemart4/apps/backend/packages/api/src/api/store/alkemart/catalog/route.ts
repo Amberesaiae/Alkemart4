@@ -66,6 +66,7 @@ const HEAVY_OFFER_FIELDS = [
   "product.categories.id",
   "product.categories.name",
   "product.categories.handle",
+  "product.metadata",
 ]
 
 function buildOfferFilters(opts: {

@@ -236,3 +236,17 @@ export function readSellerImageMeta(
 export function sellerImageKeys(): (keyof SellerMediaMeta)[] {
   return [...SELLER_IMAGE_KEYS]
 }
+
+/** Read the flat derivative URLs produced by processProductImages. */
+export function readProductMediaMeta(
+  productMeta?: Record<string, unknown> | null,
+): { thumbUrl: string | null; webUrl: string | null } {
+  const alk = productMeta?.alkemart
+  const media =
+    alk && typeof alk === "object" && (alk as Record<string, unknown>).media
+      ? (alk as Record<string, unknown>).media as ProductMediaMeta
+      : {}
+  const thumb = typeof media.thumb_url === "string" && media.thumb_url ? media.thumb_url : null
+  const web = typeof media.web_url === "string" && media.web_url ? media.web_url : null
+  return { thumbUrl: thumb, webUrl: web }
+}

@@ -2,6 +2,7 @@ import {
   markMediaPending,
   markSellerMediaPending,
   planDerivatives,
+  readProductMediaMeta,
   readSellerImageMeta,
   targetDimensions,
 } from "../media/derivatives"
@@ -96,5 +97,29 @@ describe("readSellerImageMeta", () => {
     })
     expect(logo).toEqual({ thumb_url: "t", web_url: "w" })
     expect(banner).toEqual({ web_url: "bw" })
+  })
+})
+
+describe("readProductMediaMeta", () => {
+  it("returns nulls for nullish", () => {
+    expect(readProductMediaMeta(null)).toEqual({ thumbUrl: null, webUrl: null })
+    expect(readProductMediaMeta(undefined)).toEqual({
+      thumbUrl: null,
+      webUrl: null,
+    })
+  })
+
+  it("reads flat thumb_url/web_url", () => {
+    const m = readProductMediaMeta({
+      alkemart: { media: { thumb_url: "t400", web_url: "w1600" } },
+    })
+    expect(m).toEqual({ thumbUrl: "t400", webUrl: "w1600" })
+  })
+
+  it("treats non-string urls as null", () => {
+    const m = readProductMediaMeta({
+      alkemart: { media: { thumb_url: 123, web_url: "" } },
+    })
+    expect(m).toEqual({ thumbUrl: null, webUrl: null })
   })
 })
