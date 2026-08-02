@@ -89,10 +89,13 @@ function installCompression() {
 
 installCompression()
 
-// Run medusa start in-process via CLI if available, else child
+// Run medusa start in-process via CLI if available, else child.
+// medusa-config.ts uses extensionless relative imports (e.g. "./src/lib/force-ipv4-dns")
+// that are resolved by tsx at build/dev time, so the child Node must load tsx too.
 const medusaBin = require.resolve("@medusajs/cli/cli.js")
+const nodeOptions = [process.env.NODE_OPTIONS, "--import=tsx"].filter(Boolean).join(" ")
 const child = spawn(process.execPath, [medusaBin, "start"], {
   stdio: "inherit",
-  env: process.env,
+  env: { ...process.env, NODE_OPTIONS: nodeOptions },
 })
 child.on("exit", (code) => process.exit(code ?? 1))
