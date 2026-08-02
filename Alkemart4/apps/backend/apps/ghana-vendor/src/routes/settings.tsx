@@ -391,8 +391,8 @@ function SettingsPage() {
                       onBlur={() => setPhoneTouched(true)}
                       placeholder={GHANA_UI.phoneExample}
                       required
-                      maxLength={13}
-                      inputMode="numeric"
+                      maxLength={17}
+                      inputMode="tel"
                     />
                     {phoneTouched && phoneRaw && (
                       <span className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">

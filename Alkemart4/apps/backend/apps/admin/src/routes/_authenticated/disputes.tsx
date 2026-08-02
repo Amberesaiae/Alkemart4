@@ -86,31 +86,31 @@ function DisputeDetail({ id, onBack }: { id: string; onBack: () => void }) {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {meta?.dispute_reason && (
+        {meta?.dispute_reason ? (
           <div className="p-4 bg-muted/30 rounded-xl border">
             <p className="text-xs font-bold uppercase text-muted-foreground mb-1">Dispute Reason</p>
             <p className="text-sm">{String(meta.dispute_reason)}</p>
           </div>
-        )}
-        {meta?.dispute_opened_at && (
+        ) : null}
+        {meta?.dispute_opened_at ? (
           <div className="p-4 bg-muted/30 rounded-xl border">
             <p className="text-xs font-bold uppercase text-muted-foreground mb-1">Opened</p>
             <p className="text-sm">{format(new Date(String(meta.dispute_opened_at)), "PPP")}</p>
           </div>
-        )}
+        ) : null}
         {dispute.order && (
           <div className="p-4 bg-muted/30 rounded-xl border">
             <p className="text-xs font-bold uppercase text-muted-foreground mb-1">Order Value</p>
             <p className="text-sm font-bold">{formatGhs((dispute.order.total || 0) / 100)}</p>
           </div>
         )}
-        {meta?.resolved_at && (
+        {meta?.resolved_at ? (
           <div className="p-4 bg-success/10 rounded-xl border border-success/20">
             <p className="text-xs font-bold uppercase text-success mb-1">Resolution</p>
             <p className="text-sm font-bold capitalize">{String(meta.resolution || "resolved")}</p>
-            {meta.resolution_note && <p className="text-xs text-muted-foreground mt-1">{String(meta.resolution_note)}</p>}
+            {meta.resolution_note ? <p className="text-xs text-muted-foreground mt-1">{String(meta.resolution_note)}</p> : null}
           </div>
-        )}
+        ) : null}
       </div>
 
       <Modal isOpen={resolveModal} onClose={() => setResolveModal(false)}>

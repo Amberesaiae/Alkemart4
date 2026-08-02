@@ -223,7 +223,7 @@ function CreateRateModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => 
           </div>
           <div>
             <label className="text-sm font-medium">Type</label>
-            <Select value={type} onChange={(e) => setType(e.target.value)}>
+            <Select value={type} onChange={(e) => setType(e.target.value as "fixed" | "percentage")}>
               <option value="percentage">Percentage</option>
               <option value="fixed">Fixed (GHS)</option>
             </Select>
@@ -291,7 +291,7 @@ function EditRateModal({ rate, onClose }: { rate: CommissionRate; onClose: () =>
           </div>
           <div>
             <label className="text-sm font-medium">Type</label>
-            <Select value={type} onChange={(e) => setType(e.target.value)}>
+            <Select value={type} onChange={(e) => setType(e.target.value as "fixed" | "percentage")}>
               <option value="percentage">Percentage</option>
               <option value="fixed">Fixed (GHS)</option>
             </Select>
