@@ -152,59 +152,92 @@ function ProductDetailPage() {
   }
 
   const handleSaveOffers = async () => {
-    setSavingOffers(true)
-    let hasError = false
+    // ── Phase 1: validate everything and collect only CHANGED fields.
+    //    Nothing is written until the whole form is valid, so a bad entry
+    //    can never leave a half-saved offer behind.
+    type OfferOp = { offerId: string; label: string; pricePesewas?: number; stock?: number; invItemId?: string }
+    const ops: OfferOp[] = []
+
     for (const [offerId, val] of Object.entries(offerForm)) {
-      const priceGhs = parseFloat(val.priceGhs)
-      if (!isNaN(priceGhs) && priceGhs > 0) {
-        try {
-          await updateOffer.mutateAsync({
-            id: offerId,
-            input: { prices: [{ amount: Math.round(priceGhs * 100), currency_code: "ghs" }] },
-          })
-        } catch (err) {
-          toast.error(`Failed to update offer price: ${err instanceof Error ? err.message : "Unknown error"}`)
-          hasError = true
+      const offer = offers.find(o => o.id === offerId)
+      if (!offer) continue
+      const label = getVariantTitle(offer)
+      const op: OfferOp = { offerId, label }
+
+      const priceRaw = val.priceGhs.trim()
+      if (priceRaw !== "") {
+        const priceGhs = parseFloat(priceRaw)
+        if (isNaN(priceGhs) || priceGhs <= 0) {
+          toast.error(`${label}: enter a valid price above GH₵0. Nothing was saved.`)
+          return
         }
+        const pesewas = Math.round(priceGhs * 100)
+        const currentPesewas = offer.prices?.find(p => p.currency_code === "ghs")?.amount
+          ?? offer.prices?.[0]?.amount ?? 0
+        // Only submit if actually changed — a stock-only save must never
+        // overwrite a price with a stale prefilled value.
+        if (pesewas !== currentPesewas) op.pricePesewas = pesewas
       }
 
-      // Stock update — only when the vendor typed a value
       const stockRaw = val.stock.trim()
       if (stockRaw !== "") {
         const stockQty = Number(stockRaw)
         if (!Number.isInteger(stockQty) || stockQty < 0) {
-          toast.error("Stock must be a whole number of 0 or more.")
-          hasError = true
-          continue
+          toast.error(`${label}: stock must be a whole number of 0 or more. Nothing was saved.`)
+          return
         }
-        const offer = offers.find(o => o.id === offerId)
-        const invItemId = offer?.inventory_items?.[0]?.inventory_item_id
+        const invItemId = offer.inventory_items?.[0]?.inventory_item_id
         if (!invItemId) {
-          toast.error("This offer has no inventory record — stock cannot be updated.")
-          hasError = true
-          continue
+          toast.error(`${label}: no inventory record — stock cannot be updated. Nothing was saved.`)
+          return
         }
+        op.stock = stockQty
+        op.invItemId = invItemId
+      }
+
+      if (op.pricePesewas !== undefined || op.stock !== undefined) ops.push(op)
+    }
+
+    if (ops.length === 0) {
+      toast.info("No changes to save.")
+      return
+    }
+
+    // ── Phase 2: execute, tracking per-offer outcomes.
+    setSavingOffers(true)
+    const failures: string[] = []
+    for (const op of ops) {
+      if (op.pricePesewas !== undefined) {
         try {
-          const { inventory_levels } = await inventoryItems.levels(invItemId)
-          const level = inventory_levels?.[0]
-          if (!level) {
-            toast.error("No stock location found for this offer.")
-            hasError = true
-            continue
-          }
-          await inventoryItems.setLevel(invItemId, level.location_id, stockQty)
-          qc.invalidateQueries({ queryKey: ["vendor", "stock-levels", invItemId] })
+          await updateOffer.mutateAsync({
+            id: op.offerId,
+            input: { prices: [{ amount: op.pricePesewas, currency_code: "ghs" }] },
+          })
         } catch (err) {
-          toast.error(`Failed to update stock: ${err instanceof Error ? err.message : "Unknown error"}`)
-          hasError = true
+          failures.push(`${op.label} price (${err instanceof Error ? err.message : "unknown error"})`)
+        }
+      }
+      if (op.stock !== undefined && op.invItemId) {
+        try {
+          const { inventory_levels } = await inventoryItems.levels(op.invItemId)
+          const level = inventory_levels?.[0]
+          if (!level) throw new Error("no stock location found")
+          await inventoryItems.setLevel(op.invItemId, level.location_id, op.stock)
+          qc.invalidateQueries({ queryKey: ["vendor", "stock-levels", op.invItemId] })
+        } catch (err) {
+          failures.push(`${op.label} stock (${err instanceof Error ? err.message : "unknown error"})`)
         }
       }
     }
     setSavingOffers(false)
-    if (!hasError) {
+    // Always refetch so the panel reflects what actually saved.
+    qc.invalidateQueries({ queryKey: ["vendor", "offers", id] })
+
+    if (failures.length === 0) {
       toast.success("Pricing & stock updated.")
       setOfferFormOpen(false)
-      qc.invalidateQueries({ queryKey: ["vendor", "offers", id] })
+    } else {
+      toast.error(`Some changes did not save: ${failures.join("; ")}. Displayed values have been refreshed — please review and retry.`)
     }
   }
 
@@ -493,7 +526,7 @@ function ProductDetailPage() {
                     className="gap-2"
                   >
                     <Save className="h-4 w-4" />
-                    Save Prices
+                    Save Pricing &amp; Stock
                   </Button>
                   <Button onClick={() => setOfferFormOpen(false)} variant="outline">
                     Cancel
