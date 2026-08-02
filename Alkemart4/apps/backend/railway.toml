@@ -27,6 +27,10 @@ resourceLimit = "shared-2x"
 [env]
 NODE_ENV = "production"
 PORT = "9000"
+# medusa-config.ts uses extensionless relative imports (e.g. "./src/lib/force-ipv4-dns")
+# that are resolved by tsx. Setting NODE_OPTIONS here inherits into every Node
+# process (and child) Medusa spawns, matching the package.json start script.
+NODE_OPTIONS = "--import=tsx"
 # S3 config: set these in Railway dashboard when Tigris/R2 is added.
 # DO NOT set FILE_DRIVER=local — the backend will crash on restart (env.ts:99-102).
 FILE_DRIVER = "s3"
