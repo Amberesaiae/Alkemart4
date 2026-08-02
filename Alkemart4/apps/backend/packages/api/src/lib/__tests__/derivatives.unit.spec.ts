@@ -1,6 +1,8 @@
 import {
   markMediaPending,
+  markSellerMediaPending,
   planDerivatives,
+  readSellerImageMeta,
   targetDimensions,
 } from "../media/derivatives"
 
@@ -34,5 +36,65 @@ describe("markMediaPending", () => {
     expect(next.foo).toBe(1)
     const alk = next.alkemart as { media: { derivatives_status: string } }
     expect(alk.media.derivatives_status).toBe("pending")
+  })
+})
+
+describe("markSellerMediaPending", () => {
+  it("marks only the requested image as pending", () => {
+    const next = markSellerMediaPending({ existing: 1 }, "banner")
+    expect(next.existing).toBe(1)
+    const alk = next.alkemart as {
+      media: { logo?: { derivatives_status: string }; banner?: { derivatives_status: string } }
+    }
+    expect(alk.media.banner?.derivatives_status).toBe("pending")
+    expect(alk.media.logo).toBeUndefined()
+  })
+
+  it("preserves an existing sibling image's derived status", () => {
+    const seed = markSellerMediaPending({}, "logo")
+    // now mark banner pending — logo status must survive
+    const next = markSellerMediaPending(seed, "banner")
+    const alk = next.alkemart as {
+      media: {
+        logo?: { derivatives_status: string }
+        banner?: { derivatives_status: string }
+      }
+    }
+    expect(alk.media.logo?.derivatives_status).toBe("pending")
+    expect(alk.media.banner?.derivatives_status).toBe("pending")
+  })
+
+  it("clears prior error when re-marking pending", () => {
+    const seed: Record<string, unknown> = {
+      alkemart: {
+        media: { logo: { derivatives_status: "failed", derivatives_error: "boom" } },
+      },
+    }
+    const next = markSellerMediaPending(seed, "logo")
+    const alk = next.alkemart as { media: { logo: { derivatives_status: string; derivatives_error?: string } } }
+    expect(alk.media.logo.derivatives_status).toBe("pending")
+    expect(alk.media.logo.derivatives_error).toBeUndefined()
+  })
+
+  it("treats null existing safely", () => {
+    const next = markSellerMediaPending(null, "banner")
+    const alk = next.alkemart as { media: { banner?: { derivatives_status: string } } }
+    expect(alk.media.banner?.derivatives_status).toBe("pending")
+  })
+})
+
+describe("readSellerImageMeta", () => {
+  it("returns empty metas for nullish", () => {
+    const { logo, banner } = readSellerImageMeta(null)
+    expect(logo).toEqual({})
+    expect(banner).toEqual({})
+  })
+
+  it("reads stored derivative urls", () => {
+    const { logo, banner } = readSellerImageMeta({
+      alkemart: { media: { logo: { thumb_url: "t", web_url: "w" }, banner: { web_url: "bw" } } },
+    })
+    expect(logo).toEqual({ thumb_url: "t", web_url: "w" })
+    expect(banner).toEqual({ web_url: "bw" })
   })
 })

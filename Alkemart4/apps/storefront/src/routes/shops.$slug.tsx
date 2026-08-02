@@ -25,6 +25,10 @@ type VendorPayload = {
     bio?: string | null
     logoImageUrl?: string | null
     coverImageUrl?: string | null
+    logoThumbUrl?: string | null
+    logoWebUrl?: string | null
+    coverThumbUrl?: string | null
+    coverWebUrl?: string | null
     ratingAvgX100?: number
     ratingCount?: number
     badgeTopSeller?: boolean
@@ -160,7 +164,17 @@ function StorePage() {
           {vendor.coverImageUrl ? (
             <div className="aspect-video w-full overflow-hidden rounded-3xl">
               <img
-                src={vendor.coverImageUrl}
+                src={vendor.coverWebUrl ?? vendor.coverImageUrl}
+                srcSet={
+                  vendor.coverImageUrl
+                    ? [
+                        `${vendor.coverThumbUrl ?? vendor.coverImageUrl} 400w`,
+                        `${vendor.coverWebUrl ?? vendor.coverImageUrl} 800w`,
+                        `${vendor.coverImageUrl} 1600w`,
+                      ].join(", ")
+                    : undefined
+                }
+                sizes="100vw"
                 alt=""
                 className="h-full w-full object-cover object-center"
                 loading="lazy"
@@ -174,7 +188,7 @@ function StorePage() {
             <div className="flex flex-wrap items-start gap-4">
               <Avatar className="h-16 w-16 rounded-2xl text-2xl font-bold ring-2 ring-background">
                 <AvatarImage
-                  src={vendor.logoImageUrl ?? undefined}
+                  src={vendor.logoThumbUrl ?? vendor.logoImageUrl ?? undefined}
                   alt={`${name} logo`}
                   className="h-full w-full object-cover"
                 />

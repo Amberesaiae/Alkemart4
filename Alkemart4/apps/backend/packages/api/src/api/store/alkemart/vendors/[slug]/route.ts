@@ -3,6 +3,7 @@
  */
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import { readSellerImageMeta } from "../../../../../lib/media/derivatives"
 
 type SellerRow = {
   id: string
@@ -76,6 +77,9 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
     (alkemartMeta.cover_image_url as string | undefined) ||
     (meta.cover_image_url as string | undefined) ||
     null
+  // Optional webp derivatives (seller-media pipeline). Storefront prefers these
+  // over the raw logo/banner for bandwidth; falls back transparently when absent.
+  const { logo: logoMedia, banner: bannerMedia } = readSellerImageMeta(meta)
   res.status(200).json({
     vendor: {
       id: seller.id,
@@ -84,6 +88,10 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
       bio: seller.description ?? null,
       logoImageUrl: seller.logo ?? null,
       coverImageUrl: coverImageUrl ?? null,
+      logoThumbUrl: logoMedia.thumb_url ?? null,
+      logoWebUrl: logoMedia.web_url ?? null,
+      coverThumbUrl: bannerMedia.thumb_url ?? null,
+      coverWebUrl: bannerMedia.web_url ?? null,
       ratingAvgX100: Number(meta.rating_avg_x100 ?? 0) || 0,
       ratingCount: Number(meta.rating_count ?? 0) || 0,
       badgeTopSeller: Boolean(meta.badge_top_seller),

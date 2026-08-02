@@ -4,6 +4,7 @@
  */
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import { readSellerImageMeta } from "../../../../lib/media/derivatives"
 
 type SellerRow = {
   id: string
@@ -65,6 +66,7 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
         (alkemartMeta.cover_image_url as string | undefined) ||
         (meta.cover_image_url as string | undefined) ||
         null
+      const { logo: logoMedia, banner: bannerMedia } = readSellerImageMeta(meta)
       return {
         id: s.id,
         name: s.name,
@@ -73,6 +75,10 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
         bio: s.description ?? null,
         logoImageUrl: s.logo ?? null,
         coverImageUrl: coverImageUrl ?? null,
+        logoThumbUrl: logoMedia.thumb_url ?? null,
+        logoWebUrl: logoMedia.web_url ?? null,
+        coverThumbUrl: bannerMedia.thumb_url ?? null,
+        coverWebUrl: bannerMedia.web_url ?? null,
         ratingAvgX100: Number(meta.rating_avg_x100 ?? 0) || 0,
         ratingCount: Number(meta.rating_count ?? 0) || 0,
         badgeTopSeller: Boolean(meta.badge_top_seller),

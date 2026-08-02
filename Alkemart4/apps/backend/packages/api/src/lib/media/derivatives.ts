@@ -167,3 +167,72 @@ export function markMediaPending(
     },
   }
 }
+
+/**
+ * Per-image media metadata for seller logo / banner.
+ * Stored under seller.metadata.alkemart.media.{ logo | banner }.
+ */
+export type SellerImageMeta = {
+  derivatives_status?: "pending" | "ready" | "skipped" | "failed"
+  derivatives_at?: string
+  derivatives_error?: string
+  source_width?: number
+  source_height?: number
+  thumb_url?: string
+  web_url?: string
+}
+
+export type SellerMediaMeta = {
+  logo?: SellerImageMeta
+  banner?: SellerImageMeta
+}
+
+const SELLER_IMAGE_KEYS: (keyof SellerMediaMeta)[] = ["logo", "banner"]
+
+/**
+ * Mark one seller image (logo|banner) derivatives as pending, merging with
+ * any existing media meta. Pure helper (unit-tested).
+ */
+export function markSellerMediaPending(
+  existing?: Record<string, unknown> | null,
+  which: "logo" | "banner" = "logo",
+): Record<string, unknown> {
+  const alk =
+    existing && typeof existing.alkemart === "object" && existing.alkemart
+      ? { ...(existing.alkemart as Record<string, unknown>) }
+      : {}
+  const media = (alk.media as SellerMediaMeta) || {}
+  return {
+    ...existing,
+    alkemart: {
+      ...alk,
+      media: {
+        ...media,
+        [which]: {
+          ...(media[which] || {}),
+          derivatives_status: "pending",
+          derivatives_error: undefined,
+        },
+      },
+    },
+  }
+}
+
+/** Read the stored derivative URLs for a seller image, if present. */
+export function readSellerImageMeta(
+  sellerMeta?: Record<string, unknown> | null,
+): { logo: SellerImageMeta; banner: SellerImageMeta } {
+  const alk = sellerMeta?.alkemart
+  const media = (alk && typeof alk === "object" && (alk as Record<string, unknown>).media
+    ? (alk as Record<string, unknown>).media as Partial<SellerMediaMeta>
+    : {}) || {}
+  return {
+    logo: (media.logo || {}) as SellerImageMeta,
+    banner: (media.banner || {}) as SellerImageMeta,
+  }
+}
+
+/** For type guards / future iteration over seller image keys. */
+export function sellerImageKeys(): (keyof SellerMediaMeta)[] {
+  return [...SELLER_IMAGE_KEYS]
+}
