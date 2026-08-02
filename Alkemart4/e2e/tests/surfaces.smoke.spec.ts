@@ -1,8 +1,8 @@
 import { test, expect } from "@playwright/test"
 
 const SHOP = process.env.SHOP_URL ?? "http://localhost:5175"
-const ADMIN = process.env.ADMIN_URL ?? "http://localhost:7000"
-const SELLER = process.env.SELLER_URL ?? "http://localhost:7001"
+const ADMIN = process.env.ADMIN_URL ?? "http://localhost:3001"
+const SELLER = process.env.SELLER_URL ?? "http://localhost:3002"
 const API = process.env.API_URL ?? "http://localhost:9000"
 
 test.describe("surface smoke (prod-ready layer 3)", () => {

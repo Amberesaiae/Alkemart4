@@ -2,7 +2,7 @@ import { defineConfig, devices } from "@playwright/test"
 
 /**
  * Layer 3 — browser smoke / live RBAC against local dev surfaces.
- * Requires servers up: API :9000, shop :5175, admin :7000, seller :7001.
+ * Requires servers up: API :9000, shop :5175, admin :3001, seller :3002.
  *
  * Headed watch mode (slow, visible Chrome):
  *   cd e2e && bun run test:rbac:headed

@@ -12,8 +12,8 @@ export const API = (process.env.API_URL ?? "http://localhost:9000").replace(
 )
 /** Prefer localhost (cookie + CORS match panel vite config) */
 export const SHOP = process.env.SHOP_URL ?? "http://localhost:5175"
-export const ADMIN = process.env.ADMIN_URL ?? "http://localhost:7000"
-export const SELLER = process.env.SELLER_URL ?? "http://localhost:7001"
+export const ADMIN = process.env.ADMIN_URL ?? "http://localhost:3001"
+export const SELLER = process.env.SELLER_URL ?? "http://localhost:3002"
 
 export const creds = {
   admin: {
