@@ -207,6 +207,8 @@ function ProductDetailPage() {
           <div className="lg:col-span-5">
             <ProductImageGallery
               images={p.images}
+              webUrl={p.webUrl}
+              thumbUrl={p.thumbUrl}
               title={p.title}
             />
           </div>
