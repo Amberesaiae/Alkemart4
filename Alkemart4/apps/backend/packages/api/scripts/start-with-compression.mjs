@@ -93,9 +93,8 @@ installCompression()
 // medusa-config.ts uses extensionless relative imports (e.g. "./src/lib/force-ipv4-dns")
 // that are resolved by tsx at build/dev time, so the child Node must load tsx too.
 const medusaBin = require.resolve("@medusajs/cli/cli.js")
-const nodeOptions = [process.env.NODE_OPTIONS, "--import=tsx"].filter(Boolean).join(" ")
-const child = spawn(process.execPath, [medusaBin, "start"], {
+const child = spawn(process.execPath, ["--import=tsx", medusaBin, "start"], {
   stdio: "inherit",
-  env: { ...process.env, NODE_OPTIONS: nodeOptions },
+  env: process.env,
 })
 child.on("exit", (code) => process.exit(code ?? 1))
