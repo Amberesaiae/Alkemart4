@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router"
-import { ChartColumn, Package, Store, ShoppingCart, Globe, Percent, Star, Tag, RefreshCw, Wallet, LogOut, PanelLeftClose, PanelLeftOpen, Loader2 } from "lucide-react"
+import { ChartColumn, Package, Store, ShoppingCart, Globe, Percent, Star, Tag, RefreshCw, Wallet, LogOut, PanelLeftClose, PanelLeftOpen, Loader2, Users, Scale } from "lucide-react"
 import { useState } from "react"
 import { useAuth } from "../../hooks/use-auth"
 import { cn } from "@workspace/ui"
@@ -8,6 +8,7 @@ const NAV_ITEMS = [
   { href: "/analytics", label: "Analytics", icon: ChartColumn },
   { href: "/product-moderation", label: "Product Review", icon: Package },
   { href: "/sellers-queue", label: "Seller Queue", icon: Store },
+  { href: "/sellers", label: "All Sellers", icon: Users },
   { href: "/orders", label: "Orders", icon: ShoppingCart },
   { href: "/markets", label: "Markets", icon: Globe },
   { href: "/commission-rates", label: "Commission", icon: Percent },
@@ -15,6 +16,7 @@ const NAV_ITEMS = [
   { href: "/promotions", label: "Promotions", icon: Tag },
   { href: "/returns", label: "Returns", icon: RefreshCw },
   { href: "/payouts", label: "Payouts", icon: Wallet },
+  { href: "/disputes", label: "Disputes", icon: Scale },
 ]
 
 function NavItem({ href, label, icon: Icon, collapsed, isActive }: {

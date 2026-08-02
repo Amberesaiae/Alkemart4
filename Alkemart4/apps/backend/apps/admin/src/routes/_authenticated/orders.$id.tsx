@@ -1,9 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router"
-import { useQuery } from "@tanstack/react-query"
+import { useState } from "react"
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { adminOrderDetail } from "../../lib/api"
-import { Card, CardContent, CardHeader, CardTitle, Badge, Button, Skeleton, Price } from "@workspace/ui"
+import { Card, CardContent, CardHeader, CardTitle, Badge, Button, Skeleton, Price, Modal, Textarea } from "@workspace/ui"
 import { PageShell } from "../../components/page-shell"
-import { ArrowLeft, Package, CreditCard, Truck, User, Mail } from "lucide-react"
+import { ArrowLeft, Package, CreditCard, Truck, User, Mail, XCircle } from "lucide-react"
+import { toast } from "sonner"
 
 export const Route = createFileRoute("/_authenticated/orders/$id")({
   component: OrderDetailPage,
@@ -11,10 +13,26 @@ export const Route = createFileRoute("/_authenticated/orders/$id")({
 
 function OrderDetailPage() {
   const { id } = Route.useParams()
+  const qc = useQueryClient()
   const { data, isLoading, isError } = useQuery({
     queryKey: ["order", id],
     queryFn: () => adminOrderDetail.retrieve(id),
     enabled: !!id,
+  })
+
+  const [cancelModal, setCancelModal] = useState(false)
+  const [cancelReason, setCancelReason] = useState("")
+
+  const cancel = useMutation({
+    mutationFn: (reason?: string) => adminOrderDetail.cancel(id, reason),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["order", id] })
+      qc.invalidateQueries({ queryKey: ["orders"] })
+      toast.success("Order canceled")
+      setCancelModal(false)
+      setCancelReason("")
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed to cancel order"),
   })
 
   if (isLoading) {
@@ -56,7 +74,44 @@ function OrderDetailPage() {
             Placed {new Date(order.created_at).toLocaleString()}
           </p>
         </div>
+        {order.status !== "canceled" && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="text-destructive border-destructive/30 hover:bg-destructive/10 gap-1"
+            onClick={() => setCancelModal(true)}
+          >
+            <XCircle className="h-4 w-4" />
+            Cancel Order
+          </Button>
+        )}
       </div>
+
+      <Modal isOpen={cancelModal} onClose={() => setCancelModal(false)}>
+        <div className="p-6 space-y-4">
+          <h3 className="text-lg font-semibold">Cancel Order #{order.display_id}</h3>
+          <p className="text-sm text-muted-foreground">
+            This will cancel the order. Provide a reason for the record.
+          </p>
+          <Textarea
+            placeholder="Reason for cancellation (optional)…"
+            value={cancelReason}
+            onChange={e => setCancelReason(e.target.value)}
+            className="h-24"
+            autoFocus
+          />
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setCancelModal(false)}>Keep Order</Button>
+            <Button
+              variant="destructive"
+              isLoading={cancel.isPending}
+              onClick={() => cancel.mutate(cancelReason || undefined)}
+            >
+              Cancel Order
+            </Button>
+          </div>
+        </div>
+      </Modal>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">

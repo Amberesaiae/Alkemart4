@@ -51,6 +51,7 @@ function SettingsPage() {
     province: string
     postal_code: string
     country_code: string
+    delivery_fee_ghs: string
   }>({
     address_1: "",
     address_2: "",
@@ -58,6 +59,7 @@ function SettingsPage() {
     province: "",
     postal_code: "",
     country_code: "gh",
+    delivery_fee_ghs: "",
   })
   const [phoneRaw,  setPhoneRaw]  = useState("")
   const [provider,  setProvider]  = useState<MomoProvider>("mtn")
@@ -72,6 +74,7 @@ function SettingsPage() {
     if (!seller) return
     setProfileForm({ name: seller.name || "", handle: seller.handle || "" })
     if (seller.address) {
+      const sellerMeta = (seller.metadata as Record<string, unknown> | undefined)
       setAddressForm({
         address_1:   seller.address.address_1   || "",
         address_2:   seller.address.address_2   || "",
@@ -79,6 +82,7 @@ function SettingsPage() {
         province:    seller.address.province    || "",
         postal_code: seller.address.postal_code || "",
         country_code: "gh",
+        delivery_fee_ghs: sellerMeta?.delivery_fee_ghs != null ? String(sellerMeta.delivery_fee_ghs) : "",
       })
     }
     if (seller.payment_details) {
@@ -99,11 +103,13 @@ function SettingsPage() {
 
   const handleAddressSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    const fee = parseFloat(addressForm.delivery_fee_ghs)
     ghanaSetup.mutate({
       address_1: addressForm.address_1,
       city: addressForm.city,
       region: addressForm.province,
       postal_code: addressForm.postal_code,
+      delivery_fee_ghs: !isNaN(fee) && fee >= 0 ? fee : undefined,
     })
   }
 
@@ -323,6 +329,28 @@ function SettingsPage() {
                   />
                   <p className="text-xs text-muted-foreground">
                     Your GhanaPost digital address — helps riders find you precisely
+                  </p>
+                </div>
+
+                {/* delivery_fee_ghs */}
+                <div className="space-y-2">
+                  <Label>Delivery Fee <span className="text-muted-foreground font-normal">(optional)</span></Label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-muted-foreground select-none">
+                      GH₵
+                    </span>
+                    <Input
+                      type="number"
+                      className="pl-14"
+                      value={addressForm.delivery_fee_ghs}
+                      onChange={e => setAddressForm({ ...addressForm, delivery_fee_ghs: e.target.value })}
+                      placeholder="e.g. 15.00"
+                      min="0"
+                      step="0.01"
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Your standard dispatch fee shown to buyers at checkout. Leave blank to use the platform default.
                   </p>
                 </div>
 

@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router"
+import { useState } from "react"
 import { useQueryClient } from "@tanstack/react-query"
 import { useProducts, useProposeProduct } from "../lib/hooks"
 import { Card, Button, Badge, Skeleton } from "@workspace/ui"
@@ -10,9 +11,12 @@ export const Route = createFileRoute('/products')({
   component: ProductsPage,
 })
 
+const PAGE_SIZE = 20
+
 function ProductsPage() {
   const qc = useQueryClient()
-  const { data, isLoading, isError } = useProducts()
+  const [offset, setOffset] = useState(0)
+  const { data, isLoading, isError } = useProducts({ limit: PAGE_SIZE, offset })
   const propose = useProposeProduct()
 
   const handlePropose = (id: string) => {
@@ -88,6 +92,7 @@ function ProductsPage() {
           </Link>
         </Card>
       ) : (
+        <>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
           {data.products.map(product => (
             <Card key={product.id} className="overflow-hidden border-2 hover:border-primary/50 transition-colors flex flex-col">
@@ -131,6 +136,22 @@ function ProductsPage() {
             </Card>
           ))}
         </div>
+        {(data?.count ?? 0) > PAGE_SIZE && (
+          <div className="flex justify-between items-center mt-4">
+            <span className="text-sm text-muted-foreground">
+              {data.products.length ? `${offset + 1}–${offset + data.products.length}` : "0"} of {data.count}
+            </span>
+            <div className="flex gap-2">
+              <Button variant="outline" disabled={offset === 0} onClick={() => setOffset(o => Math.max(0, o - PAGE_SIZE))}>
+                Previous
+              </Button>
+              <Button variant="outline" disabled={offset + PAGE_SIZE >= (data.count || 0)} onClick={() => setOffset(o => o + PAGE_SIZE)}>
+                Next
+              </Button>
+            </div>
+          </div>
+        )}
+        </>
       )}
     </PageShell>
   )

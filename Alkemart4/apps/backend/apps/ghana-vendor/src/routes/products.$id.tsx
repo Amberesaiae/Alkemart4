@@ -1,11 +1,12 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { useState } from "react"
 import { useQueryClient } from "@tanstack/react-query"
-import { useProduct, useUpdateProduct, useDeleteProduct, useCategories, useProposeProduct } from "../lib/hooks"
+import { useProduct, useUpdateProduct, useDeleteProduct, useCategories, useProposeProduct, useProductOffers, useUpdateOffer } from "../lib/hooks"
 import { type ProductStatus } from "../lib/api"
 import { Card, Button, Input, Label, Textarea, Select, Skeleton } from "@workspace/ui"
-import { ArrowLeft, Save, Trash2, AlertCircle, Clock, SendHorizonal } from "lucide-react"
+import { ArrowLeft, Save, Trash2, AlertCircle, Clock, SendHorizonal, ChevronDown, ChevronUp, Tag } from "lucide-react"
 import { PageShell } from "../components/page-shell"
+import { toast } from "sonner"
 
 export const Route = createFileRoute('/products/$id')({
   component: ProductDetailPage,
@@ -17,21 +18,28 @@ interface ProductFormData {
   categoryId: string
 }
 
+type OfferPriceForm = Record<string, { priceGhs: string }>
+
 function ProductDetailPage() {
   const { id } = Route.useParams()
   const navigate = useNavigate()
   const qc = useQueryClient()
   const { data, isLoading, isError } = useProduct(id)
+  const { data: offersData, isLoading: offersLoading } = useProductOffers(id)
   const update = useUpdateProduct()
+  const updateOffer = useUpdateOffer()
   const del = useDeleteProduct()
   const propose = useProposeProduct()
   const { data: categoriesData } = useCategories()
 
   const [editing, setEditing] = useState(false)
   const [form, setForm] = useState<ProductFormData>({ title: "", description: "", categoryId: "" })
-  const [error, setError] = useState<string | null>(null)
-  const [success, setSuccess] = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
+
+  // Offer / pricing editing state
+  const [offerFormOpen, setOfferFormOpen] = useState(false)
+  const [offerForm, setOfferForm] = useState<OfferPriceForm>({})
+  const [savingOffers, setSavingOffers] = useState(false)
 
   const product = data?.product
   const meta = product?.metadata as Record<string, unknown> | undefined
@@ -40,14 +48,15 @@ function ProductDetailPage() {
   const rejectionReason = product?.status === "rejected" ? (moderation?.reason as string | undefined) : undefined
   const changesRequestedReason = moderation?.action === "changes_requested" ? (moderation?.reason as string | undefined) : undefined
 
+  const offers = offersData?.offers || []
+
   const handleReSubmit = async () => {
     try {
-      setError(null)
       await propose.mutateAsync(id)
-      setSuccess("Product re-submitted for review.")
+      toast.success("Product re-submitted for review.")
       qc.invalidateQueries({ queryKey: ["vendor", "products", id] })
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to re-submit.")
+      toast.error(err instanceof Error ? err.message : "Failed to re-submit.")
     }
   }
 
@@ -59,15 +68,11 @@ function ProductDetailPage() {
       categoryId: product.categories?.[0]?.id || "",
     })
     setEditing(true)
-    setError(null)
-    setSuccess(null)
   }
 
   const handleSave = async () => {
-    setError(null)
-    setSuccess(null)
     if (!form.title || form.title.trim().length < 3) {
-      setError("Title must be at least 3 characters.")
+      toast.error("Title must be at least 3 characters.")
       return
     }
     try {
@@ -79,22 +84,64 @@ function ProductDetailPage() {
           categories: form.categoryId ? [{ id: form.categoryId }] : [],
         },
       })
-      setSuccess("Product updated.")
+      toast.success("Product updated.")
       setEditing(false)
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to update.")
+      toast.error(err instanceof Error ? err.message : "Failed to update.")
     }
   }
 
   const handleDelete = async () => {
-    setError(null)
     try {
       await del.mutateAsync(id)
       navigate({ to: "/products" })
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to delete.")
+      toast.error(err instanceof Error ? err.message : "Failed to delete.")
       setConfirmDelete(false)
     }
+  }
+
+  // Start editing offers: pre-fill form with current prices
+  const startOfferEditing = () => {
+    const initial: OfferPriceForm = {}
+    for (const offer of offers) {
+      const priceAmountPesewas = offer.prices?.find(p => p.currency_code === "ghs")?.amount
+        ?? offer.prices?.[0]?.amount
+        ?? 0
+      initial[offer.id] = { priceGhs: priceAmountPesewas > 0 ? String((priceAmountPesewas / 100).toFixed(2)) : "" }
+    }
+    setOfferForm(initial)
+    setOfferFormOpen(true)
+  }
+
+  const handleSaveOffers = async () => {
+    setSavingOffers(true)
+    let hasError = false
+    for (const [offerId, val] of Object.entries(offerForm)) {
+      const priceGhs = parseFloat(val.priceGhs)
+      if (!isNaN(priceGhs) && priceGhs > 0) {
+        try {
+          await updateOffer.mutateAsync({
+            id: offerId,
+            input: { prices: [{ amount: Math.round(priceGhs * 100), currency_code: "ghs" }] },
+          })
+        } catch (err) {
+          toast.error(`Failed to update offer price: ${err instanceof Error ? err.message : "Unknown error"}`)
+          hasError = true
+        }
+      }
+    }
+    setSavingOffers(false)
+    if (!hasError) {
+      toast.success("Pricing updated.")
+      setOfferFormOpen(false)
+      qc.invalidateQueries({ queryKey: ["vendor", "offers", id] })
+    }
+  }
+
+  const getVariantTitle = (offer: { variant_id?: string }) => {
+    if (!offer.variant_id || !product?.variants) return "Default"
+    return product.variants.find(v => v.id === offer.variant_id)?.title || "Variant"
   }
 
   if (isLoading) {
@@ -150,17 +197,6 @@ function ProductDetailPage() {
           <p className="text-sm text-muted-foreground">Ref: {product.handle?.slice(0, 12) || product.id.slice(0, 12)}</p>
         </div>
       </div>
-
-      {error && (
-        <div className="mb-4 p-3 bg-destructive/10 text-destructive text-sm font-semibold rounded-lg border border-destructive/20" role="alert">
-          {error}
-        </div>
-      )}
-      {success && (
-        <div className="mb-4 p-3 bg-success/10 text-success text-sm font-semibold rounded-lg border border-success/20" role="status">
-          {success}
-        </div>
-      )}
 
       {rejectionReason && (
         <div className="mb-4 p-4 bg-destructive/10 border border-destructive/20 rounded-xl">
@@ -243,24 +279,24 @@ function ProductDetailPage() {
           </div>
 
           {editing ? (
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="edit-title">Title</Label>
-                  <Input id="edit-title" value={form.title} onChange={e => setForm(p => ({ ...p, title: e.target.value }))} required />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="edit-desc">Description</Label>
-                  <Textarea id="edit-desc" value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} rows={4} />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="edit-category">Category</Label>
-                  <Select id="edit-category" value={form.categoryId} onChange={e => setForm(p => ({ ...p, categoryId: e.target.value }))}>
-                    <option value="">No category</option>
-                    {categoriesData?.product_categories?.map(cat => (
-                      <option key={cat.id} value={cat.id}>{cat.name}</option>
-                    ))}
-                  </Select>
-                </div>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-title">Title</Label>
+                <Input id="edit-title" value={form.title} onChange={e => setForm(p => ({ ...p, title: e.target.value }))} required />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-desc">Description</Label>
+                <Textarea id="edit-desc" value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} rows={4} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-category">Category</Label>
+                <Select id="edit-category" value={form.categoryId} onChange={e => setForm(p => ({ ...p, categoryId: e.target.value }))}>
+                  <option value="">No category</option>
+                  {categoriesData?.product_categories?.map(cat => (
+                    <option key={cat.id} value={cat.id}>{cat.name}</option>
+                  ))}
+                </Select>
+              </div>
               <div className="flex gap-3 pt-2">
                 <Button onClick={handleSave} isLoading={update.isPending} className="gap-2">
                   <Save className="h-4 w-4" />
@@ -293,6 +329,113 @@ function ProductDetailPage() {
           )}
         </Card>
       </div>
+
+      {/* ── Inventory & Pricing ── */}
+      <Card className="border-2">
+        <button
+          type="button"
+          className="w-full flex items-center justify-between p-5 text-left"
+          onClick={() => {
+            if (!offerFormOpen) startOfferEditing()
+            else setOfferFormOpen(false)
+          }}
+        >
+          <div className="flex items-center gap-3">
+            <Tag className="h-5 w-5 text-muted-foreground" />
+            <div>
+              <h3 className="font-bold text-base">Inventory &amp; Pricing</h3>
+              {!offerFormOpen && offers.length > 0 && (
+                <p className="text-sm text-muted-foreground font-medium">
+                  {offers.length} offer{offers.length > 1 ? "s" : ""} · GH₵{" "}
+                  {((offers[0].prices?.find(p => p.currency_code === "ghs")?.amount ?? 0) / 100).toFixed(2)}
+                  {offers.length > 1 ? " – ..." : ""}
+                </p>
+              )}
+            </div>
+          </div>
+          {offerFormOpen ? <ChevronUp className="h-5 w-5 text-muted-foreground" /> : <ChevronDown className="h-5 w-5 text-muted-foreground" />}
+        </button>
+
+        {offerFormOpen && (
+          <div className="px-5 pb-5 pt-0 border-t border-border space-y-4">
+            {offersLoading ? (
+              <div className="space-y-3 pt-4">
+                {[1, 2].map(i => <Skeleton key={i} className="h-10 w-full" />)}
+              </div>
+            ) : offers.length === 0 ? (
+              <div className="pt-4 text-center py-8">
+                <p className="text-sm text-muted-foreground font-medium">
+                  No offers yet. Use <strong>Quick Sell</strong> to list this product with a price.
+                </p>
+              </div>
+            ) : (
+              <div className="pt-4 space-y-4">
+                {offers.map(offer => {
+                  const currentPricePesewas = offer.prices?.find(p => p.currency_code === "ghs")?.amount
+                    ?? offer.prices?.[0]?.amount ?? 0
+                  const stockQty = offer.inventory_items?.[0]?.stocked_quantity ?? null
+
+                  return (
+                    <div key={offer.id} className="flex items-end gap-4 p-3 bg-muted/30 rounded-lg border border-border/50">
+                      <div className="flex-1 space-y-1.5">
+                        <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wide">
+                          {getVariantTitle(offer)}
+                        </Label>
+                        <div className="flex items-center gap-3">
+                          <div className="relative flex-1 max-w-[160px]">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-muted-foreground select-none">
+                              GH₵
+                            </span>
+                            <Input
+                              type="number"
+                              className="pl-14 h-10"
+                              placeholder={currentPricePesewas > 0 ? String((currentPricePesewas / 100).toFixed(2)) : "0.00"}
+                              value={offerForm[offer.id]?.priceGhs ?? ""}
+                              onChange={e => setOfferForm(f => ({ ...f, [offer.id]: { priceGhs: e.target.value } }))}
+                              min="0"
+                              step="0.01"
+                            />
+                          </div>
+                          {stockQty !== null && (
+                            <span className="text-sm text-muted-foreground font-medium whitespace-nowrap">
+                              {stockQty} in stock
+                            </span>
+                          )}
+                        </div>
+                        {currentPricePesewas > 0 && (
+                          <p className="text-xs text-muted-foreground">
+                            Current: GH₵ {(currentPricePesewas / 100).toFixed(2)}
+                          </p>
+                        )}
+                      </div>
+                      {offer.sku && (
+                        <div className="shrink-0 text-right">
+                          <p className="text-xs text-muted-foreground">SKU</p>
+                          <p className="text-xs font-mono font-bold">{offer.sku}</p>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+
+                <div className="flex gap-3 pt-2">
+                  <Button
+                    onClick={handleSaveOffers}
+                    isLoading={savingOffers}
+                    className="gap-2"
+                  >
+                    <Save className="h-4 w-4" />
+                    Save Prices
+                  </Button>
+                  <Button onClick={() => setOfferFormOpen(false)} variant="outline">
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </Card>
     </PageShell>
   )
 }

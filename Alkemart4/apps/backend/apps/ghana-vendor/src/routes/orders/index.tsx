@@ -13,14 +13,35 @@ export const Route = createFileRoute('/orders/')({
   component: OrdersPage,
 })
 
+const PAGE_SIZE = 20
+
+function fulfillmentStatusLabel(status?: string | null): string {
+  const map: Record<string, string> = {
+    not_fulfilled: "Pending",
+    partially_fulfilled: "In Progress",
+    fulfilled: "Packed",
+    shipped: "Dispatched",
+    delivered: "Delivered",
+    canceled: "Canceled",
+    returned: "Returned",
+  }
+  if (!status) return "Pending"
+  return map[status] ?? status.replace(/_/g, " ")
+}
+
 function OrdersPage() {
   const qc = useQueryClient()
   const [filter, setFilter] = useState("all")
-  
-  const params = filter === "all" ? undefined : 
-                 filter === "pending" ? { fulfillment_status: "not_fulfilled" } :
-                 filter === "shipped" ? { fulfillment_status: "shipped" } :
-                 { fulfillment_status: "fulfilled" }
+  const [offset, setOffset] = useState(0)
+
+  const params = {
+    limit: PAGE_SIZE,
+    offset,
+    ...(filter === "pending" ? { fulfillment_status: "not_fulfilled" } :
+        filter === "shipped" ? { fulfillment_status: "shipped" } :
+        filter === "delivered" ? { fulfillment_status: "delivered" } :
+        {}),
+  }
 
   const { data, isLoading, isError } = useOrders(params)
 
@@ -43,7 +64,7 @@ function OrdersPage() {
           {tabs.map(tab => (
             <button
               key={tab.id}
-              onClick={() => setFilter(tab.id)}
+              onClick={() => { setFilter(tab.id); setOffset(0) }}
               className={`px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-colors border-2 ${
                 filter === tab.id 
                   ? "bg-primary text-primary-foreground border-primary shadow-sm" 
@@ -125,12 +146,13 @@ function OrdersPage() {
                       </TableCell>
                       <TableCell>
                         <Badge variant={
-                          order.fulfillment_status === "fulfilled" ? "success" : 
-                          order.fulfillment_status === "shipped" ? "default" : 
+                          order.fulfillment_status === "delivered" ? "success" :
+                          order.fulfillment_status === "fulfilled" ? "success" :
+                          order.fulfillment_status === "shipped" ? "default" :
+                          order.fulfillment_status === "canceled" ? "destructive" :
                           "warning"
                         }>
-                          {order.fulfillment_status === "not_fulfilled" ? "Pending" : 
-                           order.fulfillment_status?.replace(/_/g, " ") || "Pending"}
+                          {fulfillmentStatusLabel(order.fulfillment_status)}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right font-black text-lg">
@@ -143,6 +165,22 @@ function OrdersPage() {
             </Table>
           </div>
         </Card>
+      )}
+
+      {(data?.count ?? 0) > PAGE_SIZE && (
+        <div className="flex justify-between items-center">
+          <span className="text-sm text-muted-foreground">
+            {data?.orders?.length ? `${offset + 1}–${offset + data.orders.length}` : "0"} of {data?.count ?? "…"}
+          </span>
+          <div className="flex gap-2">
+            <Button variant="outline" disabled={offset === 0} onClick={() => setOffset(o => Math.max(0, o - PAGE_SIZE))}>
+              Previous
+            </Button>
+            <Button variant="outline" disabled={!data?.count || offset + PAGE_SIZE >= (data?.count || 0)} onClick={() => setOffset(o => o + PAGE_SIZE)}>
+              Next
+            </Button>
+          </div>
+        </div>
       )}
     </PageShell>
   )

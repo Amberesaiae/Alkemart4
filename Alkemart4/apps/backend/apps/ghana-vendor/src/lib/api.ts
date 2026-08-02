@@ -687,6 +687,16 @@ export const orders = {
     post<{ fulfillment: Fulfillment }>(
       `/vendor/orders/${orderId}/fulfillments/${fulfillmentId}/mark-as-delivered`,
     ),
+
+  /**
+   * POST /vendor/alkemart/orders/:id/cancel — Soft-cancel request.
+   * Sets metadata.cancel_requested_by_vendor = true; admin confirms.
+   */
+  cancel: (orderId: string, reason?: string) =>
+    post<{ order_id: string; cancel_requested: boolean }>(
+      `/vendor/alkemart/orders/${orderId}/cancel`,
+      { reason },
+    ),
 }
 
 // ---------------------------------------------------------------------------

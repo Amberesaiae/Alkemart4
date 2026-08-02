@@ -1,9 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router"
-import { useQuery } from "@tanstack/react-query"
-import { adminSellers } from "../../lib/api"
-import { Card, CardContent, CardHeader, CardTitle, Badge, Button, Skeleton } from "@workspace/ui"
+import { useState } from "react"
+import { useAdminSellerDetail, useSellerActions } from "../../hooks/use-sellers-admin"
+import { Card, CardContent, CardHeader, CardTitle, Badge, Button, Skeleton, Input, Modal, Textarea } from "@workspace/ui"
 import { PageShell } from "../../components/page-shell"
-import { ArrowLeft, Store, Mail, Phone, MapPin, Calendar } from "lucide-react"
+import { ArrowLeft, Store, Mail, Phone, MapPin, Calendar, Ban, CheckCircle2, UserX, Percent } from "lucide-react"
 
 export const Route = createFileRoute("/_authenticated/sellers/$id")({
   component: SellerDetailPage,
@@ -11,11 +11,16 @@ export const Route = createFileRoute("/_authenticated/sellers/$id")({
 
 function SellerDetailPage() {
   const { id } = Route.useParams()
-  const { data, isLoading, isError } = useQuery({
-    queryKey: ["seller", id],
-    queryFn: () => adminSellers.retrieve(id),
-    enabled: !!id,
-  })
+  const { data, isLoading, isError } = useAdminSellerDetail(id)
+  const actions = useSellerActions(id)
+
+  // Dialog state
+  const [suspendDialog, setSuspendDialog] = useState(false)
+  const [terminateDialog, setTerminateDialog] = useState(false)
+  const [commissionDialog, setCommissionDialog] = useState(false)
+  const [suspendReason, setSuspendReason] = useState("")
+  const [terminateReason, setTerminateReason] = useState("")
+  const [commissionPct, setCommissionPct] = useState("")
 
   if (isLoading) {
     return (
@@ -40,22 +45,105 @@ function SellerDetailPage() {
   const seller = data.seller
   const statusVariant = seller.status === "open" ? "success" : seller.status === "suspended" ? "destructive" : "warning"
 
+  const handleSuspend = async () => {
+    if (!suspendReason.trim()) return
+    await actions.suspend.mutateAsync(suspendReason)
+    setSuspendDialog(false)
+    setSuspendReason("")
+  }
+
+  const handleTerminate = async () => {
+    if (!terminateReason.trim()) return
+    await actions.terminate.mutateAsync(terminateReason)
+    setTerminateDialog(false)
+    setTerminateReason("")
+  }
+
+  const handleCommission = async () => {
+    const bps = Math.round(parseFloat(commissionPct) * 100)
+    if (isNaN(bps) || bps < 0) return
+    await actions.setCommission.mutateAsync(bps)
+    setCommissionDialog(false)
+    setCommissionPct("")
+  }
+
   return (
     <PageShell>
       <Button variant="ghost" size="sm" onClick={() => window.history.back()} className="mb-4 -ml-2">
         <ArrowLeft className="h-4 w-4 mr-2" /> Back
       </Button>
 
-      <div className="flex items-center gap-4 mb-6">
-        <div className="h-16 w-16 rounded-xl bg-muted flex items-center justify-center shrink-0 border">
-          <Store className="h-8 w-8 text-muted-foreground" />
-        </div>
-        <div>
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold">{seller.name || "Unnamed Shop"}</h1>
-            <Badge variant={statusVariant} className="capitalize">{seller.status?.replace("_", " ")}</Badge>
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-4">
+          <div className="h-16 w-16 rounded-xl bg-muted flex items-center justify-center shrink-0 border">
+            <Store className="h-8 w-8 text-muted-foreground" />
           </div>
-          <p className="text-muted-foreground">@{seller.handle}</p>
+          <div>
+            <div className="flex items-center gap-3">
+              <h1 className="text-2xl font-bold">{seller.name || "Unnamed Shop"}</h1>
+              <Badge variant={statusVariant} className="capitalize">{seller.status?.replace("_", " ")}</Badge>
+            </div>
+            <p className="text-muted-foreground">@{seller.handle}</p>
+          </div>
+        </div>
+
+        {/* Lifecycle action buttons */}
+        <div className="flex gap-2 flex-wrap justify-end">
+          {seller.status === "pending_approval" && (
+            <Button
+              size="sm"
+              onClick={() => actions.approve.mutateAsync()}
+              isLoading={actions.approve.isPending}
+              className="gap-1"
+            >
+              <CheckCircle2 className="h-4 w-4" />
+              Approve
+            </Button>
+          )}
+          {seller.status === "open" && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="text-warning border-warning/30 hover:bg-warning/10"
+              onClick={() => setSuspendDialog(true)}
+            >
+              <Ban className="h-4 w-4 mr-1" />
+              Suspend
+            </Button>
+          )}
+          {seller.status === "suspended" && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="text-success border-success/30 hover:bg-success/10"
+              onClick={() => actions.unsuspend.mutateAsync()}
+              isLoading={actions.unsuspend.isPending}
+            >
+              <CheckCircle2 className="h-4 w-4 mr-1" />
+              Unsuspend
+            </Button>
+          )}
+          {seller.status !== "terminated" && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="text-muted-foreground"
+              onClick={() => setCommissionDialog(true)}
+            >
+              <Percent className="h-4 w-4 mr-1" />
+              Commission
+            </Button>
+          )}
+          {seller.status !== "terminated" && (
+            <Button
+              size="sm"
+              variant="destructive"
+              onClick={() => setTerminateDialog(true)}
+            >
+              <UserX className="h-4 w-4 mr-1" />
+              Terminate
+            </Button>
+          )}
         </div>
       </div>
 
@@ -156,6 +244,91 @@ function SellerDetailPage() {
           </Card>
         </div>
       </div>
+
+      {/* Suspend dialog */}
+      <Modal isOpen={suspendDialog} onClose={() => setSuspendDialog(false)}>
+        <div className="p-6 space-y-4">
+          <h3 className="text-lg font-semibold">Suspend Seller</h3>
+          <p className="text-sm text-muted-foreground">Seller will be unable to create new orders. Provide a reason.</p>
+          <Textarea
+            placeholder="Reason for suspension…"
+            value={suspendReason}
+            onChange={e => setSuspendReason(e.target.value)}
+            className="h-24"
+            autoFocus
+          />
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setSuspendDialog(false)}>Cancel</Button>
+            <Button
+              variant="destructive"
+              disabled={!suspendReason.trim()}
+              isLoading={actions.suspend.isPending}
+              onClick={handleSuspend}
+            >
+              Suspend
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Terminate dialog */}
+      <Modal isOpen={terminateDialog} onClose={() => setTerminateDialog(false)}>
+        <div className="p-6 space-y-4">
+          <h3 className="text-lg font-semibold text-destructive">Terminate Seller Account</h3>
+          <p className="text-sm text-muted-foreground">
+            <strong>This is irreversible.</strong> The seller will lose access and their listings will be removed. Provide a reason.
+          </p>
+          <Textarea
+            placeholder="Reason for termination…"
+            value={terminateReason}
+            onChange={e => setTerminateReason(e.target.value)}
+            className="h-24"
+            autoFocus
+          />
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setTerminateDialog(false)}>Cancel</Button>
+            <Button
+              variant="destructive"
+              disabled={!terminateReason.trim()}
+              isLoading={actions.terminate.isPending}
+              onClick={handleTerminate}
+            >
+              Terminate Account
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Commission dialog */}
+      <Modal isOpen={commissionDialog} onClose={() => setCommissionDialog(false)}>
+        <div className="p-6 space-y-4">
+          <h3 className="text-lg font-semibold">Set Custom Commission Rate</h3>
+          <p className="text-sm text-muted-foreground">Override the platform default commission for this seller (percentage, e.g. 8.5 for 8.5%).</p>
+          <div className="relative">
+            <Input
+              type="number"
+              placeholder="e.g. 8.5"
+              value={commissionPct}
+              onChange={e => setCommissionPct(e.target.value)}
+              min="0"
+              max="100"
+              step="0.1"
+              className="pr-10"
+            />
+            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-bold text-muted-foreground">%</span>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setCommissionDialog(false)}>Cancel</Button>
+            <Button
+              disabled={!commissionPct.trim() || isNaN(parseFloat(commissionPct))}
+              isLoading={actions.setCommission.isPending}
+              onClick={handleCommission}
+            >
+              Save Rate
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </PageShell>
   )
 }

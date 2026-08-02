@@ -2,6 +2,7 @@ import { createRootRouteWithContext, Outlet, Navigate, useLocation } from "@tans
 import type { QueryClient } from "@tanstack/react-query"
 import { useCurrentUser } from "../lib/auth"
 import { Layout } from "../components/layout"
+import { Toaster } from "sonner"
 
 interface RouterContext {
   queryClient: QueryClient
@@ -29,12 +30,20 @@ function RootComponent() {
     )
   }
 
-  if (isPublicPage) return <Outlet />
+  if (isPublicPage) return (
+    <>
+      <Outlet />
+      <Toaster richColors position="top-center" />
+    </>
+  )
 
   return (
-    <Layout>
-      <Outlet />
-    </Layout>
+    <>
+      <Layout>
+        <Outlet />
+      </Layout>
+      <Toaster richColors position="top-center" />
+    </>
   )
 }
 

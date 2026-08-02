@@ -6,7 +6,7 @@ import type { CommissionRate } from "../../lib/api"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Badge, Button, Modal, Skeleton, EmptyState, Input, Switch, Select } from "@workspace/ui"
 import { PageShell } from "../../components/page-shell"
 import { PageHeader } from "../../components/page-header"
-import { Plus, Trash2 } from "lucide-react"
+import { Plus, Trash2, Pencil } from "lucide-react"
 import { toast } from "sonner"
 
 export const Route = createFileRoute("/_authenticated/commission-rates")({
@@ -24,6 +24,7 @@ function TypeBadge({ type }: { type: string }) {
 function CommissionRatesPage() {
   const queryClient = useQueryClient()
   const [showCreate, setShowCreate] = useState(false)
+  const [editRate, setEditRate] = useState<CommissionRate | null>(null)
   const [offset, setOffset] = useState(0)
   const limit = 50
 
@@ -128,14 +129,24 @@ function CommissionRatesPage() {
                     />
                   </TableCell>
                   <TableCell>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => deleteMutation.mutate(rate.id)}
-                      className="text-destructive hover:text-destructive"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setEditRate(rate)}
+                        className="text-muted-foreground hover:text-foreground"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => deleteMutation.mutate(rate.id)}
+                        className="text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))
@@ -145,6 +156,9 @@ function CommissionRatesPage() {
       </div>
 
       <CreateRateModal isOpen={showCreate} onClose={() => setShowCreate(false)} />
+      {editRate && (
+        <EditRateModal rate={editRate} onClose={() => setEditRate(null)} />
+      )}
 
       <div className="flex justify-between items-center mt-4">
         <span className="text-sm text-muted-foreground">
@@ -232,6 +246,78 @@ function CreateRateModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => 
           <Button variant="outline" onClick={onClose}>Cancel</Button>
           <Button onClick={() => createMutation.mutate()} disabled={!name || !code || !value}>
             Create
+          </Button>
+        </div>
+      </div>
+    </Modal>
+  )
+}
+
+function EditRateModal({ rate, onClose }: { rate: CommissionRate; onClose: () => void }) {
+  const queryClient = useQueryClient()
+  const [name, setName] = useState(rate.name)
+  const [type, setType] = useState(rate.type)
+  const [value, setValue] = useState(String(rate.value))
+  const [isDefault, setIsDefault] = useState(rate.is_default ?? false)
+
+  const editMutation = useMutation({
+    mutationFn: () =>
+      commissionRates.update(rate.id, {
+        name,
+        type: type as "percentage" | "fixed",
+        value: Number(value),
+        is_default: isDefault,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["commission-rates"] })
+      onClose()
+      toast.success("Commission rate updated")
+    },
+    onError: () => toast.error("Failed to update rate"),
+  })
+
+  return (
+    <Modal isOpen onClose={onClose}>
+      <div className="space-y-4 p-6">
+        <h2 className="text-lg font-semibold">Edit Commission Rate</h2>
+        <div className="space-y-3">
+          <div>
+            <label className="text-sm font-medium">Name</label>
+            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Standard Commission" />
+          </div>
+          <div>
+            <label className="text-sm font-medium">Code</label>
+            <Input value={rate.code} disabled className="opacity-60" title="Code cannot be changed after creation" />
+          </div>
+          <div>
+            <label className="text-sm font-medium">Type</label>
+            <Select value={type} onChange={(e) => setType(e.target.value)}>
+              <option value="percentage">Percentage</option>
+              <option value="fixed">Fixed (GHS)</option>
+            </Select>
+          </div>
+          <div>
+            <label className="text-sm font-medium">Value</label>
+            <Input
+              type="number"
+              value={value}
+              onChange={(e) => setValue(e.target.value)}
+              placeholder={type === "percentage" ? "e.g. 10" : "e.g. 5.00"}
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <Switch checked={isDefault} onCheckedChange={setIsDefault} />
+            <label className="text-sm">Set as default rate</label>
+          </div>
+        </div>
+        <div className="flex justify-end gap-2 pt-2">
+          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button
+            onClick={() => editMutation.mutate()}
+            disabled={!name || !value}
+            isLoading={editMutation.isPending}
+          >
+            Save Changes
           </Button>
         </div>
       </div>

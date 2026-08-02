@@ -261,6 +261,20 @@ export type AdminReturn = {
   seller?: { id: string; name: string; handle: string }
 }
 
+export type AdminReturnDetail = AdminReturn & {
+  order?: {
+    display_id: number
+    total: number
+    currency_code: string
+    customer?: { first_name?: string; last_name?: string; email?: string; phone?: string }
+    shipping_address?: { first_name?: string; address_1?: string; city?: string; country_code?: string; phone?: string }
+  }
+  items?: Array<{ id: string; item_id: string; quantity: number; received_quantity: number; note?: string | null }>
+  metadata?: Record<string, unknown>
+  payment_id?: string | null
+  rejection_reason?: string | null
+}
+
 export const adminReturns = {
   list: (params?: { status?: string; limit?: number; offset?: number }) => {
     const sp = new URLSearchParams()
@@ -269,6 +283,18 @@ export const adminReturns = {
     if (params?.offset) sp.set("offset", String(params.offset))
     return apiFetch<{ returns: AdminReturn[]; count: number }>(`/admin/returns?${sp}`)
   },
+
+  retrieve: (id: string) =>
+    apiFetch<{ return: AdminReturnDetail }>(`/admin/returns/${id}`),
+
+  approve: (id: string, note?: string) =>
+    apiFetch(`/admin/returns/${id}/approve`, { method: "POST", body: JSON.stringify({ note }) }),
+
+  reject: (id: string, reason: string) =>
+    apiFetch(`/admin/returns/${id}/reject`, { method: "POST", body: JSON.stringify({ reason }) }),
+
+  refund: (id: string) =>
+    apiFetch(`/admin/returns/${id}/refund`, { method: "POST" }),
 }
 
 // Promotions
@@ -306,6 +332,41 @@ export const adminPayouts = {
   },
   retrieve: (id: string) =>
     apiFetch<{ payout: AdminPayout }>(`/admin/payouts/${id}`),
+  trigger: (input: {
+    seller_id: string
+    amount: number
+    currency_code?: string
+    period_start?: string
+    period_end?: string
+    note?: string
+  }) =>
+    apiFetch<{ payout: { seller_id: string; amount: number; currency_code: string; transfer_code: string; status: string } }>(
+      "/admin/payouts", { method: "POST", body: JSON.stringify(input) }
+    ),
+}
+
+// Disputes (returns with metadata.is_disputed = true)
+export type AdminDispute = {
+  id: string
+  display_id?: number
+  order_id: string
+  status: string
+  metadata?: Record<string, unknown>
+  created_at: string
+  order?: { display_id?: number; total?: number; currency_code?: string }
+}
+
+export const adminDisputes = {
+  list: (params?: { limit?: number; offset?: number }) => {
+    const sp = new URLSearchParams()
+    if (params?.limit) sp.set("limit", String(params.limit))
+    if (params?.offset) sp.set("offset", String(params.offset))
+    return apiFetch<{ disputes: AdminDispute[]; count: number }>(`/admin/disputes?${sp}`)
+  },
+  retrieve: (id: string) =>
+    apiFetch<{ dispute: AdminDispute }>(`/admin/disputes/${id}`),
+  resolve: (id: string, input: { decision: "favor_buyer" | "favor_seller" | "partial"; refund_amount?: number; note?: string }) =>
+    apiFetch(`/admin/disputes/${id}/resolve`, { method: "POST", body: JSON.stringify(input) }),
 }
 
 // Seller detail
@@ -346,6 +407,29 @@ export type AdminSeller = {
 export const adminSellers = {
   retrieve: (id: string) =>
     apiFetch<{ seller: AdminSeller }>(`/admin/sellers/${id}`),
+
+  list: (params?: { limit?: number; offset?: number; q?: string }) => {
+    const sp = new URLSearchParams()
+    if (params?.limit) sp.set("limit", String(params.limit))
+    if (params?.offset) sp.set("offset", String(params.offset))
+    if (params?.q) sp.set("q", params.q)
+    return apiFetch<{ sellers: AdminSeller[]; count: number }>(`/admin/sellers?${sp}`)
+  },
+
+  approve: (id: string) =>
+    apiFetch(`/admin/sellers/${id}/approve`, { method: "POST" }),
+
+  suspend: (id: string, reason: string) =>
+    apiFetch(`/admin/sellers/${id}/suspend`, { method: "POST", body: JSON.stringify({ reason }) }),
+
+  unsuspend: (id: string) =>
+    apiFetch(`/admin/sellers/${id}/unsuspend`, { method: "POST" }),
+
+  terminate: (id: string, reason: string) =>
+    apiFetch(`/admin/sellers/${id}/terminate`, { method: "POST", body: JSON.stringify({ reason }) }),
+
+  setCommission: (id: string, commission_bps: number) =>
+    apiFetch(`/admin/sellers/${id}/commission`, { method: "POST", body: JSON.stringify({ commission_bps }) }),
 }
 
 // Order detail
@@ -377,4 +461,6 @@ export type AdminOrderDetail = AdminOrder & {
 export const adminOrderDetail = {
   retrieve: (id: string) =>
     apiFetch<{ order: AdminOrderDetail }>(`/admin/orders/${id}`),
+  cancel: (id: string, reason?: string) =>
+    apiFetch(`/admin/orders/${id}/cancel`, { method: "POST", body: JSON.stringify({ reason }) }),
 }

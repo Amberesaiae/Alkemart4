@@ -1,12 +1,12 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
 import { useState } from "react"
-import { useOrder, useFulfillOrder, useShipOrder, useDeliverOrder } from "../../lib/hooks"
+import { useOrder, useFulfillOrder, useShipOrder, useDeliverOrder, useCancelOrder } from "../../lib/hooks"
 import { maskEmail } from "../../lib/api"
 import { Card, Button, Badge, Input } from "@workspace/ui"
-import { ArrowLeft, Box, Truck, CheckCircle2, User, MapPin } from "lucide-react"
+import { ArrowLeft, Box, Truck, CheckCircle2, User, MapPin, XCircle } from "lucide-react"
 import { format } from "date-fns"
 import { PageShell } from "../../components/page-shell"
-import { PageHeader } from "../../components/page-header"
+import { toast } from "sonner"
 
 export const Route = createFileRoute('/orders/$id')({
   component: OrderDetailPage,
@@ -15,17 +15,19 @@ export const Route = createFileRoute('/orders/$id')({
 function OrderDetailPage() {
   const { id } = Route.useParams()
   const navigate = useNavigate()
-  const { data, isLoading, isError, error } = useOrder(id)
+  const { data, isLoading, isError, error, refetch } = useOrder(id)
   const order = data?.order
 
   const fulfill = useFulfillOrder()
   const ship = useShipOrder()
   const deliver = useDeliverOrder()
+  const cancel = useCancelOrder()
 
   const [tracking, setTracking] = useState("")
   const [trackingUrl, setTrackingUrl] = useState("")
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false)
 
-  const formatGhs = (amount = 0) => 
+  const formatGhs = (amount = 0) =>
     new Intl.NumberFormat('en-GH', { style: 'currency', currency: 'GHS' }).format(amount)
 
   if (isLoading) {
@@ -68,23 +70,67 @@ function OrderDetailPage() {
   }
 
   const fulfillment = order.fulfillments?.[0]
-  
-  const handleFulfill = () => {
+  const isCanceled = order.status === "canceled" || order.canceled_at
+
+  const handleFulfill = async () => {
     if (!order.items) return
-    fulfill.mutate({ 
-      orderId: order.id, 
-      items: order.items.map(item => ({ id: item.id, quantity: item.quantity || 1 }))
-    })
+    try {
+      await fulfill.mutateAsync({
+        orderId: order.id,
+        items: order.items.map(item => ({ id: item.id, quantity: item.quantity || 1 }))
+      })
+      toast.success("Order packed — ready to dispatch!")
+      refetch()
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to pack order")
+    }
   }
 
-  const handleShip = () => {
+  const handleShip = async () => {
     if (!fulfillment) return
-    ship.mutate({ orderId: order.id, fulfillmentId: fulfillment.id, tracking, trackingUrl })
+    try {
+      await ship.mutateAsync({ orderId: order.id, fulfillmentId: fulfillment.id, tracking, trackingUrl })
+      toast.success("Order marked as dispatched.")
+      setTracking("")
+      setTrackingUrl("")
+      refetch()
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to mark as dispatched")
+    }
   }
 
-  const handleDeliver = () => {
+  const handleDeliver = async () => {
     if (!fulfillment) return
-    deliver.mutate({ orderId: order.id, fulfillmentId: fulfillment.id })
+    try {
+      await deliver.mutateAsync({ orderId: order.id, fulfillmentId: fulfillment.id })
+      toast.success("Delivery confirmed!")
+      refetch()
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to confirm delivery")
+    }
+  }
+
+  const handleCancel = async () => {
+    try {
+      await cancel.mutateAsync({ orderId: order.id })
+      toast.success("Cancellation request sent to admin.")
+      setShowCancelConfirm(false)
+      refetch()
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to request cancellation")
+    }
+  }
+
+  const fulfillmentStatusLabel = (status?: string | null) => {
+    const map: Record<string, string> = {
+      not_fulfilled: "Pending",
+      partially_fulfilled: "In Progress",
+      fulfilled: "Packed",
+      shipped: "Dispatched",
+      delivered: "Delivered",
+      canceled: "Canceled",
+    }
+    return map[status || ""] || (status ? status.replace(/_/g, " ") : "Pending")
   }
 
   return (
@@ -100,18 +146,48 @@ function OrderDetailPage() {
             <h1 className="text-2xl sm:text-3xl font-black tracking-tight flex items-center gap-3">
               Order #{order.display_id}
               <Badge variant={
-                order.fulfillment_status === "fulfilled" ? "success" : 
-                order.fulfillment_status === "shipped" ? "default" : 
+                isCanceled ? "destructive" :
+                order.fulfillment_status === "fulfilled" ? "success" :
+                order.fulfillment_status === "shipped" ? "default" :
                 "warning"
               } className="text-sm">
-                {order.fulfillment_status === "not_fulfilled" ? "Pending" : 
-                 order.fulfillment_status?.replace(/_/g, " ") || "Pending"}
+                {fulfillmentStatusLabel(isCanceled ? "canceled" : order.fulfillment_status)}
               </Badge>
             </h1>
             <p className="text-muted-foreground font-medium mt-1">
               Placed on {order.created_at ? format(new Date(order.created_at), "PPP 'at' p") : "-"}
             </p>
           </div>
+          {!isCanceled && order.fulfillment_status === "not_fulfilled" && (
+            <div>
+              {!showCancelConfirm ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-destructive border-destructive/30 hover:bg-destructive/10"
+                  onClick={() => setShowCancelConfirm(true)}
+                >
+                  <XCircle className="h-4 w-4 mr-1" />
+                  Request Cancel
+                </Button>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-destructive font-semibold">Sure?</span>
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    isLoading={cancel.isPending}
+                    onClick={handleCancel}
+                  >
+                    Confirm
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => setShowCancelConfirm(false)}>
+                    No
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
@@ -142,7 +218,7 @@ function OrderDetailPage() {
                 </div>
               ))}
             </div>
-            
+
             <div className="mt-6 pt-6 border-t border-border space-y-2 text-right">
               <div className="flex justify-end gap-8 text-muted-foreground font-medium">
                 <span>Subtotal</span>
@@ -159,86 +235,81 @@ function OrderDetailPage() {
             </div>
           </Card>
 
-          <Card className="border-2 p-6 shadow-sm">
-            <h2 className="text-lg font-bold mb-6">Fulfillment Workflow</h2>
-            
-            <div className="space-y-6">
-              {/* Step 1: Pack */}
-              <div className="flex gap-4">
-                <div className={`mt-1 h-8 w-8 rounded-full flex items-center justify-center shrink-0 ${order.fulfillment_status !== "not_fulfilled" ? "bg-success text-white" : "bg-primary text-primary-foreground"}`}>
-                  <Box className="h-4 w-4" />
-                </div>
-                <div className="flex-1">
-                  <h3 className="font-bold text-base">Pack Order</h3>
-                  <p className="text-sm text-muted-foreground mb-3 font-medium">Prepare items for dispatch.</p>
-                  {order.fulfillment_status === "not_fulfilled" && (
-                    <Button 
-                      onClick={handleFulfill} 
-                      isLoading={fulfill.isPending}
-                    >
-                      Mark as Packed
-                    </Button>
-                  )}
-                </div>
-              </div>
+          {!isCanceled && (
+            <Card className="border-2 p-6 shadow-sm">
+              <h2 className="text-lg font-bold mb-6">Fulfillment Workflow</h2>
 
-              {/* Step 2: Ship */}
-              <div className={`flex gap-4 ${order.fulfillment_status === "not_fulfilled" ? "opacity-50 pointer-events-none" : ""}`}>
-                <div className={`mt-1 h-8 w-8 rounded-full flex items-center justify-center shrink-0 ${order.fulfillment_status === "shipped" || order.fulfillment_status === "fulfilled" ? "bg-success text-white" : "bg-muted text-muted-foreground"}`}>
-                  <Truck className="h-4 w-4" />
-                </div>
-                <div className="flex-1">
-                  <h3 className="font-bold text-base">Dispatch</h3>
-                  <p className="text-sm text-muted-foreground mb-3 font-medium">Hand over to delivery rider.</p>
-                  {order.fulfillment_status === "fulfilled" && !fulfillment?.shipped_at && (
-                    <div className="space-y-3">
-                      <Input 
-                        placeholder="Rider Phone or Tracking (Optional)" 
-                        value={tracking}
-                        onChange={e => setTracking(e.target.value)}
-                        className="h-10"
-                      />
-                      <Input 
-                        placeholder="Tracking URL (Optional)"
-                        type="url"
-                        value={trackingUrl}
-                        onChange={e => setTrackingUrl(e.target.value)}
-                        className="h-10"
-                      />
-                      <Button 
-                        onClick={handleShip} 
-                        isLoading={ship.isPending}
-                        className="w-full sm:w-auto"
-                      >
-                        Mark as Dispatched
+              <div className="space-y-6">
+                {/* Step 1: Pack */}
+                <div className="flex gap-4">
+                  <div className={`mt-1 h-8 w-8 rounded-full flex items-center justify-center shrink-0 ${order.fulfillment_status !== "not_fulfilled" ? "bg-success text-white" : "bg-primary text-primary-foreground"}`}>
+                    <Box className="h-4 w-4" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-bold text-base">Pack Order</h3>
+                    <p className="text-sm text-muted-foreground mb-3 font-medium">Prepare items for dispatch.</p>
+                    {order.fulfillment_status === "not_fulfilled" && (
+                      <Button onClick={handleFulfill} isLoading={fulfill.isPending}>
+                        Mark as Packed
                       </Button>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
-              </div>
 
-              {/* Step 3: Deliver */}
-              <div className={`flex gap-4 ${order.fulfillment_status !== "shipped" ? "opacity-50 pointer-events-none" : ""}`}>
-                <div className={`mt-1 h-8 w-8 rounded-full flex items-center justify-center shrink-0 ${order.fulfillment_status === "delivered" || order.fulfillment_status === "fulfilled" && fulfillment?.delivered_at ? "bg-success text-white" : "bg-muted text-muted-foreground"}`}>
-                  <CheckCircle2 className="h-4 w-4" />
+                {/* Step 2: Ship */}
+                <div className={`flex gap-4 ${order.fulfillment_status === "not_fulfilled" ? "opacity-50 pointer-events-none" : ""}`}>
+                  <div className={`mt-1 h-8 w-8 rounded-full flex items-center justify-center shrink-0 ${order.fulfillment_status === "shipped" || order.fulfillment_status === "fulfilled" ? "bg-success text-white" : "bg-muted text-muted-foreground"}`}>
+                    <Truck className="h-4 w-4" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-bold text-base">Dispatch</h3>
+                    <p className="text-sm text-muted-foreground mb-3 font-medium">Hand over to delivery rider.</p>
+                    {order.fulfillment_status === "fulfilled" && !fulfillment?.shipped_at && (
+                      <div className="space-y-3">
+                        <Input
+                          placeholder="Rider Phone or Tracking Number (Optional)"
+                          value={tracking}
+                          onChange={e => setTracking(e.target.value)}
+                          className="h-10"
+                        />
+                        <Input
+                          placeholder="Tracking URL (Optional)"
+                          type="url"
+                          value={trackingUrl}
+                          onChange={e => setTrackingUrl(e.target.value)}
+                          className="h-10"
+                        />
+                        <Button onClick={handleShip} isLoading={ship.isPending} className="w-full sm:w-auto">
+                          Mark as Dispatched
+                        </Button>
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <div className="flex-1">
-                  <h3 className="font-bold text-base">Delivered</h3>
-                  <p className="text-sm text-muted-foreground mb-3 font-medium">Customer received the item.</p>
-                  {order.fulfillment_status === "shipped" && (
-                    <Button 
-                      onClick={handleDeliver} 
-                      isLoading={deliver.isPending}
-                      variant="outline"
-                      className="w-full sm:w-auto border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground"
-                    >
-                      Confirm Delivery
-                    </Button>
-                  )}
+
+                {/* Step 3: Deliver */}
+                <div className={`flex gap-4 ${order.fulfillment_status !== "shipped" ? "opacity-50 pointer-events-none" : ""}`}>
+                  <div className={`mt-1 h-8 w-8 rounded-full flex items-center justify-center shrink-0 ${order.fulfillment_status === "delivered" ? "bg-success text-white" : "bg-muted text-muted-foreground"}`}>
+                    <CheckCircle2 className="h-4 w-4" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-bold text-base">Delivered</h3>
+                    <p className="text-sm text-muted-foreground mb-3 font-medium">Customer received the item.</p>
+                    {order.fulfillment_status === "shipped" && (
+                      <Button
+                        onClick={handleDeliver}
+                        isLoading={deliver.isPending}
+                        variant="outline"
+                        className="w-full sm:w-auto border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground"
+                      >
+                        Confirm Delivery
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          </Card>
+            </Card>
+          )}
         </div>
 
         <div className="space-y-6">

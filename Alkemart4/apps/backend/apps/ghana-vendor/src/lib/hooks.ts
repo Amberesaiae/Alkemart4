@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
-import { products, orders, stats, seller, catalog, returns, onboarding, ApiError } from "./api"
+import { products, orders, stats, seller, catalog, returns, onboarding, offers, ApiError } from "./api"
 import { getActiveSellerId } from "./api"
 
 // --- Stats ---
@@ -68,11 +68,23 @@ export function useDeliverOrder() {
   })
 }
 
+export function useCancelOrder() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ orderId, reason }: { orderId: string; reason?: string }) =>
+      orders.cancel(orderId, reason),
+    onSuccess: (_, { orderId }) => {
+      qc.invalidateQueries({ queryKey: ["vendor", "orders", orderId] })
+      qc.invalidateQueries({ queryKey: ["vendor", "orders"] })
+    },
+  })
+}
+
 // --- Products ---
-export function useProducts() {
+export function useProducts(params?: { limit?: number; offset?: number }) {
   return useQuery({
-    queryKey: ["vendor", "products"],
-    queryFn: () => products.list(),
+    queryKey: ["vendor", "products", params],
+    queryFn: () => products.list(params),
     staleTime: 30_000,
   })
 }
@@ -265,5 +277,26 @@ export function useCategories() {
     queryKey: ["vendor", "categories"],
     queryFn: () => catalog.categories(),
     staleTime: 120_000,
+  })
+}
+
+// --- Offers ---
+export function useProductOffers(productId: string) {
+  return useQuery({
+    queryKey: ["vendor", "offers", productId],
+    queryFn: () => offers.list({ product_id: productId, limit: 50 }),
+    enabled: !!productId,
+    staleTime: 30_000,
+  })
+}
+
+export function useUpdateOffer() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, input }: { id: string; input: { prices?: { amount: number; currency_code: string }[]; sku?: string } }) =>
+      offers.update(id, input),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["vendor", "offers"] })
+    },
   })
 }
