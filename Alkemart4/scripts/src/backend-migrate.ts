@@ -14,10 +14,12 @@
  *   bun run backend:migrate  # migrate from Linux worktree when available
  */
 import { readFileSync, existsSync } from "node:fs"
-import { join } from "node:path"
+import { join, dirname } from "node:path"
+import { fileURLToPath } from "node:url"
 import { spawnSync } from "node:child_process"
 
-const ROOT = join(import.meta.dir, "../..")
+const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url))
+const ROOT = join(SCRIPT_DIR, "../..")
 const MONOREPO_API = join(ROOT, "apps/backend/packages/api")
 const LINUX_BACKEND =
   process.env.ALKEMART_BACKEND_HOME || "/home/amber/alkemart-backend"

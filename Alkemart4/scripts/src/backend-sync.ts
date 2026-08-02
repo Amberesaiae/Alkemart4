@@ -6,10 +6,12 @@
  * Default target: /home/amber/alkemart-backend (override with ALKEMART_BACKEND_HOME)
  */
 import { existsSync, copyFileSync, mkdirSync } from "node:fs"
-import { join } from "node:path"
+import { join, dirname } from "node:path"
+import { fileURLToPath } from "node:url"
 import { spawnSync } from "node:child_process"
 
-const ROOT = join(import.meta.dir, "../..")
+const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url))
+const ROOT = join(SCRIPT_DIR, "../..")
 const SRC = join(ROOT, "apps/backend")
 const DST = process.env.ALKEMART_BACKEND_HOME || "/home/amber/alkemart-backend"
 

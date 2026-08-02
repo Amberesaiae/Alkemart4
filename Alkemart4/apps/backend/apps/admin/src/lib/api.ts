@@ -99,7 +99,7 @@ let _token: string | null = null
 
 function getToken(): string | null {
   if (_token) return _token
-  try { _token = sessionStorage.getItem(TOKEN_KEY) } catch {}
+  try { _token = sessionStorage.getItem(TOKEN_KEY) } catch { /* storage may be unavailable */ }
   return _token
 }
 
@@ -108,7 +108,7 @@ function setToken(t: string | null) {
   try {
     if (t) sessionStorage.setItem(TOKEN_KEY, t)
     else sessionStorage.removeItem(TOKEN_KEY)
-  } catch {}
+  } catch { /* storage may be unavailable */ }
 }
 
 async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
@@ -153,7 +153,7 @@ export const auth = {
   logout: async (hasSession?: boolean) => {
     setToken(null)
     if (hasSession === false) return
-    try { await apiFetch("/auth/session", { method: "DELETE" }) } catch {}
+    try { await apiFetch("/auth/session", { method: "DELETE" }) } catch { /* ignore */ }
   },
   getSession: async (): Promise<{ user: AuthUser } | null> => {
     try {

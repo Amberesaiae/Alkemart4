@@ -13,10 +13,12 @@
  *   - .neon context (no secrets)
  */
 import { readFileSync, writeFileSync, existsSync } from "node:fs"
-import { join } from "node:path"
+import { join, dirname } from "node:path"
+import { fileURLToPath } from "node:url"
 import { spawnSync } from "node:child_process"
 
-const ROOT = join(import.meta.dir, "../..")
+const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url))
+const ROOT = join(SCRIPT_DIR, "../..")
 const PROJECT_DEFAULT = "wispy-union-10280789"
 const BRANCH_DEFAULT = "medusa-prod"
 const DB_DEFAULT = "alkemart_marketplace"

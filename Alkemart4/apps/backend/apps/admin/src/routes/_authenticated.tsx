@@ -15,7 +15,7 @@ export const Route = createFileRoute("/_authenticated")({
       if (!session?.user?.role || session.user.role !== "admin") {
         throw new Error("Unauthorized — admin access required")
       }
-    } catch (e) {
+    } catch {
       throw redirect({ to: "/login" })
     }
   },

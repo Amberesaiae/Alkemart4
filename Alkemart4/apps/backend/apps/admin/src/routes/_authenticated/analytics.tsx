@@ -64,7 +64,7 @@ function AnalyticsPage() {
         {dataUpdatedAt != null && (
           <div className="flex items-center gap-2 text-xs text-muted-foreground whitespace-nowrap pb-1">
             <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-500" />
-            Last updated: {Math.round((Date.now() - dataUpdatedAt) / 60000)}m ago
+            Last updated: {new Date(dataUpdatedAt).toLocaleTimeString()}
           </div>
         )}
       </div>
@@ -111,7 +111,7 @@ function AnalyticsPage() {
                   <Tooltip
                     contentStyle={{ backgroundColor: 'var(--card)', borderRadius: '8px', border: '1px solid var(--border)' }}
                     labelFormatter={(val) => new Date(String(val)).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-                    formatter={(val: any) => [`${currencySymbol}${Number(val).toLocaleString(undefined, { minimumFractionDigits: 2 })}`, 'Revenue']}
+                    formatter={(val) => [`${currencySymbol}${Number(val).toLocaleString(undefined, { minimumFractionDigits: 2 })}`, 'Revenue']}
                   />
                   <Area type="monotone" dataKey="amount" stroke="var(--primary)" strokeWidth={3} fillOpacity={1} fill={`url(#${gradientId})`} />
                 </AreaChart>
