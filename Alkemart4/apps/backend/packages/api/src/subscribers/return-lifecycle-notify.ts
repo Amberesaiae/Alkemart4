@@ -122,7 +122,7 @@ async function handleReturnRequested(
     await sendWhatsAppTemplate({
       to: adminPhone,
       templateName: "alkemart_return_requested",
-      bodyParams: [displayId, ctx.vendor_name],
+      bodyParams: [displayId, ctx.vendor_name ?? "Unknown seller"],
     }).catch((e) =>
       logger.warn("[return-notify] admin wa failed", { error: e?.message }),
     )

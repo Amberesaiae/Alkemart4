@@ -8,6 +8,18 @@
 | **Audience** | Anyone (human or agent) working on Alkemart4 without re-discovering the monorepo |
 | **Companion docs** | `2026-08-02-canonical-data-flow.md`, `2026-07-13-alkemart-architecture-and-commercial-spine.md` (money ADRs — still binding), `2026-07-16-clean-slate-backend.md` |
 
+**This is the index document.** Detailed per-domain documents:
+
+| Document | Covers |
+|---|---|
+| [`2026-08-02-dataflow-and-eventing.md`](./2026-08-02-dataflow-and-eventing.md) | request paths, middleware stack, subscribers, jobs, caches, side channels |
+| [`2026-08-02-lifecycle-seller.md`](./2026-08-02-lifecycle-seller.md) | seller states, onboarding, approval, readiness, metadata keys |
+| [`2026-08-02-lifecycle-product-offer.md`](./2026-08-02-lifecycle-product-offer.md) | product/offer model, quality pipeline, media, search sync |
+| [`2026-08-02-lifecycle-order-checkout-payment.md`](./2026-08-02-lifecycle-order-checkout-payment.md) | checkout kernel, MoMo state machine, splitting, fulfillment, cancellation |
+| [`2026-08-02-lifecycle-returns-disputes-payouts.md`](./2026-08-02-lifecycle-returns-disputes-payouts.md) | returns, dispute-as-metadata, payout entities, commission |
+| [`2026-08-02-mercur-integration-guide.md`](./2026-08-02-mercur-integration-guide.md) | Mercur boundary, extension points, upgrade playbook |
+| [`2026-08-02-engineering-standards.md`](./2026-08-02-engineering-standards.md) | backend-first principles P1–P10, frontend practices F1–F7, definition of done |
+
 ---
 
 ## 1. System Overview

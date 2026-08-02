@@ -9,13 +9,22 @@ export default defineConfig({
   resolve: {
     alias: { '@': path.resolve(__dirname, 'src') },
   },
-  plugins: [TanStackRouterVite(), react(), tailwindcss()],
+  plugins: [TanStackRouterVite({ target: 'react', autoCodeSplitting: true }), react(), tailwindcss()],
   optimizeDeps: {
     include: ['lucide-react'],
   },
   build: {
     outDir: 'dist',
     emptyOutDir: true,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          react: ['react', 'react-dom'],
+          tanstack: ['@tanstack/react-router', '@tanstack/react-query'],
+          icons: ['lucide-react'],
+        },
+      },
+    },
   },
   server: {
     host: true,

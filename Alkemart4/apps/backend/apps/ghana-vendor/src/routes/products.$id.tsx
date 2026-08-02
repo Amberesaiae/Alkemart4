@@ -1,8 +1,8 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { useState } from "react"
 import { useQueryClient } from "@tanstack/react-query"
-import { useProduct, useUpdateProduct, useDeleteProduct, useCategories, useProposeProduct, useProductOffers, useUpdateOffer } from "../lib/hooks"
-import { type ProductStatus } from "../lib/api"
+import { useProduct, useUpdateProduct, useDeleteProduct, useCategories, useProposeProduct, useProductOffers, useUpdateOffer, useOfferStockLevels } from "../lib/hooks"
+import { type ProductStatus, inventoryItems } from "../lib/api"
 import { Card, Button, Input, Label, Textarea, Select, Skeleton } from "@workspace/ui"
 import { ArrowLeft, Save, Trash2, AlertCircle, Clock, SendHorizonal, ChevronDown, ChevronUp, Tag } from "lucide-react"
 import { PageShell } from "../components/page-shell"
@@ -18,7 +18,44 @@ interface ProductFormData {
   categoryId: string
 }
 
-type OfferPriceForm = Record<string, { priceGhs: string }>
+type OfferPriceForm = Record<string, { priceGhs: string; stock: string }>
+
+/** Stock quantity editor for one offer — shows current level, lets vendor type a new one. */
+function OfferStockInput({
+  inventoryItemId,
+  value,
+  onChange,
+}: {
+  inventoryItemId?: string
+  value: string
+  onChange: (v: string) => void
+}) {
+  const { data, isLoading } = useOfferStockLevels(inventoryItemId)
+  const level = data?.inventory_levels?.[0]
+
+  if (!inventoryItemId) return null
+
+  return (
+    <div className="relative w-[110px]">
+      <Input
+        type="number"
+        className="h-10"
+        placeholder={
+          isLoading ? "…" : level ? String(level.stocked_quantity) : "0"
+        }
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        min="0"
+        step="1"
+        inputMode="numeric"
+        aria-label="Stock quantity"
+      />
+      <span className="absolute -bottom-4 left-0 text-[10px] text-muted-foreground whitespace-nowrap">
+        {level ? `Current: ${level.stocked_quantity} in stock` : isLoading ? "Loading stock…" : "No stock record"}
+      </span>
+    </div>
+  )
+}
 
 function ProductDetailPage() {
   const { id } = Route.useParams()
@@ -108,7 +145,7 @@ function ProductDetailPage() {
       const priceAmountPesewas = offer.prices?.find(p => p.currency_code === "ghs")?.amount
         ?? offer.prices?.[0]?.amount
         ?? 0
-      initial[offer.id] = { priceGhs: priceAmountPesewas > 0 ? String((priceAmountPesewas / 100).toFixed(2)) : "" }
+      initial[offer.id] = { priceGhs: priceAmountPesewas > 0 ? String((priceAmountPesewas / 100).toFixed(2)) : "", stock: "" }
     }
     setOfferForm(initial)
     setOfferFormOpen(true)
@@ -130,10 +167,42 @@ function ProductDetailPage() {
           hasError = true
         }
       }
+
+      // Stock update — only when the vendor typed a value
+      const stockRaw = val.stock.trim()
+      if (stockRaw !== "") {
+        const stockQty = Number(stockRaw)
+        if (!Number.isInteger(stockQty) || stockQty < 0) {
+          toast.error("Stock must be a whole number of 0 or more.")
+          hasError = true
+          continue
+        }
+        const offer = offers.find(o => o.id === offerId)
+        const invItemId = offer?.inventory_items?.[0]?.inventory_item_id
+        if (!invItemId) {
+          toast.error("This offer has no inventory record — stock cannot be updated.")
+          hasError = true
+          continue
+        }
+        try {
+          const { inventory_levels } = await inventoryItems.levels(invItemId)
+          const level = inventory_levels?.[0]
+          if (!level) {
+            toast.error("No stock location found for this offer.")
+            hasError = true
+            continue
+          }
+          await inventoryItems.setLevel(invItemId, level.location_id, stockQty)
+          qc.invalidateQueries({ queryKey: ["vendor", "stock-levels", invItemId] })
+        } catch (err) {
+          toast.error(`Failed to update stock: ${err instanceof Error ? err.message : "Unknown error"}`)
+          hasError = true
+        }
+      }
     }
     setSavingOffers(false)
     if (!hasError) {
-      toast.success("Pricing updated.")
+      toast.success("Pricing & stock updated.")
       setOfferFormOpen(false)
       qc.invalidateQueries({ queryKey: ["vendor", "offers", id] })
     }
@@ -373,7 +442,6 @@ function ProductDetailPage() {
                 {offers.map(offer => {
                   const currentPricePesewas = offer.prices?.find(p => p.currency_code === "ghs")?.amount
                     ?? offer.prices?.[0]?.amount ?? 0
-                  const stockQty = offer.inventory_items?.[0]?.stocked_quantity ?? null
 
                   return (
                     <div key={offer.id} className="flex items-end gap-4 p-3 bg-muted/30 rounded-lg border border-border/50">
@@ -391,16 +459,16 @@ function ProductDetailPage() {
                               className="pl-14 h-10"
                               placeholder={currentPricePesewas > 0 ? String((currentPricePesewas / 100).toFixed(2)) : "0.00"}
                               value={offerForm[offer.id]?.priceGhs ?? ""}
-                              onChange={e => setOfferForm(f => ({ ...f, [offer.id]: { priceGhs: e.target.value } }))}
+                              onChange={e => setOfferForm(f => ({ ...f, [offer.id]: { ...(f[offer.id] ?? { priceGhs: "", stock: "" }), priceGhs: e.target.value } }))}
                               min="0"
                               step="0.01"
                             />
                           </div>
-                          {stockQty !== null && (
-                            <span className="text-sm text-muted-foreground font-medium whitespace-nowrap">
-                              {stockQty} in stock
-                            </span>
-                          )}
+                          <OfferStockInput
+                            inventoryItemId={offer.inventory_items?.[0]?.inventory_item_id}
+                            value={offerForm[offer.id]?.stock ?? ""}
+                            onChange={v => setOfferForm(f => ({ ...f, [offer.id]: { ...(f[offer.id] ?? { priceGhs: "", stock: "" }), stock: v } }))}
+                          />
                         </div>
                         {currentPricePesewas > 0 && (
                           <p className="text-xs text-muted-foreground">

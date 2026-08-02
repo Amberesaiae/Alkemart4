@@ -256,7 +256,15 @@ export type Offer = {
   product_id?: string
   sku?: string | null
   prices?: { amount: number; currency_code: string }[]
-  inventory_items?: { id: string; stocked_quantity?: number }[]
+  inventory_items?: { id: string; inventory_item_id?: string; stocked_quantity?: number }[]
+}
+
+export type StockLevel = {
+  id: string
+  location_id: string
+  stocked_quantity: number
+  reserved_quantity?: number
+  available_quantity?: number
 }
 
 export type Order = {
@@ -624,6 +632,30 @@ export const offers = {
    */
   delete: (id: string) =>
     del<{ id: string; deleted: boolean }>(`/vendor/offers/${id}`),
+}
+
+// ---------------------------------------------------------------------------
+// Vendor — Inventory (Mercur seller-scoped inventory endpoints)
+// ---------------------------------------------------------------------------
+
+export const inventoryItems = {
+  /**
+   * GET /vendor/inventory-items/:id/location-levels — Stock levels per location.
+   */
+  levels: (id: string) =>
+    get<{ inventory_levels: StockLevel[]; count?: number }>(
+      `/vendor/inventory-items/${id}/location-levels`,
+    ),
+
+  /**
+   * POST /vendor/inventory-items/:id/location-levels/:locationId —
+   * Set the stocked quantity at a location (ownership-validated server-side).
+   */
+  setLevel: (id: string, locationId: string, stockedQuantity: number) =>
+    post<{ inventory_item: unknown }>(
+      `/vendor/inventory-items/${id}/location-levels/${locationId}`,
+      { stocked_quantity: stockedQuantity },
+    ),
 }
 
 // ---------------------------------------------------------------------------

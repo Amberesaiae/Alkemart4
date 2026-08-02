@@ -2,6 +2,11 @@ import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 
 export async function GET(req: MedusaRequest, res: MedusaResponse) {
+  if (process.env.NODE_ENV === "production") {
+    res.status(403).json({ error: "Not available in production" })
+    return
+  }
+
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
 
   const fields = [

@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
-import { products, orders, stats, seller, catalog, returns, onboarding, offers, ApiError } from "./api"
+import { products, orders, stats, seller, catalog, returns, onboarding, offers, inventoryItems, ApiError } from "./api"
 import { getActiveSellerId } from "./api"
 
 // --- Stats ---
@@ -287,6 +287,34 @@ export function useProductOffers(productId: string) {
     queryFn: () => offers.list({ product_id: productId, limit: 50 }),
     enabled: !!productId,
     staleTime: 30_000,
+  })
+}
+
+export function useOfferStockLevels(inventoryItemId: string | undefined) {
+  return useQuery({
+    queryKey: ["vendor", "stock-levels", inventoryItemId],
+    queryFn: () => inventoryItems.levels(inventoryItemId as string),
+    enabled: !!inventoryItemId,
+    staleTime: 15_000,
+  })
+}
+
+export function useSetStockLevel() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({
+      inventoryItemId,
+      locationId,
+      stockedQuantity,
+    }: {
+      inventoryItemId: string
+      locationId: string
+      stockedQuantity: number
+    }) => inventoryItems.setLevel(inventoryItemId, locationId, stockedQuantity),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: ["vendor", "stock-levels", vars.inventoryItemId] })
+      qc.invalidateQueries({ queryKey: ["vendor", "offers"] })
+    },
   })
 }
 
