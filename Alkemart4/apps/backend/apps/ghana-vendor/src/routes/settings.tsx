@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { useState, useEffect } from "react"
-import { useSellerProfile, useUpdateProfile, useGhanaSetup, useUpdatePayment } from "../lib/hooks"
+import { useSellerProfile, useUpdateProfile, useGhanaSetup, useUpdatePayment, useUploadImage } from "../lib/hooks"
 import { Card, Button, Input, Label, Select, Skeleton } from "@workspace/ui"
 import { PageShell } from "../components/page-shell"
 import { PageHeader } from "../components/page-header"
@@ -15,7 +15,7 @@ import {
   normalizePhone,
   prefixHint,
 } from "../lib/ghana"
-import { Store, MapPin, CreditCard, Save, CheckCircle2, AlertCircle, Smartphone } from "lucide-react"
+import { Store, MapPin, CreditCard, Save, CheckCircle2, AlertCircle, Smartphone, Upload, X } from "lucide-react"
 
 export const Route = createFileRoute('/settings')({
   validateSearch: (search: Record<string, unknown>) => {
@@ -34,6 +34,7 @@ function SettingsPage() {
   const updateProfile = useUpdateProfile()
   const ghanaSetup    = useGhanaSetup()
   const updatePayment = useUpdatePayment()
+  const upload        = useUploadImage()
   const { tab: searchTab } = Route.useSearch()
 
   const [activeTab, setActiveTab] = useState<"profile" | "dispatch" | "momo">("profile")
@@ -209,10 +210,36 @@ function SettingsPage() {
                       placeholder="amas-groceries"
                     />
                   </div>
-                  <p className="text-xs text-muted-foreground">Lowercase letters, numbers, and hyphens only</p>
-                </div>
+                   <p className="text-xs text-muted-foreground">Lowercase letters, numbers, and hyphens only</p>
+                 </div>
 
-                <StatusRow mutation={updateProfile} successText="Profile saved" />
+                 <ImageUploader
+                   label="Shop Logo"
+                   alt={`${seller?.name ?? "Shop"} logo`}
+                   current={seller?.logo ?? null}
+                   onUpload={async (file) =>
+                     upload.mutateAsync(file).then((url) =>
+                       updateProfile.mutate({ logo: url }),
+                     )
+                   }
+                   onRemove={() => updateProfile.mutate({ logo: null })}
+                   isUploading={upload.isPending}
+                 />
+
+                 <ImageUploader
+                   label="Cover Image"
+                   alt={`${seller?.name ?? "Shop"} cover`}
+                   current={seller?.banner ?? null}
+                   onUpload={async (file) =>
+                     upload.mutateAsync(file).then((url) =>
+                       updateProfile.mutate({ banner: url }),
+                     )
+                   }
+                   onRemove={() => updateProfile.mutate({ banner: null })}
+                   isUploading={upload.isPending}
+                 />
+
+                 <StatusRow mutation={updateProfile} successText="Profile saved" />
 
                 <div className="flex justify-end pt-2">
                   <Button type="submit" isLoading={updateProfile.isPending} className="gap-2 px-8">
@@ -431,6 +458,115 @@ function SettingsPage() {
         </div>
       </div>
     </PageShell>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Image upload control — reuses /vendor/uploads (R2-backed Medusa file service)
+// and persists the returned URL via POST /vendor/sellers/me { logo | banner }.
+// ---------------------------------------------------------------------------
+
+type ImageUploaderProps = {
+  label: string
+  alt: string
+  current: string | null | undefined
+  onUpload: (file: File) => Promise<void> | void
+  onRemove: () => void
+  isUploading: boolean
+}
+
+function ImageUploader({
+  label,
+  alt,
+  current,
+  onUpload,
+  onRemove,
+  isUploading,
+}: ImageUploaderProps) {
+  const [prev, setPrev] = useState<string | null>(current ?? null)
+  const [error, setError] = useState<string | null>(null)
+
+  // Reflect server-saved value (e.g. after a successful save or a refetch).
+  useEffect(() => {
+    setPrev(current ?? null)
+  }, [current])
+
+  const onChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setError(null)
+    const okTypes = ["image/png", "image/jpeg", "image/webp", "image/gif"]
+    if (!okTypes.includes(file.type)) {
+      setError("Only PNG, JPG, WebP, or GIF images are accepted.")
+      return
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setError("Image must be smaller than 5 MB.")
+      return
+    }
+    const objectUrl = URL.createObjectURL(file)
+    setPrev(objectUrl)
+    try {
+      await onUpload(file)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Upload failed.")
+    } finally {
+      URL.revokeObjectURL(objectUrl)
+    }
+  }
+
+  const clear = () => {
+    setPrev(null)
+    onRemove()
+  }
+
+  return (
+    <div className="space-y-2">
+      <Label>{label}</Label>
+
+      {prev ? (
+        <div className="relative inline-block">
+          <img
+            src={prev}
+            alt={alt}
+            className={`rounded-xl object-cover ring-1 ring-border ${
+              label.toLowerCase().includes("cover")
+                ? "h-28 w-64"
+                : "h-20 w-20"
+            }`}
+          />
+          <button
+            type="button"
+            onClick={clear}
+            disabled={isUploading}
+            className="absolute -top-1 -right-1 rounded-full bg-destructive p-0.5 text-white/90 hover:bg-destructive/90"
+            aria-label={`Remove ${label.toLowerCase()}`}
+            title={`Remove ${label.toLowerCase()}`}
+          >
+            <X className="h-3 w-3" />
+          </button>
+        </div>
+      ) : (
+        <label className="flex h-20 w-20 cursor-pointer items-center justify-center rounded-xl border-2 border-dashed border-border bg-muted/30 text-muted-foreground transition hover:border-primary hover:text-primary">
+          <Upload className="h-5 w-5" />
+          <input
+            type="file"
+            accept="image/*"
+            onChange={onChange}
+            disabled={isUploading}
+            className="sr-only"
+            aria-label={label}
+          />
+        </label>
+      )}
+
+      {error ? (
+        <p className="text-xs text-destructive font-semibold">{error}</p>
+      ) : null}
+      {isUploading ? (
+        <p className="text-xs text-muted-foreground">Uploading…</p>
+      ) : null}
+    </div>
   )
 }
 

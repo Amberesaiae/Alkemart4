@@ -202,6 +202,10 @@ export type Seller = {
   email?: string | null
   status: SellerStatus
   currency_code?: string | null
+  logo?: string | null
+  banner?: string | null
+  description?: string | null
+  metadata?: Record<string, unknown> | null
   address?: SellerAddress | null
   payment_details?: SellerPaymentDetails | null
 }
@@ -438,8 +442,18 @@ export const seller = {
 
   /**
    * POST /vendor/sellers/me — Update current seller profile fields.
+   * Accepts Mercur native fields: name, handle, description, logo, banner,
+   * currency_code, metadata.
    */
-  update: (input: { name?: string; handle?: string; currency_code?: string }) =>
+  update: (input: {
+    name?: string
+    handle?: string
+    description?: string
+    logo?: string | null
+    banner?: string | null
+    currency_code?: string
+    metadata?: Record<string, unknown> | null
+  }) =>
     post<{ seller: Seller }>("/vendor/sellers/me", input),
 
   /**

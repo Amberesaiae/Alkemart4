@@ -11,6 +11,7 @@ type SellerRow = {
   handle?: string | null
   description?: string | null
   logo?: string | null
+  banner?: string | null
   status?: string | null
   metadata?: Record<string, unknown> | null
 }
@@ -34,6 +35,7 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
       "handle",
       "description",
       "logo",
+      "banner",
       "status",
       "metadata",
     ],
@@ -59,6 +61,7 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
       const alkemartMeta =
         (meta.alkemart as Record<string, unknown> | undefined) ?? {}
       const coverImageUrl =
+        s.banner ||
         (alkemartMeta.cover_image_url as string | undefined) ||
         (meta.cover_image_url as string | undefined) ||
         null

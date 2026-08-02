@@ -10,6 +10,7 @@ type SellerRow = {
   handle?: string | null
   description?: string | null
   logo?: string | null
+  banner?: string | null
   status?: string | null
   email?: string | null
   metadata?: Record<string, unknown> | null
@@ -42,6 +43,7 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
       "handle",
       "description",
       "logo",
+      "banner",
       "status",
       "email",
       "metadata",
@@ -68,7 +70,9 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
   const meta = seller.metadata ?? {}
   const alkemartMeta =
     (meta.alkemart as Record<string, unknown> | undefined) ?? {}
+  // Prefer Mercur's native `banner`; fall back to alkemart metadata for backfill.
   const coverImageUrl =
+    seller.banner ||
     (alkemartMeta.cover_image_url as string | undefined) ||
     (meta.cover_image_url as string | undefined) ||
     null
