@@ -6,8 +6,8 @@
  */
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
-import { asList } from "../../../../../../../lib/graph-utils"
-import { writeAuditLog } from "../../../../../../../lib/audit-log"
+import { asList } from "../../../../../../../../lib/graph-utils"
+import { writeAuditLog } from "../../../../../../../../lib/audit-log"
 
 type SellerReq = MedusaRequest & {
   seller_context?: { seller_id?: string }
@@ -50,11 +50,11 @@ export async function POST(req: SellerReq, res: MedusaResponse) {
       return
     }
 
-    const fulfillmentService = req.scope.resolve(Modules.FULFILLMENT) as {
+    const fulfillmentService = req.scope.resolve(Modules.FULFILLMENT) as unknown as {
       updateFulfillment: (id: string, data: Record<string, unknown>) => Promise<{ id: string; status: string; shipped_at?: string }>
     }
 
-    const labels = []
+    const labels: Array<{ tracking_number: string; tracking_url: string | null }> = []
     if (body?.tracking_number) {
       labels.push({
         tracking_number: body.tracking_number,

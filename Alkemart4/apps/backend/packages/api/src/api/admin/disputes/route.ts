@@ -75,7 +75,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
     graph: (args: unknown) => Promise<{ data: unknown }>
   }
 
-  const orderService = req.scope.resolve(Modules.ORDER) as {
+  const orderService = req.scope.resolve(Modules.ORDER) as unknown as {
     updateReturns?: (updates: Array<{ id: string; metadata: Record<string, unknown> }>) => Promise<unknown>
   }
 

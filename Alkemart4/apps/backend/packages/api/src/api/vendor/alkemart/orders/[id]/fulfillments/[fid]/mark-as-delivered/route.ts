@@ -48,7 +48,7 @@ export async function POST(req: SellerReq, res: MedusaResponse) {
       return
     }
 
-    const fulfillmentService = req.scope.resolve(Modules.FULFILLMENT) as {
+    const fulfillmentService = req.scope.resolve(Modules.FULFILLMENT) as unknown as {
       updateFulfillment: (id: string, data: Record<string, unknown>) => Promise<{ id: string; status: string }>
     }
 

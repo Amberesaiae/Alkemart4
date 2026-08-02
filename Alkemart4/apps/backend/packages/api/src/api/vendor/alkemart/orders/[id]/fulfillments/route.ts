@@ -69,7 +69,7 @@ export async function POST(req: SellerReq, res: MedusaResponse) {
       shipping_methods?: { shipping_option_id?: string }[]
     }
 
-    const fulfillmentService = req.scope.resolve(Modules.FULFILLMENT) as {
+    const fulfillmentService = req.scope.resolve(Modules.FULFILLMENT) as unknown as {
       createFulfillment: (data: Record<string, unknown>) => Promise<{ id: string; status: string }>
     }
 
