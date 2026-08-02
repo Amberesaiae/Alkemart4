@@ -45,3 +45,5 @@ description: Authoritative deployment stack — Neon + Railway + Vercel + Tigris
 ## .env.template
 - Fully updated with: Neon best practices, Railway Redis/Meili, Tigris + B2 options, AT SMS, Meta WA, Resend email
 - All secrets go Railway dashboard — never in railway.toml or committed files
+
+**Deploy workflow (user-confirmed):** Verify locally with `tsc --noEmit` + `bun run build` (vite) only — no local live testing — then commit and push to GitHub `origin/main`; Railway/Vercel/Neon auto-deploy from the remote. Vendor dashboard dev port must stay 3002 (matches workflow + .replit port mapping; 7002 mapping removed Aug 2026).
