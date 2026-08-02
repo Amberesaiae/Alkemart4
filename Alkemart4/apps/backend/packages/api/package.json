@@ -51,6 +51,7 @@
   "devDependencies": {
     "@acme/admin": "*",
     "@alkemart/ghana-vendor": "*",
+    "@alkemart/shared": "workspace:*",
     "@medusajs/test-utils": "2.17.2",
     "@swc/core": "^1.15.46",
     "@swc/jest": "^0.2.36",

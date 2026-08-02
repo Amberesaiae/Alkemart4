@@ -1,8 +1,31 @@
 /**
- * Ghana marketplace defaults for onboarding, addresses, money, and shipping.
- * Use these instead of EU seed leftovers (EUR, DE, Berlin).
+ * Ghana locale constants — re-exports from @alkemart/shared/ghana (single source of truth).
+ *
+ * The rich Region objects with id/capital/iso/lat/lon live in packages/shared/src/ghana/regions.ts.
+ * This file exposes the flat string-list variants that operating-markets.ts and seller-setup need.
+ * Any new code should import from @alkemart/shared/ghana directly.
  */
+import {
+  GHANA_REGIONS_LIST,
+  GHANA_MAJOR_CITIES,
+  type Region,
+} from "@alkemart/shared/ghana"
 
+export { Region }
+
+/**
+ * Flat list of the 16 administrative region names — for address dropdowns.
+ * Source of truth: packages/shared/src/ghana/regions.ts → GHANA_REGIONS_LIST
+ */
+export const GHANA_REGIONS: readonly string[] = GHANA_REGIONS_LIST
+
+export { GHANA_MAJOR_CITIES }
+
+/**
+ * Fixed constants for Ghana market onboarding copy.
+ * Kept here (not in shared) because they include internal defaults only
+ * relevant to the backend seed/setup scripts.
+ */
 export const GHANA = {
   countryCode: "gh",
   countryName: "Ghana",
@@ -23,40 +46,6 @@ export const GHANA = {
   defaultRegion: "Greater Accra",
   defaultAddressLine: "Spintex Road",
 } as const
-
-/** 16 administrative regions of Ghana (for dropdowns / hints). */
-export const GHANA_REGIONS = [
-  "Ahafo",
-  "Ashanti",
-  "Bono",
-  "Bono East",
-  "Central",
-  "Eastern",
-  "Greater Accra",
-  "North East",
-  "Northern",
-  "Oti",
-  "Savannah",
-  "Upper East",
-  "Upper West",
-  "Volta",
-  "Western",
-  "Western North",
-] as const
-
-export const GHANA_MAJOR_CITIES = [
-  "Accra",
-  "Kumasi",
-  "Tamale",
-  "Takoradi",
-  "Cape Coast",
-  "Tema",
-  "Sunyani",
-  "Ho",
-  "Koforidua",
-  "Wa",
-  "Bolgatanga",
-] as const
 
 export function isGhanaCountry(code: string | null | undefined): boolean {
   return (code || "").trim().toLowerCase() === "gh"

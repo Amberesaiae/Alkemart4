@@ -8,6 +8,7 @@
     "tsc": "tsc --noEmit"
   },
   "dependencies": {
+    "@alkemart/shared": "workspace:*",
     "@workspace/ui": "workspace:*",
     "@tanstack/react-query": "5.64.2",
     "@tanstack/react-router": "^1.170.16",

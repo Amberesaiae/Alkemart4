@@ -38,7 +38,7 @@ export const SYSTEM_PAYMENT_PROVIDER_ID = "pp_system_default"
 
 const MOMO_PENDING_TTL_MS = 30 * 60 * 1000
 
-// TODO: Add scheduled job to clean up expired pending payments (MOMO_PENDING_TTL_MS)
+// Stale MoMo carts are cleaned up by jobs/momo-payment-ttl.ts (runs every 5 min).
 
 const VALID_TRANSITIONS: Record<string, string[]> = {
   initiated: ["pending", "charged", "charge_failed"],
