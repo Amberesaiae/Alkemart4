@@ -22,7 +22,11 @@
     "rewriteRelativeImportExtensions": true
   },
   "ts-node": {
-    "swc": true
+    "swc": true,
+    "compilerOptions": {
+      "module": "CommonJS",
+      "moduleResolution": "Node"
+    }
   },
   "include": [
     "**/*",
