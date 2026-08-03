@@ -2,12 +2,12 @@ import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { ContainerRegistrationKeys, Modules, MedusaError } from "@medusajs/framework/utils"
 import { MercurModules } from "@mercurjs/types"
 import { updateOffersWorkflow } from "@mercurjs/core/workflows"
-import { checkRateLimit } from "../../../../../lib/simple-rate-limit"
-import { asList } from "../../../../../lib/graph-utils"
-import { logger } from "../../../../../lib/logger"
-import { invalidateSellerOwnedProductIds } from "../../../../../lib/seller-owned-products-cache"
+import { checkRateLimit } from "../../../../../lib/simple-rate-limit.ts"
+import { asList } from "../../../../../lib/graph-utils.ts"
+import { logger } from "../../../../../lib/logger.ts"
+import { invalidateSellerOwnedProductIds } from "../../../../../lib/seller-owned-products-cache.ts"
 import { z } from "zod"
-import { buildOfferPriceUpdates, type OfferRow } from "../../../../../lib/offer-pricing"
+import { buildOfferPriceUpdates, type OfferRow } from "../../../../../lib/offer-pricing.ts"
 
 type SellerReq = MedusaRequest & {
   seller_context?: { seller_id?: string }

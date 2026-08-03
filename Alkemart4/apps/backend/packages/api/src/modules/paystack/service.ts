@@ -1,5 +1,5 @@
 import { AbstractPaymentProvider, BigNumber, MedusaError } from "@medusajs/framework/utils"
-import { logger } from "../../lib/logger"
+import { logger } from "../../lib/logger.ts"
 import {
   AuthorizePaymentInput,
   AuthorizePaymentOutput,
@@ -28,7 +28,7 @@ import {
   toPaystackAmountPesewas,
   verifyPaystackTransaction,
   verifyPaystackWebhookSignature,
-} from "../../lib/paystack-client"
+} from "../../lib/paystack-client.ts"
 
 type Options = {
   secretKey: string

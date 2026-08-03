@@ -6,10 +6,10 @@
  */
 import type { SubscriberArgs, SubscriberConfig } from "@medusajs/framework"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
-import { sendEmail, sellerLifecycleEmail } from "../lib/email"
-import { sendSms, sellerApprovedSms } from "../lib/sms"
-import { sendWhatsAppTemplate, waSellerApproved } from "../lib/whatsapp"
-import { logger } from "../lib/logger"
+import { sendEmail, sellerLifecycleEmail } from "../lib/email.ts"
+import { sendSms, sellerApprovedSms } from "../lib/sms.ts"
+import { sendWhatsAppTemplate, waSellerApproved } from "../lib/whatsapp.ts"
+import { logger } from "../lib/logger.ts"
 
 type SellerEvent = {
   id?: string

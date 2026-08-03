@@ -1,5 +1,5 @@
 import { ExecArgs } from "@medusajs/framework/types";
-import { logger } from "../lib/logger";
+import { logger } from "../lib/logger.ts";
 import {
   ContainerRegistrationKeys,
   MedusaError,

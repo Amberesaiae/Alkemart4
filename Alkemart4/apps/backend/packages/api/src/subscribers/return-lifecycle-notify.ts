@@ -10,9 +10,9 @@
  */
 import type { SubscriberArgs, SubscriberConfig } from "@medusajs/framework"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
-import { sendSms } from "../lib/sms"
-import { sendWhatsAppTemplate } from "../lib/whatsapp"
-import { logger } from "../lib/logger"
+import { sendSms } from "../lib/sms.ts"
+import { sendWhatsAppTemplate } from "../lib/whatsapp.ts"
+import { logger } from "../lib/logger.ts"
 
 type ReturnEvent = {
   id?: string

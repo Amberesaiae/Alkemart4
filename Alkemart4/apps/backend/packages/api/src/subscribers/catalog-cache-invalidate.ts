@@ -3,8 +3,8 @@
  * Events: product / offer / seller lifecycle (best-effort; TTL is the safety net).
  */
 import type { SubscriberArgs, SubscriberConfig } from "@medusajs/framework"
-import { invalidateCatalogCache } from "../lib/catalog-cache"
-import { logger } from "../lib/logger"
+import { invalidateCatalogCache } from "../lib/catalog-cache.ts"
+import { logger } from "../lib/logger.ts"
 
 export default async function catalogCacheInvalidate({
   event,

@@ -1,5 +1,5 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
-import { trackSearch } from "../../../../lib/search-history"
+import { trackSearch } from "../../../../lib/search-history.ts"
 
 export async function POST(req: MedusaRequest, res: MedusaResponse) {
   const did = typeof req.headers["x-device-id"] === "string" ? req.headers["x-device-id"] : ""

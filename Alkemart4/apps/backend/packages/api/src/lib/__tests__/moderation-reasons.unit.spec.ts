@@ -2,7 +2,7 @@ import {
   composeMercurReason,
   PRODUCT_REASON_CODES,
   SELLER_REASON_CODES,
-} from "../moderation-reasons"
+} from "../moderation-reasons.ts"
 
 describe("composeMercurReason", () => {
   it("composes seller reject reason", () => {

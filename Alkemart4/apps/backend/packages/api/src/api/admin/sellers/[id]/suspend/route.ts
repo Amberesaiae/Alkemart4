@@ -1,6 +1,6 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { suspendSellerWorkflow } from "@mercurjs/core/workflows"
-import { writeAuditLog } from "../../../../../lib/audit-log"
+import { writeAuditLog } from "../../../../../lib/audit-log.ts"
 
 export async function POST(req: MedusaRequest, res: MedusaResponse) {
   const sellerId = req.params.id

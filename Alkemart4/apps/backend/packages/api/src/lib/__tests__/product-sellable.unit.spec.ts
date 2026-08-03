@@ -1,4 +1,4 @@
-import { evaluateSellable } from "../product-sellable"
+import { evaluateSellable } from "../product-sellable.ts"
 
 describe("evaluateSellable", () => {
   const full = {

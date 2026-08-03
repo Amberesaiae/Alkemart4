@@ -1,6 +1,6 @@
-import { asList } from "./graph-utils"
-import { logger } from "./logger"
-import { readProductMediaMeta } from "./media/derivatives"
+import { asList } from "./graph-utils.ts"
+import { logger } from "./logger.ts"
+import { readProductMediaMeta } from "./media/derivatives.ts"
 
 /**
  * Pure helpers for /store/alkemart/catalog product mapping + pagination.

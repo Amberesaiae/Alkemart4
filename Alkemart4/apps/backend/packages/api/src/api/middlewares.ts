@@ -1,10 +1,10 @@
 import { authenticate, defineMiddlewares } from "@medusajs/medusa"
-import { storeWishlistMiddlewares } from "./store/wishlist/middlewares"
-import { authRateLimit } from "./middlewares/auth-rate-limit"
-import { rateLimit } from "./middlewares/rate-limit"
-import { csrfProtection } from "./middlewares/csrf-protection"
-import { inputSanitize } from "./middlewares/input-sanitize"
-import { securityHeaders } from "./middlewares/security-headers"
+import { storeWishlistMiddlewares } from "./store/wishlist/middlewares.ts"
+import { authRateLimit } from "./middlewares/auth-rate-limit.ts"
+import { rateLimit } from "./middlewares/rate-limit.ts"
+import { csrfProtection } from "./middlewares/csrf-protection.ts"
+import { inputSanitize } from "./middlewares/input-sanitize.ts"
+import { securityHeaders } from "./middlewares/security-headers.ts"
 
 export default defineMiddlewares({
   routes: [

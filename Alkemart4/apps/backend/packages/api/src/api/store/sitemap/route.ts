@@ -4,7 +4,7 @@
  */
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
-import { listPublishedSitemapEntries } from "../../../lib/search/service"
+import { listPublishedSitemapEntries } from "../../../lib/search/service.ts"
 
 const STATIC_PATHS = [
   "/",

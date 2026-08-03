@@ -2,7 +2,7 @@ import {
   productLifecycleEmail,
   sellerLifecycleEmail,
   sendEmail,
-} from "../email"
+} from "../email.ts"
 
 describe("email templates", () => {
   it("builds seller lifecycle message", () => {

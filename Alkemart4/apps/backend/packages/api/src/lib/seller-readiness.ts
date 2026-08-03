@@ -1,4 +1,4 @@
-import { asList } from "./graph-utils"
+import { asList } from "./graph-utils.ts"
 
 /**
  * Seller onboarding readiness — simplified for Ghana context.

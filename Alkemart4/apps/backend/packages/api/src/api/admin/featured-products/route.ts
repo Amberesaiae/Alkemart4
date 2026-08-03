@@ -1,7 +1,7 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
-import { asList } from "../../../lib/graph-utils"
-import { logger } from "../../../lib/logger"
+import { asList } from "../../../lib/graph-utils.ts"
+import { logger } from "../../../lib/logger.ts"
 
 export async function GET(req: MedusaRequest, res: MedusaResponse) {
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)

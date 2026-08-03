@@ -3,7 +3,7 @@ import {
   normalizePriceGhs,
   type OfferRow,
   type VariantPriceEdit,
-} from "../offer-pricing"
+} from "../offer-pricing.ts"
 
 const offers: OfferRow[] = [
   {

@@ -17,9 +17,9 @@
 
 import type { SubscriberArgs, SubscriberConfig } from "@medusajs/framework"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
-import { sendSms, orderConfirmedSms, orderShippedSms, orderDeliveredSms, newOrderVendorSms } from "../lib/sms"
-import { sendWhatsAppTemplate, waOrderConfirmed, waOrderShipped, waNewOrderVendor } from "../lib/whatsapp"
-import { logger } from "../lib/logger"
+import { sendSms, orderConfirmedSms, orderShippedSms, orderDeliveredSms, newOrderVendorSms } from "../lib/sms.ts"
+import { sendWhatsAppTemplate, waOrderConfirmed, waOrderShipped, waNewOrderVendor } from "../lib/whatsapp.ts"
+import { logger } from "../lib/logger.ts"
 
 type OrderEvent = {
   id?: string

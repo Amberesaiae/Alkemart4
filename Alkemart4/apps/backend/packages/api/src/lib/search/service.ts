@@ -1,21 +1,21 @@
-import { logger } from "../logger"
+import { logger } from "../logger.ts"
 import {
   ensureProductsIndex,
   getIndexUid,
   getMeiliClientAsync,
   getProductsIndexAsync,
   isSearchEnabled,
-} from "./client"
+} from "./client.ts"
 import {
   enrichDocsWithOffers,
   enrichDocsWithSellerAddresses,
   mapProductToDocument,
-} from "./documents"
+} from "./documents.ts"
 import type {
   SearchProductDocument,
   SearchQueryInput,
   SearchResult,
-} from "./types"
+} from "./types.ts"
 
 type QueryService = {
   graph: (args: unknown) => Promise<{ data: unknown }>

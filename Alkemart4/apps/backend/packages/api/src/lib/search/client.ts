@@ -1,4 +1,4 @@
-import type { SearchProductDocument } from "./types"
+import type { SearchProductDocument } from "./types.ts"
 
 // Dynamic import avoids CJS/ESM interop issues under Medusa's ts-node compile
 

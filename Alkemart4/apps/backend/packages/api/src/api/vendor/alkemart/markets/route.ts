@@ -9,7 +9,7 @@
  */
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
-import { listOperatingMarkets } from "../../../../lib/operating-markets"
+import { listOperatingMarkets } from "../../../../lib/operating-markets.ts"
 
 /** Skip Mercur vendor authenticate + ensureSeller for this route. */
 export const AUTHENTICATE = false

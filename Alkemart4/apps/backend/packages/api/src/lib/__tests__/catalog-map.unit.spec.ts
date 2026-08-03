@@ -5,7 +5,7 @@ import {
   paginate,
   parseLimitOffset,
   uniqueProductIdsFromOffers,
-} from "../catalog-map"
+} from "../catalog-map.ts"
 
 describe("mapPublishedProductWithOffer", () => {
   it("returns null without offer_id", () => {

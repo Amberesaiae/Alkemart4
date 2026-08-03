@@ -1,4 +1,4 @@
-import { loadAppEnv, AppEnv } from "../env"
+import { loadAppEnv, AppEnv } from "../env.ts"
 
 const validEnv: Record<string, string> = {
   NODE_ENV: "test",

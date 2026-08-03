@@ -1,4 +1,4 @@
-import { paystackRequest, toPaystackAmountPesewas } from "../../lib/paystack-client"
+import { paystackRequest, toPaystackAmountPesewas } from "../../lib/paystack-client.ts"
 
 type Options = {
   secretKey: string

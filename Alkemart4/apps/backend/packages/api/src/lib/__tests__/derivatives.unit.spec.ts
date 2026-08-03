@@ -5,7 +5,7 @@ import {
   readProductMediaMeta,
   readSellerImageMeta,
   targetDimensions,
-} from "../media/derivatives"
+} from "../media/derivatives.ts"
 
 describe("targetDimensions", () => {
   it("does not upscale small images", () => {

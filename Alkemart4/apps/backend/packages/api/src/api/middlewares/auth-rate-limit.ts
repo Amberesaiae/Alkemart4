@@ -1,6 +1,6 @@
 import type { MedusaRequest, MedusaResponse, MedusaNextFunction } from "@medusajs/framework/http"
-import { checkRateLimit } from "../../lib/rate-limiter"
-import { logger } from "../../lib/logger"
+import { checkRateLimit } from "../../lib/rate-limiter.ts"
+import { logger } from "../../lib/logger.ts"
 
 const MAX_ATTEMPTS = Number(process.env.AUTH_RATE_LIMIT_MAX) || 10
 const WINDOW_MS = Number(process.env.AUTH_RATE_LIMIT_WINDOW_MS) || 60_000

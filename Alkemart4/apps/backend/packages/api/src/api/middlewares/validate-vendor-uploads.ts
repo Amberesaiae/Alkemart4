@@ -3,7 +3,7 @@
  * Rejects non-images / oversize before uploadFilesWorkflow runs.
  */
 import type { MedusaNextFunction, MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
-import { validateImageUpload } from "../../lib/media/validate-image"
+import { validateImageUpload } from "../../lib/media/validate-image.ts"
 
 type UploadFile = {
   originalname?: string

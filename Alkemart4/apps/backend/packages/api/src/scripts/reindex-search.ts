@@ -6,7 +6,7 @@
  */
 import type { ExecArgs } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
-import { reindexAllProducts, searchHealth } from "../lib/search/service"
+import { reindexAllProducts, searchHealth } from "../lib/search/service.ts"
 
 export default async function reindexSearch({ container }: ExecArgs) {
   const logger = container.resolve(ContainerRegistrationKeys.LOGGER)

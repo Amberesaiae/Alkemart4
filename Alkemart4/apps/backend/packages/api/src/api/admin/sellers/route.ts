@@ -6,7 +6,7 @@
  */
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
-import { asList } from "../../../lib/graph-utils"
+import { asList } from "../../../lib/graph-utils.ts"
 
 const SELLER_LIST_FIELDS = [
   "id", "name", "handle", "email", "phone",

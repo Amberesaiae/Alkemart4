@@ -7,8 +7,8 @@ import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import {
   CheckoutHttpError,
   getMomoCheckoutStatus,
-} from "../../../../lib/ghana-checkout"
-import { checkRateLimit } from "../../../../lib/simple-rate-limit"
+} from "../../../../lib/ghana-checkout.ts"
+import { checkRateLimit } from "../../../../lib/simple-rate-limit.ts"
 
 export async function GET(req: MedusaRequest, res: MedusaResponse) {
   const cartId = String(

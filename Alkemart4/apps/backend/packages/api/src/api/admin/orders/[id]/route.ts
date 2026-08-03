@@ -4,7 +4,7 @@
  */
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
-import { asList } from "../../../../lib/graph-utils"
+import { asList } from "../../../../lib/graph-utils.ts"
 
 const DETAIL_FIELDS = [
   "id", "display_id", "status", "fulfillment_status", "payment_status",

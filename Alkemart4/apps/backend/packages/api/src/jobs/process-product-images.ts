@@ -4,9 +4,9 @@
  */
 import type { MedusaContainer } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
-import { processProductImages } from "../lib/media/process-product-images"
-import { logger } from "../lib/logger"
-import { asList } from "../lib/graph-utils"
+import { processProductImages } from "../lib/media/process-product-images.ts"
+import { logger } from "../lib/logger.ts"
+import { asList } from "../lib/graph-utils.ts"
 export default async function processProductImagesJob(
   container: MedusaContainer,
 ) {

@@ -1,10 +1,10 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
-import { checkRateLimit } from "../../../../lib/simple-rate-limit"
+import { checkRateLimit } from "../../../../lib/simple-rate-limit.ts"
 import {
   getSearchHistory,
   removeSearchQuery,
   clearSearchHistory,
-} from "../../../../lib/search-history"
+} from "../../../../lib/search-history.ts"
 
 function deviceId(req: MedusaRequest): string {
   return (req.headers["x-device-id"] as string) || ""

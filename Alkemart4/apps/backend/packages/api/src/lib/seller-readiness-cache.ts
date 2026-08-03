@@ -3,8 +3,8 @@
  * Stops 15–30s multi-graph evaluations from running on every banner poll.
  */
 import type { Redis } from "ioredis"
-import { getRedisClient } from "./redis-client"
-import type { SellerReadiness } from "./seller-readiness"
+import { getRedisClient } from "./redis-client.ts"
+import type { SellerReadiness } from "./seller-readiness.ts"
 
 const KEY_PREFIX = "alkemart:seller_ready:v1:"
 

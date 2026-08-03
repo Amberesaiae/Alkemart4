@@ -1,5 +1,5 @@
 import { createHmac, timingSafeEqual } from "crypto"
-import { logger } from "./logger"
+import { logger } from "./logger.ts"
 
 export const PAYSTACK_API_BASE = "https://api.paystack.co"
 

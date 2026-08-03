@@ -2,7 +2,7 @@ import {
   buildCatalogCacheKey,
   catalogCacheTtlSec,
   _resetCatalogCacheClientForTests,
-} from "../catalog-cache"
+} from "../catalog-cache.ts"
 
 describe("catalog-cache pure helpers", () => {
   afterEach(() => {

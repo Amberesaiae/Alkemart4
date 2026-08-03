@@ -1,4 +1,4 @@
-import PaystackPayoutProvider from "./service"
+import PaystackPayoutProvider from "./service.ts"
 import { ModuleProvider } from "@medusajs/framework/utils"
 import { MercurModules } from "@mercurjs/types"
 

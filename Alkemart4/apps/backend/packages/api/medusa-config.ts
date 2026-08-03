@@ -1,11 +1,11 @@
 // Must run before any pg/knex client is constructed (Neon IPv6 hang on some WSL nets)
-import './src/lib/force-ipv4-dns'
+import './src/lib/force-ipv4-dns.ts'
 import { loadEnv } from '@medusajs/framework/utils'
 import { withMercur } from '@mercurjs/core'
 import fs from 'fs'
 import path from 'path'
-import { loadAppEnv } from './src/lib/env'
-import { initSentry } from './src/lib/sentry'
+import { loadAppEnv } from './src/lib/env.ts'
+import { initSentry } from './src/lib/sentry.ts'
 
 loadEnv(process.env.NODE_ENV || 'development', process.cwd())
 

@@ -24,7 +24,7 @@
  * Register templates at: business.facebook.com → WhatsApp → Message Templates
  */
 
-import { logger } from "./logger"
+import { logger } from "./logger.ts"
 
 const META_API_BASE = "https://graph.facebook.com/v20.0"
 

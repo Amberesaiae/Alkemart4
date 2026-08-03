@@ -19,8 +19,8 @@ import {
   createServiceZonesWorkflow,
   linkSalesChannelsToStockLocationWorkflow,
 } from "@medusajs/medusa/core-flows"
-import { GHANA } from "./ghana-locale"
-import { evaluateSellerReadiness } from "./seller-readiness"
+import { GHANA } from "./ghana-locale.ts"
+import { evaluateSellerReadiness } from "./seller-readiness.ts"
 
 export type GhanaSetupInput = {
   seller_id: string

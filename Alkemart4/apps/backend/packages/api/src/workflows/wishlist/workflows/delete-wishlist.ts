@@ -3,8 +3,8 @@ import {
   createWorkflow,
 } from "@medusajs/framework/workflows-sdk";
 
-import { DeleteWishlistDTO } from "../../../modules/wishlist";
-import { deleteWishlistEntryStep } from "../steps/delete-wishlist";
+import { DeleteWishlistDTO } from "../../../modules/wishlist/index.ts";
+import { deleteWishlistEntryStep } from "../steps/delete-wishlist.ts";
 
 export const deleteWishlistEntryWorkflow = createWorkflow(
   {

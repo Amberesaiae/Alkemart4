@@ -16,7 +16,7 @@
  *
  * Seller Hub login: POST /auth/member/emailpass (not /auth/seller).
  */
-import { logger } from "../lib/logger"
+import { logger } from "../lib/logger.ts"
 import type { ExecArgs } from "@medusajs/framework/types"
 import {
   ContainerRegistrationKeys,

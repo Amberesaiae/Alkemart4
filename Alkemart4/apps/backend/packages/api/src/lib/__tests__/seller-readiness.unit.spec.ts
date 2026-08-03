@@ -6,7 +6,7 @@ import {
   nextActionFor,
   type SellerChecklist,
   type SellerSnapshot,
-} from "../seller-readiness"
+} from "../seller-readiness.ts"
 
 const complete: SellerChecklist = {
   profile: true,

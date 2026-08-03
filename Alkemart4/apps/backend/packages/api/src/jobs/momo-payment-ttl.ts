@@ -10,7 +10,7 @@
  */
 import type { MedusaContainer } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
-import { logger } from "../lib/logger"
+import { logger } from "../lib/logger.ts"
 
 const TTL_MS = 30 * 60 * 1000
 const ACTIVE_STATUSES = ["initiated", "pending", "charged"]

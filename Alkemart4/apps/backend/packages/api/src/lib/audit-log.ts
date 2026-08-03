@@ -1,4 +1,4 @@
-import { logger } from "./logger"
+import { logger } from "./logger.ts"
 
 export type AuditAction =
   | "seller.created"

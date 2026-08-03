@@ -3,10 +3,10 @@ import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import {
   CheckoutHttpError,
   confirmMomoByPaystackReference,
-} from "../../../lib/ghana-checkout"
-import { verifyPaystackWebhookSignature } from "../../../lib/paystack-client"
-import { logger } from "../../../lib/logger"
-import { getRedisClient } from "../../../lib/redis-client"
+} from "../../../lib/ghana-checkout.ts"
+import { verifyPaystackWebhookSignature } from "../../../lib/paystack-client.ts"
+import { logger } from "../../../lib/logger.ts"
+import { getRedisClient } from "../../../lib/redis-client.ts"
 
 const PAYSTACK_IPS: ReadonlySet<string> = new Set([
   "52.31.139.75",

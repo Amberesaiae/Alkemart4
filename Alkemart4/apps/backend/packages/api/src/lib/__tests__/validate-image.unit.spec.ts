@@ -1,7 +1,7 @@
 import {
   detectImageMimeFromBuffer,
   validateImageUpload,
-} from "../media/validate-image"
+} from "../media/validate-image.ts"
 
 // Minimal magic-byte fixtures
 const jpeg = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46])

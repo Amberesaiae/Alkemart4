@@ -1,5 +1,5 @@
-import { asList } from "./graph-utils"
-import { GHANA_REGIONS } from "./ghana-locale"
+import { asList } from "./graph-utils.ts"
+import { GHANA_REGIONS } from "./ghana-locale.ts"
 
 /**
  * Operating markets — canonical country-gated config for alkemart.

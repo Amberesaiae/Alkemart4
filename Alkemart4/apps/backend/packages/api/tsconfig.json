@@ -17,7 +17,9 @@
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
     "checkJs": false,
-    "strictNullChecks": true
+    "strictNullChecks": true,
+    "allowImportingTsExtensions": true,
+    "rewriteRelativeImportExtensions": true
   },
   "ts-node": {
     "swc": true

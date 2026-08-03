@@ -5,7 +5,7 @@
  */
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
-import { asList } from "../../../../lib/graph-utils"
+import { asList } from "../../../../lib/graph-utils.ts"
 
 const DISPUTE_DETAIL_FIELDS = [
   "id", "display_id", "status", "refund_amount", "metadata",

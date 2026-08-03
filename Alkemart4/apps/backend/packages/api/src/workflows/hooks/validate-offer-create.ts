@@ -6,7 +6,7 @@ import { createOffersWorkflow } from "@mercurjs/core/workflows"
 import {
   assertCanSell,
   evaluateSellerReadiness,
-} from "../../lib/seller-readiness"
+} from "../../lib/seller-readiness.ts"
 
 type OfferInput = {
   input?: {

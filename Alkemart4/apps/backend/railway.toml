@@ -7,10 +7,10 @@ buildCommand = "bun run build"
 strategy = "nixpacks"
 
 [deploy]
-# Runtime runs under Bun (medusa-config.ts uses extensionless relative imports
-# like "./src/lib/force-ipv4-dns" which Bun resolves natively, no tsx needed).
-# The start script's child spawn uses process.execPath, which is Bun here.
-startCommand = "cd packages/api && bun ./scripts/start-with-compression.mjs"
+# Node runtime pinned to 20.x via .tool-versions + package.json engines. On
+# node 20 the medusa CLI's ts-node CJS hook resolves the extensionless .ts
+# imports in medusa-config.ts; node >=22.12 loads it via native ESM and fails.
+startCommand = "cd packages/api && node ./scripts/start-with-compression.mjs"
 preDeployCommand = "cd packages/api && bun medusa db:migrate"
 healthcheckPath = "/health"
 healthcheckTimeout = 300

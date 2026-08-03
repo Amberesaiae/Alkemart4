@@ -9,9 +9,9 @@
  */
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
-import { asList } from "../../../../../lib/graph-utils"
-import { writeAuditLog } from "../../../../../lib/audit-log"
-import { logger } from "../../../../../lib/logger"
+import { asList } from "../../../../../lib/graph-utils.ts"
+import { writeAuditLog } from "../../../../../lib/audit-log.ts"
+import { logger } from "../../../../../lib/logger.ts"
 
 export async function POST(req: MedusaRequest, res: MedusaResponse) {
   const returnId = req.params.id

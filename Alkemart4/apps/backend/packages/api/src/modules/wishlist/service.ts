@@ -1,6 +1,6 @@
 import { MedusaService } from "@medusajs/framework/utils";
 
-import { Wishlist } from "./models/wishlist";
+import { Wishlist } from "./models/wishlist.ts";
 
 class WishlistModuleService extends MedusaService({
   Wishlist,

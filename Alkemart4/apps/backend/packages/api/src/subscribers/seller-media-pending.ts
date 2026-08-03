@@ -8,8 +8,8 @@
  */
 import type { SubscriberArgs, SubscriberConfig } from "@medusajs/framework"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
-import { markSellerMediaPending, readSellerImageMeta } from "../lib/media/derivatives"
-import { logger } from "../lib/logger"
+import { markSellerMediaPending, readSellerImageMeta } from "../lib/media/derivatives.ts"
+import { logger } from "../lib/logger.ts"
 
 type SellerRow = {
   id: string

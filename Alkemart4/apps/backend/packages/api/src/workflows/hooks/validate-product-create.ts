@@ -1,9 +1,9 @@
 import { createProductsWorkflow } from "@mercurjs/core/workflows"
-import { logger } from "../../lib/logger"
+import { logger } from "../../lib/logger.ts"
 import {
   scoreProductQuality,
   qualityMetadataSnapshot,
-} from "../../lib/product-quality"
+} from "../../lib/product-quality.ts"
 
 type HookProduct = {
   status?: string | null

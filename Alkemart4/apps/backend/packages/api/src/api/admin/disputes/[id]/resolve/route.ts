@@ -13,10 +13,10 @@
  */
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
-import { asList } from "../../../../../lib/graph-utils"
-import { refundCharge, toPaystackAmountPesewas } from "../../../../../lib/paystack-client"
-import { writeAuditLog } from "../../../../../lib/audit-log"
-import { logger } from "../../../../../lib/logger"
+import { asList } from "../../../../../lib/graph-utils.ts"
+import { refundCharge, toPaystackAmountPesewas } from "../../../../../lib/paystack-client.ts"
+import { writeAuditLog } from "../../../../../lib/audit-log.ts"
+import { logger } from "../../../../../lib/logger.ts"
 
 type Decision = "favor_buyer" | "favor_seller" | "partial"
 

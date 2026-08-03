@@ -1,7 +1,7 @@
 import {
   qualityMetadataSnapshot,
   scoreProductQuality,
-} from "../product-quality"
+} from "../product-quality.ts"
 
 describe("scoreProductQuality", () => {
   const good = {

@@ -16,14 +16,14 @@ import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import {
   isUnpublishableStatus,
   normalizeStatus,
-} from "../../../../../../lib/product-lifecycle"
-import { asList } from "../../../../../../lib/graph-utils"
-import { logger } from "../../../../../../lib/logger"
-import { checkRateLimit } from "../../../../../../lib/simple-rate-limit"
+} from "../../../../../../lib/product-lifecycle.ts"
+import { asList } from "../../../../../../lib/graph-utils.ts"
+import { logger } from "../../../../../../lib/logger.ts"
+import { checkRateLimit } from "../../../../../../lib/simple-rate-limit.ts"
 import {
   invalidateSellerOwnedProductIds,
-} from "../../../../../../lib/seller-owned-products-cache"
-import { writeAuditLog } from "../../../../../../lib/audit-log"
+} from "../../../../../../lib/seller-owned-products-cache.ts"
+import { writeAuditLog } from "../../../../../../lib/audit-log.ts"
 
 type SellerReq = MedusaRequest & {
   seller_context?: { seller_id?: string }

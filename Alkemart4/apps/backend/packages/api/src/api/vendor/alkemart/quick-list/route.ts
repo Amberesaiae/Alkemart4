@@ -18,12 +18,12 @@ import {
   createOffersWorkflow,
   createProductsWorkflow,
 } from "@mercurjs/core/workflows"
-import { evaluateSellerReadiness } from "../../../../lib/seller-readiness"
-import { invalidateSellerOwnedProductIds } from "../../../../lib/seller-owned-products-cache"
-import { checkRateLimit } from "../../../../lib/rate-limiter"
-import { asList } from "../../../../lib/graph-utils"
+import { evaluateSellerReadiness } from "../../../../lib/seller-readiness.ts"
+import { invalidateSellerOwnedProductIds } from "../../../../lib/seller-owned-products-cache.ts"
+import { checkRateLimit } from "../../../../lib/rate-limiter.ts"
+import { asList } from "../../../../lib/graph-utils.ts"
 import { z } from "zod"
-import { logger } from "../../../../lib/logger"
+import { logger } from "../../../../lib/logger.ts"
 
 const MAX_AXES = 3
 const MAX_COMBOS = 40

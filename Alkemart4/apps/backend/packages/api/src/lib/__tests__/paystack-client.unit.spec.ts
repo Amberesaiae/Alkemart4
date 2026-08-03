@@ -7,7 +7,7 @@ import {
   refundCharge,
   toPaystackAmountPesewas,
   verifyPaystackWebhookSignature,
-} from "../paystack-client"
+} from "../paystack-client.ts"
 import { createHmac } from "crypto"
 
 describe("toPaystackAmountPesewas", () => {

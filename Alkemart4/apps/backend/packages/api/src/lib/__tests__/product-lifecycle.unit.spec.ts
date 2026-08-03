@@ -4,7 +4,7 @@ import {
   isUnpublishableStatus,
   normalizeStatus,
   PRODUCT_EDITABLE_STATUSES,
-} from "../product-lifecycle"
+} from "../product-lifecycle.ts"
 
 describe("product lifecycle status rules", () => {
   it("declares the editable (pre-live) statuses", () => {

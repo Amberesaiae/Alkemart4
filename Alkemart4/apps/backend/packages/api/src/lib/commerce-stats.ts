@@ -2,8 +2,8 @@
  * Live commerce stats from Medusa/Mercur query graph (Postgres SoR).
  * Not a warehouse, not mock data — ops snapshot for Admin / Seller Hub.
  */
-import type { SearchProductDocument } from "./search/types"
-import { asList } from "./graph-utils"
+import type { SearchProductDocument } from "./search/types.ts"
+import { asList } from "./graph-utils.ts"
 
 type QueryService = {
   graph: (args: unknown) => Promise<{ data: unknown; metadata?: { count?: number } }>

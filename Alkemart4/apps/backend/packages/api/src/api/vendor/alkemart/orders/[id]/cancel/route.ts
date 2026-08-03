@@ -9,7 +9,7 @@
  */
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
-import { asList } from "../../../../../../lib/graph-utils"
+import { asList } from "../../../../../../lib/graph-utils.ts"
 
 type SellerReq = MedusaRequest & {
   seller_context?: { seller_id?: string }

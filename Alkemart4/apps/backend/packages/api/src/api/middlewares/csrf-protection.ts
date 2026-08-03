@@ -1,5 +1,5 @@
 import type { MedusaRequest, MedusaResponse, MedusaNextFunction } from "@medusajs/framework/http"
-import { logger } from "../../lib/logger"
+import { logger } from "../../lib/logger.ts"
 
 const ALLOWED_ORIGINS = (process.env.CORS_ALLOWED_ORIGINS || "")
   .split(",")

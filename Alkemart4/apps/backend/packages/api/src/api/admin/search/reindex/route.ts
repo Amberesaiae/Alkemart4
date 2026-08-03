@@ -5,7 +5,7 @@
  */
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
-import { reindexAllProducts, searchHealth } from "../../../../lib/search/service"
+import { reindexAllProducts, searchHealth } from "../../../../lib/search/service.ts"
 
 export async function POST(req: MedusaRequest, res: MedusaResponse) {
   const health = await searchHealth()

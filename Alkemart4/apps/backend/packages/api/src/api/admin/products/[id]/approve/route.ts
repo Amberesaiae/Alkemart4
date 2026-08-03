@@ -2,9 +2,9 @@ import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { MercurModules } from "@mercurjs/types"
 import { createOffersWorkflow } from "@mercurjs/core/workflows"
-import { asList } from "../../../../../lib/graph-utils"
-import { logger } from "../../../../../lib/logger"
-import { writeAuditLog } from "../../../../../lib/audit-log"
+import { asList } from "../../../../../lib/graph-utils.ts"
+import { logger } from "../../../../../lib/logger.ts"
+import { writeAuditLog } from "../../../../../lib/audit-log.ts"
 
 export async function POST(req: MedusaRequest, res: MedusaResponse) {
   const productId = req.params.id

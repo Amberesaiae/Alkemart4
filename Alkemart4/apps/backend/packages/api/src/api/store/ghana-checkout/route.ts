@@ -6,7 +6,7 @@ import { z } from "zod"
 import {
   CheckoutHttpError,
   runGhanaCheckout,
-} from "../../../lib/ghana-checkout"
+} from "../../../lib/ghana-checkout.ts"
 
 const bodySchema = z
   .object({

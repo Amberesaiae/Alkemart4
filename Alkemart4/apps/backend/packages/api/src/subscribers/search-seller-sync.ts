@@ -4,14 +4,14 @@
  */
 import type { SubscriberArgs, SubscriberConfig } from "@medusajs/framework"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
-import { isSearchEnabled } from "../lib/search/client"
+import { isSearchEnabled } from "../lib/search/client.ts"
 import {
   deleteProductDocuments,
   fetchProductsForIndex,
   upsertProductDocuments,
-} from "../lib/search/service"
-import { logger } from "../lib/logger"
-import { asList } from "../lib/graph-utils"
+} from "../lib/search/service.ts"
+import { logger } from "../lib/logger.ts"
+import { asList } from "../lib/graph-utils.ts"
 export default async function searchSellerSync({
   event,
   container,

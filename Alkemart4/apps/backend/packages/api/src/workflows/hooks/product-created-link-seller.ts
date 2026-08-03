@@ -1,8 +1,8 @@
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { MercurModules } from "@mercurjs/types"
 import { createProductsWorkflow } from "@mercurjs/core/workflows"
-import { invalidateSellerOwnedProductIds } from "../../lib/seller-owned-products-cache"
-import { logger } from "../../lib/logger"
+import { invalidateSellerOwnedProductIds } from "../../lib/seller-owned-products-cache.ts"
+import { logger } from "../../lib/logger.ts"
 
 type ProductsCreated = {
   products?: Array<{ id?: string }>

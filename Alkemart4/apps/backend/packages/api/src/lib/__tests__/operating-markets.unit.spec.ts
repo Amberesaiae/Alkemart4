@@ -5,7 +5,7 @@ import {
   marketByCountry,
   profileForCountry,
   type OperatingMarket,
-} from "../operating-markets"
+} from "../operating-markets.ts"
 
 const ghana: OperatingMarket = {
   region_id: "reg_gh",

@@ -3,7 +3,7 @@
  */
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
-import { readSellerImageMeta } from "../../../../../lib/media/derivatives"
+import { readSellerImageMeta } from "../../../../../lib/media/derivatives.ts"
 
 type SellerRow = {
   id: string

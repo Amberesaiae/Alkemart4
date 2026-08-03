@@ -1,4 +1,4 @@
-import { sellerIdFromEvent } from "../seller-readiness-invalidate"
+import { sellerIdFromEvent } from "../seller-readiness-invalidate.ts"
 
 describe("sellerIdFromEvent", () => {
   it("returns null for undefined event", () => {

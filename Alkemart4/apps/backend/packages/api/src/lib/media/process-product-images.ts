@@ -3,9 +3,9 @@
  */
 import type { MedusaContainer } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
-import { processImageBuffer, type ProductMediaMeta } from "./derivatives"
-import { logger } from "../logger"
-import { asList } from "../graph-utils"
+import { processImageBuffer, type ProductMediaMeta } from "./derivatives.ts"
+import { logger } from "../logger.ts"
+import { asList } from "../graph-utils.ts"
 
 type QueryService = {
   graph: (args: unknown) => Promise<{ data: unknown }>

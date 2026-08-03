@@ -12,14 +12,14 @@ import {
 import {
   assertCanSell,
   evaluateSellerReadiness,
-} from "../../../../../../lib/seller-readiness"
+} from "../../../../../../lib/seller-readiness.ts"
 import {
   scoreProductQuality,
   qualityMetadataSnapshot,
-} from "../../../../../../lib/product-quality"
-import { asList } from "../../../../../../lib/graph-utils"
-import { checkRateLimit } from "../../../../../../lib/rate-limiter"
-import { logger } from "../../../../../../lib/logger"
+} from "../../../../../../lib/product-quality.ts"
+import { asList } from "../../../../../../lib/graph-utils.ts"
+import { checkRateLimit } from "../../../../../../lib/rate-limiter.ts"
+import { logger } from "../../../../../../lib/logger.ts"
 
 type SellerReq = MedusaRequest & {
   seller_context?: { seller_id?: string }

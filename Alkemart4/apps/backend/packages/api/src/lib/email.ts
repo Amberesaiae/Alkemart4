@@ -3,7 +3,7 @@
  * Production: set EMAIL_FROM + (SMTP_* or RESEND_API_KEY).
  */
 
-import { logger } from "./logger"
+import { logger } from "./logger.ts"
 
 export type EmailMessage = {
   to: string

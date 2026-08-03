@@ -5,13 +5,13 @@
  */
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
-import { SELLER_REASON_CODES } from "../../../../../lib/moderation-reasons"
+import { SELLER_REASON_CODES } from "../../../../../lib/moderation-reasons.ts"
 import {
   buildSellerReadiness,
   evaluateSellerChecklist,
   type SellerSnapshot,
-} from "../../../../../lib/seller-readiness"
-import { asList } from "../../../../../lib/graph-utils"
+} from "../../../../../lib/seller-readiness.ts"
+import { asList } from "../../../../../lib/graph-utils.ts"
 export async function GET(req: MedusaRequest, res: MedusaResponse) {
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY) as {
     graph: (args: unknown) => Promise<{ data: unknown; metadata?: { count?: number } }>

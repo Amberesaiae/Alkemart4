@@ -10,8 +10,8 @@
  * is down (getRedisClient returns null → invalidateSellerReadiness returns).
  */
 import type { SubscriberArgs, SubscriberConfig } from "@medusajs/framework"
-import { logger } from "../lib/logger"
-import { invalidateSellerReadiness } from "../lib/seller-readiness-cache"
+import { logger } from "../lib/logger.ts"
+import { invalidateSellerReadiness } from "../lib/seller-readiness-cache.ts"
 
 type SellerEvent = { id?: string; seller_id?: string }
 

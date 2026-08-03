@@ -7,8 +7,8 @@
  * Graceful: if Redis is down, get returns null and set is no-op.
  */
 import type { Redis } from "ioredis"
-import { getRedisClient } from "./redis-client"
-import { logger } from "./logger"
+import { getRedisClient } from "./redis-client.ts"
+import { logger } from "./logger.ts"
 
 export type CatalogCachePayload = {
   products: unknown[]

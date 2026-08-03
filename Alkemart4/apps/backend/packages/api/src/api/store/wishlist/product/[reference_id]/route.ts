@@ -4,8 +4,8 @@ import {
 } from "@medusajs/framework";
 import { MedusaError } from "@medusajs/framework/utils";
 
-import { deleteWishlistEntryWorkflow } from "../../../../../workflows/wishlist/workflows/delete-wishlist";
-import { getWishlistFromCustomerId } from "../../../../../modules/wishlist/utils";
+import { deleteWishlistEntryWorkflow } from "../../../../../workflows/wishlist/workflows/delete-wishlist.ts";
+import { getWishlistFromCustomerId } from "../../../../../modules/wishlist/utils.ts";
 
 export const DELETE = async (
   req: AuthenticatedMedusaRequest,

@@ -1,5 +1,5 @@
 import type { MedusaRequest, MedusaResponse, MedusaNextFunction } from "@medusajs/framework/http"
-import { checkRateLimit } from "../../lib/simple-rate-limit"
+import { checkRateLimit } from "../../lib/simple-rate-limit.ts"
 
 const LIMIT = Number(process.env.RATE_LIMIT_MAX) || 60
 const WINDOW_MS = Number(process.env.RATE_LIMIT_WINDOW_MS) || 60_000

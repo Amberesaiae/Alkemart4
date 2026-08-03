@@ -8,11 +8,11 @@
  */
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
-import { evaluateSellerReadiness } from "../../../../../lib/seller-readiness"
+import { evaluateSellerReadiness } from "../../../../../lib/seller-readiness.ts"
 import {
   getCachedSellerReadiness,
   setCachedSellerReadiness,
-} from "../../../../../lib/seller-readiness-cache"
+} from "../../../../../lib/seller-readiness-cache.ts"
 
 type SellerReq = MedusaRequest & {
   seller_context?: { seller_id?: string }

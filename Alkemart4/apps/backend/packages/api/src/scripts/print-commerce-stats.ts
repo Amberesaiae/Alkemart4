@@ -7,9 +7,9 @@ import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import {
   collectCommerceStats,
   statsFromSearchHits,
-} from "../lib/commerce-stats"
-import { isSearchEnabled } from "../lib/search/client"
-import { searchProducts } from "../lib/search/service"
+} from "../lib/commerce-stats.ts"
+import { isSearchEnabled } from "../lib/search/client.ts"
+import { searchProducts } from "../lib/search/service.ts"
 
 export default async function printCommerceStats({ container }: ExecArgs) {
   const logger = container.resolve(ContainerRegistrationKeys.LOGGER)

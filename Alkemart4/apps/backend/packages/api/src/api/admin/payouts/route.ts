@@ -7,7 +7,7 @@
  */
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
-import { paystackRequest, toPaystackAmountPesewas } from "../../../lib/paystack-client"
+import { paystackRequest, toPaystackAmountPesewas } from "../../../lib/paystack-client.ts"
 
 const LIST_FIELDS = [
   "id",

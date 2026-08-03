@@ -26,13 +26,13 @@ import {
   toPaystackAmountPesewas,
   verifyPaystackTransaction,
   type MomoProvider,
-} from "./paystack-client"
-import { logger } from "./logger"
+} from "./paystack-client.ts"
+import { logger } from "./logger.ts"
 import {
   listOperatingMarkets,
   normalizePhoneForCountry,
   requireOperatingMarket,
-} from "./operating-markets"
+} from "./operating-markets.ts"
 
 export const SYSTEM_PAYMENT_PROVIDER_ID = "pp_system_default"
 

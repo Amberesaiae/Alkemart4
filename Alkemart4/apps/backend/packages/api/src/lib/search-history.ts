@@ -1,5 +1,5 @@
 import type { Redis } from "ioredis"
-import { getRedisClient } from "./redis-client"
+import { getRedisClient } from "./redis-client.ts"
 
 function getClient(): Redis | null {
   return getRedisClient()

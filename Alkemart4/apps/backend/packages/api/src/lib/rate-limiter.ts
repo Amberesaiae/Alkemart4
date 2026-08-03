@@ -1,6 +1,6 @@
 import type { Redis } from "ioredis"
-import { getRedisClient } from "./redis-client"
-import { logger } from "./logger"
+import { getRedisClient } from "./redis-client.ts"
+import { logger } from "./logger.ts"
 
 const KEY_PREFIX = "alkemart:ratelimit:v1:"
 

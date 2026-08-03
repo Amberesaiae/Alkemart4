@@ -7,8 +7,8 @@ import { authenticate, MiddlewareRoute } from "@medusajs/medusa";
 import { isPresent, ProductStatus } from "@medusajs/framework/utils";
 import { listProductQueryConfig } from "@medusajs/medusa/api/store/products/query-config";
 import { StoreGetProductsParams } from "@medusajs/medusa/api/store/products/validators";
-import { storeWishlistQueryConfig } from "./query-config";
-import { StoreCreateWishlist, StoreGetWishlistsParams } from "./validators";
+import { storeWishlistQueryConfig } from "./query-config.ts";
+import { StoreCreateWishlist, StoreGetWishlistsParams } from "./validators.ts";
 
 import {
   applyDefaultFilters,

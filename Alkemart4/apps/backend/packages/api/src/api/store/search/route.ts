@@ -3,8 +3,8 @@
  * Returns engine: "disabled" when MEILISEARCH_HOST is unset so storefront can fall back.
  */
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
-import { searchHealth, searchProducts } from "../../../lib/search/service"
-import type { SearchQueryInput } from "../../../lib/search/types"
+import { searchHealth, searchProducts } from "../../../lib/search/service.ts"
+import type { SearchQueryInput } from "../../../lib/search/types.ts"
 
 function parseFilters(raw: unknown): SearchQueryInput["filters"] {
   if (!raw || typeof raw !== "object") return undefined

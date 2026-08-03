@@ -14,9 +14,9 @@
  * }
  */
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
-import { checkRateLimit } from "../../../../../lib/simple-rate-limit"
-import { runGhanaSellerSetup } from "../../../../../lib/ghana-seller-setup"
-import { invalidateSellerReadiness } from "../../../../../lib/seller-readiness-cache"
+import { checkRateLimit } from "../../../../../lib/simple-rate-limit.ts"
+import { runGhanaSellerSetup } from "../../../../../lib/ghana-seller-setup.ts"
+import { invalidateSellerReadiness } from "../../../../../lib/seller-readiness-cache.ts"
 
 type SellerReq = MedusaRequest & {
   seller_context?: { seller_id?: string }

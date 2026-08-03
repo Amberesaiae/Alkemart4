@@ -1,4 +1,4 @@
-import type { SearchProductDocument } from "./types"
+import type { SearchProductDocument } from "./types.ts"
 
 type Loose = Record<string, unknown>
 

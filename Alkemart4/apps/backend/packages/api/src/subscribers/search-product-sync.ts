@@ -1,11 +1,11 @@
 import type { SubscriberArgs, SubscriberConfig } from "@medusajs/framework"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
-import { isSearchEnabled } from "../lib/search/client"
+import { isSearchEnabled } from "../lib/search/client.ts"
 import {
   fetchProductsForIndex,
   upsertProductDocuments,
-} from "../lib/search/service"
-import { logger } from "../lib/logger"
+} from "../lib/search/service.ts"
+import { logger } from "../lib/logger.ts"
 
 /**
  * Keep discovery index in sync when products change.

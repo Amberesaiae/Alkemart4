@@ -1,7 +1,7 @@
 import type { SubscriberArgs, SubscriberConfig } from "@medusajs/framework"
-import { isSearchEnabled } from "../lib/search/client"
-import { deleteProductDocuments } from "../lib/search/service"
-import { logger } from "../lib/logger"
+import { isSearchEnabled } from "../lib/search/client.ts"
+import { deleteProductDocuments } from "../lib/search/service.ts"
+import { logger } from "../lib/logger.ts"
 
 export default async function searchProductDelete({
   event: { data },

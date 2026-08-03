@@ -1,7 +1,7 @@
 import {
   EXCLUSIVE_PRODUCT_NONE_ID,
   buildExclusiveProductFilter,
-} from "../../api/middlewares/strict-seller-products"
+} from "../../api/middlewares/strict-seller-products.ts"
 
 describe("buildExclusiveProductFilter", () => {
   it("scopes to owned ids and drops Mercur shared-catalog $or/$and", () => {

@@ -10,8 +10,8 @@
  */
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
-import { checkRateLimit } from "../../../../lib/simple-rate-limit"
-import { asList } from "../../../../lib/graph-utils"
+import { checkRateLimit } from "../../../../lib/simple-rate-limit.ts"
+import { asList } from "../../../../lib/graph-utils.ts"
 function str(v: unknown): string {
   return typeof v === "string" ? v.trim() : v != null ? String(v).trim() : ""
 }

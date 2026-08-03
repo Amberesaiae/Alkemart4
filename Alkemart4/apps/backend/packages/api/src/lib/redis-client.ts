@@ -1,4 +1,4 @@
-import { logger } from "./logger"
+import { logger } from "./logger.ts"
 import Redis from "ioredis"
 
 let client: Redis | null = null

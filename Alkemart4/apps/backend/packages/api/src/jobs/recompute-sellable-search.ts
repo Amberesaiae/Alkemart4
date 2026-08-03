@@ -4,9 +4,9 @@
  */
 import type { MedusaContainer } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
-import { isSearchEnabled } from "../lib/search/client"
-import { reindexAllProducts } from "../lib/search/service"
-import { logger } from "../lib/logger"
+import { isSearchEnabled } from "../lib/search/client.ts"
+import { reindexAllProducts } from "../lib/search/service.ts"
+import { logger } from "../lib/logger.ts"
 
 export default async function recomputeSellableSearchJob(
   container: MedusaContainer,

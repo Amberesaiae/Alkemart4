@@ -6,9 +6,9 @@
  */
 import type { SubscriberArgs, SubscriberConfig } from "@medusajs/framework"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
-import { sendEmail, productLifecycleEmail } from "../lib/email"
-import { sendSms, productPublishedSms, productRejectedSms, productChangeRequestedSms } from "../lib/sms"
-import { logger } from "../lib/logger"
+import { sendEmail, productLifecycleEmail } from "../lib/email.ts"
+import { sendSms, productPublishedSms, productRejectedSms, productChangeRequestedSms } from "../lib/sms.ts"
+import { logger } from "../lib/logger.ts"
 
 type ProductEvent = {
   id?: string

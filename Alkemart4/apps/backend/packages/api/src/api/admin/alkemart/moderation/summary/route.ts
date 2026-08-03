@@ -4,7 +4,7 @@
  */
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
-import { asList } from "../../../../../lib/graph-utils"
+import { asList } from "../../../../../lib/graph-utils.ts"
 export async function GET(req: MedusaRequest, res: MedusaResponse) {
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY) as {
     graph: (args: unknown) => Promise<{ data: unknown }>

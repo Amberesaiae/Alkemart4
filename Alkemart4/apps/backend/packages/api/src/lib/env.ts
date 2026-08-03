@@ -1,4 +1,4 @@
-import { logger } from "./logger"
+import { logger } from "./logger.ts"
 import { z } from "zod"
 
 const EnvSchema = z.object({

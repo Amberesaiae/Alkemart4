@@ -1,4 +1,4 @@
-import { MedusaContainer } from "@medusajs/framework";
+import type { MedusaContainer } from "@medusajs/framework";
 
 export async function getWishlistFromCustomerId(
   container: MedusaContainer,

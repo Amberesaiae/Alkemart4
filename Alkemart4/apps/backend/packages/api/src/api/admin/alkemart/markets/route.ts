@@ -6,7 +6,7 @@
  */
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
-import { listOperatingMarkets } from "../../../../lib/operating-markets"
+import { listOperatingMarkets } from "../../../../lib/operating-markets.ts"
 
 export async function GET(req: MedusaRequest, res: MedusaResponse) {
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY) as {

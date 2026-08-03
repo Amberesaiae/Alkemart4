@@ -3,7 +3,7 @@
  */
 import type { SubscriberArgs, SubscriberConfig } from "@medusajs/framework"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
-import { logger } from "../lib/logger"
+import { logger } from "../lib/logger.ts"
 
 function withMediaMeta(
   meta: Record<string, unknown>,

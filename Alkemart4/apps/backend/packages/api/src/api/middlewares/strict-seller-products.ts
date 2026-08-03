@@ -21,8 +21,8 @@ import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import {
   getCachedOwnedProductIds,
   setCachedOwnedProductIds,
-} from "../../lib/seller-owned-products-cache"
-import { logger } from "../../lib/logger"
+} from "../../lib/seller-owned-products-cache.ts"
+import { logger } from "../../lib/logger.ts"
 
 type SellerReq = MedusaRequest & {
   seller_context?: { seller_id?: string }

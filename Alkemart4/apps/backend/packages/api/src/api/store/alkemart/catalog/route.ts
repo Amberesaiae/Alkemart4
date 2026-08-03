@@ -20,12 +20,12 @@ import {
   parseLimitOffset,
   uniqueProductIdsFromOffers,
   type CatalogOfferRow,
-} from "../../../../lib/catalog-map"
+} from "../../../../lib/catalog-map.ts"
 import {
   getCatalogCache,
   setCatalogCache,
-} from "../../../../lib/catalog-cache"
-import { asList } from "../../../../lib/graph-utils"
+} from "../../../../lib/catalog-cache.ts"
+import { asList } from "../../../../lib/graph-utils.ts"
 function str(v: unknown): string {
   return typeof v === "string" ? v.trim() : v != null ? String(v).trim() : ""
 }

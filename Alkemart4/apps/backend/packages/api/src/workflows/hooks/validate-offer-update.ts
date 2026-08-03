@@ -3,11 +3,11 @@
  */
 import { ContainerRegistrationKeys, MedusaError } from "@medusajs/framework/utils"
 import { updateOffersWorkflow } from "@mercurjs/core/workflows"
-import { logger } from "../../lib/logger"
+import { logger } from "../../lib/logger.ts"
 import {
   assertCanSell,
   evaluateSellerReadiness,
-} from "../../lib/seller-readiness"
+} from "../../lib/seller-readiness.ts"
 
 type OfferInput = {
   input?: {

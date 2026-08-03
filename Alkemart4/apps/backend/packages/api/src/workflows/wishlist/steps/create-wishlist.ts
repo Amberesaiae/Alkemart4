@@ -1,12 +1,12 @@
 import { Modules, ContainerRegistrationKeys } from "@medusajs/framework/utils";
 import { StepResponse, createStep } from "@medusajs/framework/workflows-sdk";
 
-import { CreateWishlistDTO } from "../../../modules/wishlist";
+import { CreateWishlistDTO } from "../../../modules/wishlist/index.ts";
 import {
   WISHLIST_MODULE,
   WishlistModuleService,
-} from "../../../modules/wishlist";
-import { getWishlistFromCustomerId } from "../../../modules/wishlist/utils";
+} from "../../../modules/wishlist/index.ts";
+import { getWishlistFromCustomerId } from "../../../modules/wishlist/utils.ts";
 import { Link } from "@medusajs/framework/modules-sdk";
 
 export const createWishlistEntryStep = createStep(

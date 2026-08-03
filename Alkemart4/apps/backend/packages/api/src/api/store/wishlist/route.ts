@@ -8,9 +8,9 @@ import {
   QueryContext,
 } from "@medusajs/framework/utils";
 
-import customerWishlist from "../../../links/customer-wishlist";
-import { createWishlistEntryWorkflow } from "../../../workflows/wishlist/workflows/create-wishlist";
-import { StoreCreateWishlistType } from "./validators";
+import customerWishlist from "../../../links/customer-wishlist.ts";
+import { createWishlistEntryWorkflow } from "../../../workflows/wishlist/workflows/create-wishlist.ts";
+import { StoreCreateWishlistType } from "./validators.ts";
 import { ProductDTO } from "@mercurjs/types";
 
 export const POST = async (

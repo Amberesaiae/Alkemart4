@@ -4,8 +4,8 @@
  */
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
-import { collectSellerCommerceStats } from "../../../../lib/commerce-stats"
-import { evaluateSellerReadiness } from "../../../../lib/seller-readiness"
+import { collectSellerCommerceStats } from "../../../../lib/commerce-stats.ts"
+import { evaluateSellerReadiness } from "../../../../lib/seller-readiness.ts"
 
 type SellerReq = MedusaRequest & {
   seller_context?: { seller_id?: string }

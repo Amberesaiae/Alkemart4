@@ -17,7 +17,7 @@
  *   AT_SANDBOX=true Use AT sandbox (default false)
  */
 
-import { logger } from "./logger"
+import { logger } from "./logger.ts"
 
 const AT_LIVE    = "https://api.africastalking.com/version1/messaging"
 const AT_SANDBOX = "https://api.sandbox.africastalking.com/version1/messaging"
