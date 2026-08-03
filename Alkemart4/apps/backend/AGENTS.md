@@ -106,3 +106,14 @@ This starts:
 - `JWT_SECRET` and `COOKIE_SECRET` must be 32+ characters
 - Production mode refuses to start with default ("supersecret") secrets
 - `PAYSTACK_SECRET_KEY` is required in production
+
+## Runtime module format invariant (CJS)
+
+The API boots via a CommonJS `require()` of `medusa-config.ts`. Two rules keep it alive:
+1. The `ts-node.compilerOptions` CJS override in `packages/api/tsconfig.json` must stay
+   (ts-node emits CommonJS even though the base tsconfig is ESNext for `medusa build`).
+2. `packages/shared/package.json` must NOT have `"type": "module"` — ts-node's CJS loader
+   refuses ESM-scope `.ts` files at runtime (`ERR_REQUIRE_ESM`). Never re-add it.
+
+Full details, symptoms, and the deploy gate are in the root `AGENTS.md` under
+"Railway Deployment → CJS runtime invariant".

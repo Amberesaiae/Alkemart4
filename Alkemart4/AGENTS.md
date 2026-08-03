@@ -35,6 +35,57 @@ while IPv4 works. The file `packages/api/src/lib/force-ipv4-dns.ts` calls
 `medusa-config.ts` before any database clients load. This is a deployment
 workaround, not a general DNS change — it only affects the Node process.
 
+### CJS runtime invariant — the API boots via CommonJS (ts-node)
+
+Medusa's CLI loads `medusa-config.ts` through a CJS `require()`. The **entire config-loading
+tree — the config plus every workspace package it pulls in at runtime — must be loadable as
+CommonJS**. Breaking this has caused two separate deploy crashes. There are two rules:
+
+**1. ts-node must emit CommonJS** (config-load crash: `Unknown file extension ".ts"` +
+`loadESMFromCJS`).
+
+`packages/api/tsconfig.json` is `module: "ESNext"` because `medusa build` (which runs under
+tsx) needs it. The `ts-node` block overrides that for the runtime so swc emits CJS:
+
+```jsonc
+"ts-node": {
+  "swc": true,
+  "compilerOptions": { "module": "CommonJS", "moduleResolution": "Node" }
+}
+```
+
+Do not remove this override, and do not flip the base tsconfig back to `"module": "Node16"`
+to "simplify" — ESNext + `rewriteRelativeImportExtensions` is what keeps `medusa build` green.
+
+**2. No runtime-required workspace package may carry `"type": "module"`** (route-registration
+crash: `Must use import to load ES Module: ...package.json contains "type": "module"` /
+`ERR_REQUIRE_ESM`).
+
+ts-node's CJS loader refuses any `.ts` file whose nearest package.json has `"type": "module"`.
+`packages/shared` (`@alkemart/shared`, required by `packages/api/src/lib/ghana-locale.ts`)
+**must stay CommonJS-scope — never add `"type": "module"` to it.** The Vite apps
+(`apps/storefront`, `apps/ghana-vendor`, `apps/admin`) transform `.ts` source regardless of
+the `type` field, so leaving it off breaks nothing on the frontend. Any new workspace package
+the API imports must also stay CJS-scope (no `type` field) unless it is only bundled.
+
+Related, already-fixed pieces (keep them): Node runtime pinned in `.tool-versions`
+(`node 20.20.2`) and `package.json` engines (`20.x`); relative imports inside `packages/api`
+use explicit `.ts` suffixes (resolved fine by the ts-node CJS hook).
+
+**Deploy gate:** after a push, confirm in `railway logs -s alkemart-api <deploy_id> --lines 300`
+that `Server is ready on port: 9000` appears. That line only prints after ALL loaders (incl.
+API route registration) complete. A crash shows `Error starting server: An error occurred
+while registering API Routes`.
+
+**Quick static check before pushing:**
+```bash
+cd apps/backend && (rg -n '"type": "module"' packages/shared/package.json && echo "FIXME: ESM-scope package required at runtime") || echo "ok"
+```
+
+Fix history (for blame): `f65a26f` node pin + `.ts` sweep · `67136e5` ts-node CJS override ·
+`fe116c6` dropped `"type": "module"` from `packages/shared`. Regressions that broke it:
+`1812c37` (ESNext base) and `041be00` (added `ghana-locale.ts`).
+
 ### Storefront node_modules shadowing
 
 The storefront at `apps/storefront` had a stale `node_modules/@radix-ui/` directory from its previous pnpm setup that only contained `react-avatar` and `react-slot`. This shadowed the hoisted root `node_modules/@radix-ui/` which has all radix packages.
