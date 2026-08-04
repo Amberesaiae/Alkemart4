@@ -173,11 +173,19 @@ function Shell() {
             <main id="main" tabIndex={-1} className="flex flex-1 flex-col outline-none">
               <Outlet />
             </main>
+            <div className="w-full shrink-0">
+              <AppFooter sellUrl={sellUrl} />
+            </div>
           </div>
         ) : (
-          <main id="main" tabIndex={-1} className="flex min-h-screen flex-1 flex-col outline-none">
-            <Outlet />
-          </main>
+          <>
+            <main id="main" tabIndex={-1} className="flex min-h-screen flex-1 flex-col outline-none">
+              <Outlet />
+            </main>
+            <div className="w-full shrink-0">
+              <AppFooter sellUrl={sellUrl} />
+            </div>
+          </>
         )}
       </div>
     )
