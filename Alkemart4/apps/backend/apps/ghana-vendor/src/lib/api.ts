@@ -606,7 +606,7 @@ export const offers = {
   /**
    * GET /vendor/offers — List this seller's offers.
    */
-  list: (params?: { limit?: number; offset?: number; product_id?: string }) =>
+  list: (params?: { limit?: number; offset?: number }) =>
     get<{ offers: Offer[]; count: number; limit: number; offset: number }>(
       "/vendor/offers",
       params,
@@ -883,11 +883,28 @@ export const onboarding = {
 export const catalog = {
   /**
    * GET /vendor/product-categories — Category list for product tagging.
+   *
+   * The Mercur core route is a raw graph query with no is_internal filter, so
+   * internal/lab categories (Shirts, Sweatshirts, Pants, Merch) come back in
+   * the payload. Vendors must never see or tag internal categories — filter
+   * them out here so Quick Sell only offers the public canonical taxonomy.
    */
-  categories: () =>
-    get<{ product_categories: { id: string; name: string; handle: string }[] }>(
-      "/vendor/product-categories",
-    ),
+  categories: async () => {
+    const data = await get<{
+      product_categories: {
+        id: string
+        name: string
+        handle: string
+        is_internal?: boolean
+      }[]
+    }>("/vendor/product-categories")
+    return {
+      ...data,
+      product_categories: (data.product_categories ?? []).filter(
+        (c) => !c.is_internal,
+      ),
+    }
+  },
 
   /**
    * GET /vendor/alkemart/markets — Operating regions / delivery areas.

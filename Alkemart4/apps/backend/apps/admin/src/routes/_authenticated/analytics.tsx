@@ -1,10 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router"
 import { useId } from "react"
 import { useStats } from "../../hooks/use-stats"
-import { Card, CardContent, CardHeader, CardTitle, Skeleton } from "@workspace/ui"
+import { Card, CardContent, CardHeader, CardTitle, Skeleton, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@workspace/ui"
 import { PageShell } from "../../components/page-shell"
 import { PageHeader } from "../../components/page-header"
-import { ShoppingCart, DollarSign, Store, Package } from "lucide-react"
+import { ShoppingCart, DollarSign, Store, Package, TrendingUp } from "lucide-react"
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
 import { currencySymbol } from "../../lib/config"
 
@@ -121,6 +121,48 @@ function AnalyticsPage() {
             <div className="h-[400px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-md border border-dashed mt-4">
               No revenue data available for the last 30 days
             </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card className="overflow-hidden">
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle>Top Products</CardTitle>
+          <TrendingUp className="h-4 w-4 text-muted-foreground" />
+        </CardHeader>
+        <CardContent>
+          {!stats.top_products || stats.top_products.length === 0 ? (
+            <div className="h-40 flex items-center justify-center text-muted-foreground bg-muted/20 rounded-md border border-dashed">
+              No completed orders yet — top products will appear here.
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Product</TableHead>
+                  <TableHead className="text-right">Units Sold</TableHead>
+                  <TableHead className="text-right">Revenue</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {stats.top_products.map((p) => (
+                  <TableRow key={p.title}>
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        {p.thumbnail ? (
+                          <img src={p.thumbnail} alt="" className="h-10 w-10 rounded-md object-cover" />
+                        ) : (
+                          <div className="h-10 w-10 rounded-md bg-muted" />
+                        )}
+                        <span className="font-medium">{p.title}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right">{p.units.toLocaleString()}</TableCell>
+                    <TableCell className="text-right">{currencySymbol}{p.gmv.toLocaleString(undefined, { minimumFractionDigits: 2 })}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           )}
         </CardContent>
       </Card>

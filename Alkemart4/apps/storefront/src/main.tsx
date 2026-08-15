@@ -4,9 +4,8 @@ import { RouterProvider, createRouter } from "@tanstack/react-router"
 import { routeTree } from "./routeTree.gen"
 import "./styles/index.css"
 
-/** Soft fail analytics/Sentry — never block first paint. */
+/** Soft fail analytics — never block first paint. */
 function bootDeferred() {
-  void import("./lib/sentry").then((m) => m.initSentry()).catch(() => {})
   void import("./lib/analytics")
     .then((m) => m.initAnalytics())
     .catch(() => {})

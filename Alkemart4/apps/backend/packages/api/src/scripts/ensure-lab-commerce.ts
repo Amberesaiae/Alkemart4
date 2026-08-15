@@ -474,7 +474,9 @@ export default async function ensureLabCommerce({ container }: ExecArgs) {
               "Ghana-milled rice bag for COD lab checkout. Sold by Alkemart Lab Shop.",
             handle: PRODUCT_HANDLE,
             weight: 5000,
-            status: ProductStatus.PUBLISHED,
+            // Lab fixture — never surfaced in the buyer storefront (catalog only
+            // serves published). Offer stays orderable directly by ID for COD tests.
+            status: ProductStatus.DRAFT,
             seller_ids: [sellerId],
             attributes: [
               {

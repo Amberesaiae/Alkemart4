@@ -37,8 +37,10 @@ const shell =
   "group overflow-hidden rounded-lg border border-border bg-card shadow-sm transition hover:border-foreground/15 hover:shadow-md"
 
 /**
- * Concise retail card: image · title (2 lines) · price + cart.
- * No description, no category banner, no rating clutter on grid.
+ * Concise retail card: category line · image · title (2 lines) · price + cart.
+ * Category line renders only when the catalog supplied a category label.
+ * Per-card ratings are intentionally omitted — the catalog has no per-product
+ * rating source (only vendor-level ratingAvgX100 on the shop page).
  */
 export function ProductCard({
   product,
@@ -97,6 +99,7 @@ export function ProductCard({
           className="aspect-square w-[30%] max-w-[112px] shrink-0"
         />
         <div className="flex min-w-0 flex-1 flex-col justify-center gap-1 p-2.5">
+          <CategoryLabel label={product.categoryLabel} />
           <Title product={product} detailId={detailId} />
           <SellerChip seller={product.seller} short className="line-clamp-1" />
           <div className="flex items-center justify-between gap-2">
@@ -127,6 +130,7 @@ export function ProductCard({
         showWish
       />
       <div className="flex flex-1 flex-col gap-1 p-2 sm:p-2.5">
+        <CategoryLabel label={product.categoryLabel} />
         <Title product={product} detailId={detailId} />
         <SellerChip
           seller={product.seller}
@@ -202,6 +206,18 @@ function Media(props: {
         </span>
       ) : null}
     </Link>
+  )
+}
+
+function CategoryLabel({ label }: { label?: string | null }) {
+  if (!label?.trim()) return null
+  return (
+    <p
+      className="line-clamp-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground"
+      aria-label={`Category: ${label.trim()}`}
+    >
+      {label.trim()}
+    </p>
   )
 }
 

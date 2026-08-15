@@ -1,22 +1,38 @@
 import { Link, useRouterState } from "@tanstack/react-router"
-import { ChartColumn, Package, Store, ShoppingCart, Globe, Percent, Star, Tag, RefreshCw, Wallet, LogOut, PanelLeftClose, PanelLeftOpen, Loader2, Users, Scale } from "lucide-react"
+import { ChartColumn, Package, Store, ShoppingCart, Globe, Percent, Star, Tag, RefreshCw, Wallet, LogOut, PanelLeftClose, PanelLeftOpen, Loader2, Users, Scale, Layers } from "lucide-react"
 import { useState } from "react"
 import { useAuth } from "../../hooks/use-auth"
 import { cn } from "@workspace/ui"
 
-const NAV_ITEMS = [
-  { href: "/analytics", label: "Analytics", icon: ChartColumn },
-  { href: "/product-moderation", label: "Product Review", icon: Package },
-  { href: "/sellers-queue", label: "Seller Queue", icon: Store },
-  { href: "/sellers", label: "All Sellers", icon: Users },
-  { href: "/orders", label: "Orders", icon: ShoppingCart },
-  { href: "/markets", label: "Markets", icon: Globe },
-  { href: "/commission-rates", label: "Commission", icon: Percent },
-  { href: "/featured-products", label: "Featured", icon: Star },
-  { href: "/promotions", label: "Promotions", icon: Tag },
-  { href: "/returns", label: "Returns", icon: RefreshCw },
-  { href: "/payouts", label: "Payouts", icon: Wallet },
-  { href: "/disputes", label: "Disputes", icon: Scale },
+const NAV_GROUPS: { label: string; items: { href: string; label: string; icon: React.ElementType }[] }[] = [
+  {
+    label: "Catalogue",
+    items: [
+      { href: "/analytics", label: "Analytics", icon: ChartColumn },
+      { href: "/markets", label: "Markets", icon: Globe },
+      { href: "/categories", label: "Categories", icon: Layers },
+      { href: "/featured-products", label: "Featured", icon: Star },
+      { href: "/promotions", label: "Promotions", icon: Tag },
+    ],
+  },
+  {
+    label: "Commerce",
+    items: [
+      { href: "/orders", label: "Orders", icon: ShoppingCart },
+      { href: "/returns", label: "Returns", icon: RefreshCw },
+      { href: "/disputes", label: "Disputes", icon: Scale },
+      { href: "/payouts", label: "Payouts", icon: Wallet },
+    ],
+  },
+  {
+    label: "Sellers",
+    items: [
+      { href: "/sellers-queue", label: "Seller Queue", icon: Store },
+      { href: "/sellers", label: "All Sellers", icon: Users },
+      { href: "/product-moderation", label: "Product Review", icon: Package },
+      { href: "/commission-rates", label: "Commission", icon: Percent },
+    ],
+  },
 ]
 
 function NavItem({ href, label, icon: Icon, collapsed, isActive }: {
@@ -76,14 +92,25 @@ export function Sidebar() {
         </button>
       </div>
 
-      <nav aria-label="Main navigation" className="flex-1 overflow-y-auto p-4 space-y-1">
-        {NAV_ITEMS.map((item) => (
-          <NavItem
-            key={item.href}
-            {...item}
-            collapsed={collapsed}
-            isActive={router.location.pathname.startsWith(item.href)}
-          />
+      <nav aria-label="Main navigation" className="flex-1 overflow-y-auto p-4 space-y-3">
+        {NAV_GROUPS.map((group) => (
+          <div key={group.label}>
+            {!collapsed ? (
+              <p className="px-4 pb-1 pt-2 text-[10px] font-bold uppercase tracking-wider text-white/40">
+                {group.label}
+              </p>
+            ) : null}
+            <div className="space-y-1">
+              {group.items.map((item) => (
+                <NavItem
+                  key={item.href}
+                  {...item}
+                  collapsed={collapsed}
+                  isActive={router.location.pathname.startsWith(item.href)}
+                />
+              ))}
+            </div>
+          </div>
         ))}
       </nav>
 

@@ -1,10 +1,9 @@
 import { useState } from "react"
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
-import { Button } from "@workspace/ui"
+import { Button, Select, Textarea } from "@workspace/ui"
 import { ErrorAlert } from "@/components/error-alert"
 import { Skeleton } from "@/components/skeleton"
-import { formInputClassName } from "@/components/form-field"
 import { getOrder } from "@/lib/orders"
 import { getMedusaClient } from "@/lib/medusa"
 import { getBackendUrl, getPublishableKey } from "@/lib/env"
@@ -259,10 +258,10 @@ function ReturnRequestPage() {
             <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               Reason
             </span>
-            <select
+            <Select
               value={reasonId}
               onChange={(e) => setReasonId(e.target.value)}
-              className={formInputClassName()}
+              className="min-h-11"
             >
               <option value="">Select a reason…</option>
               {reasons?.map((r) => (
@@ -270,19 +269,19 @@ function ReturnRequestPage() {
                   {r.label}
                 </option>
               ))}
-            </select>
+            </Select>
           </label>
 
           <label className="block space-y-1.5">
             <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               Note (optional)
             </span>
-            <textarea
+            <Textarea
               value={note}
               onChange={(e) => setNote(e.target.value)}
               placeholder="Describe the issue…"
               rows={3}
-              className={formInputClassName()}
+              className="min-h-20"
             />
           </label>
         </section>

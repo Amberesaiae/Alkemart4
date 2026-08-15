@@ -26,6 +26,7 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
       total_gmv_ghs: raw.orders.gmv_by_currency?.ghs ?? 0,
       active_sellers: raw.sellers.open,
       catalog_size: raw.products.published,
+      top_products: raw.top_products,
       gmv_last_30_days: raw.series.days.map((d) => ({
         date: d.date,
         amount: d.gmv,

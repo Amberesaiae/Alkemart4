@@ -41,12 +41,12 @@ export type StoreOrder = {
 
 const ORDER_LIST_FIELDS =
   "id,display_id,status,created_at,total,currency_code," +
-  "items.id,items.title,items.quantity,items.unit_price," +
+  "items.id,items.title,items.detail.quantity,items.unit_price," +
   "shipping_address.city,shipping_address.first_name,shipping_address.last_name"
 
 const ORDER_DETAIL_FIELDS =
   "id,display_id,status,payment_status,fulfillment_status,created_at,total,item_total,shipping_total,currency_code,email," +
-  "items.id,items.title,items.quantity,items.unit_price,items.thumbnail,items.product_id," +
+  "items.id,items.title,items.detail.quantity,items.unit_price,items.thumbnail,items.product_id," +
   "+items.product,+items.product.seller,+items.product.thumbnail," +
   "shipping_address.*"
 
@@ -108,10 +108,13 @@ function mapOrder(raw: Record<string, unknown>): StoreOrder {
     email: typeof raw.email === "string" ? raw.email : null,
     items: items.map((i) => {
       const product = i.product as Record<string, unknown> | undefined
+      const detail = i.detail as Record<string, unknown> | undefined
       return {
         id: String(i.id),
         title: String(i.title ?? "Item"),
-        quantity: Number(i.quantity ?? 0),
+        quantity: Number(
+          detail?.quantity ?? i.quantity ?? 0,
+        ),
         unitPrice: i.unit_price != null ? Number(i.unit_price) : null,
         productId:
           typeof i.product_id === "string"

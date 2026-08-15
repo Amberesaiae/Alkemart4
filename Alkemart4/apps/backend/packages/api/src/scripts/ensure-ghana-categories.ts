@@ -1,14 +1,19 @@
 /**
- * Seed Ghana marketplace top-level product categories (idempotent by handle).
+ * Seed Ghana marketplace product categories (idempotent by handle).
  *
- * The seed is the canonical source of truth: it creates any missing categories
- * and reconciles rank / visibility / description on existing ones so the
- * taxonomy stays contiguous, active, and non-internal.
+ * This seed is the canonical source of truth for the marketplace taxonomy:
+ * it creates any missing categories, reconciles rank / visibility /
+ * description on existing ones, and normalizes `mpath` so every root
+ * category carries its own id path (Medusa convention: root mpath = id).
+ *
+ * The 12 categories below are ALL top-level departments. Beverages and
+ * Pet Care are deliberate main categories (not children of Food / Health):
+ * Ghanaian shoppers browse them as first-class departments.
  *
  * Run:
  *   bunx medusa exec ./src/scripts/ensure-ghana-categories.ts
  *
- * Ranks reflect marketplace priority (Food & Beverages first, Utilities last).
+ * Ranks reflect marketplace priority (Food first, Other last).
  */
 import type { ExecArgs } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
@@ -22,31 +27,31 @@ const CATEGORIES: Array<{
   {
     name: "Food & Groceries",
     handle: "food-groceries",
-    description: "Cooking oil, staples, packaged food, drinks",
+    description: "Cooking oil, staples, packaged food, groceries",
     rank: 0,
   },
   {
     name: "Beverages",
     handle: "beverages",
-    description: "Water, soft drinks, juices, sachets",
+    description: "Water, soft drinks, juices, sachets, energy drinks",
     rank: 1,
   },
   {
     name: "Fashion & Apparel",
     handle: "fashion-apparel",
-    description: "Clothing, shoes, accessories",
+    description: "Clothing, shoes, bags, accessories",
     rank: 2,
   },
   {
     name: "Phones & Electronics",
     handle: "phones-electronics",
-    description: "Mobiles, accessories, gadgets",
+    description: "Mobiles, accessories, gadgets, electronics",
     rank: 3,
   },
   {
     name: "Home & Living",
     handle: "home-living",
-    description: "Household, kitchen, furniture",
+    description: "Household, kitchen, furniture, decor",
     rank: 4,
   },
   {
@@ -119,7 +124,7 @@ export default async function ensureGhanaCategories({ container }: ExecArgs) {
 
   const { data } = await query.graph({
     entity: "product_category",
-    fields: ["id", "handle", "name"],
+    fields: ["id", "handle", "name", "rank"],
   })
   const existing = Array.isArray(data) ? data : data ? [data] : []
   const byHandle = new Map(
@@ -162,6 +167,29 @@ export default async function ensureGhanaCategories({ container }: ExecArgs) {
         )
       }
     }
+  }
+
+  // Normalize mpath for every root category to Medusa convention (mpath = id).
+  // The product module only recomputes mpath when the parent changes, so a
+  // legacy raw insert (mpath '1'..'10') must be repaired explicitly.
+  try {
+    const pg = container.resolve(
+      ContainerRegistrationKeys.PG_CONNECTION,
+    ) as {
+      raw: (sql: string) => Promise<unknown>
+    }
+    const fixed = await pg.raw(
+      `UPDATE product_category
+         SET mpath = id
+       WHERE parent_category_id IS NULL
+         AND mpath IS DISTINCT FROM id
+         AND is_internal = false`,
+    )
+    logger.info(`Category mpath normalized (rows: ${JSON.stringify(fixed)}).`)
+  } catch (e) {
+    logger.error(
+      `Category mpath normalization skipped: ${e instanceof Error ? e.message : String(e)}`,
+    )
   }
 
   logger.info(

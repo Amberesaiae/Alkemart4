@@ -244,6 +244,9 @@ export default async function seedDemoData({ container }: ExecArgs) {
 
   logger.info("Seeding product categories...");
   const productModule = container.resolve(Modules.PRODUCT);
+  // Lab/test categories must never surface in the storefront API. The Medusa
+  // store category listing hard-filters is_internal=false, so these fixtures
+  // stay invisible to buyers even when the dev seed runs against a shared DB.
   const categoryNames = ["Shirts", "Sweatshirts", "Pants", "Merch"];
   const existingCategories = await productModule.listProductCategories({
     name: categoryNames,
@@ -264,6 +267,7 @@ export default async function seedDemoData({ container }: ExecArgs) {
         product_categories: categoriesToCreate.map((name) => ({
           name,
           is_active: true,
+          is_internal: true,
         })),
       },
     });
@@ -504,6 +508,9 @@ export default async function seedDemoData({ container }: ExecArgs) {
   const merchCat = categoryResult.find((cat: { name: string }) => cat.name === "Merch");
   if (!shirtsCat || !sweatersCat || !pantsCat || !merchCat) throw new Error("Required product categories not found");
 
+  // Lab products get DRAFT status (mirrors is_internal on the categories): the
+  // store API only returns published products, so lab fixtures never surface in
+  // the buyer storefront even when this dev seed runs against a shared DB.
   await createProductsWorkflow(container).run({
     input: {
       created_by: demoSellerMemberId,
@@ -517,7 +524,7 @@ export default async function seedDemoData({ container }: ExecArgs) {
             "Reimagine the feeling of a classic T-shirt. With our cotton T-shirts, everyday essentials no longer have to be ordinary.",
           handle: "t-shirt",
           weight: 400,
-          status: ProductStatus.PUBLISHED,
+          status: ProductStatus.DRAFT,
           seller_ids: [demoSeller.id],
           images: [
             { url: "https://medusa-public-images.s3.eu-west-1.amazonaws.com/tee-black-front.png" },
@@ -549,7 +556,7 @@ export default async function seedDemoData({ container }: ExecArgs) {
             "Reimagine the feeling of a classic sweatshirt. With our cotton sweatshirt, everyday essentials no longer have to be ordinary.",
           handle: "sweatshirt",
           weight: 400,
-          status: ProductStatus.PUBLISHED,
+          status: ProductStatus.DRAFT,
           seller_ids: [demoSeller.id],
           images: [
             { url: "https://medusa-public-images.s3.eu-west-1.amazonaws.com/sweatshirt-vintage-front.png" },
@@ -574,7 +581,7 @@ export default async function seedDemoData({ container }: ExecArgs) {
             "Reimagine the feeling of classic sweatpants. With our cotton sweatpants, everyday essentials no longer have to be ordinary.",
           handle: "sweatpants",
           weight: 400,
-          status: ProductStatus.PUBLISHED,
+          status: ProductStatus.DRAFT,
           seller_ids: [demoSeller.id],
           images: [
             { url: "https://medusa-public-images.s3.eu-west-1.amazonaws.com/sweatpants-gray-front.png" },
@@ -599,7 +606,7 @@ export default async function seedDemoData({ container }: ExecArgs) {
             "Reimagine the feeling of classic shorts. With our cotton shorts, everyday essentials no longer have to be ordinary.",
           handle: "shorts",
           weight: 400,
-          status: ProductStatus.PUBLISHED,
+          status: ProductStatus.DRAFT,
           seller_ids: [demoSeller.id],
           images: [
             { url: "https://medusa-public-images.s3.eu-west-1.amazonaws.com/shorts-vintage-front.png" },

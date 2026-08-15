@@ -5,12 +5,10 @@ import { withMercur } from '@mercurjs/core'
 import fs from 'fs'
 import path from 'path'
 import { loadAppEnv } from './src/lib/env.ts'
-import { initSentry } from './src/lib/sentry.ts'
 
 loadEnv(process.env.NODE_ENV || 'development', process.cwd())
 
 const env = loadAppEnv()
-initSentry()
 
 // Resolves where a dashboard app lives:
 // - in the source tree (development): ../../apps/<name>

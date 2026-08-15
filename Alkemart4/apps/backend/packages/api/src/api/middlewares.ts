@@ -5,6 +5,7 @@ import { rateLimit } from "./middlewares/rate-limit.ts"
 import { csrfProtection } from "./middlewares/csrf-protection.ts"
 import { inputSanitize } from "./middlewares/input-sanitize.ts"
 import { securityHeaders } from "./middlewares/security-headers.ts"
+import { validateVendorUploads } from "./middlewares/validate-vendor-uploads.ts"
 
 export default defineMiddlewares({
   routes: [
@@ -71,6 +72,11 @@ export default defineMiddlewares({
       method: ["POST", "PUT", "DELETE"],
       matcher: "/vendor/*",
       middlewares: [csrfProtection],
+    },
+    {
+      method: ["POST"],
+      matcher: "/vendor/uploads",
+      middlewares: [validateVendorUploads],
     },
     {
       method: ["POST"],

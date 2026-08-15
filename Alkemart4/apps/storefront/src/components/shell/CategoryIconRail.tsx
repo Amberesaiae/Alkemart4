@@ -1,12 +1,14 @@
 import { Link } from "@tanstack/react-router"
 import type { IconId } from "@/design/icons"
-import { IconSafe, categoryIconId } from "@/design/icons"
+import { IconSafe } from "@/design/icons"
+import { iconForCategory } from "@/lib/catalog-nav"
 import { cn } from "@/lib/utils"
 
 export type RailCategory = {
   id: string
   name: string
   handle?: string | null
+  icon: IconId
 }
 
 type Props = {
@@ -16,70 +18,17 @@ type Props = {
 }
 
 /**
- * Top department rail — EXACT hierarchy:
- *   Electronics · Food · Beverages · Personal Care · Pet Care · Baby Care
- *
- * Layout: icon + label on ONE horizontal line (text BY icon, not beneath).
- * Six only. No "All". ICONPAK2 monoline icons.
+ * Top department rail — every real marketplace category in rank order.
+ * Rows come from resolveRailCategories (canonical CATEGORY_META); the rail
+ * renders exactly what it is given — it never invents slugs or labels.
  */
-const MOWAFER_RAIL: ReadonlyArray<{
-  label: string
-  handle: string
-  icon: IconId
-  match: RegExp
-}> = [
-  {
-    label: "Electronics",
-    handle: "phones-electronics",
-    icon: "cat-electronics",
-    match: /electron|phone|tech|gadget|comput|device/,
-  },
-  {
-    label: "Food",
-    handle: "food-groceries",
-    icon: "cat-food",
-    match: /food|groc|agricult|kitchen|cook|spice|oil|rice/,
-  },
-  {
-    label: "Beverages",
-    handle: "beverages",
-    icon: "cat-beverages",
-    match: /bever|drink|water|juice|soda/,
-  },
-  {
-    label: "Personal Care",
-    handle: "health-beauty",
-    icon: "cat-personal-care",
-    match: /beauty|personal|cosmetic|skin|makeup|hygiene|health/,
-  },
-  {
-    label: "Pet Care",
-    handle: "pet-care",
-    icon: "cat-pet-care",
-    match: /pet|animal|\bdog\b|\bcats?\b/,
-  },
-  {
-    label: "Baby Care",
-    handle: "baby-kids",
-    icon: "cat-baby",
-    match: /baby|kid|child|infant|toddler/,
-  },
-]
-
 function resolveRail(categories: RailCategory[]) {
-  return MOWAFER_RAIL.map((slot) => {
-    const hit =
-      categories.find((c) => (c.handle || "").toLowerCase() === slot.handle) ||
-      categories.find((c) =>
-        slot.match.test(`${c.name} ${c.handle ?? ""}`.toLowerCase()),
-      )
-    return {
-      id: hit?.id ?? `rail-${slot.handle}`,
-      label: slot.label,
-      slug: hit?.handle || slot.handle,
-      lockedIcon: slot.icon,
-    }
-  })
+  return categories.map((c) => ({
+    id: c.id,
+    label: c.name,
+    slug: c.handle || c.id,
+    lockedIcon: c.icon ?? iconForCategory(c.name, c.handle),
+  }))
 }
 
 export function CategoryIconRail({

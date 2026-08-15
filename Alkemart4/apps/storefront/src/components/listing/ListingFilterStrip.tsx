@@ -8,6 +8,7 @@ import {
 import { cn } from "@/lib/utils"
 
 export type FilterStripState = {
+  /** Child category id when the department has a real subcategory — "all" otherwise. */
   subCategory: string
   minRating: number
   priceMin: number | null
@@ -19,7 +20,12 @@ export type FilterStripState = {
 
 type Props = {
   departmentLabel: string
-  subCategories?: string[]
+  /**
+   * Real child categories of the current department. Empty when the
+   * taxonomy is flat — the subcategory fieldset is omitted entirely then,
+   * instead of showing a fake "All X / X" pair that filters nothing.
+   */
+  subCategories?: { id: string; label: string }[]
   state: FilterStripState
   onChange: (next: FilterStripState) => void
   locationEnabled?: boolean
@@ -39,11 +45,6 @@ export function ListingFilterStrip({
   locationEnabled = false,
   className,
 }: Props) {
-  const subs =
-    subCategories.length > 0
-      ? subCategories
-      : [`All ${departmentLabel}`, departmentLabel]
-
   return (
     <div
       className={cn(
@@ -54,39 +55,55 @@ export function ListingFilterStrip({
       role="region"
       aria-label="Listing filters"
     >
-      <fieldset className="min-w-0 space-y-2">
-        <legend className="type-sm font-bold text-foreground">
-          {departmentLabel}
-        </legend>
-        <div
-          className="grid grid-cols-1 gap-1.5 xs:grid-cols-2 sm:grid-cols-1"
-          role="radiogroup"
-          aria-label={departmentLabel}
-        >
-          {subs.map((label, i) => {
-            const id = i === 0 ? "all" : label
-            const on = state.subCategory === id
-            return (
-              <button
-                key={label}
-                type="button"
-                role="radio"
-                aria-checked={on}
-                onClick={() => onChange({ ...state, subCategory: id })}
-                className={cn(
-                  "min-h-10 rounded-xl border px-3 py-2 text-left type-sm font-medium transition",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
-                  on
-                    ? "border-primary bg-primary/15 font-semibold text-foreground"
-                    : "border-border bg-background text-muted-foreground hover:bg-muted",
-                )}
-              >
-                {label}
-              </button>
-            )
-          })}
-        </div>
-      </fieldset>
+      {subCategories.length > 0 ? (
+        <fieldset className="min-w-0 space-y-2">
+          <legend className="type-sm font-bold text-foreground">
+            {departmentLabel}
+          </legend>
+          <div
+            className="grid grid-cols-1 gap-1.5 xs:grid-cols-2 sm:grid-cols-1"
+            role="radiogroup"
+            aria-label={departmentLabel}
+          >
+            <button
+              type="button"
+              role="radio"
+              aria-checked={state.subCategory === "all"}
+              onClick={() => onChange({ ...state, subCategory: "all" })}
+              className={cn(
+                "min-h-10 rounded-xl border px-3 py-2 text-left type-sm font-medium transition",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
+                state.subCategory === "all"
+                  ? "border-primary bg-primary/15 font-semibold text-foreground"
+                  : "border-border bg-background text-muted-foreground hover:bg-muted",
+              )}
+            >
+              All {departmentLabel}
+            </button>
+            {subCategories.map((sub) => {
+              const on = state.subCategory === sub.id
+              return (
+                <button
+                  key={sub.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={on}
+                  onClick={() => onChange({ ...state, subCategory: sub.id })}
+                  className={cn(
+                    "min-h-10 rounded-xl border px-3 py-2 text-left type-sm font-medium transition",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
+                    on
+                      ? "border-primary bg-primary/15 font-semibold text-foreground"
+                      : "border-border bg-background text-muted-foreground hover:bg-muted",
+                  )}
+                >
+                  {sub.label}
+                </button>
+              )
+            })}
+          </div>
+        </fieldset>
+      ) : null}
 
       <fieldset className="min-w-0 space-y-2">
         <legend className="type-sm font-bold text-foreground">

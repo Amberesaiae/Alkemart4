@@ -23,6 +23,7 @@ import { Route as AuthenticatedMarketsRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedFeaturedProductsRouteImport } from './routes/_authenticated/featured-products'
 import { Route as AuthenticatedDisputesRouteImport } from './routes/_authenticated/disputes'
 import { Route as AuthenticatedCommissionRatesRouteImport } from './routes/_authenticated/commission-rates'
+import { Route as AuthenticatedCategoriesRouteImport } from './routes/_authenticated/categories'
 import { Route as AuthenticatedAnalyticsRouteImport } from './routes/_authenticated/analytics'
 import { Route as AuthenticatedSellersIdRouteImport } from './routes/_authenticated/sellers.$id'
 import { Route as AuthenticatedOrdersIdRouteImport } from './routes/_authenticated/orders.$id'
@@ -100,6 +101,11 @@ const AuthenticatedCommissionRatesRoute =
     path: '/commission-rates',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedCategoriesRoute = AuthenticatedCategoriesRouteImport.update({
+  id: '/categories',
+  path: '/categories',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedAnalyticsRoute = AuthenticatedAnalyticsRouteImport.update({
   id: '/analytics',
   path: '/analytics',
@@ -120,6 +126,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/analytics': typeof AuthenticatedAnalyticsRoute
+  '/categories': typeof AuthenticatedCategoriesRoute
   '/commission-rates': typeof AuthenticatedCommissionRatesRoute
   '/disputes': typeof AuthenticatedDisputesRoute
   '/featured-products': typeof AuthenticatedFeaturedProductsRoute
@@ -138,6 +145,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/analytics': typeof AuthenticatedAnalyticsRoute
+  '/categories': typeof AuthenticatedCategoriesRoute
   '/commission-rates': typeof AuthenticatedCommissionRatesRoute
   '/disputes': typeof AuthenticatedDisputesRoute
   '/featured-products': typeof AuthenticatedFeaturedProductsRoute
@@ -158,6 +166,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/login': typeof LoginRoute
   '/_authenticated/analytics': typeof AuthenticatedAnalyticsRoute
+  '/_authenticated/categories': typeof AuthenticatedCategoriesRoute
   '/_authenticated/commission-rates': typeof AuthenticatedCommissionRatesRoute
   '/_authenticated/disputes': typeof AuthenticatedDisputesRoute
   '/_authenticated/featured-products': typeof AuthenticatedFeaturedProductsRoute
@@ -178,6 +187,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/analytics'
+    | '/categories'
     | '/commission-rates'
     | '/disputes'
     | '/featured-products'
@@ -196,6 +206,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/analytics'
+    | '/categories'
     | '/commission-rates'
     | '/disputes'
     | '/featured-products'
@@ -215,6 +226,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/login'
     | '/_authenticated/analytics'
+    | '/_authenticated/categories'
     | '/_authenticated/commission-rates'
     | '/_authenticated/disputes'
     | '/_authenticated/featured-products'
@@ -336,6 +348,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedCommissionRatesRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/categories': {
+      id: '/_authenticated/categories'
+      path: '/categories'
+      fullPath: '/categories'
+      preLoaderRoute: typeof AuthenticatedCategoriesRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/analytics': {
       id: '/_authenticated/analytics'
       path: '/analytics'
@@ -384,6 +403,7 @@ const AuthenticatedSellersRouteWithChildren =
 
 interface AuthenticatedRouteChildren {
   AuthenticatedAnalyticsRoute: typeof AuthenticatedAnalyticsRoute
+  AuthenticatedCategoriesRoute: typeof AuthenticatedCategoriesRoute
   AuthenticatedCommissionRatesRoute: typeof AuthenticatedCommissionRatesRoute
   AuthenticatedDisputesRoute: typeof AuthenticatedDisputesRoute
   AuthenticatedFeaturedProductsRoute: typeof AuthenticatedFeaturedProductsRoute
@@ -399,6 +419,7 @@ interface AuthenticatedRouteChildren {
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedAnalyticsRoute: AuthenticatedAnalyticsRoute,
+  AuthenticatedCategoriesRoute: AuthenticatedCategoriesRoute,
   AuthenticatedCommissionRatesRoute: AuthenticatedCommissionRatesRoute,
   AuthenticatedDisputesRoute: AuthenticatedDisputesRoute,
   AuthenticatedFeaturedProductsRoute: AuthenticatedFeaturedProductsRoute,

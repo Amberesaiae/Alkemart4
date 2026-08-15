@@ -66,6 +66,13 @@ export type CommerceStats = {
     gmv_by_currency: Record<string, number>
     by_status: NamedCount[]
   }
+  /** Units + GMV per product line-item title, highest units first. */
+  top_products: Array<{
+    title: string
+    thumbnail: string | null
+    units: number
+    gmv: number
+  }>
   series: {
     days: DayPoint[]
     primary_currency: string
@@ -189,8 +196,14 @@ async function loadAllOrders(query: QueryService): Promise<Record<string, unknow
     "currency_code",
     "status",
     "created_at",
+    "items.id",
+    "items.title",
+    "items.thumbnail",
+    "items.quantity",
+    "items.unit_price",
+    "items.subtotal",
   ]
-  const fieldsLite = ["id", "total", "currency_code", "status", "created_at"]
+  const fieldsLite = ["id", "total", "currency_code", "status", "created_at", "items.id", "items.title", "items.thumbnail", "items.quantity", "items.subtotal"]
   try {
     const { data } = await query.graph({
       entity: "order",
@@ -214,6 +227,41 @@ async function loadAllOrders(query: QueryService): Promise<Record<string, unknow
       return []
     }
   }
+}
+
+/** Top products by units sold — rolls up order line-items (excludes cancelled). */
+export function topProductsFromOrders(
+  orderRows: Record<string, unknown>[],
+  opts?: { limit?: number },
+): Array<{ title: string; thumbnail: string | null; units: number; gmv: number }> {
+  const limit = opts?.limit ?? 10
+  const byTitle = new Map<string, { title: string; thumbnail: string | null; units: number; gmv: number }>()
+  for (const o of orderRows) {
+    const status = String(o.status ?? "").toLowerCase()
+    if (status === "cancelled") continue
+    for (const it of asList(o.items)) {
+      const title = typeof it.title === "string" && it.title.trim() ? it.title.trim() : "Untitled"
+      const qty = Math.max(0, Number(it.quantity) || 0)
+      const unit = moneyAmount(it.unit_price) || (it.subtotal != null && qty > 0 ? moneyAmount(it.subtotal) / qty : 0)
+      const entry = byTitle.get(title)
+      if (entry) {
+        entry.units += qty
+        entry.gmv += qty * unit
+        if (!entry.thumbnail && typeof it.thumbnail === "string") entry.thumbnail = it.thumbnail
+      } else {
+        byTitle.set(title, {
+          title,
+          thumbnail: typeof it.thumbnail === "string" ? it.thumbnail : null,
+          units: qty,
+          gmv: qty * unit,
+        })
+      }
+    }
+  }
+  return Array.from(byTitle.values())
+    .filter((x) => x.units > 0)
+    .sort((a, b) => b.units - a.units || b.gmv - a.gmv)
+    .slice(0, limit)
 }
 
 export async function collectCommerceStats(
@@ -308,6 +356,7 @@ export async function collectCommerceStats(
         .map(([name, value]) => ({ name, value }))
         .sort((a, b) => b.value - a.value),
     },
+    top_products: topProductsFromOrders(orderRows),
     series: {
       days: keys.map((date) => ({
         date,
@@ -438,6 +487,7 @@ export async function collectSellerCommerceStats(
         .map(([name, value]) => ({ name, value }))
         .sort((a, b) => b.value - a.value),
     },
+    top_products: topProductsFromOrders(orderRows),
     series: {
       days: keys.map((date) => ({
         date,

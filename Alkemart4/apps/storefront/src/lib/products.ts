@@ -37,6 +37,10 @@ export type StoreProductCard = {
    * Demo seed or API metadata only — never invented in the card.
    */
   categoryLabel?: string | null
+  /** Real category handles from the API taxonomy — prefer over heuristics. */
+  categoryHandles?: string[] | null
+  /** ISO timestamp of product creation — for "recently added" sort. */
+  createdAt?: string | null
   /** 0–5 star rating when known (demo / reviews API). */
   rating?: number | null
 }
@@ -56,6 +60,8 @@ type ProductSlice = {
   thumbnail?: string | null
   images?: { url: string }[] | null
   description?: string | null
+  created_at?: string | null
+  categories?: { handle?: string | null; name?: string | null }[] | null
   variants?: VariantSlice[] | null
   /** Possible Mercur/extensions — only used if present */
   seller?: { id?: string; name?: string; handle?: string } | null
@@ -110,6 +116,11 @@ function mapProduct(p: ProductSlice): StoreProductCard {
     images: p.images ?? null,
     description: p.description ?? null,
     offerId: typeof variant?.offer_id === "string" ? variant.offer_id : null,
+    createdAt: typeof p.created_at === "string" ? p.created_at : null,
+    categoryHandles:
+      (p.categories ?? [])
+        .map((c) => (c.handle || "").toLowerCase())
+        .filter(Boolean) ?? null,
     amount:
       calc?.calculated_amount != null
         ? Number(calc.calculated_amount)
@@ -172,7 +183,7 @@ async function enrichSellersFromOffers(
   }
 }
 
-const LIST_FIELDS = "*variants.calculated_price,*seller,images.url,*metadata"
+const LIST_FIELDS = "*variants.calculated_price,*seller,*images,*metadata,categories.handle,created_at"
 
 /**
  * Prefer products that can be added to cart (have offer_id).
@@ -238,9 +249,11 @@ async function listFromAlkemartCatalog(opts: CatalogQuery): Promise<{
          handle?: string | null
          thumbnail?: string | null
          description?: string | null
-         offer_id?: string | null
-         category_label?: string | null
-         min_price?: number | null
+          offer_id?: string | null
+          category_label?: string | null
+          category_handles?: string[] | null
+          created_at?: string | null
+          min_price?: number | null
          currency_code?: string | null
          thumb_url?: string | null
          web_url?: string | null
@@ -261,9 +274,14 @@ async function listFromAlkemartCatalog(opts: CatalogQuery): Promise<{
         thumbnail: p.thumbnail ?? null,
         description: p.description ?? null,
         offerId: p.offer_id ?? null,
+        createdAt: p.created_at ?? null,
         amount: p.min_price != null ? Number(p.min_price) : null,
          currencyCode: p.currency_code ?? null,
          categoryLabel: p.category_label?.trim() || null,
+         categoryHandles:
+          (p.category_handles ?? [])
+            .map((h) => h.toLowerCase())
+            .filter(Boolean) || null,
          thumbUrl: p.thumb_url ?? null,
          webUrl: p.web_url ?? null,
          seller: p.seller?.name
@@ -355,9 +373,11 @@ export async function listStoreProducts(opts?: {
             seller: full.seller || p.seller,
             // Preserve catalog taxonomy — product.list may omit categories
              categoryLabel: p.categoryLabel || full.categoryLabel || null,
+             categoryHandles: full.categoryHandles || p.categoryHandles || null,
             // Prefer region calculated_price; fall back to catalog min_price
             amount: full.amount ?? p.amount,
             currencyCode: full.currencyCode ?? p.currencyCode,
+            createdAt: full.createdAt ?? p.createdAt,
             // Prefer hydrated metadata; fall back to catalog derivatives
             thumbUrl: full.thumbUrl ?? p.thumbUrl,
             webUrl: full.webUrl ?? p.webUrl,
@@ -451,6 +471,9 @@ export type StoreCategory = {
   id: string
   name: string
   handle?: string | null
+  rank?: number | null
+  description?: string | null
+  parentCategoryId?: string | null
 }
 
 /**
@@ -587,7 +610,14 @@ export async function listStoreCategories(): Promise<StoreCategory[]> {
   try {
     const res = await sdk.store.category.list({ limit: 50 })
     const cats = (res as unknown as {
-      product_categories: { id: string; name?: string; handle?: string }[]
+      product_categories: {
+        id: string
+        name?: string
+        handle?: string
+        rank?: number
+        description?: string
+        parent_category_id?: string | null
+      }[]
     }).product_categories ?? []
     return cats
       .filter((c) => c?.id && c?.name)
@@ -595,6 +625,9 @@ export async function listStoreCategories(): Promise<StoreCategory[]> {
         id: c.id,
         name: c.name!,
         handle: c.handle ?? null,
+        rank: c.rank ?? null,
+        description: c.description ?? null,
+        parentCategoryId: c.parent_category_id ?? null,
       }))
   } catch {
     // Some builds expose product-categories differently
@@ -608,7 +641,14 @@ export async function listStoreCategories(): Promise<StoreCategory[]> {
     })
     if (!http.ok) return []
     const data = (await http.json()) as {
-      product_categories?: { id: string; name?: string; handle?: string }[]
+      product_categories?: {
+        id: string
+        name?: string
+        handle?: string
+        rank?: number
+        description?: string
+        parent_category_id?: string | null
+      }[]
     }
     return (data.product_categories ?? [])
       .filter((c) => c?.id && c?.name)
@@ -616,6 +656,9 @@ export async function listStoreCategories(): Promise<StoreCategory[]> {
         id: c.id,
         name: c.name!,
         handle: c.handle ?? null,
+        rank: c.rank ?? null,
+        description: c.description ?? null,
+        parentCategoryId: c.parent_category_id ?? null,
       }))
   }
 }

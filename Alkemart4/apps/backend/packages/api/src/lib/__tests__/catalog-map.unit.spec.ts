@@ -159,6 +159,25 @@ describe("accumulateOffersToCards", () => {
     expect(cards[0].web_url).toBe("https://x/a-1600.webp")
   })
 
+  it("surfaces product created_at for recent-product sorting", () => {
+    const rows: any[] = [
+      {
+        id: "off_1",
+        product_id: "prod_1",
+        prices: [{ amount: 55, currency_code: "ghs" }],
+        product: {
+          id: "prod_1",
+          title: "Palm",
+          status: "published",
+          created_at: "2026-08-01T10:00:00.000Z",
+        },
+        seller: { id: "sel_b", name: "B", handle: "b", status: "open" },
+      },
+    ]
+    const cards = accumulateOffersToCards(rows, {})
+    expect(cards[0].created_at).toBe("2026-08-01T10:00:00.000Z")
+  })
+
   it("falls back to null derivatives when metadata missing", () => {
     const rows: any[] = [
       {

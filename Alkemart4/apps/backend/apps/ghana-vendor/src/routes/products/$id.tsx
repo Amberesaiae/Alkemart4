@@ -1,11 +1,11 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { useState } from "react"
 import { useQueryClient } from "@tanstack/react-query"
-import { useProduct, useUpdateProduct, useDeleteProduct, useCategories, useProposeProduct, useProductOffers, useUpdateOffer, useOfferStockLevels } from "../lib/hooks"
-import { type ProductStatus, inventoryItems } from "../lib/api"
+import { useProduct, useUpdateProduct, useDeleteProduct, useCategories, useProposeProduct, useProductOffers, useUpdateOffer, useOfferStockLevels } from "../../lib/hooks"
+import { type ProductStatus, inventoryItems } from "../../lib/api"
 import { Card, Button, Input, Label, Textarea, Select, Skeleton } from "@workspace/ui"
 import { ArrowLeft, Save, Trash2, AlertCircle, Clock, SendHorizonal, ChevronDown, ChevronUp, Tag } from "lucide-react"
-import { PageShell } from "../components/page-shell"
+import { PageShell } from "../../components/page-shell"
 import { toast } from "sonner"
 
 export const Route = createFileRoute('/products/$id')({
@@ -142,10 +142,10 @@ function ProductDetailPage() {
   const startOfferEditing = () => {
     const initial: OfferPriceForm = {}
     for (const offer of offers) {
-      const priceAmountPesewas = offer.prices?.find(p => p.currency_code === "ghs")?.amount
+      const priceAmount = offer.prices?.find(p => p.currency_code === "ghs")?.amount
         ?? offer.prices?.[0]?.amount
         ?? 0
-      initial[offer.id] = { priceGhs: priceAmountPesewas > 0 ? String((priceAmountPesewas / 100).toFixed(2)) : "", stock: "" }
+      initial[offer.id] = { priceGhs: priceAmount > 0 ? String(priceAmount.toFixed(2)) : "", stock: "" }
     }
     setOfferForm(initial)
     setOfferFormOpen(true)
@@ -155,7 +155,7 @@ function ProductDetailPage() {
     // ── Phase 1: validate everything and collect only CHANGED fields.
     //    Nothing is written until the whole form is valid, so a bad entry
     //    can never leave a half-saved offer behind.
-    type OfferOp = { offerId: string; label: string; pricePesewas?: number; stock?: number; invItemId?: string }
+    type OfferOp = { offerId: string; label: string; priceGhs?: number; stock?: number; invItemId?: string }
     const ops: OfferOp[] = []
 
     for (const [offerId, val] of Object.entries(offerForm)) {
@@ -171,12 +171,12 @@ function ProductDetailPage() {
           toast.error(`${label}: enter a valid price above GH₵0. Nothing was saved.`)
           return
         }
-        const pesewas = Math.round(priceGhs * 100)
-        const currentPesewas = offer.prices?.find(p => p.currency_code === "ghs")?.amount
+        const currentAmount = offer.prices?.find(p => p.currency_code === "ghs")?.amount
           ?? offer.prices?.[0]?.amount ?? 0
+        // Amounts are stored in MAJOR units (85 = GH₵85) — see lib/offer-pricing.ts.
         // Only submit if actually changed — a stock-only save must never
         // overwrite a price with a stale prefilled value.
-        if (pesewas !== currentPesewas) op.pricePesewas = pesewas
+        if (priceGhs !== currentAmount) op.priceGhs = priceGhs
       }
 
       const stockRaw = val.stock.trim()
@@ -195,7 +195,7 @@ function ProductDetailPage() {
         op.invItemId = invItemId
       }
 
-      if (op.pricePesewas !== undefined || op.stock !== undefined) ops.push(op)
+      if (op.priceGhs !== undefined || op.stock !== undefined) ops.push(op)
     }
 
     if (ops.length === 0) {
@@ -207,11 +207,11 @@ function ProductDetailPage() {
     setSavingOffers(true)
     const failures: string[] = []
     for (const op of ops) {
-      if (op.pricePesewas !== undefined) {
+      if (op.priceGhs !== undefined) {
         try {
           await updateOffer.mutateAsync({
             id: op.offerId,
-            input: { prices: [{ amount: op.pricePesewas, currency_code: "ghs" }] },
+            input: { prices: [{ amount: op.priceGhs, currency_code: "ghs" }] },
           })
         } catch (err) {
           failures.push(`${op.label} price (${err instanceof Error ? err.message : "unknown error"})`)
@@ -449,7 +449,7 @@ function ProductDetailPage() {
               {!offerFormOpen && offers.length > 0 && (
                 <p className="text-sm text-muted-foreground font-medium">
                   {offers.length} offer{offers.length > 1 ? "s" : ""} · GH₵{" "}
-                  {((offers[0].prices?.find(p => p.currency_code === "ghs")?.amount ?? 0) / 100).toFixed(2)}
+                  {(offers[0].prices?.find(p => p.currency_code === "ghs")?.amount ?? 0).toFixed(2)}
                   {offers.length > 1 ? " – ..." : ""}
                 </p>
               )}
@@ -473,7 +473,7 @@ function ProductDetailPage() {
             ) : (
               <div className="pt-4 space-y-4">
                 {offers.map(offer => {
-                  const currentPricePesewas = offer.prices?.find(p => p.currency_code === "ghs")?.amount
+                  const currentPrice = offer.prices?.find(p => p.currency_code === "ghs")?.amount
                     ?? offer.prices?.[0]?.amount ?? 0
 
                   return (
@@ -490,7 +490,7 @@ function ProductDetailPage() {
                             <Input
                               type="number"
                               className="pl-14 h-10"
-                              placeholder={currentPricePesewas > 0 ? String((currentPricePesewas / 100).toFixed(2)) : "0.00"}
+                              placeholder={currentPrice > 0 ? String(currentPrice.toFixed(2)) : "0.00"}
                               value={offerForm[offer.id]?.priceGhs ?? ""}
                               onChange={e => setOfferForm(f => ({ ...f, [offer.id]: { ...(f[offer.id] ?? { priceGhs: "", stock: "" }), priceGhs: e.target.value } }))}
                               min="0"
@@ -503,9 +503,9 @@ function ProductDetailPage() {
                             onChange={v => setOfferForm(f => ({ ...f, [offer.id]: { ...(f[offer.id] ?? { priceGhs: "", stock: "" }), stock: v } }))}
                           />
                         </div>
-                        {currentPricePesewas > 0 && (
+                        {currentPrice > 0 && (
                           <p className="text-xs text-muted-foreground">
-                            Current: GH₵ {(currentPricePesewas / 100).toFixed(2)}
+                            Current: GH₵ {currentPrice.toFixed(2)}
                           </p>
                         )}
                       </div>

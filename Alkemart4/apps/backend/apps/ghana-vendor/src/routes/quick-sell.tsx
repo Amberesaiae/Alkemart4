@@ -12,6 +12,24 @@ export const Route = createFileRoute('/quick-sell')({
   component: QuickSellPage,
 })
 
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024
+const ALLOWED_IMAGE_TYPES = new Set(["image/jpeg", "image/jpg", "image/png", "image/webp"])
+const ALLOWED_IMAGE_EXT = /\.(jpe?g|png|webp)$/i
+
+function validateImageFile(file: File): string | null {
+  if (file.size > MAX_IMAGE_BYTES) {
+    return `Image exceeds max size of ${MAX_IMAGE_BYTES / (1024 * 1024)}MB.`
+  }
+  const type = file.type.toLowerCase()
+  if (!ALLOWED_IMAGE_TYPES.has(type)) {
+    return "Only JPEG, PNG, and WebP images are allowed."
+  }
+  if (!ALLOWED_IMAGE_EXT.test(file.name)) {
+    return "Filename must end with .jpg, .jpeg, .png, or .webp."
+  }
+  return null
+}
+
 type VariationRow = { values: string[]; quantity: string; price: string }
 
 function QuickSellPage() {
@@ -21,6 +39,7 @@ function QuickSellPage() {
   
   const [file, setFile] = useState<File | null>(null)
   const [preview, setPreview] = useState<string | null>(null)
+  const [fileError, setFileError] = useState<string | null>(null)
   
   const [title, setTitle] = useState("")
   const [priceGhs, setPriceGhs] = useState("")
@@ -90,12 +109,18 @@ function QuickSellPage() {
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = e.target.files?.[0]
-    if (selected) {
-      if (preview) URL.revokeObjectURL(preview)
-      setFile(selected)
-      setPreview(URL.createObjectURL(selected))
-      setStep(2)
+    e.target.value = ""
+    if (!selected) return
+    const err = validateImageFile(selected)
+    if (err) {
+      setFileError(err)
+      return
     }
+    setFileError(null)
+    if (preview) URL.revokeObjectURL(preview)
+    setFile(selected)
+    setPreview(URL.createObjectURL(selected))
+    setStep(2)
   }
 
   const [submitError, setSubmitError] = useState<string | null>(null)
@@ -229,6 +254,12 @@ function QuickSellPage() {
               Upload Photo
             </Button>
 
+            {fileError && (
+              <div className="mt-4 max-w-sm w-full p-3 bg-destructive/10 text-destructive text-sm font-semibold rounded-lg border border-destructive/20" role="alert">
+                {fileError}
+              </div>
+            )}
+
             <Button 
               variant="ghost" 
               className="mt-4 text-muted-foreground"
@@ -255,6 +286,11 @@ function QuickSellPage() {
                       <span className="text-xs font-semibold text-muted-foreground">Add Photo</span>
                     </div>
                   )}
+                  {fileError && (
+                    <div className="absolute bottom-0 inset-x-0 bg-destructive/90 text-white text-xs font-semibold text-center p-2">
+                      {fileError}
+                    </div>
+                  )}
                   <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                     <span className="text-white font-semibold text-sm">Change</span>
                   </div>
@@ -272,6 +308,11 @@ function QuickSellPage() {
                 {submitError && (
                   <div className="p-3 bg-destructive/10 text-destructive text-sm font-semibold rounded-lg border border-destructive/20" role="alert">
                     {submitError}
+                  </div>
+                )}
+                {fileError && (
+                  <div className="p-3 bg-destructive/10 text-destructive text-sm font-semibold rounded-lg border border-destructive/20" role="alert">
+                    {fileError}
                   </div>
                 )}
                 {upload.isError && (

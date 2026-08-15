@@ -1,12 +1,10 @@
 import { useEffect, useState } from "react"
 import { createFileRoute, Link } from "@tanstack/react-router"
 import { useQuery } from "@tanstack/react-query"
-import { Button } from "@workspace/ui"
-import { ErrorAlert } from "@/components/error-alert"
+import { Button, Input } from "@workspace/ui"
 import { Price } from "@/components/price"
 import { SellerChip } from "@/components/seller-chip"
 import { Skeleton } from "@/components/skeleton"
-import { formInputClassName } from "@/components/form-field"
 import {
   formatAddressLines,
   formatOrderLabel,
@@ -44,7 +42,11 @@ export const Route = createFileRoute("/order/$id")({
 
 function readStoredEmail(): string {
   try {
-    return localStorage.getItem(EMAIL_KEY)?.trim() || ""
+    return (
+      sessionStorage.getItem(EMAIL_KEY)?.trim() ||
+      localStorage.getItem(EMAIL_KEY)?.trim() ||
+      ""
+    )
   } catch {
     return ""
   }
@@ -83,12 +85,13 @@ function OrderDetailPage() {
     }
   }, [emailFromSearch])
 
-  const { data, isLoading, isError, error, refetch, isFetching } = useQuery({
+  const { data, isLoading, isError, error, isFetching } = useQuery({
     queryKey: ["store", "order", id, submittedEmail || ""],
     queryFn: () =>
       getOrder(id, {
         email: submittedEmail || undefined,
       }),
+    enabled: !!submittedEmail,
     retry: false,
   })
 
@@ -189,7 +192,7 @@ function OrderDetailPage() {
               <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 Checkout email
               </span>
-              <input
+              <Input
                 type="email"
                 name="email"
                 autoComplete="email"
@@ -197,29 +200,17 @@ function OrderDetailPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
-                className={formInputClassName()}
+                className="min-h-11"
               />
             </label>
-            <div className="flex flex-wrap gap-2">
-              <Button
-                type="submit"
-                size="lg"
-                className="min-h-11 rounded-xl"
-                disabled={!email.trim() || isFetching}
-              >
-                {isFetching ? "Looking up…" : "View order"}
-              </Button>
-              <Button
-                type="button"
-                size="lg"
-                variant="outline"
-                className="min-h-11 rounded-xl"
-                onClick={() => void refetch()}
-                disabled={isFetching}
-              >
-                Retry
-              </Button>
-            </div>
+            <Button
+              type="submit"
+              size="lg"
+              className="min-h-11 w-full rounded-xl"
+              disabled={!email.trim() || isFetching}
+            >
+              {isFetching ? "Looking up…" : "View order"}
+            </Button>
           </form>
         </div>
       ) : null}
@@ -245,7 +236,7 @@ function OrderDetailPage() {
             <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               Checkout email
             </span>
-            <input
+            <Input
               type="email"
               name="email"
               autoComplete="email"
@@ -253,13 +244,13 @@ function OrderDetailPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@example.com"
-              className={formInputClassName()}
+              className="min-h-11"
             />
           </label>
           <Button
             type="submit"
             size="lg"
-            className="min-h-11 w-full rounded-xl sm:w-auto"
+            className="min-h-11 w-full rounded-xl"
             disabled={!email.trim() || isFetching}
           >
             {isFetching ? "Looking up…" : "View order"}

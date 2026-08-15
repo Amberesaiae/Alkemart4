@@ -76,7 +76,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
           const defaultPrice = variants[0]?.prices?.[0]?.amount || 0
           const defaultCurrency = variants[0]?.prices?.[0]?.currency_code || "ghs"
 
-          const offerSku = `AP-${productId.slice(0, 8)}`
+          const offerSku = `AP-${variantId.slice(-12)}`
           await createOffersWorkflow(req.scope).run({
             input: {
               offers: [{

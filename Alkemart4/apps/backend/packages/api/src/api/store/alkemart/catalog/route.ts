@@ -61,6 +61,7 @@ const HEAVY_OFFER_FIELDS = [
   "product.title",
   "product.handle",
   "product.thumbnail",
+  "product.created_at",
   // P1.2: no description on PLP cards — less IO / graph expansion
   "product.status",
   "product.categories.id",

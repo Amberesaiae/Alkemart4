@@ -1,85 +1,22 @@
 import { Link } from "@tanstack/react-router"
+import type { MosaicTile } from "@/lib/catalog-nav"
 import { cn } from "@/lib/utils"
 
-export type MosaicCategory = {
-  id: string
-  name: string
-  handle?: string | null
-}
-
 type Props = {
-  categories: MosaicCategory[]
+  tiles: MosaicTile[]
   className?: string
-  /** @deprecated slots are fixed to 4; kept for call-site compat */
-  limit?: number
 }
 
 /**
- * Home category mosaic — compact bento, aspect-ratio driven (no fixed 420px towers).
+ * Home category mosaic — compact bento driven by canonical mosaic art.
+ * Tiles come from resolveMosaicTiles (real categories + real photography).
  *
  * Mobile: 2×2 equal tiles
  * lg+: Pets | Food | Cosmetics/Electronics stack
  *
  * No inline styles. Accessible names on every tile. Focus-visible rings.
  */
-const MOSAIC_SLOTS = [
-  {
-    key: "pets",
-    title: "Pet Care",
-    handle: "pet-care",
-    photo: "/images/categories/pets.webp",
-    objectPos: "object-[center_20%]",
-    match: /pet|animal|\bdog\b|\bcats?\b/,
-    tall: true,
-  },
-  {
-    key: "food",
-    title: "Food",
-    handle: "food-groceries",
-    photo: "/images/categories/food.webp",
-    objectPos: "object-center",
-    match: /food|groc|agricult|kitchen|cook/,
-    tall: true,
-  },
-  {
-    key: "cosmetics",
-    title: "Personal Care",
-    handle: "health-beauty",
-    photo: "/images/categories/cosmetics.webp",
-    objectPos: "object-[center_25%]",
-    match: /beauty|personal|cosmetic|skin|makeup|hygiene|health/,
-    tall: false,
-  },
-  {
-    key: "electronics",
-    title: "Electronics",
-    handle: "phones-electronics",
-    photo: "/images/categories/electronics.webp",
-    objectPos: "object-center",
-    match: /electron|phone|tech|gadget|comput|device/,
-    tall: false,
-  },
-] as const
-
-function resolveSlots(categories: MosaicCategory[]) {
-  return MOSAIC_SLOTS.map((slot) => {
-    const hit =
-      categories.find((c) => (c.handle || "").toLowerCase() === slot.handle) ||
-      categories.find((c) =>
-        slot.match.test(`${c.name} ${c.handle ?? ""}`.toLowerCase()),
-      )
-    return {
-      ...slot,
-      id: hit?.id ?? `mosaic-${slot.key}`,
-      slug: hit?.handle || slot.handle,
-    }
-  })
-}
-
-export function CategoryMosaic({ categories, className }: Props) {
-  const tiles = resolveSlots(categories)
-  const [pets, food, cosmetics, electronics] = tiles
-
+export function CategoryMosaic({ tiles, className }: Props) {
   return (
     <section className={cn("space-y-3", className)} aria-labelledby="mosaic-heading">
       <div className="flex items-end justify-between gap-2">
@@ -95,29 +32,32 @@ export function CategoryMosaic({ categories, className }: Props) {
         </Link>
       </div>
 
-      <div
-        className={cn(
-          "mosaic-grid",
-          "grid grid-cols-2 gap-2.5 sm:gap-3",
-          "lg:grid-cols-3 lg:grid-rows-2 lg:gap-4",
-        )}
-      >
-        <Tile slot={pets} className="lg:row-span-2" />
-        <Tile slot={food} className="lg:row-span-2" />
-        <Tile slot={cosmetics} />
-        <Tile slot={electronics} />
-      </div>
+      {tiles.length ? (
+        <div
+          className={cn(
+            "mosaic-grid",
+            "grid grid-cols-2 gap-2.5 sm:gap-3",
+            "lg:grid-cols-3 lg:grid-rows-2 lg:gap-4",
+          )}
+        >
+          {tiles.map((slot, i) => (
+            <Tile
+              key={slot.id}
+              slot={slot}
+              className={i < 2 ? "lg:row-span-2" : undefined}
+            />
+          ))}
+        </div>
+      ) : null}
     </section>
   )
 }
-
-type Slot = ReturnType<typeof resolveSlots>[number]
 
 function Tile({
   slot,
   className,
 }: {
-  slot: Slot
+  slot: MosaicTile
   className?: string
 }) {
   return (

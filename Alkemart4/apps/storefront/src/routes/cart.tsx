@@ -130,7 +130,6 @@ function CartPage() {
                   ) : (
                     <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                       Items
-                      {!group.seller ? " (seller not on cart line)" : ""}
                     </span>
                   )}
                   <span className="text-xs text-muted-foreground">

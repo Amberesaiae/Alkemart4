@@ -27,6 +27,12 @@ export type ListingCategory = {
   handle?: string | null
 }
 
+export type ListingSubCategory = {
+  id: string
+  label: string
+  handle: string | null
+}
+
 export type ListingSellerOpt = {
   handle: string
   name: string
@@ -37,6 +43,8 @@ type Props = {
   activeCategorySlug: string
   departmentName: string
   categories: ListingCategory[]
+  /** Real child categories of the active department (empty when flat). */
+  subCategories?: ListingSubCategory[]
   sellers: ListingSellerOpt[]
   state: ListingFilterState
   onChange: (next: ListingFilterState) => void
@@ -102,6 +110,7 @@ export function ListingFilters({
   activeCategorySlug,
   departmentName,
   categories,
+  subCategories = [],
   sellers,
   state,
   onChange,
@@ -176,6 +185,30 @@ export function ListingFilters({
                         <RadioDot on={on} />
                         {c.name}
                       </Link>
+                      {on && subCategories.length > 0 ? (
+                        <ul className="ml-4 space-y-1 border-l border-black/15 pl-2 type-sm">
+                          {subCategories.map((sub) => {
+                            const subSlug = sub.handle || sub.id
+                            const subOn = activeCategorySlug === subSlug
+                            return (
+                              <li key={sub.id}>
+                                <Link
+                                  to="/categories/$slug"
+                                  params={{ slug: subSlug }}
+                                  className={cn(
+                                    "flex min-h-10 items-center gap-2 rounded-lg px-2 py-1.5 transition",
+                                    subOn
+                                      ? "bg-black/15 font-bold"
+                                      : "hover:bg-black/10",
+                                  )}
+                                >
+                                  {sub.label}
+                                </Link>
+                              </li>
+                            )
+                          })}
+                        </ul>
+                      ) : null}
                     </li>
                   )
                 })}

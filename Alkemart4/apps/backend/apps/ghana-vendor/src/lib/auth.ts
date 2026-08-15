@@ -65,6 +65,10 @@ export function useRegister() {
       }
       const sellerId = sellerData.seller.id
       setActiveSellerId(sellerId)
+      // The register token has an empty actor_id (no member existed yet). Re-login to
+      // obtain a token carrying the freshly-created member id before binding the seller,
+      // otherwise /vendor/sellers/select rejects the session with 401.
+      await authApi.login(payload.email, payload.password)
       await sellerApi.select(sellerId)
       return sellerData
     },

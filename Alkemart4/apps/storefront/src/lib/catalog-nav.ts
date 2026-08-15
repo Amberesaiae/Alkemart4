@@ -1,129 +1,189 @@
 /**
- * Production catalog navigation — API data only.
- * No demo seed, no invented categories or products.
+ * Canonical catalog taxonomy for navigation.
+ *
+ * Single source of truth: every handle that ships in the marketplace maps to
+ * one display label + one icon + optional mosaic art. Rail, mosaic, offer tabs
+ * and PLP all derive from CATEGORY_META — no per-component regex tables.
+ *
+ * Data is API-only: resolvers never invent categories. Unlisted handles
+ * (e.g. lab categories) still render with their real name and a generic icon.
  */
+import { categoryIconId, type IconId } from "@/design/icons"
 
 export type NavCategory = {
   id: string
   name: string
   handle?: string | null
+  rank?: number | null
 }
 
-/** Preferred department order for rail (labels from real API when present). */
-const RAIL_ORDER: ReadonlyArray<{ handle: string; label: string; match: RegExp }> =
-  [
-    {
-      handle: "phones-electronics",
-      label: "Electronics",
-      match: /electron|phone|tech|gadget|comput|device/,
-    },
-    {
-      handle: "food-groceries",
-      label: "Food",
-      match: /food|groc|agricult|kitchen|cook|spice|oil|rice/,
-    },
-    {
-      handle: "beverages",
-      label: "Beverages",
-      match: /bever|drink|water|juice|soda/,
-    },
-    {
-      handle: "health-beauty",
-      label: "Personal Care",
-      match: /beauty|personal|cosmetic|skin|makeup|hygiene|health/,
-    },
-    {
-      handle: "pet-care",
-      label: "Pet Care",
-      match: /pet|animal|\bdog\b|\bcats?\b/,
-    },
-    {
-      handle: "baby-kids",
-      label: "Baby Care",
-      match: /baby|kid|child|infant|toddler/,
-    },
-  ]
-
-const MOSAIC_ORDER = [
-  "pet-care",
-  "food-groceries",
-  "health-beauty",
-  "phones-electronics",
-] as const
-
-/**
- * Department rail: real API categories only, ordered by marketplace priority.
- * Empty if API returns no categories — never invents demo rows.
- */
-export function resolveRailCategories(api: NavCategory[]): NavCategory[] {
-  if (!api.length) return []
-
-  const used = new Set<string>()
-  const out: NavCategory[] = []
-
-  for (const slot of RAIL_ORDER) {
-    const hit =
-      api.find(
-        (c) =>
-          (c.handle || "").toLowerCase() === slot.handle && !used.has(c.id),
-      ) ||
-      api.find(
-        (c) =>
-          !used.has(c.id) &&
-          slot.match.test(`${c.name} ${c.handle ?? ""}`.toLowerCase()),
-      )
-    if (hit) {
-      used.add(hit.id)
-      out.push({
-        id: hit.id,
-        name: slot.label,
-        handle: hit.handle || slot.handle,
-      })
-    }
+export type CategoryMeta = {
+  /** Canonical short label for nav chips / tabs. */
+  label: string
+  icon: IconId
+  /** Mosaic bento slot art (only categories with real photography). */
+  mosaic?: {
+    photo: string
+    objectPos: string
+    tall?: boolean
   }
+}
 
-  // Append remaining real categories (not already on rail)
-  for (const c of api) {
-    if (used.has(c.id)) continue
-    out.push(c)
-  }
+/** Canonical handle → display metadata for every marketplace category. */
+export const CATEGORY_META: Readonly<Record<string, CategoryMeta>> = {
+  "phones-electronics": {
+    label: "Electronics",
+    icon: "cat-electronics",
+    mosaic: {
+      photo: "/images/categories/electronics.webp",
+      objectPos: "object-center",
+      tall: false,
+    },
+  },
+  "food-groceries": {
+    label: "Food",
+    icon: "cat-food",
+    mosaic: {
+      photo: "/images/categories/food.webp",
+      objectPos: "object-center",
+      tall: true,
+    },
+  },
+  beverages: {
+    label: "Beverages",
+    icon: "cat-beverages",
+  },
+  "health-beauty": {
+    label: "Personal Care",
+    icon: "cat-personal-care",
+    mosaic: {
+      photo: "/images/categories/cosmetics.webp",
+      objectPos: "object-[center_20%]",
+      tall: false,
+    },
+  },
+  "pet-care": {
+    label: "Pet Care",
+    icon: "cat-pet-care",
+    mosaic: {
+      photo: "/images/categories/pets.webp",
+      objectPos: "object-[center_15%]",
+      tall: true,
+    },
+  },
+  "baby-kids": {
+    label: "Baby Care",
+    icon: "cat-baby",
+  },
+  "fashion-apparel": {
+    label: "Fashion & Apparel",
+    icon: "cat-fashion",
+  },
+  "home-living": {
+    label: "Home & Living",
+    icon: "cat-home",
+  },
+  agriculture: {
+    label: "Agriculture",
+    icon: "cat-all",
+  },
+  automotive: {
+    label: "Automotive",
+    icon: "cat-all",
+  },
+  services: {
+    label: "Services",
+    icon: "cat-all",
+  },
+  other: {
+    label: "Other",
+    icon: "cat-all",
+  },
+}
 
-  return out
+export function metaFor(handle?: string | null): CategoryMeta | undefined {
+  if (!handle) return undefined
+  return CATEGORY_META[handle.toLowerCase()]
+}
+
+export function iconForCategory(
+  name: string,
+  handle?: string | null,
+): IconId {
+  return metaFor(handle)?.icon ?? categoryIconId(name, handle)
+}
+
+export type RailCategory = {
+  id: string
+  name: string
+  handle?: string | null
+  icon: IconId
 }
 
 /**
- * Home mosaic tiles from real categories only (up to 4 preferred handles).
- * Falls back to first API categories if preferred handles missing.
+ * Department rail — every real top-level category, in rank order.
+ * Label/icon from CATEGORY_META when the handle is canonical, otherwise the
+ * category's real API name with a generic icon. Never invents rows.
  */
-export function resolveMosaicCategories(api: NavCategory[]): NavCategory[] {
+export function resolveRailCategories(api: NavCategory[]): RailCategory[] {
   if (!api.length) return []
+  const ranked = [...api].sort((a, b) => (a.rank ?? 0) - (b.rank ?? 0))
+  return ranked
+    .filter((c) => c.id && c.name)
+    .map((c) => ({
+      id: c.id,
+      name: metaFor(c.handle)?.label ?? c.name,
+      handle: c.handle ?? null,
+      icon: iconForCategory(c.name, c.handle),
+    }))
+}
 
+export type MosaicTile = {
+  id: string
+  slug: string
+  title: string
+  photo: string
+  objectPos: string
+  tall: boolean
+}
+
+/**
+ * Home mosaic — real categories with real photography, in a fixed bento
+ * composition (pet + food tall, cosmetics + electronics short). Skips handles
+ * that are missing from the API; never swaps art for unrelated categories.
+ */
+export function resolveMosaicTiles(
+  api: NavCategory[],
+  order: readonly string[] = [
+    "pet-care",
+    "food-groceries",
+    "health-beauty",
+    "phones-electronics",
+  ],
+): MosaicTile[] {
+  if (!api.length) return []
   const byHandle = new Map(
     api
       .filter((c) => c.handle)
       .map((c) => [(c.handle || "").toLowerCase(), c] as const),
   )
-  const picked: NavCategory[] = []
+  const tiles: MosaicTile[] = []
   const used = new Set<string>()
-
-  for (const h of MOSAIC_ORDER) {
-    const hit = byHandle.get(h)
-    if (hit && !used.has(hit.id)) {
-      used.add(hit.id)
-      picked.push(hit)
-    }
+  for (const h of order) {
+    const meta = metaFor(h)
+    const cat = byHandle.get(h)
+    if (!meta?.mosaic || !cat || used.has(cat.id)) continue
+    used.add(cat.id)
+    tiles.push({
+      id: cat.id,
+      slug: cat.handle || cat.id,
+      title: meta.label,
+      photo: meta.mosaic.photo,
+      objectPos: meta.mosaic.objectPos,
+      tall: meta.mosaic.tall ?? false,
+    })
   }
-
-  if (picked.length >= 4) return picked.slice(0, 4)
-
-  for (const c of api) {
-    if (used.has(c.id)) continue
-    used.add(c.id)
-    picked.push(c)
-    if (picked.length >= 4) break
-  }
-
-  return picked
+  return tiles
 }
 
 export function resolveBrowseCategory(

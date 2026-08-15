@@ -67,10 +67,10 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
         "shipping_address.*",
         "items.id",
         "items.title",
-        "items.quantity",
         "items.unit_price",
         "items.thumbnail",
         "items.product_id",
+        "items.detail.quantity",
       ],
       filters: { id: orderId },
     })

@@ -5,6 +5,12 @@ export type PlatformStats = {
   active_sellers: number
   catalog_size: number
   gmv_last_30_days?: Array<{ date: string; amount: number }>
+  top_products?: Array<{
+    title: string
+    thumbnail: string | null
+    units: number
+    gmv: number
+  }>
 }
 
 // Product Moderation
@@ -430,6 +436,75 @@ export const adminSellers = {
 
   setCommission: (id: string, commission_bps: number) =>
     apiFetch(`/admin/sellers/${id}/commission`, { method: "POST", body: JSON.stringify({ commission_bps }) }),
+}
+
+// Categories (taxonomy management)
+export type AdminCategory = {
+  id: string
+  name: string
+  description: string | null
+  handle: string | null
+  is_active: boolean
+  is_internal: boolean
+  is_restricted: boolean
+  rank: number | null
+  parent_category_id: string | null
+  created_at: string
+  updated_at: string
+  category_children?: AdminCategory[]
+  parent_category?: { id: string; name: string; handle: string } | null
+}
+
+export type AdminCategoryInput = {
+  name: string
+  description?: string
+  handle?: string
+  is_active?: boolean
+  is_internal?: boolean
+  rank?: number
+  parent_category_id?: string | null
+}
+
+export const adminCategories = {
+  list: (params?: { is_internal?: boolean; parent_category_id?: string | null; q?: string }) => {
+    const sp = new URLSearchParams()
+    if (params?.is_internal !== undefined) sp.set("is_internal", String(params.is_internal))
+    if (params?.parent_category_id) sp.set("parent_category_id", params.parent_category_id)
+    if (params?.q) sp.set("q", params.q)
+    return apiFetch<{ product_categories: AdminCategory[]; count: number }>(
+      `/admin/product-categories?${sp}`,
+    )
+  },
+  create: (data: AdminCategoryInput) =>
+    apiFetch<{ product_category: AdminCategory }>("/admin/product-categories", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  update: (id: string, data: Partial<AdminCategoryInput>) =>
+    apiFetch<{ product_category: AdminCategory }>(
+      `/admin/product-categories/${id}`,
+      { method: "POST", body: JSON.stringify(data) },
+    ),
+  remove: (id: string) =>
+    apiFetch<{ id: string; deleted: boolean }>(
+      `/admin/product-categories/${id}`,
+      { method: "DELETE" },
+    ),
+  linkProducts: (id: string, add: string[], remove: string[]) =>
+    apiFetch<{ id: string }>(`/admin/product-categories/${id}/products`, {
+      method: "POST",
+      body: JSON.stringify({ add, remove }),
+    }),
+  // Lightweight product snapshot for per-category counts + assignment.
+  productsWithCategories: () =>
+    apiFetch<{
+      products: Array<{
+        id: string
+        title: string
+        thumbnail?: string | null
+        categories?: Array<{ id: string }>
+      }>
+    }>("/admin/products?limit=1000&fields=id,title,thumbnail,categories.id,categories.name"),
 }
 
 // Order detail

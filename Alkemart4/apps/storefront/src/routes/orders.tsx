@@ -5,10 +5,9 @@ import { formatOrderLabel, listMyOrders, maskOrderId } from "@/lib/orders"
 import { getSessionCustomer } from "@/lib/auth"
 import { listRecentOrderIds } from "@/lib/recent-orders"
 import { Skeleton } from "@/components/skeleton"
-import { Button } from "@workspace/ui"
+import { Button, Input } from "@workspace/ui"
 import { EmptyState } from "@/components/empty-state"
 import { Price } from "@/components/price"
-import { formInputClassName } from "@/components/form-field"
 
 /**
  * Orders — production RBAC fix (2026-07-19):
@@ -87,28 +86,28 @@ function OrdersPage() {
             goToOrder(lookupId, lookupEmail)
           }}
         >
-          <input
+          <Input
             type="text"
             value={lookupId}
             onChange={(e) => setLookupId(e.target.value)}
             placeholder="Order reference"
-            className={formInputClassName()}
+            className="min-h-11"
             aria-label="Order reference"
             autoComplete="off"
             spellCheck={false}
           />
-          <input
+          <Input
             type="email"
             value={lookupEmail}
             onChange={(e) => setLookupEmail(e.target.value)}
             placeholder="Checkout email"
-            className={formInputClassName()}
+            className="min-h-11"
             aria-label="Checkout email"
             autoComplete="email"
           />
           <Button
             type="submit"
-            className="min-h-11 shrink-0 rounded-xl px-6 sm:self-start"
+            className="min-h-11 w-full rounded-xl"
             disabled={!lookupId.trim()}
           >
             Open

@@ -1,13 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router"
 import { useState } from "react"
 import { useQueryClient } from "@tanstack/react-query"
-import { useProducts, useProposeProduct } from "../lib/hooks"
+import { useProducts, useProposeProduct } from "../../lib/hooks"
 import { Card, Button, Badge, Skeleton } from "@workspace/ui"
 import { PlusCircle, CheckCircle, Clock, AlertCircle } from "lucide-react"
-import { PageShell } from "../components/page-shell"
-import { PageHeader } from "../components/page-header"
+import { PageShell } from "../../components/page-shell"
+import { PageHeader } from "../../components/page-header"
 
-export const Route = createFileRoute('/products')({
+export const Route = createFileRoute('/products/')({
   component: ProductsPage,
 })
 

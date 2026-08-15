@@ -7,6 +7,8 @@ import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { processProductImages } from "../lib/media/process-product-images.ts"
 import { logger } from "../lib/logger.ts"
 import { asList } from "../lib/graph-utils.ts"
+
+const RETRY_FAILED_COOLDOWN_MS = 30 * 60 * 1000
 export default async function processProductImagesJob(
   container: MedusaContainer,
 ) {
@@ -29,11 +31,21 @@ export default async function processProductImagesJob(
       const alk = (meta.alkemart as Record<string, unknown>) || {}
       const media = (alk.media as Record<string, unknown>) || {}
       const status = String(media.derivatives_status || "")
-      if (status === "ready" || status === "skipped" || status === "failed") {
+      if (status === "ready" || status === "skipped") {
         continue
       }
-      // pending or never processed with a thumbnail
-      if (status === "pending" || (p.thumbnail && !status)) {
+      if (status === "failed") {
+        const last = new Date(String(media.derivatives_at || 0)).getTime()
+        if (Number.isFinite(last) && Date.now() - last < RETRY_FAILED_COOLDOWN_MS) {
+          continue
+        }
+      }
+      // pending, failed past cooldown, or never processed with a thumbnail
+      if (
+        status === "pending" ||
+        status === "failed" ||
+        (p.thumbnail && !status)
+      ) {
         candidates.push(id)
       }
     }

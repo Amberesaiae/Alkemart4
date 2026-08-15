@@ -35,6 +35,7 @@
   "dependencies": {},
   "workspaces": [
     "apps/backend",
+    "apps/backend/packages/api",
     "apps/backend/apps/admin",
     "apps/backend/apps/ghana-vendor",
     "packages/shared",

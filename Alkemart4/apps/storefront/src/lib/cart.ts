@@ -1,3 +1,4 @@
+import { getBackendUrl, getPublishableKey } from "./env"
 import { commerceContext, getMedusaClient } from "./medusa"
 import type { SellerRef } from "@/components/seller-chip"
 
@@ -15,6 +16,8 @@ export type CartLine = {
   currencyCode: string | null
   thumbnail?: string | null
   productId?: string | null
+  /** Offer on the line when Mercur hydrates it — never invented. */
+  offerId?: string | null
   seller?: SellerRef | null
 }
 
@@ -95,6 +98,7 @@ function mapCart(raw: Record<string, unknown>): StoreCart {
           : typeof product?.thumbnail === "string"
             ? product.thumbnail
             : null
+      const lineMeta = line.metadata as Record<string, unknown> | undefined
       return {
         id: String(line.id),
         title: String(line.title ?? line.product_title ?? "Item"),
@@ -109,6 +113,10 @@ function mapCart(raw: Record<string, unknown>): StoreCart {
             : typeof product?.id === "string"
               ? product.id
               : null,
+        offerId:
+          typeof lineMeta?.offer_id === "string"
+            ? lineMeta.offer_id
+            : null,
         seller: extractLineSeller(line),
       }
     }),
@@ -174,6 +182,50 @@ export async function ensureCartId(): Promise<string> {
   return createCart()
 }
 
+/**
+ * Cart lines carry offer_id in metadata but the store cart API does not
+ * hydrate seller. Join seller from the store offers API by offer id —
+ * never invent seller names.
+ */
+async function enrichLineSellers(items: CartLine[]): Promise<CartLine[]> {
+  const need = items.filter((l) => !l.seller && l.offerId)
+  if (!need.length) return items
+  try {
+    const base = getBackendUrl()
+    const pk = getPublishableKey()
+    const res = await fetch(`${base}/store/offers?limit=100`, {
+      headers: {
+        Accept: "application/json",
+        "x-publishable-api-key": pk,
+      },
+    })
+    if (!res.ok) return items
+    const data = (await res.json()) as {
+      offers?: {
+        id?: string
+        seller?: { id?: string; name?: string; handle?: string } | null
+      }[]
+    }
+    const byOffer = new Map<string, SellerRef>()
+    for (const o of data.offers ?? []) {
+      const name = o.seller?.name?.trim()
+      if (!name) continue
+      byOffer.set(o.id ?? "", {
+        id: o.seller?.id ?? null,
+        name,
+        handle: o.seller?.handle ?? null,
+      })
+    }
+    return items.map((l) => {
+      if (l.seller || !l.offerId) return l
+      const seller = byOffer.get(l.offerId)
+      return seller ? { ...l, seller } : l
+    })
+  } catch {
+    return items
+  }
+}
+
 export async function retrieveCart(cartId?: string): Promise<StoreCart | null> {
   const id = cartId ?? readStoredCartId()
   if (!id) return null
@@ -182,7 +234,9 @@ export async function retrieveCart(cartId?: string): Promise<StoreCart | null> {
     const { cart } = await sdk.store.cart.retrieve(id, {
       fields: CART_FIELDS,
     } as never)
-    return mapCart(cart as unknown as Record<string, unknown>)
+    const mapped = mapCart(cart as unknown as Record<string, unknown>)
+    mapped.items = await enrichLineSellers(mapped.items)
+    return mapped
   } catch (err) {
     const status = (err as { status?: number })?.status
     if (status === 404) {

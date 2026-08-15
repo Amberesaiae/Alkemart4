@@ -107,7 +107,6 @@ export default defineConfig({
           if (id.includes("posthog")) return "vendor-posthog"
           if (id.includes("@medusajs") || id.includes("medusa"))
             return "vendor-medusa"
-          if (id.includes("@sentry")) return "vendor-sentry"
           if (id.includes("@tanstack")) return "vendor-tanstack"
           if (
             id.includes("react-dom") ||

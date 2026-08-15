@@ -1,12 +1,4 @@
-import { cn } from "@/lib/utils"
 import { Input, PasswordInput, Select } from "@workspace/ui"
-
-const inputClass =
-  ""
-
-export function formInputClassName(extra?: string) {
-  return cn(inputClass, extra)
-}
 
 type FormFieldProps = {
   label: string

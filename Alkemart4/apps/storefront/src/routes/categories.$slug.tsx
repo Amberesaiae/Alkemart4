@@ -75,18 +75,19 @@ function parseSort(v: unknown): ListingSort | undefined {
 
 const PAGE = 24
 
-/** Sub-category labels per department (imgi_11/12 strip). */
-function subCategoriesFor(slug: string, name: string): string[] {
-  const s = slug.toLowerCase()
-  if (/pet/.test(s)) return ["All Pet Care", "Pet Food", "Pet Supplies"]
-  if (/food|groc/.test(s)) return ["All Food", "Snacks & Chips", "Oils & Cooking", "Dairy"]
-  if (/electron|phone/.test(s))
-    return ["All Electronics", "TVs & Audio", "Mobile Phones", "Computers"]
-  if (/beauty|personal|health/.test(s))
-    return ["All Personal Care", "Skin Care", "Hair Care", "Hygiene"]
-  if (/bever/.test(s)) return ["All Beverages", "Water", "Juice", "Soft Drinks"]
-  if (/baby/.test(s)) return ["All Baby Care", "Diapers", "Feeding", "Toys"]
-  return [`All ${name}`, name]
+/**
+ * Sub-category chips — real children from the store taxonomy only.
+ * Returns [] when a department has no child categories, letting the filter
+ * strip omit the subcategory fieldset entirely. Never invents subcategories.
+ */
+function subCategoriesFor(category: {
+  id: string
+  handle?: string | null
+} | null, all: { id: string; name: string; handle?: string | null; parentCategoryId?: string | null }[]): { id: string; label: string; handle: string | null }[] {
+  if (!category) return []
+  return all
+    .filter((c) => c.parentCategoryId === category.id)
+    .map((c) => ({ id: c.id, label: c.name, handle: c.handle ?? null }))
 }
 
 /**
@@ -143,12 +144,25 @@ function BrowsePage() {
   const categoryId = category?.id || undefined
   const categoryHandle = category?.handle ?? (!isAll ? slug : undefined)
 
+  const subCats = useMemo(
+    () => subCategoriesFor(category ?? null, categoriesQ.data ?? []),
+    [category, categoriesQ.data],
+  )
+
+  // Sub-category selects a real child category — refetch the catalog with its
+  // exact id/handle (never a client-side text match on invented labels).
+  const selectedSub = subCats.find((s) => s.id === subCategory)
+  const effectiveCategoryId = selectedSub ? selectedSub.id : categoryId
+  const effectiveCategoryHandle = selectedSub
+    ? selectedSub.handle ?? selectedSub.id
+    : categoryHandle
+
   const discoveryQ = useQuery({
     queryKey: [
       "store",
       "browse-discovery",
       slug,
-      categoryHandle,
+      effectiveCategoryHandle,
       sellerFilters.join(","),
       limit,
     ],
@@ -158,7 +172,9 @@ function BrowsePage() {
         limit,
         filters: {
           category_handles:
-            !isAll && categoryHandle ? [categoryHandle] : undefined,
+            !isAll && effectiveCategoryHandle
+              ? [effectiveCategoryHandle]
+              : undefined,
           seller_handles: sellerFilters.length ? sellerFilters : undefined,
         },
       }),
@@ -168,11 +184,11 @@ function BrowsePage() {
   const useMeili = discoveryQ.data?.engine === "meilisearch"
 
   const productsQ = useQuery({
-    queryKey: ["store", "products", "browse", slug, categoryId, limit],
+    queryKey: ["store", "products", "browse", slug, effectiveCategoryId, limit],
     queryFn: () =>
       listStoreProducts({
         limit: Math.max(limit, 48),
-        categoryId: isAll ? undefined : categoryId,
+        categoryId: isAll ? undefined : effectiveCategoryId,
       }),
     enabled:
       (isAll || categoriesQ.isSuccess || categoriesQ.isError) &&
@@ -195,19 +211,6 @@ function BrowsePage() {
     if (!useMeili) list = filterListingBySellers(list, sellerFilters)
     list = filterListingByPrice(list, priceMin, priceMax)
     list = filterListingByRating(list, minRating)
-    // Sub-category: soft client match on categoryLabel / title until nested taxonomy API
-    if (subCategory && subCategory !== "all") {
-      const needle = subCategory.toLowerCase()
-      list = list.filter((p) => {
-        const blob =
-          `${p.categoryLabel ?? ""} ${p.title} ${p.description ?? ""}`.toLowerCase()
-        const parts = needle
-          .replace(/^all\s+/, "")
-          .split(/\s+|&/)
-          .filter(Boolean)
-        return parts.some((part) => part.length > 2 && blob.includes(part))
-      })
-    }
     return sortListingProducts(list, sort).slice(0, limit)
   }, [
     rawProducts,
@@ -218,7 +221,6 @@ function BrowsePage() {
     priceMin,
     priceMax,
     minRating,
-    subCategory,
   ])
 
   const count = useMeili
@@ -381,7 +383,7 @@ function BrowsePage() {
           filterStrip={
             <ListingFilterStrip
               departmentLabel={isAll ? "Catalog" : title}
-              subCategories={subCategoriesFor(slug, title)}
+              subCategories={subCats}
               state={stripState}
               onChange={applyStrip}
               locationEnabled={false}
@@ -425,6 +427,7 @@ function BrowsePage() {
               activeCategorySlug={isAll ? "all" : slug}
               departmentName={isAll ? "All" : title}
               categories={categories}
+              subCategories={subCats}
               sellers={sellerOpts}
               state={filterState}
               onChange={applySidebarFilters}

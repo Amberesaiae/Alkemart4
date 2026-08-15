@@ -1,4 +1,5 @@
 import { IconSafe, type IconId } from "@/design/icons"
+import { metaFor } from "@/lib/catalog-nav"
 import { cn } from "@/lib/utils"
 
 export type OfferTabId =
@@ -14,21 +15,30 @@ export type OfferTab = {
   id: OfferTabId
   label: string
   icon: IconId
+  /** Category handle this tab represents (filtered out when absent). */
+  handle: string
 }
 
 /**
  * Mowafer imgi_10 Last Offers strip:
  * 6 category icons under title (Electronics…BabyCare) — ICONPAK2 line icons.
+ * Labels + icons come from the canonical CATEGORY_META table.
  * Right: sort caption + grid/list view toggles.
  */
-export const OFFER_TABS: OfferTab[] = [
-  { id: "electronics", label: "Electronics", icon: "cat-electronics" },
-  { id: "food", label: "Food", icon: "cat-food" },
-  { id: "beverages", label: "Beverages", icon: "cat-beverages" },
-  { id: "personal", label: "Personal Care", icon: "cat-personal-care" },
-  { id: "pet", label: "Pet Care", icon: "cat-pet-care" },
-  { id: "baby", label: "Baby Care", icon: "cat-baby" },
-]
+export const OFFER_TABS: OfferTab[] = (
+  [
+    { id: "electronics", handle: "phones-electronics" },
+    { id: "food", handle: "food-groceries" },
+    { id: "beverages", handle: "beverages" },
+    { id: "personal", handle: "health-beauty" },
+    { id: "pet", handle: "pet-care" },
+    { id: "baby", handle: "baby-kids" },
+  ] as const
+).map((t) => ({
+  ...t,
+  label: metaFor(t.handle)?.label ?? t.handle,
+  icon: metaFor(t.handle)?.icon ?? ("cat-all" as IconId),
+}))
 
 export type OfferSort = "featured" | "price_asc" | "price_desc" | "newest"
 export type OfferView = "grid" | "list"
@@ -41,6 +51,8 @@ type Props = {
   view?: OfferView
   onViewChange?: (v: OfferView) => void
   className?: string
+  /** Override the fixed OFFER_TABS list (e.g. only real marketplace categories). */
+  tabs?: OfferTab[]
 }
 
 export function LastOffersTabs({
@@ -51,6 +63,7 @@ export function LastOffersTabs({
   view = "grid",
   onViewChange,
   className,
+  tabs = OFFER_TABS,
 }: Props) {
   return (
     <div
@@ -64,7 +77,7 @@ export function LastOffersTabs({
         aria-label="Filter offers by category"
         className="scrollbar-none flex items-center gap-1 overflow-x-auto"
       >
-        {OFFER_TABS.map((tab) => {
+        {tabs.map((tab) => {
           const isOn = active === tab.id
           return (
             <button

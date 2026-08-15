@@ -264,6 +264,7 @@ export async function POST(req: SellerReq, res: MedusaResponse) {
           title,
           description: description || undefined,
           thumbnail: image_url || undefined,
+          images: image_url ? [{ url: image_url }] : undefined,
           category_ids: category_id ? [category_id] : undefined,
           status: "proposed",
           seller_ids: [sellerId],
@@ -344,7 +345,7 @@ export async function POST(req: SellerReq, res: MedusaResponse) {
           `Created product is missing the "${spec.title}" variation.`,
         )
       }
-      const offerSku = `QL-${String(product.id).slice(0, 8)}-${i + 1}`
+      const offerSku = `QL-${String(variantId).slice(-12)}-${i + 1}`
       return {
         seller_id: sellerId,
         created_by: memberId,
@@ -382,7 +383,20 @@ export async function POST(req: SellerReq, res: MedusaResponse) {
     })
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Quick list failed"
-    logger.error("[alkemart] quick-list error", { sellerId, error: msg })
+    logger.error("[alkemart] quick-list error", {
+      sellerId,
+      error: msg,
+      errorType: typeof e,
+      isError: e instanceof Error,
+      stack: e instanceof Error ? e.stack : undefined,
+      json: (() => {
+        try {
+          return JSON.stringify(e)
+        } catch {
+          return undefined
+        }
+      })(),
+    })
 
     // Clean up partial state (product + seller link only if offer step failed)
     if (createdProductId) {

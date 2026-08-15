@@ -284,7 +284,11 @@ export function useCategories() {
 export function useProductOffers(productId: string) {
   return useQuery({
     queryKey: ["vendor", "offers", productId],
-    queryFn: () => offers.list({ product_id: productId, limit: 50 }),
+    queryFn: async () => {
+      const res = await offers.list({ limit: 100 })
+      const productOffers = res.offers.filter(o => o.product_id === productId)
+      return { ...res, offers: productOffers, count: productOffers.length }
+    },
     enabled: !!productId,
     staleTime: 30_000,
   })

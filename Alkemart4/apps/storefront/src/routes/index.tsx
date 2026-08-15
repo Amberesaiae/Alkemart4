@@ -14,7 +14,7 @@ import { Skeleton } from "@/components/skeleton"
 import { getMercurVendorUrl } from "@/lib/env"
 import { trackHomepageViewed } from "@/lib/analytics"
 import { fetchFeaturedProducts, listStoreCategories, listStoreProducts } from "@/lib/products"
-import { resolveMosaicCategories } from "@/lib/catalog-nav"
+import { resolveMosaicTiles } from "@/lib/catalog-nav"
 import {
   absoluteUrl,
   defaultDescription,
@@ -53,7 +53,7 @@ function HomePage() {
   })
 
   const mosaic = useMemo(
-    () => resolveMosaicCategories(catsQ.data ?? []),
+    () => resolveMosaicTiles(catsQ.data ?? []),
     [catsQ.data],
   )
 
@@ -61,6 +61,19 @@ function HomePage() {
     () => productsQ.data?.products ?? [],
     [productsQ.data?.products],
   )
+
+  const recent = useMemo(() => {
+    const list = [...featured]
+    list.sort((a, b) => {
+      const at = a.createdAt ? Date.parse(a.createdAt) : Number.NaN
+      const bt = b.createdAt ? Date.parse(b.createdAt) : Number.NaN
+      if (Number.isFinite(at) && Number.isFinite(bt)) return bt - at
+      if (Number.isFinite(at)) return -1
+      if (Number.isFinite(bt)) return 1
+      return 0
+    })
+    return list.slice(0, 4)
+  }, [featured])
 
   const sellUrl = useMemo(() => {
     try {
@@ -139,7 +152,7 @@ function HomePage() {
         </div>
       ) : null}
       {mosaic.length > 0 ? (
-        <CategoryMosaic categories={mosaic} limit={4} />
+        <CategoryMosaic tiles={mosaic} />
       ) : null}
 
       {featuredQ.data && featuredQ.data.length > 0 ? (
@@ -153,7 +166,22 @@ function HomePage() {
         </section>
       ) : null}
 
-      <HomeLastOffers products={featured} loading={loadingOffers} />
+      {!loadingOffers && recent.length > 0 ? (
+        <section aria-label="Recently added products" className="space-y-4">
+          <h2 className="type-section text-foreground">Recently Added</h2>
+          <ProductGridShell>
+            {recent.map((p) => (
+              <ProductCard key={p.id} product={p} size="tile" />
+            ))}
+          </ProductGridShell>
+        </section>
+      ) : null}
+
+      <HomeLastOffers
+        products={featured}
+        categories={catsQ.data ?? []}
+        loading={loadingOffers}
+      />
       {!loadingOffers && featured.length === 0 && mosaic.length === 0 ? (
         <p className="text-center text-sm text-muted-foreground">
           No listings yet.{" "}

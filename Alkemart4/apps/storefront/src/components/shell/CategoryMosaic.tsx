@@ -1,81 +1,17 @@
 import { Link } from "@tanstack/react-router"
+import type { MosaicTile } from "@/lib/catalog-nav"
 import { cn } from "@/lib/utils"
 
-export type MosaicCategory = {
-  id: string
-  name: string
-  handle?: string | null
-}
-
 type Props = {
-  categories: MosaicCategory[]
+  tiles: MosaicTile[]
   className?: string
-  limit?: number
 }
 
 /**
- * Mowafer imgi_10 category mosaic — full-bleed photography only (no color panels).
- * Assets: public/images/categories/*.webp from ui/categories (high-res WebP).
- *
- *   Pets (tall) | Food (tall) | Cosmetics (short)
- *               |             | Electronics (short)
- *
- * Title is ONE line over the image with a light gradient for legibility.
+ * Full-bleed category mosaic driven by canonical mosaic art.
+ * Tiles come from resolveMosaicTiles (real categories + real photography).
  */
-const MOSAIC_SLOTS = [
-  {
-    key: "pets",
-    title: "Pets Care Category",
-    handle: "pet-care",
-    photo: "/images/categories/pets.webp",
-    objectPos: "object-[center_15%]",
-    match: /pet|animal|\bdog\b|\bcats?\b/,
-  },
-  {
-    key: "food",
-    title: "Food Category",
-    handle: "food-groceries",
-    photo: "/images/categories/food.webp",
-    objectPos: "object-center",
-    match: /food|groc|agricult|kitchen|cook/,
-  },
-  {
-    key: "cosmetics",
-    title: "Cosmetics Category",
-    handle: "health-beauty",
-    photo: "/images/categories/cosmetics.webp",
-    objectPos: "object-[center_20%]",
-    match: /beauty|personal|cosmetic|skin|makeup|hygiene|health/,
-  },
-  {
-    key: "electronics",
-    title: "Electronics Category",
-    handle: "phones-electronics",
-    photo: "/images/categories/electronics.webp",
-    objectPos: "object-center",
-    match: /electron|phone|tech|gadget|comput|device/,
-  },
-] as const
-
-function resolveSlots(categories: MosaicCategory[]) {
-  return MOSAIC_SLOTS.map((slot) => {
-    const hit =
-      categories.find((c) => (c.handle || "").toLowerCase() === slot.handle) ||
-      categories.find((c) =>
-        slot.match.test(`${c.name} ${c.handle ?? ""}`.toLowerCase()),
-      )
-    return {
-      ...slot,
-      id: hit?.id ?? `mosaic-${slot.key}`,
-      slug: hit?.handle || slot.handle,
-    }
-  })
-}
-
-export function CategoryMosaic({ categories, className }: Props) {
-  const tiles = resolveSlots(categories)
-  const [pets, food, cosmetics, electronics] = tiles
-
+export function CategoryMosaic({ tiles, className }: Props) {
   return (
     <section className={cn(className)} aria-label="Shop by category">
       <div
@@ -86,37 +22,29 @@ export function CategoryMosaic({ categories, className }: Props) {
           "lg:h-[min(440px,50vw)] lg:min-h-[420px]",
         )}
       >
-        <Tile
-          slot={pets}
-          tall
-          className="min-h-[240px] sm:min-h-[280px] lg:row-span-2 lg:min-h-0"
-        />
-        <Tile
-          slot={food}
-          tall
-          className="min-h-[240px] sm:min-h-[280px] lg:row-span-2 lg:min-h-0"
-        />
-        <Tile
-          slot={cosmetics}
-          className="min-h-[180px] sm:min-h-[200px] lg:min-h-0"
-        />
-        <Tile
-          slot={electronics}
-          className="min-h-[180px] sm:min-h-[200px] lg:min-h-0"
-        />
+        {tiles.map((slot, i) => (
+          <Tile
+            key={slot.id}
+            slot={slot}
+            tall={i < 2}
+            className={
+              i < 2
+                ? "min-h-[240px] sm:min-h-[280px] lg:row-span-2 lg:min-h-0"
+                : "min-h-[180px] sm:min-h-[200px] lg:min-h-0"
+            }
+          />
+        ))}
       </div>
     </section>
   )
 }
-
-type Slot = ReturnType<typeof resolveSlots>[number]
 
 function Tile({
   slot,
   className,
   tall,
 }: {
-  slot: Slot
+  slot: MosaicTile
   className?: string
   tall?: boolean
 }) {
@@ -131,7 +59,6 @@ function Tile({
         className,
       )}
     >
-      {/* Full-bleed high-res WebP — no color panel */}
       <img
         src={slot.photo}
         alt=""
@@ -148,7 +75,6 @@ function Tile({
         style={{ backgroundColor: "var(--muted)" }}
       />
 
-      {/* Soft scrim — CSS classes, no inline gradient */}
       <span
         className={cn(
           "pointer-events-none absolute inset-0 z-[1]",
@@ -157,7 +83,6 @@ function Tile({
         aria-hidden
       />
 
-      {/* Title — SINGLE LINE over photo */}
       <div
         className={cn(
           "relative z-10 text-white",

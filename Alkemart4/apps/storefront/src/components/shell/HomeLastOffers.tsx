@@ -10,12 +10,13 @@ import {
   type OfferTabId,
   type OfferView,
 } from "@/components/home/LastOffersTabs"
-import { filterOffersByTab, sortOffers } from "@/lib/offer-filter"
+import { filterOffersByTab, availableOfferTabs, sortOffers, tabSlug } from "@/lib/offer-filter"
 import type { StoreProductCard } from "@/lib/products"
 import { cn } from "@/lib/utils"
 
 type Props = {
   products: StoreProductCard[]
+  categories?: { handle?: string | null }[]
   loading?: boolean
   className?: string
 }
@@ -24,10 +25,15 @@ type Props = {
  * Last Offers — same 4-up product grid as PLP / search / store.
  * Tabs + sort only; no oversized hero hierarchy.
  */
-export function HomeLastOffers({ products, loading, className }: Props) {
+export function HomeLastOffers({ products, categories, loading, className }: Props) {
   const [tab, setTab] = useState<OfferTabId | "all">("all")
   const [sort, setSort] = useState<OfferSort>("featured")
   const [view, setView] = useState<OfferView>("grid")
+
+  const tabs = useMemo(
+    () => availableOfferTabs(categories ?? []),
+    [categories],
+  )
 
   const visible = useMemo(() => {
     const filtered = filterOffersByTab(products, tab)
@@ -47,6 +53,7 @@ export function HomeLastOffers({ products, loading, className }: Props) {
         onSortChange={setSort}
         view={view}
         onViewChange={setView}
+        tabs={tabs}
       />
 
       {loading ? <LastOffersSkeleton /> : null}
@@ -94,22 +101,4 @@ export function HomeLastOffers({ products, loading, className }: Props) {
       ) : null}
     </section>
   )
-}
-
-function tabSlug(tab: OfferTabId | "all"): string {
-  switch (tab) {
-    case "electronics":
-      return "phones-electronics"
-    case "food":
-    case "beverages":
-      return "food-groceries"
-    case "personal":
-      return "health-beauty"
-    case "pet":
-      return "pet-care"
-    case "baby":
-      return "baby-kids"
-    default:
-      return "all"
-  }
 }

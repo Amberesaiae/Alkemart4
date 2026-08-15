@@ -14,6 +14,7 @@ export type CatalogProductRow = {
   description?: unknown
   variants?: unknown
   seller?: unknown
+  created_at?: unknown
 }
 
 export type CatalogCard = {
@@ -29,6 +30,7 @@ export type CatalogCard = {
   category_handles: string[]
   min_price: number | null
   currency_code: string | null
+  created_at: string | null
   seller: {
     id: string | null
     name: string | null
@@ -50,6 +52,7 @@ export type CatalogOfferRow = {
     status?: unknown
     categories?: unknown
     metadata?: unknown
+    created_at?: unknown
   } | null
   seller?: {
     id?: unknown
@@ -204,6 +207,11 @@ export function accumulateOffersToCards(
           category_handles,
           min_price: priced.min_price,
           currency_code: priced.currency_code,
+          created_at:
+            typeof product?.created_at === "string" &&
+            product.created_at
+              ? product.created_at
+              : null,
           seller: sellerRaw
             ? {
                 id: (sellerRaw.id as string) ?? null,
@@ -311,6 +319,8 @@ export function mapPublishedProductWithOffer(
     category_handles: [],
     min_price: null,
     currency_code: null,
+    created_at:
+      typeof p.created_at === "string" && p.created_at ? p.created_at : null,
     seller: seller
       ? {
           id: seller.id ?? null,
