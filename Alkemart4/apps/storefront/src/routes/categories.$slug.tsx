@@ -28,6 +28,7 @@ import {
 import { PageSeo } from "@/components/page-seo"
 import { listStoreCategories, listStoreProducts } from "@/lib/products"
 import { searchCatalog } from "@/lib/search"
+import { useCloudflareCatalog } from "@/lib/env"
 import {
   resolveBrowseCategory,
   resolveRailCategories,
@@ -183,12 +184,29 @@ function BrowsePage() {
 
   const useMeili = discoveryQ.data?.engine === "meilisearch"
 
+  const cfCatalog = useCloudflareCatalog()
   const productsQ = useQuery({
-    queryKey: ["store", "products", "browse", slug, effectiveCategoryId, limit],
+    queryKey: [
+      "store",
+      "products",
+      "browse",
+      slug,
+      effectiveCategoryId,
+      effectiveCategoryHandle,
+      cfCatalog,
+      limit,
+    ],
     queryFn: () =>
       listStoreProducts({
         limit: Math.max(limit, 48),
-        categoryId: isAll ? undefined : effectiveCategoryId,
+        // Cloudflare catalog filters by handle; Medusa path still uses category id.
+        ...(cfCatalog
+          ? {
+              categoryHandle: isAll ? undefined : effectiveCategoryHandle,
+            }
+          : {
+              categoryId: isAll ? undefined : effectiveCategoryId,
+            }),
       }),
     enabled:
       (isAll || categoriesQ.isSuccess || categoriesQ.isError) &&

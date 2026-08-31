@@ -83,9 +83,10 @@ function ProductDetailPage() {
   })
 
   const peerOffers = peersQ.data ?? []
-  // Multivendor: with 2+ peer offers, require an explicit selection (no silent ATC).
-  // With 0–1 peers, fall back to the product's best/single offerId.
-  const requiresOfferPick = peerOffers.length > 1
+  const peersReady = peersQ.isSuccess || peersQ.isError
+  // Prefer product.offerCount (CF detail) so we don't auto-select during peer load.
+  const knownOfferCount = p?.offerCount ?? (peersReady ? peerOffers.length : null)
+  const requiresOfferPick = (knownOfferCount ?? 0) > 1
   const activeOfferId = requiresOfferPick
     ? selectedOfferId
     : selectedOfferId || p?.offerId || peerOffers[0]?.offerId || null
@@ -95,11 +96,18 @@ function ProductDetailPage() {
   const displaySeller = activePeer?.seller ?? p?.seller ?? null
 
   useEffect(() => {
+    // Wait until we know offer count; never auto-pick when multiple sellers.
+    if (!peersReady && p?.offerCount == null) return
     if (requiresOfferPick) return
     if (!selectedOfferId && (p?.offerId || peerOffers[0]?.offerId)) {
       setSelectedOfferId(p?.offerId || peerOffers[0]?.offerId || null)
     }
-  }, [requiresOfferPick, p?.offerId, peerOffers, selectedOfferId])
+  }, [peersReady, requiresOfferPick, p?.offerId, p?.offerCount, peerOffers, selectedOfferId])
+
+  // Reset selection when navigating to a different product.
+  useEffect(() => {
+    setSelectedOfferId(null)
+  }, [p?.id])
 
   const add = useMutation({
     mutationFn: async () => {
