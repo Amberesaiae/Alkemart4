@@ -13,3 +13,4 @@ export type {
   ProductDetailInput,
 } from "./catalog"
 export { toProductCard, toProductDetail } from "./catalog"
+export { hashPassword, verifyPassword } from "./auth"

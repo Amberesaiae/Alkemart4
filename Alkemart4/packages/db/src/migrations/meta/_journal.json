@@ -8,6 +8,13 @@
       "when": 1788173478224,
       "tag": "0000_sleepy_post",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1788199486830,
+      "tag": "0001_dry_thundra",
+      "breakpoints": true
     }
   ]
 }
