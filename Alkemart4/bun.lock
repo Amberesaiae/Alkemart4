@@ -246,6 +246,7 @@
       "name": "@alkemart/domain",
       "version": "0.0.0",
       "dependencies": {
+        "@alkemart/db": "workspace:*",
         "@alkemart/shared": "workspace:*",
       },
       "devDependencies": {

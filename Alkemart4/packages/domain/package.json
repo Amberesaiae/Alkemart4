@@ -9,6 +9,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@alkemart/db": "workspace:*",
     "@alkemart/shared": "workspace:*"
   },
   "devDependencies": {
