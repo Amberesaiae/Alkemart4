@@ -217,21 +217,35 @@ Alkemart is **not** a single-merchant shop with a vendor bolt-on. Every read/wri
 
 ## 5. Ghana money lifecycles
 
+### Payment provider (binding)
+
+**Paystack is the only payment and payout rail for Alkemart v1.** Do not introduce a generic “PaymentProvider” / Stripe-shaped abstraction, multi-PSP router, or invented gateway.
+
+| Rail | Paystack API (canonical) |
+|---|---|
+| MoMo charge | `POST /charge` with `mobile_money` (MTN / Vodafone→`vod` / AirtelTigo→`atl`) |
+| Card | `POST /transaction/initialize` + verify |
+| Refunds | Paystack refund on the charge/transaction |
+| Seller payouts | Transfer recipient (`mobile_money` / GHS) + Transfer API |
+| Webhooks | `POST /hooks/paystack` — `x-paystack-signature` HMAC-SHA512 |
+
+Port helpers from existing `paystack-client.ts` (pesewas conversion, MoMo slug map, signature verify, amount assert). COD stays an Alkemart-native method with **no** Paystack call until/unless explicitly charged later.
+
 ### Invariants
 
 1. Charge-before-order (COD explicit exception).
-2. Pesewas integers end-to-end.
+2. Pesewas integers end-to-end (Paystack amounts are pesewas).
 3. Webhooks are source of truth for async MoMo; client poll is UX only.
-4. Idempotent confirm (unique Paystack ref + KV event dedup).
+4. Idempotent confirm (unique Paystack reference + KV event dedup).
 5. All-or-nothing cancel for multi-seller carts in v1.
 
 ### Methods
 
 | Method | Flow |
 |---|---|
-| MoMo | PaymentIntent → Paystack charge → often pending → DO + webhook → verify → Order |
-| Card | PaymentIntent → initialize → redirect → server verify → Order |
-| COD | PaymentIntent `cod` → Order immediately |
+| MoMo | PaymentIntent → **Paystack** charge → often pending → DO + webhook → verify → Order |
+| Card | PaymentIntent → **Paystack** initialize → redirect → server verify → Order |
+| COD | PaymentIntent `cod` → Order immediately (no Paystack) |
 
 ### MoMo status machine (`PaymentIntent.status`)
 
