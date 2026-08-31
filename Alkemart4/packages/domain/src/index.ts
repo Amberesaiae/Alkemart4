@@ -24,3 +24,15 @@ export {
   rejectProduct,
   requestProductChanges,
 } from "./moderation"
+export type {
+  CartQuote,
+  PaymentIntentStatus,
+  QuoteLine,
+  QuoteLineInput,
+  SellerQuote,
+} from "./checkout"
+export {
+  InvalidPaymentTransitionError,
+  assertPaymentTransition,
+  quoteCart,
+} from "./checkout"
