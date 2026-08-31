@@ -3,7 +3,9 @@ export {
   assertPaystackAmountMatches,
   chargePaystackMobileMoney,
   createPaystackTransferRecipient,
+  initializePaystackTransaction,
   mapMomoProviderToPaystackSlug,
   paystackRequest,
+  verifyPaystackTransaction,
   verifyPaystackWebhookSignature,
 } from "./client"

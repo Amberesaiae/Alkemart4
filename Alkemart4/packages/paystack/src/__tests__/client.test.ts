@@ -3,7 +3,9 @@ import {
   assertPaystackAmountMatches,
   chargePaystackMobileMoney,
   createPaystackTransferRecipient,
+  initializePaystackTransaction,
   mapMomoProviderToPaystackSlug,
+  verifyPaystackTransaction,
   verifyPaystackWebhookSignature,
 } from "../client"
 
@@ -145,5 +147,77 @@ describe("chargePaystackMobileMoney", () => {
     expect(body.mobile_money.phone).toBe("0244123456")
     expect(body.reference).toBe("ref_ok_1")
     expect(body.currency).toBe("GHS")
+  })
+})
+
+describe("initializePaystackTransaction", () => {
+  const originalFetch = globalThis.fetch
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch
+  })
+
+  it("posts initialize with pesewas amount and returns auth url", async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        status: true,
+        data: {
+          authorization_url: "https://checkout.paystack.com/abc",
+          access_code: "access_1",
+          reference: "card_ref_1",
+        },
+      }),
+    }) as unknown as typeof fetch
+
+    const result = await initializePaystackTransaction(cfg, {
+      email: "a@b.com",
+      amountPesewas: 2500n,
+      reference: "card_ref_1",
+      callbackUrl: "https://alkemart.test/cb",
+    })
+
+    expect(result.authorizationUrl).toContain("paystack.com")
+    expect(result.reference).toBe("card_ref_1")
+    expect(result.accessCode).toBe("access_1")
+
+    const [url, init] = (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0] as [
+      string,
+      RequestInit,
+    ]
+    expect(url).toBe("https://api.paystack.co/transaction/initialize")
+    const body = JSON.parse(String(init.body))
+    expect(body.amount).toBe(2500)
+    expect(body.callback_url).toBe("https://alkemart.test/cb")
+  })
+})
+
+describe("verifyPaystackTransaction", () => {
+  const originalFetch = globalThis.fetch
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch
+  })
+
+  it("GETs verify and returns amount/status", async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        status: true,
+        data: {
+          status: "success",
+          amount: 2500,
+          reference: "card_ref_1",
+        },
+      }),
+    }) as unknown as typeof fetch
+
+    const result = await verifyPaystackTransaction(cfg, "card_ref_1")
+    expect(result.status).toBe("success")
+    expect(result.amount).toBe(2500)
+    expect(result.reference).toBe("card_ref_1")
+
+    const [url] = (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0] as [string]
+    expect(url).toBe("https://api.paystack.co/transaction/verify/card_ref_1")
   })
 })

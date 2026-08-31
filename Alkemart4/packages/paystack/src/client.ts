@@ -192,3 +192,66 @@ export async function chargePaystackMobileMoney(
     data,
   }
 }
+
+export async function initializePaystackTransaction(
+  cfg: PaystackConfig,
+  input: {
+    email: string
+    amountPesewas: bigint
+    reference: string
+    callbackUrl: string
+  },
+): Promise<{ authorizationUrl: string; reference: string; accessCode: string }> {
+  if (input.amountPesewas < 0n || input.amountPesewas > BigInt(Number.MAX_SAFE_INTEGER)) {
+    throw new Error(`amountPesewas must be a non-negative integer (got ${input.amountPesewas})`)
+  }
+
+  const data = await paystackRequest<{
+    authorization_url?: string
+    reference?: string
+    access_code?: string
+  }>(cfg, "/transaction/initialize", {
+    method: "POST",
+    body: {
+      email: input.email,
+      amount: Number(input.amountPesewas),
+      currency: "GHS",
+      reference: input.reference,
+      callback_url: input.callbackUrl,
+    },
+  })
+
+  if (!data?.authorization_url || !data.reference || !data.access_code) {
+    throw new Error("Paystack initialize did not return authorization_url/reference/access_code")
+  }
+
+  return {
+    authorizationUrl: data.authorization_url,
+    reference: data.reference,
+    accessCode: data.access_code,
+  }
+}
+
+export async function verifyPaystackTransaction(
+  cfg: PaystackConfig,
+  reference: string,
+): Promise<{ status: string; amount: number; reference: string; raw: unknown }> {
+  const data = await paystackRequest<{
+    status?: string
+    amount?: number
+    reference?: string
+  }>(cfg, `/transaction/verify/${encodeURIComponent(reference)}`, {
+    method: "GET",
+  })
+
+  if (!data?.reference || typeof data.amount !== "number") {
+    throw new Error("Paystack verify did not return reference/amount")
+  }
+
+  return {
+    status: String(data.status ?? ""),
+    amount: data.amount,
+    reference: data.reference,
+    raw: data,
+  }
+}
