@@ -50,3 +50,4 @@ Thumbs.db
 
 # Redis dump
 dump.rdb
+.worktrees/
