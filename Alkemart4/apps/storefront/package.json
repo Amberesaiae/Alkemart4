@@ -14,6 +14,7 @@
     "test:watch": "NODE_OPTIONS='--experimental-vm-modules' vitest"
   },
   "dependencies": {
+    "@alkemart/api-client": "workspace:*",
     "@medusajs/js-sdk": "^2.17.2",
     "@workspace/ui": "workspace:*",
     "@alkemart/shared": "workspace:*",

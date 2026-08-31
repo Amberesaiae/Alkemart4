@@ -40,6 +40,8 @@
     "apps/backend/apps/admin",
     "apps/backend/apps/ghana-vendor",
     "apps/storefront",
+    "packages/api-client",
+    "packages/api-spec",
     "packages/db",
     "packages/domain",
     "packages/shared",

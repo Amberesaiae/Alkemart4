@@ -1,0 +1,329 @@
+openapi: 3.0.3
+info:
+  title: Alkemart Store API
+  version: 0.1.0
+  description: |
+    Multivendor Ghana catalog contract. Product is canonical content; Offer is the
+    sellable unit. Money fields are integer pesewas encoded as decimal strings.
+    No major-unit `price` fields.
+servers:
+  - url: /
+    description: API origin (Workers / local wrangler)
+tags:
+  - name: catalog
+    description: Product-centric PLP and Ghana category nav
+  - name: products
+    description: PDP with peer offers
+  - name: sellers
+    description: Public seller shop
+
+paths:
+  /store/categories:
+    get:
+      operationId: getCategories
+      tags: [catalog]
+      summary: Ghana category nav tree
+      description: Returns the is_nav category tree (roots are Ghana departments).
+      responses:
+        "200":
+          description: Category nav tree
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CategoryListResponse"
+
+  /store/catalog:
+    get:
+      operationId: getCatalog
+      tags: [catalog]
+      summary: Product-centric catalog (one card per product)
+      description: |
+        Aggregates sellable offers into one ProductCard per product.
+        `fromPricePesewas` is the cheapest sellable offer; `offerCount` is the
+        number of sellable peer offers. No product-level price.
+      parameters:
+        - name: category
+          in: query
+          required: false
+          description: Category handle; includes descendants.
+          schema:
+            type: string
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        "200":
+          description: Paginated product cards
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CatalogListResponse"
+
+  /store/products/{id}:
+    get:
+      operationId: getProduct
+      tags: [products]
+      summary: Product detail with peer offers
+      description: |
+        Returns product content plus all sellable peer offers, cheapest first.
+        `offers` may be empty when the product exists but none are sellable.
+        Never includes a product-level price field.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Product detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProductDetail"
+        "404":
+          description: Product not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /store/sellers/{handle}:
+    get:
+      operationId: getSellerShop
+      tags: [sellers]
+      summary: Seller shop (that seller's sellable offers only)
+      parameters:
+        - name: handle
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Seller shop
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SellerShopResponse"
+        "404":
+          description: Seller not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+components:
+  schemas:
+    Currency:
+      type: string
+      enum: [ghs]
+      description: ISO-ish market currency; Ghana v1 is always ghs.
+
+    PesewasString:
+      type: string
+      pattern: "^[0-9]+$"
+      description: Integer pesewas as a decimal string (JSON-safe bigint). Never major units.
+
+    ProductCard:
+      type: object
+      additionalProperties: false
+      required:
+        - productId
+        - title
+        - categoryHandle
+        - categoryName
+        - imageUrl
+        - fromPricePesewas
+        - bestOfferId
+        - offerCount
+        - currency
+      properties:
+        productId:
+          type: string
+        title:
+          type: string
+        categoryHandle:
+          type: string
+        categoryName:
+          type: string
+        imageUrl:
+          type: string
+          nullable: true
+        fromPricePesewas:
+          $ref: "#/components/schemas/PesewasString"
+        bestOfferId:
+          type: string
+          description: Offer id of the cheapest sellable offer (offerId tie-break).
+        offerCount:
+          type: integer
+          minimum: 1
+          description: Count of sellable peer offers for this product (this seller only on shop pages).
+        currency:
+          $ref: "#/components/schemas/Currency"
+
+    PeerOffer:
+      type: object
+      additionalProperties: false
+      required:
+        - offerId
+        - sellerId
+        - sellerHandle
+        - sellerName
+        - pricePesewas
+        - currency
+        - available
+        - deliveryFeePesewas
+      properties:
+        offerId:
+          type: string
+        sellerId:
+          type: string
+        sellerHandle:
+          type: string
+        sellerName:
+          type: string
+        pricePesewas:
+          $ref: "#/components/schemas/PesewasString"
+        currency:
+          $ref: "#/components/schemas/Currency"
+        available:
+          type: integer
+          minimum: 0
+          description: onHand minus reserved.
+        deliveryFeePesewas:
+          $ref: "#/components/schemas/PesewasString"
+
+    ProductDetail:
+      type: object
+      additionalProperties: false
+      required:
+        - productId
+        - title
+        - description
+        - categoryHandle
+        - categoryName
+        - imageUrls
+        - offers
+      properties:
+        productId:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
+        categoryHandle:
+          type: string
+        categoryName:
+          type: string
+        imageUrls:
+          type: array
+          items:
+            type: string
+        offers:
+          type: array
+          items:
+            $ref: "#/components/schemas/PeerOffer"
+          description: Sellable peer offers, cheapest first (offerId tie-break).
+
+    CategoryNode:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - handle
+        - name
+        - parentId
+        - children
+      properties:
+        id:
+          type: string
+        handle:
+          type: string
+        name:
+          type: string
+        parentId:
+          type: string
+          nullable: true
+        children:
+          type: array
+          items:
+            $ref: "#/components/schemas/CategoryNode"
+
+    SellerSummary:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - handle
+        - name
+      properties:
+        id:
+          type: string
+        handle:
+          type: string
+        name:
+          type: string
+
+    SellerShopResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - seller
+        - items
+      properties:
+        seller:
+          $ref: "#/components/schemas/SellerSummary"
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProductCard"
+          description: Product cards built from this seller's sellable offers only.
+
+    CatalogListResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - items
+        - total
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProductCard"
+        total:
+          type: integer
+          minimum: 0
+
+    CategoryListResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - categories
+      properties:
+        categories:
+          type: array
+          items:
+            $ref: "#/components/schemas/CategoryNode"
+
+    ErrorResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - error
+      properties:
+        error:
+          type: string
