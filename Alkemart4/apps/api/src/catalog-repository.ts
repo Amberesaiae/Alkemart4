@@ -6,10 +6,13 @@ import {
   sellers,
 } from "@alkemart/db"
 import {
+  approveProduct,
   assertLeafCategory,
   buildNavTree,
   isSellable,
   proposeProduct,
+  rejectProduct,
+  requestProductChanges,
   toProductCard,
   toProductDetail,
   type CategoryNode,
@@ -94,6 +97,17 @@ export type UpdateVendorProductInput = {
   variantTitle?: string | null
 }
 
+export type AdminProductDto = {
+  id: string
+  title: string
+  description: string | null
+  status: ProductStatus
+  primaryCategoryId: string
+  sellerId: string | null
+}
+
+export type AdminProductModerationAction = "approve" | "reject" | "request_changes"
+
 export class CatalogConflictError extends Error {
   constructor(message = "offer already exists") {
     super(message)
@@ -121,6 +135,10 @@ export interface CatalogRepository {
   ): Promise<VendorProductDto | null>
   proposeVendorProduct(sellerId: string, productId: string): Promise<VendorProductDto | null>
   listVendorProducts(sellerId: string): Promise<VendorProductDto[]>
+  moderateProduct(
+    productId: string,
+    action: AdminProductModerationAction,
+  ): Promise<AdminProductDto | null>
 }
 function toBigInt(value: bigint | string | number): bigint {
   return typeof value === "bigint" ? value : BigInt(value)
@@ -179,6 +197,31 @@ function toVendorProductDto(
       currency: "ghs",
       active: offer.active,
     },
+  }
+}
+
+function toAdminProductDto(product: CatalogProduct): AdminProductDto {
+  return {
+    id: product.id,
+    title: product.title,
+    description: product.description,
+    status: product.status,
+    primaryCategoryId: product.primaryCategoryId,
+    sellerId: product.sellerId,
+  }
+}
+
+function nextModerationStatus(
+  status: ProductStatus,
+  action: AdminProductModerationAction,
+): ProductStatus {
+  switch (action) {
+    case "approve":
+      return approveProduct(status)
+    case "reject":
+      return rejectProduct(status)
+    case "request_changes":
+      return requestProductChanges(status)
   }
 }
 
@@ -450,6 +493,16 @@ export class InMemoryCatalogRepository implements CatalogRepository {
     items.sort((a, b) => a.product.title.localeCompare(b.product.title))
     return items
   }
+
+  async moderateProduct(
+    productId: string,
+    action: AdminProductModerationAction,
+  ): Promise<AdminProductDto | null> {
+    const product = this.data.products.find((p) => p.id === productId)
+    if (!product) return null
+    product.status = nextModerationStatus(product.status, action)
+    return toAdminProductDto(product)
+  }
 }
 
 export class PostgresCatalogRepository implements CatalogRepository {
@@ -666,5 +719,17 @@ export class PostgresCatalogRepository implements CatalogRepository {
     }
     items.sort((a, b) => a.product.title.localeCompare(b.product.title))
     return items
+  }
+
+  async moderateProduct(
+    productId: string,
+    action: AdminProductModerationAction,
+  ): Promise<AdminProductDto | null> {
+    const data = await this.load()
+    const product = data.products.find((p) => p.id === productId)
+    if (!product) return null
+    const next = nextModerationStatus(product.status, action)
+    await this.db.update(products).set({ status: next }).where(eq(products.id, productId))
+    return { ...toAdminProductDto(product), status: next }
   }
 }

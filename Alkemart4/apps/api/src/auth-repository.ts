@@ -20,6 +20,7 @@ export type AuthSeller = {
   handle: string
   name: string
   status: SellerStatus
+  commissionBps: number
   deliveryFeePesewas: bigint
   recipientCode: string | null
   momoProvider: PaystackMomoProvider | null
@@ -69,6 +70,8 @@ export interface AuthRepository {
     seller: { id: string; handle: string; name: string }
   }): Promise<{ user: AuthUser; seller: AuthSeller; member: AuthSellerMember }>
   updateSellerGhanaSetup(id: string, patch: SellerGhanaSetupPatch): Promise<AuthSeller>
+  updateSellerStatus(id: string, status: SellerStatus): Promise<AuthSeller | null>
+  updateSellerCommission(id: string, commissionBps: number): Promise<AuthSeller | null>
 }
 
 function toUser(row: {
@@ -97,6 +100,7 @@ function toSeller(row: {
   handle: string
   name: string
   status: SellerStatus
+  commissionBps: number
   deliveryFeePesewas: bigint | string | number
   recipientCode: string | null
   momoProvider: string | null
@@ -109,6 +113,7 @@ function toSeller(row: {
     handle: row.handle,
     name: row.name,
     status: row.status,
+    commissionBps: row.commissionBps,
     deliveryFeePesewas:
       typeof row.deliveryFeePesewas === "bigint"
         ? row.deliveryFeePesewas
@@ -202,7 +207,12 @@ export class InMemoryAuthRepository implements AuthRepository {
     if (this.usersByEmail.has(input.user.email)) throw new AuthConflictError("email")
     if (this.sellersByHandle.has(input.seller.handle)) throw new AuthConflictError("handle")
     const user = await this.createUser({ ...input.user, role: "seller_member" })
-    const seller: AuthSeller = { ...input.seller, status: "pending_approval", ...unsetOnboarding() }
+    const seller: AuthSeller = {
+      ...input.seller,
+      status: "pending_approval",
+      commissionBps: 700,
+      ...unsetOnboarding(),
+    }
     this.sellersById.set(seller.id, seller)
     this.sellersByHandle.set(seller.handle, seller)
     const member: AuthSellerMember = { userId: user.id, sellerId: seller.id, role: "owner" }
@@ -214,6 +224,24 @@ export class InMemoryAuthRepository implements AuthRepository {
     const seller = this.sellersById.get(id)
     if (!seller) throw new Error("seller not found")
     const next: AuthSeller = { ...seller, ...patch }
+    this.sellersById.set(id, next)
+    this.sellersByHandle.set(next.handle, next)
+    return next
+  }
+
+  async updateSellerStatus(id: string, status: SellerStatus) {
+    const seller = this.sellersById.get(id)
+    if (!seller) return null
+    const next: AuthSeller = { ...seller, status }
+    this.sellersById.set(id, next)
+    this.sellersByHandle.set(next.handle, next)
+    return next
+  }
+
+  async updateSellerCommission(id: string, commissionBps: number) {
+    const seller = this.sellersById.get(id)
+    if (!seller) return null
+    const next: AuthSeller = { ...seller, commissionBps }
     this.sellersById.set(id, next)
     this.sellersByHandle.set(next.handle, next)
     return next
@@ -343,5 +371,23 @@ export class PostgresAuthRepository implements AuthRepository {
       .returning()
     if (!row) throw new Error("seller not found")
     return toSeller(row)
+  }
+
+  async updateSellerStatus(id: string, status: SellerStatus) {
+    const [row] = await this.db
+      .update(sellers)
+      .set({ status })
+      .where(eq(sellers.id, id))
+      .returning()
+    return row ? toSeller(row) : null
+  }
+
+  async updateSellerCommission(id: string, commissionBps: number) {
+    const [row] = await this.db
+      .update(sellers)
+      .set({ commissionBps })
+      .where(eq(sellers.id, id))
+      .returning()
+    return row ? toSeller(row) : null
   }
 }

@@ -8,6 +8,8 @@ import { parseEnv } from "./env"
 import { requireAdmin, requireSeller } from "./middleware/auth"
 import { errorHandler } from "./middleware/error"
 import { adminAuth } from "./routes/admin/auth"
+import { adminProducts } from "./routes/admin/products"
+import { adminSellers } from "./routes/admin/sellers"
 import { health } from "./routes/health"
 import { storeAuth } from "./routes/store/auth"
 import { catalog } from "./routes/store/catalog"
@@ -94,6 +96,8 @@ export function createApp(
   admin.use("*", bindAuth)
   admin.route("/auth", adminAuth)
   admin.get("/me", requireAdmin, (c) => c.json(c.get("auth")))
+  admin.route("/sellers", adminSellers)
+  admin.route("/products", withBind(bindCatalog, adminProducts))
   app.route("/admin", admin)
 
   return app
