@@ -1,11 +1,24 @@
 import { commerceContext, getMedusaClient } from "./medusa"
 import {
   filterStoreSellable,
+  getAlkemartApiUrl,
   getBackendUrl,
   getPublishableKey,
   useAlkemartCatalog,
+  useCloudflareCatalog,
 } from "./env"
+import {
+  getCatalog,
+  getCategories,
+  getProduct,
+  getSellerShop,
+  setBaseUrl,
+  type PeerOffer as CfPeerOffer,
+  type ProductCard as CfProductCard,
+  type ProductDetail as CfProductDetail,
+} from "./api-client"
 import type { SellerRef } from "@/components/seller-chip"
+import { pesewasToMajor } from "@alkemart/shared/ghana"
 
 export type StoreProductCard = {
   id: string
@@ -16,9 +29,11 @@ export type StoreProductCard = {
   description?: string | null
   /** Present when store API hydrates offer on variants — never invented. */
   offerId?: string | null
-  /** Major currency units from calculated_price — only if API returns them. */
+  /** Major currency units for Price display — derived from API (never invented). */
   amount?: number | null
   currencyCode?: string | null
+  /** Multivendor: number of sellable peer offers on this product. */
+  offerCount?: number | null
   /** Processed webp thumbnail (thumb_url) when available. */
   thumbUrl?: string | null
   /** Processed webp full-size (web_url) when available. */
@@ -43,6 +58,77 @@ export type StoreProductCard = {
   createdAt?: string | null
   /** 0–5 star rating when known (demo / reviews API). */
   rating?: number | null
+}
+
+function ensureCloudflareBaseUrl(): void {
+  const url = getAlkemartApiUrl()
+  if (url) setBaseUrl(url)
+}
+
+function pesewasStringToMajor(raw: string | null | undefined): number | null {
+  if (raw == null || raw === "") return null
+  try {
+    const n = Number(raw)
+    if (!Number.isFinite(n) || n < 0) return null
+    return pesewasToMajor(n)
+  } catch {
+    return null
+  }
+}
+
+function mapCfProductCard(c: CfProductCard): StoreProductCard {
+  return {
+    id: c.productId,
+    title: c.title,
+    handle: null,
+    thumbnail: c.imageUrl ?? null,
+    thumbUrl: c.imageUrl ?? null,
+    offerId: c.bestOfferId,
+    offerCount: c.offerCount,
+    amount: pesewasStringToMajor(c.fromPricePesewas),
+    currencyCode: c.currency === "ghs" ? "ghs" : c.currency,
+    categoryLabel: c.categoryName,
+    categoryHandles: c.categoryHandle ? [c.categoryHandle] : null,
+  }
+}
+
+function mapCfDetail(d: CfProductDetail): StoreProductCard {
+  const best = d.offers[0]
+  return {
+    id: d.productId,
+    title: d.title,
+    description: d.description ?? null,
+    thumbnail: d.imageUrls?.[0] ?? null,
+    images: (d.imageUrls ?? []).map((url) => ({ url })),
+    thumbUrl: d.imageUrls?.[0] ?? null,
+    offerId: best?.offerId ?? null,
+    offerCount: d.offers.length,
+    amount: best ? pesewasStringToMajor(best.pricePesewas) : null,
+    currencyCode: best?.currency === "ghs" ? "ghs" : best?.currency ?? "ghs",
+    categoryLabel: d.categoryName,
+    categoryHandles: d.categoryHandle ? [d.categoryHandle] : null,
+    seller: best
+      ? {
+          id: best.sellerId,
+          name: best.sellerName,
+          handle: best.sellerHandle,
+        }
+      : null,
+  }
+}
+
+function mapCfPeer(o: CfPeerOffer, productId: string): PeerOffer {
+  return {
+    offerId: o.offerId,
+    productId,
+    seller: {
+      id: o.sellerId,
+      name: o.sellerName,
+      handle: o.sellerHandle,
+    },
+    amount: pesewasStringToMajor(o.pricePesewas),
+    currencyCode: o.currency === "ghs" ? "ghs" : o.currency,
+  }
 }
 
 type VariantSlice = {
@@ -325,12 +411,34 @@ export async function listStoreProducts(opts?: {
   products: StoreProductCard[]
   count: number
 }> {
-  const sdk = getMedusaClient()
-  const { regionId } = commerceContext()
   const limit = opts?.limit ?? 24
   const offset = opts?.offset ?? 0
   const sellerHandle = opts?.sellerHandle?.trim() || undefined
   const categoryHandle = opts?.categoryHandle?.trim() || undefined
+
+  // Cloudflare multivendor catalog (Plan 1) — product cards with offerCount
+  if (useCloudflareCatalog() && !opts?.categoryId?.trim() && !opts?.q?.trim()) {
+    if (sellerHandle) {
+      ensureCloudflareBaseUrl()
+      const shop = await getSellerShop(sellerHandle)
+      const products = (shop.items ?? []).map(mapCfProductCard)
+      const sliced = products.slice(offset, offset + limit)
+      return { products: sliced, count: products.length }
+    }
+    ensureCloudflareBaseUrl()
+    const res = await getCatalog({
+      limit,
+      offset,
+      ...(categoryHandle ? { category: categoryHandle } : {}),
+    })
+    return {
+      products: (res.items ?? []).map(mapCfProductCard),
+      count: res.total ?? res.items?.length ?? 0,
+    }
+  }
+
+  const sdk = getMedusaClient()
+  const { regionId } = commerceContext()
 
   const useCatalog =
     !opts?.categoryId?.trim() &&
@@ -437,6 +545,12 @@ export async function getStoreProduct(
   const key = idOrHandle.trim()
   if (!key) throw new Error("Product id or handle is required")
 
+  if (useCloudflareCatalog()) {
+    ensureCloudflareBaseUrl()
+    const detail = await getProduct(key)
+    return mapCfDetail(detail)
+  }
+
   const sdk = getMedusaClient()
   const { regionId } = commerceContext()
   const fields = `${LIST_FIELDS},+description`
@@ -497,6 +611,17 @@ export async function listPeerOffersForProduct(
 ): Promise<PeerOffer[]> {
   const pid = productId.trim()
   if (!pid) return []
+
+  if (useCloudflareCatalog()) {
+    try {
+      ensureCloudflareBaseUrl()
+      const detail = await getProduct(pid)
+      return (detail.offers ?? []).map((o) => mapCfPeer(o, pid))
+    } catch {
+      return []
+    }
+  }
+
   try {
     const base = getBackendUrl()
     const pk = getPublishableKey()
@@ -605,7 +730,42 @@ export async function fetchFeaturedProducts(): Promise<StoreProductCard[]> {
   }
 }
 
+function flattenCategoryTree(
+  nodes: Array<{
+    id: string
+    handle: string
+    name: string
+    parentId?: string | null
+    children?: unknown[]
+  }>,
+  rankBase = 0,
+): StoreCategory[] {
+  const out: StoreCategory[] = []
+  nodes.forEach((n, i) => {
+    out.push({
+      id: n.id,
+      name: n.name,
+      handle: n.handle,
+      rank: rankBase + i,
+      parentCategoryId: n.parentId ?? null,
+    })
+    const kids = (n.children ?? []) as typeof nodes
+    if (kids.length) out.push(...flattenCategoryTree(kids, rankBase + i * 100))
+  })
+  return out
+}
+
 export async function listStoreCategories(): Promise<StoreCategory[]> {
+  if (useCloudflareCatalog()) {
+    try {
+      ensureCloudflareBaseUrl()
+      const res = await getCategories()
+      return flattenCategoryTree(res.categories ?? [])
+    } catch {
+      return []
+    }
+  }
+
   const sdk = getMedusaClient()
   try {
     const res = await sdk.store.category.list({ limit: 50 })

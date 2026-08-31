@@ -7,6 +7,7 @@ import { AddToCartControl } from "@/components/product/AddToCartControl"
 import { WishlistButton } from "@/components/product/WishlistButton"
 import type { StoreProductCard } from "@/lib/products"
 import { addOfferToCart } from "@/lib/cart"
+import { sellersHintText } from "@/lib/sellers-hint"
 import { cn } from "@/lib/utils"
 
 /**
@@ -102,6 +103,7 @@ export function ProductCard({
           <CategoryLabel label={product.categoryLabel} />
           <Title product={product} detailId={detailId} />
           <SellerChip seller={product.seller} short className="line-clamp-1" />
+          <SellersHint offerCount={product.offerCount} />
           <div className="flex items-center justify-between gap-2">
             <Price
               amount={product.amount}
@@ -137,6 +139,7 @@ export function ProductCard({
           short
           className="line-clamp-1 type-sm"
         />
+        <SellersHint offerCount={product.offerCount} />
         <div className="mt-auto flex items-center justify-between gap-1.5 pt-1">
           <Price
             amount={product.amount}
@@ -217,6 +220,16 @@ function CategoryLabel({ label }: { label?: string | null }) {
       aria-label={`Category: ${label.trim()}`}
     >
       {label.trim()}
+    </p>
+  )
+}
+
+function SellersHint({ offerCount }: { offerCount?: number | null }) {
+  const text = sellersHintText(offerCount)
+  if (!text) return null
+  return (
+    <p className="type-sm text-muted-foreground" data-testid="sellers-hint">
+      {text}
     </p>
   )
 }

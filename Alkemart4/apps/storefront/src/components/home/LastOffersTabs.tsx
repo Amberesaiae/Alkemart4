@@ -20,23 +20,21 @@ export type OfferTab = {
 }
 
 /**
- * Mowafer imgi_10 Last Offers strip:
- * 6 category icons under title (Electronics…BabyCare) — ICONPAK2 line icons.
- * Labels + icons come from the canonical CATEGORY_META table.
- * Right: sort caption + grid/list view toggles.
+ * Home offers strip tabs — filter chrome only.
+ * Icons from CATEGORY_META; tab labels are fixed filter names (not a
+ * second taxonomy SoT — category page titles still use API names).
  */
 export const OFFER_TABS: OfferTab[] = (
   [
-    { id: "electronics", handle: "phones-electronics" },
-    { id: "food", handle: "food-groceries" },
-    { id: "beverages", handle: "beverages" },
-    { id: "personal", handle: "health-beauty" },
-    { id: "pet", handle: "pet-care" },
-    { id: "baby", handle: "baby-kids" },
+    { id: "electronics", handle: "phones-electronics", label: "Electronics" },
+    { id: "food", handle: "food-groceries", label: "Food" },
+    { id: "beverages", handle: "beverages", label: "Beverages" },
+    { id: "personal", handle: "health-beauty", label: "Personal Care" },
+    { id: "pet", handle: "pet-care", label: "Pet Care" },
+    { id: "baby", handle: "baby-kids", label: "Baby Care" },
   ] as const
 ).map((t) => ({
   ...t,
-  label: metaFor(t.handle)?.label ?? t.handle,
   icon: metaFor(t.handle)?.icon ?? ("cat-all" as IconId),
 }))
 

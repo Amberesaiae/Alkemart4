@@ -138,6 +138,26 @@ export function useAlkemartCatalog(): boolean {
 }
 
 /**
+ * Cloudflare multivendor API origin (Plan 1+).
+ * When set, browse/PLP/PDP/seller shop prefer this API over Medusa catalog.
+ * Empty is allowed in lab so Medusa checkout paths keep working.
+ * Production builds must not use localhost.
+ */
+export function getAlkemartApiUrl(): string {
+  const v = (import.meta.env.VITE_ALKEMART_API_URL as string | undefined)?.trim()
+  if (!v) return ""
+  if (isProd() && (v.includes("localhost") || v.includes("127.0.0.1"))) {
+    throw new Error("VITE_ALKEMART_API_URL must not be localhost in production builds")
+  }
+  return v.replace(/\/$/, "")
+}
+
+/** True when Cloudflare catalog API is configured for browse surfaces. */
+export function useCloudflareCatalog(): boolean {
+  return Boolean(getAlkemartApiUrl())
+}
+
+/**
  * Optional public site origin (canonical/OG). Required for production builds
  * when set via CI — empty is allowed for lab.
  */

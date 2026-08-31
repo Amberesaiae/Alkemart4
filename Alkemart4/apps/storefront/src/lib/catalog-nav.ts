@@ -1,12 +1,8 @@
 /**
- * Canonical catalog taxonomy for navigation.
+ * Category presentation helpers (icons / mosaic art by handle).
  *
- * Single source of truth: every handle that ships in the marketplace maps to
- * one display label + one icon + optional mosaic art. Rail, mosaic, offer tabs
- * and PLP all derive from CATEGORY_META — no per-component regex tables.
- *
- * Data is API-only: resolvers never invent categories. Unlisted handles
- * (e.g. lab categories) still render with their real name and a generic icon.
+ * Display names come from the API (`NavCategory.name`). CATEGORY_META may
+ * only supply icon + mosaic art — never a parallel rename table for labels.
  */
 import { categoryIconId, type IconId } from "@/design/icons"
 
@@ -18,8 +14,6 @@ export type NavCategory = {
 }
 
 export type CategoryMeta = {
-  /** Canonical short label for nav chips / tabs. */
-  label: string
   icon: IconId
   /** Mosaic bento slot art (only categories with real photography). */
   mosaic?: {
@@ -29,10 +23,9 @@ export type CategoryMeta = {
   }
 }
 
-/** Canonical handle → display metadata for every marketplace category. */
+/** Handle → icon/mosaic only. Labels always come from the API name. */
 export const CATEGORY_META: Readonly<Record<string, CategoryMeta>> = {
   "phones-electronics": {
-    label: "Electronics",
     icon: "cat-electronics",
     mosaic: {
       photo: "/images/categories/electronics.webp",
@@ -41,7 +34,6 @@ export const CATEGORY_META: Readonly<Record<string, CategoryMeta>> = {
     },
   },
   "food-groceries": {
-    label: "Food",
     icon: "cat-food",
     mosaic: {
       photo: "/images/categories/food.webp",
@@ -50,11 +42,9 @@ export const CATEGORY_META: Readonly<Record<string, CategoryMeta>> = {
     },
   },
   beverages: {
-    label: "Beverages",
     icon: "cat-beverages",
   },
   "health-beauty": {
-    label: "Personal Care",
     icon: "cat-personal-care",
     mosaic: {
       photo: "/images/categories/cosmetics.webp",
@@ -63,7 +53,6 @@ export const CATEGORY_META: Readonly<Record<string, CategoryMeta>> = {
     },
   },
   "pet-care": {
-    label: "Pet Care",
     icon: "cat-pet-care",
     mosaic: {
       photo: "/images/categories/pets.webp",
@@ -72,31 +61,24 @@ export const CATEGORY_META: Readonly<Record<string, CategoryMeta>> = {
     },
   },
   "baby-kids": {
-    label: "Baby Care",
     icon: "cat-baby",
   },
   "fashion-apparel": {
-    label: "Fashion & Apparel",
     icon: "cat-fashion",
   },
   "home-living": {
-    label: "Home & Living",
     icon: "cat-home",
   },
   agriculture: {
-    label: "Agriculture",
     icon: "cat-all",
   },
   automotive: {
-    label: "Automotive",
     icon: "cat-all",
   },
   services: {
-    label: "Services",
     icon: "cat-all",
   },
   other: {
-    label: "Other",
     icon: "cat-all",
   },
 }
@@ -122,8 +104,7 @@ export type RailCategory = {
 
 /**
  * Department rail — every real top-level category, in rank order.
- * Label/icon from CATEGORY_META when the handle is canonical, otherwise the
- * category's real API name with a generic icon. Never invents rows.
+ * Name always from API; icon from CATEGORY_META when known.
  */
 export function resolveRailCategories(api: NavCategory[]): RailCategory[] {
   if (!api.length) return []
@@ -132,7 +113,7 @@ export function resolveRailCategories(api: NavCategory[]): RailCategory[] {
     .filter((c) => c.id && c.name)
     .map((c) => ({
       id: c.id,
-      name: metaFor(c.handle)?.label ?? c.name,
+      name: c.name,
       handle: c.handle ?? null,
       icon: iconForCategory(c.name, c.handle),
     }))
@@ -177,7 +158,7 @@ export function resolveMosaicTiles(
     tiles.push({
       id: cat.id,
       slug: cat.handle || cat.id,
-      title: meta.label,
+      title: cat.name,
       photo: meta.mosaic.photo,
       objectPos: meta.mosaic.objectPos,
       tall: meta.mosaic.tall ?? false,

@@ -62,7 +62,6 @@ function ProductDetailPage() {
       currency: p.currencyCode ?? null,
       sellerId: p.seller?.id ?? null,
     })
-    if (p.offerId) setSelectedOfferId(p.offerId)
   }, [p?.id, p?.offerId])
 
   const peersQ = useQuery({
@@ -83,16 +82,34 @@ function ProductDetailPage() {
     enabled: Boolean(p?.id),
   })
 
-  const activeOfferId = selectedOfferId || p?.offerId || null
   const peerOffers = peersQ.data ?? []
+  // Multivendor: with 2+ peer offers, require an explicit selection (no silent ATC).
+  // With 0–1 peers, fall back to the product's best/single offerId.
+  const requiresOfferPick = peerOffers.length > 1
+  const activeOfferId = requiresOfferPick
+    ? selectedOfferId
+    : selectedOfferId || p?.offerId || peerOffers[0]?.offerId || null
   const activePeer = peerOffers.find((o) => o.offerId === activeOfferId)
   const displayAmount = activePeer?.amount ?? p?.amount ?? null
   const displayCurrency = activePeer?.currencyCode ?? p?.currencyCode ?? null
   const displaySeller = activePeer?.seller ?? p?.seller ?? null
 
+  useEffect(() => {
+    if (requiresOfferPick) return
+    if (!selectedOfferId && (p?.offerId || peerOffers[0]?.offerId)) {
+      setSelectedOfferId(p?.offerId || peerOffers[0]?.offerId || null)
+    }
+  }, [requiresOfferPick, p?.offerId, peerOffers, selectedOfferId])
+
   const add = useMutation({
     mutationFn: async () => {
-      if (!activeOfferId) throw new Error("This item is not available to buy yet")
+      if (!activeOfferId) {
+        throw new Error(
+          requiresOfferPick
+            ? "Select a seller offer before adding to cart"
+            : "This item is not available to buy yet",
+        )
+      }
       return addOfferToCart(activeOfferId, qty)
     },
     onSuccess: () => {
@@ -109,7 +126,7 @@ function ProductDetailPage() {
     },
   })
 
-  const canAdd = Boolean(activeOfferId)
+  const canAdd = Boolean(activeOfferId) && (!requiresOfferPick || Boolean(selectedOfferId))
   const productPath = `/product/${id}`
 
   const jsonLd = p?.id

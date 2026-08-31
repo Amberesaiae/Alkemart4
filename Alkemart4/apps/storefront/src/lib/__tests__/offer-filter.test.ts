@@ -25,10 +25,10 @@ describe("productOfferTab — category handles take priority", () => {
     expect(productOfferTab(p)).toBe("food")
   })
 
-  it("falls back to keyword heuristics when no category handles", () => {
-    expect(productOfferTab(card({ id: "1", title: "Samsung Phone X" }))).toBe("electronics")
-    expect(productOfferTab(card({ id: "2", title: "Palm Oil 1L" }))).toBe("food")
-    expect(productOfferTab(card({ id: "3", title: "Baby Onesie" }))).toBe("baby")
+  it("does not invent a tab from title when handles are missing", () => {
+    expect(productOfferTab(card({ id: "1", title: "Samsung Galax" }))).toBe("all")
+    expect(productOfferTab(card({ id: "2", title: "Palm Oil 1L" }))).toBe("all")
+    expect(productOfferTab(card({ id: "3", title: "Baby Onesie" }))).toBe("all")
     expect(productOfferTab(card({ id: "4", title: "Bleach" }))).toBe("all")
   })
 
@@ -38,13 +38,13 @@ describe("productOfferTab — category handles take priority", () => {
 })
 
 describe("filterOffersByTab", () => {
-  it("filters by tab bucket using real handles", () => {
+  it("filters by tab bucket using real handles only", () => {
     const products = [
       card({ id: "1", categoryHandles: ["pet-care"] }),
       card({ id: "2", categoryHandles: ["food-groceries"] }),
       card({ id: "3", title: "Dog leash" }),
     ]
-    expect(filterOffersByTab(products, "pet").map((p) => p.id)).toEqual(["1", "3"])
+    expect(filterOffersByTab(products, "pet").map((p) => p.id)).toEqual(["1"])
   })
 
   it("returns all for the all tab", () => {
