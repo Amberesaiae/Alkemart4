@@ -2,6 +2,8 @@ import { z } from "zod"
 
 const EnvSchema = z.object({
   ENVIRONMENT: z.enum(["development", "staging", "production"]).default("development"),
+  JWT_SECRET: z.string().min(1),
+  PAYSTACK_SECRET_KEY: z.string().min(1).optional(),
 })
 
 export type ApiEnv = z.infer<typeof EnvSchema> & {
