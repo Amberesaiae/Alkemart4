@@ -10,20 +10,24 @@ Seller payouts use Paystack transfer recipients (`recipientCode`) only —
 never Stripe, Flutterwave, or a generic multi-PSP interface.
 Checkout charge/initialize is Plan 3 (not documented here).
 
- * OpenAPI spec version: 0.2.0
+ * OpenAPI spec version: 0.3.0
  */
 import type {
+  AddCartItemBody,
   AdminProductResponse,
   AdminSellerResponse,
   AuthSessionResponse,
   CatalogListResponse,
   CategoryListResponse,
   CommissionRequest,
+  CreateCart201,
+  CreateCheckoutBody,
   CreateVendorProductRequest,
   Credentials,
   GetCatalogParams,
   GhanaSetupRequest,
   PatchVendorProductRequest,
+  PaystackWebhookBody,
   ProductDetail,
   SellerReadiness,
   SellerShopResponse,
@@ -667,6 +671,133 @@ export const requestProductChanges = async (id: string, options?: RequestInit): 
     method: 'POST'
     
     
+  }
+);}
+
+
+
+/**
+ * @summary Create empty cart
+ */
+export const getCreateCartUrl = () => {
+
+
+  
+
+  return `/store/cart`
+}
+
+export const createCart = async ( options?: RequestInit): Promise<CreateCart201> => {
+  
+  return customFetch<CreateCart201>(getCreateCartUrl(),
+  {      
+    ...options,
+    method: 'POST'
+    
+    
+  }
+);}
+
+
+
+/**
+ * @summary Add offer line (offerId required)
+ */
+export const getAddCartItemUrl = (id: string,) => {
+
+
+  
+
+  return `/store/cart/${id}/items`
+}
+
+export const addCartItem = async (id: string,
+    addCartItemBody: AddCartItemBody, options?: RequestInit): Promise<void> => {
+  
+  return customFetch<void>(getAddCartItemUrl(id),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      addCartItemBody,)
+  }
+);}
+
+
+
+/**
+ * @summary Cart lines + multi-seller quote
+ */
+export const getGetCartUrl = (id: string,) => {
+
+
+  
+
+  return `/store/cart/${id}`
+}
+
+export const getCart = async (id: string, options?: RequestInit): Promise<void> => {
+  
+  return customFetch<void>(getGetCartUrl(id),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+/**
+ * COD completes OrderGroup immediately. MoMo charges via Paystack and soft-holds stock.
+Card returns Paystack authorizationUrl. Missing PAYSTACK_SECRET_KEY → 503 for momo/card.
+
+ * @summary COD / Paystack MoMo / Paystack card checkout
+ */
+export const getCreateCheckoutUrl = () => {
+
+
+  
+
+  return `/store/checkout`
+}
+
+export const createCheckout = async (createCheckoutBody: CreateCheckoutBody, options?: RequestInit): Promise<void> => {
+  
+  return customFetch<void>(getCreateCheckoutUrl(),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      createCheckoutBody,)
+  }
+);}
+
+
+
+/**
+ * @summary Paystack webhook (HMAC SHA512)
+ */
+export const getPaystackWebhookUrl = () => {
+
+
+  
+
+  return `/hooks/paystack`
+}
+
+export const paystackWebhook = async (paystackWebhookBody: PaystackWebhookBody, options?: RequestInit): Promise<void> => {
+  
+  return customFetch<void>(getPaystackWebhookUrl(),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      paystackWebhookBody,)
   }
 );}
 

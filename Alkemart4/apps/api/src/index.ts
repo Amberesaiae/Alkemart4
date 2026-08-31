@@ -15,6 +15,8 @@ import type {
   ChargePaystackMobileMoney,
   CreatePaystackTransferRecipient,
   InitializePaystackTransaction,
+  VerifyPaystackTransaction,
+  WebhookDedup,
 } from "./context"
 import { catalogDb, primaryDb } from "./db"
 import { parseEnv } from "./env"
@@ -31,6 +33,7 @@ import { categories } from "./routes/store/categories"
 import { storeCheckout } from "./routes/store/checkout"
 import { products } from "./routes/store/products"
 import { sellers } from "./routes/store/sellers"
+import { paystackHooks } from "./routes/hooks/paystack"
 import { vendorAuth } from "./routes/vendor/auth"
 import { vendorOnboarding } from "./routes/vendor/onboarding"
 import { vendorProducts } from "./routes/vendor/products"
@@ -45,6 +48,8 @@ export function createApp(
     createPaystackTransferRecipient?: CreatePaystackTransferRecipient
     chargePaystackMobileMoney?: ChargePaystackMobileMoney
     initializePaystackTransaction?: InitializePaystackTransaction
+    verifyPaystackTransaction?: VerifyPaystackTransaction
+    webhookDedup?: WebhookDedup
   } = {},
 ) {
   const app = new Hono<AppEnv>()
@@ -75,6 +80,12 @@ export function createApp(
     }
     if (options.initializePaystackTransaction) {
       c.set("initializePaystackTransaction", options.initializePaystackTransaction)
+    }
+    if (options.verifyPaystackTransaction) {
+      c.set("verifyPaystackTransaction", options.verifyPaystackTransaction)
+    }
+    if (options.webhookDedup) {
+      c.set("webhookDedup", options.webhookDedup)
     }
     if (options.paystackSecretKey !== undefined) {
       c.set("paystackSecretKey", options.paystackSecretKey)
@@ -143,6 +154,8 @@ export function createApp(
   admin.route("/sellers", adminSellers)
   admin.route("/products", withBind(bindCatalog, adminProducts))
   app.route("/admin", admin)
+
+  app.route("/hooks/paystack", withBind(bindCheckout, paystackHooks))
 
   return app
 }

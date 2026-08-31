@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Alkemart Store API
-  version: 0.2.0
+  version: 0.3.0
   description: |
     Multivendor Ghana catalog + Plan 2 identity/seller contract.
     Product is canonical content; Offer is the sellable unit.
@@ -14,6 +14,8 @@ servers:
   - url: /
     description: API origin (Workers / local wrangler)
 tags:
+  - name: checkout
+    description: Multi-seller cart and Paystack checkout
   - name: catalog
     description: Product-centric PLP and Ghana category nav
   - name: products
@@ -675,6 +677,117 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
+
+  /store/cart:
+    post:
+      operationId: createCart
+      tags: [checkout]
+      summary: Create empty cart
+      responses:
+        "201":
+          description: Cart created
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [cartId]
+                properties:
+                  cartId: { type: string }
+
+  /store/cart/{id}/items:
+    post:
+      operationId: addCartItem
+      tags: [checkout]
+      summary: Add offer line (offerId required)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [offerId, qty]
+              properties:
+                offerId: { type: string }
+                qty: { type: integer, minimum: 1 }
+      responses:
+        "201":
+          description: Line added
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /store/cart/{id}:
+    get:
+      operationId: getCart
+      tags: [checkout]
+      summary: Cart lines + multi-seller quote
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Cart with quote (pesewas strings)
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /store/checkout:
+    post:
+      operationId: createCheckout
+      tags: [checkout]
+      summary: COD / Paystack MoMo / Paystack card checkout
+      description: |
+        COD completes OrderGroup immediately. MoMo charges via Paystack and soft-holds stock.
+        Card returns Paystack authorizationUrl. Missing PAYSTACK_SECRET_KEY → 503 for momo/card.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [cartId, method, buyerEmail]
+              properties:
+                cartId: { type: string }
+                method: { type: string, enum: [cod, momo, card] }
+                buyerEmail: { type: string, format: email }
+                callbackUrl: { type: string, format: uri }
+                momo:
+                  type: object
+                  properties:
+                    provider: { type: string, enum: [mtn, vodafone, airteltigo] }
+                    phone: { type: string }
+      responses:
+        "200":
+          description: Checkout started or completed
+        "503":
+          description: Paystack key missing
+
+  /hooks/paystack:
+    post:
+      operationId: paystackWebhook
+      tags: [checkout]
+      summary: Paystack webhook (HMAC SHA512)
+      parameters:
+        - name: x-paystack-signature
+          in: header
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        "200":
+          description: Accepted
+        "401":
+          description: Invalid signature
+
 
 components:
   securitySchemes:

@@ -36,6 +36,16 @@ export type InitializePaystackTransaction = (
   },
 ) => Promise<{ authorizationUrl: string; reference: string; accessCode: string }>
 
+export type VerifyPaystackTransaction = (
+  cfg: PaystackConfig,
+  reference: string,
+) => Promise<{ status: string; amount: number; reference: string; raw: unknown }>
+
+export type WebhookDedup = {
+  get(key: string): Promise<string | null>
+  put(key: string, value: string): Promise<void>
+}
+
 export type AppEnv = {
   Bindings: ApiEnv
   Variables: {
@@ -48,5 +58,7 @@ export type AppEnv = {
     createPaystackTransferRecipient: CreatePaystackTransferRecipient
     chargePaystackMobileMoney?: ChargePaystackMobileMoney
     initializePaystackTransaction?: InitializePaystackTransaction
+    verifyPaystackTransaction?: VerifyPaystackTransaction
+    webhookDedup?: WebhookDedup
   }
 }

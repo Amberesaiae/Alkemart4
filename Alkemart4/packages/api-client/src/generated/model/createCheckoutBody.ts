@@ -12,10 +12,13 @@ Checkout charge/initialize is Plan 3 (not documented here).
 
  * OpenAPI spec version: 0.3.0
  */
-import type { UserRole } from './userRole';
+import type { CreateCheckoutBodyMethod } from './createCheckoutBodyMethod';
+import type { CreateCheckoutBodyMomo } from './createCheckoutBodyMomo';
 
-export interface SessionClaims {
-  userId: string;
-  role: UserRole;
-  sellerId?: string;
-}
+export type CreateCheckoutBody = {
+  cartId: string;
+  method: CreateCheckoutBodyMethod;
+  buyerEmail: string;
+  callbackUrl?: string;
+  momo?: CreateCheckoutBodyMomo;
+};

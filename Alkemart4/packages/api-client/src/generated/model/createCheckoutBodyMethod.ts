@@ -12,10 +12,13 @@ Checkout charge/initialize is Plan 3 (not documented here).
 
  * OpenAPI spec version: 0.3.0
  */
-import type { UserRole } from './userRole';
 
-export interface SessionClaims {
-  userId: string;
-  role: UserRole;
-  sellerId?: string;
-}
+export type CreateCheckoutBodyMethod = typeof CreateCheckoutBodyMethod[keyof typeof CreateCheckoutBodyMethod];
+
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export const CreateCheckoutBodyMethod = {
+  cod: 'cod',
+  momo: 'momo',
+  card: 'card',
+} as const;

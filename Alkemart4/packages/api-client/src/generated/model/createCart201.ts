@@ -12,10 +12,7 @@ Checkout charge/initialize is Plan 3 (not documented here).
 
  * OpenAPI spec version: 0.3.0
  */
-import type { UserRole } from './userRole';
 
-export interface SessionClaims {
-  userId: string;
-  role: UserRole;
-  sellerId?: string;
-}
+export type CreateCart201 = {
+  cartId: string;
+};

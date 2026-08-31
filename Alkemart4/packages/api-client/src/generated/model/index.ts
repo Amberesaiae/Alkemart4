@@ -10,9 +10,10 @@ Seller payouts use Paystack transfer recipients (`recipientCode`) only —
 never Stripe, Flutterwave, or a generic multi-PSP interface.
 Checkout charge/initialize is Plan 3 (not documented here).
 
- * OpenAPI spec version: 0.2.0
+ * OpenAPI spec version: 0.3.0
  */
 
+export * from './addCartItemBody';
 export * from './adminProduct';
 export * from './adminProductResponse';
 export * from './adminSeller';
@@ -25,6 +26,11 @@ export * from './categoryListResponse';
 export * from './categoryNode';
 export * from './commissionRequest';
 export * from './conflictResponse';
+export * from './createCart201';
+export * from './createCheckoutBody';
+export * from './createCheckoutBodyMethod';
+export * from './createCheckoutBodyMomo';
+export * from './createCheckoutBodyMomoProvider';
 export * from './createVendorProductRequest';
 export * from './credentials';
 export * from './currency';
@@ -36,6 +42,7 @@ export * from './ghanaSetupRequestMomo';
 export * from './notFoundResponse';
 export * from './patchVendorProductRequest';
 export * from './paystackMomoProvider';
+export * from './paystackWebhookBody';
 export * from './peerOffer';
 export * from './pesewasString';
 export * from './productCard';
