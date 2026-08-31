@@ -1,0 +1,16 @@
+name = "alkemart-api"
+main = "src/index.ts"
+compatibility_date = "2026-08-28"
+compatibility_flags = ["nodejs_compat"]
+
+[[hyperdrive]]
+binding = "HYPERDRIVE"
+id = "REPLACE_WITH_CACHED_HYPERDRIVE_ID"
+
+[[hyperdrive]]
+binding = "HYPERDRIVE_PRIMARY"
+id = "REPLACE_WITH_PRIMARY_HYPERDRIVE_ID"
+
+[[kv_namespaces]]
+binding = "CATALOG_KV"
+id = "REPLACE_WITH_KV_ID"
