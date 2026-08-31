@@ -16,3 +16,11 @@ export { toProductCard, toProductDetail } from "./catalog"
 export { hashPassword, verifyPassword } from "./auth"
 export type { SellerReadiness, SellerReadinessInput } from "./seller-readiness"
 export { evaluateSellerReadiness } from "./seller-readiness"
+export type { ModerationAction } from "./moderation"
+export {
+  InvalidModerationTransitionError,
+  approveProduct,
+  proposeProduct,
+  rejectProduct,
+  requestProductChanges,
+} from "./moderation"

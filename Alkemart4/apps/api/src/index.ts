@@ -16,6 +16,7 @@ import { products } from "./routes/store/products"
 import { sellers } from "./routes/store/sellers"
 import { vendorAuth } from "./routes/vendor/auth"
 import { vendorOnboarding } from "./routes/vendor/onboarding"
+import { vendorProducts } from "./routes/vendor/products"
 
 export function createApp(
   options: {
@@ -85,6 +86,7 @@ export function createApp(
   vendor.use("*", bindAuth)
   vendor.route("/auth", vendorAuth)
   vendor.route("/onboarding", vendorOnboarding)
+  vendor.route("/products", withBind(bindCatalog, vendorProducts))
   vendor.get("/me", requireSeller, (c) => c.json(c.get("auth")))
   app.route("/vendor", vendor)
 
