@@ -1,5 +1,6 @@
 import { sellerMembers, sellers, users } from "@alkemart/db"
 import type { SellerStatus } from "@alkemart/domain"
+import type { PaystackMomoProvider } from "@alkemart/shared/ghana"
 import { eq } from "drizzle-orm"
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js"
 
@@ -19,6 +20,22 @@ export type AuthSeller = {
   handle: string
   name: string
   status: SellerStatus
+  deliveryFeePesewas: bigint
+  recipientCode: string | null
+  momoProvider: PaystackMomoProvider | null
+  momoPhone: string | null
+  packRegion: string | null
+  digitalAddress: string | null
+}
+
+export type SellerGhanaSetupPatch = {
+  name: string
+  packRegion: string
+  digitalAddress: string | null
+  deliveryFeePesewas: bigint
+  momoProvider: PaystackMomoProvider
+  momoPhone: string
+  recipientCode: string
 }
 
 export type AuthSellerMember = {
@@ -51,6 +68,7 @@ export interface AuthRepository {
     user: { id: string; email: string; passwordHash: string }
     seller: { id: string; handle: string; name: string }
   }): Promise<{ user: AuthUser; seller: AuthSeller; member: AuthSellerMember }>
+  updateSellerGhanaSetup(id: string, patch: SellerGhanaSetupPatch): Promise<AuthSeller>
 }
 
 function toUser(row: {
@@ -69,8 +87,57 @@ function toUser(row: {
   }
 }
 
-function toSeller(row: { id: string; handle: string; name: string; status: SellerStatus }): AuthSeller {
-  return { id: row.id, handle: row.handle, name: row.name, status: row.status }
+function toMomoProvider(value: string | null): PaystackMomoProvider | null {
+  if (value === "mtn" || value === "vodafone" || value === "airteltigo") return value
+  return null
+}
+
+function toSeller(row: {
+  id: string
+  handle: string
+  name: string
+  status: SellerStatus
+  deliveryFeePesewas: bigint | string | number
+  recipientCode: string | null
+  momoProvider: string | null
+  momoPhone: string | null
+  packRegion: string | null
+  digitalAddress: string | null
+}): AuthSeller {
+  return {
+    id: row.id,
+    handle: row.handle,
+    name: row.name,
+    status: row.status,
+    deliveryFeePesewas:
+      typeof row.deliveryFeePesewas === "bigint"
+        ? row.deliveryFeePesewas
+        : BigInt(row.deliveryFeePesewas),
+    recipientCode: row.recipientCode,
+    momoProvider: toMomoProvider(row.momoProvider),
+    momoPhone: row.momoPhone,
+    packRegion: row.packRegion,
+    digitalAddress: row.digitalAddress,
+  }
+}
+
+function unsetOnboarding(): Pick<
+  AuthSeller,
+  | "deliveryFeePesewas"
+  | "recipientCode"
+  | "momoProvider"
+  | "momoPhone"
+  | "packRegion"
+  | "digitalAddress"
+> {
+  return {
+    deliveryFeePesewas: 0n,
+    recipientCode: null,
+    momoProvider: null,
+    momoPhone: null,
+    packRegion: null,
+    digitalAddress: null,
+  }
 }
 
 function uniqueField(err: unknown): "email" | "handle" | null {
@@ -135,12 +202,21 @@ export class InMemoryAuthRepository implements AuthRepository {
     if (this.usersByEmail.has(input.user.email)) throw new AuthConflictError("email")
     if (this.sellersByHandle.has(input.seller.handle)) throw new AuthConflictError("handle")
     const user = await this.createUser({ ...input.user, role: "seller_member" })
-    const seller: AuthSeller = { ...input.seller, status: "pending_approval" }
+    const seller: AuthSeller = { ...input.seller, status: "pending_approval", ...unsetOnboarding() }
     this.sellersById.set(seller.id, seller)
     this.sellersByHandle.set(seller.handle, seller)
     const member: AuthSellerMember = { userId: user.id, sellerId: seller.id, role: "owner" }
     this.membersByUserId.set(user.id, member)
     return { user, seller, member }
+  }
+
+  async updateSellerGhanaSetup(id: string, patch: SellerGhanaSetupPatch) {
+    const seller = this.sellersById.get(id)
+    if (!seller) throw new Error("seller not found")
+    const next: AuthSeller = { ...seller, ...patch }
+    this.sellersById.set(id, next)
+    this.sellersByHandle.set(next.handle, next)
+    return next
   }
 }
 
@@ -249,5 +325,23 @@ export class PostgresAuthRepository implements AuthRepository {
       if (field) throw new AuthConflictError(field)
       throw err
     }
+  }
+
+  async updateSellerGhanaSetup(id: string, patch: SellerGhanaSetupPatch) {
+    const [row] = await this.db
+      .update(sellers)
+      .set({
+        name: patch.name,
+        packRegion: patch.packRegion,
+        digitalAddress: patch.digitalAddress,
+        deliveryFeePesewas: patch.deliveryFeePesewas,
+        momoProvider: patch.momoProvider,
+        momoPhone: patch.momoPhone,
+        recipientCode: patch.recipientCode,
+      })
+      .where(eq(sellers.id, id))
+      .returning()
+    if (!row) throw new Error("seller not found")
+    return toSeller(row)
   }
 }

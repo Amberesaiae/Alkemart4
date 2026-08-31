@@ -1,7 +1,8 @@
+import { createPaystackTransferRecipient } from "@alkemart/paystack"
 import { Hono, type MiddlewareHandler } from "hono"
 import { PostgresAuthRepository, type AuthRepository } from "./auth-repository"
 import { PostgresCatalogRepository, type CatalogRepository } from "./catalog-repository"
-import type { AppEnv } from "./context"
+import type { AppEnv, CreatePaystackTransferRecipient } from "./context"
 import { catalogDb, primaryDb } from "./db"
 import { parseEnv } from "./env"
 import { requireAdmin, requireSeller } from "./middleware/auth"
@@ -14,9 +15,16 @@ import { categories } from "./routes/store/categories"
 import { products } from "./routes/store/products"
 import { sellers } from "./routes/store/sellers"
 import { vendorAuth } from "./routes/vendor/auth"
+import { vendorOnboarding } from "./routes/vendor/onboarding"
 
 export function createApp(
-  options: { repo?: CatalogRepository; authRepo?: AuthRepository; jwtSecret?: string } = {},
+  options: {
+    repo?: CatalogRepository
+    authRepo?: AuthRepository
+    jwtSecret?: string
+    paystackSecretKey?: string
+    createPaystackTransferRecipient?: CreatePaystackTransferRecipient
+  } = {},
 ) {
   const app = new Hono<AppEnv>()
   app.onError(errorHandler)
@@ -45,6 +53,16 @@ export function createApp(
       const env = parseEnv(c.env as unknown as Record<string, unknown>)
       c.set("jwtSecret", env.JWT_SECRET)
     }
+    if (options.paystackSecretKey !== undefined) {
+      c.set("paystackSecretKey", options.paystackSecretKey)
+    } else if (!options.authRepo) {
+      const env = parseEnv(c.env as unknown as Record<string, unknown>)
+      c.set("paystackSecretKey", env.PAYSTACK_SECRET_KEY)
+    }
+    c.set(
+      "createPaystackTransferRecipient",
+      options.createPaystackTransferRecipient ?? createPaystackTransferRecipient,
+    )
     await next()
   }
 
@@ -66,6 +84,7 @@ export function createApp(
   const vendor = new Hono<AppEnv>()
   vendor.use("*", bindAuth)
   vendor.route("/auth", vendorAuth)
+  vendor.route("/onboarding", vendorOnboarding)
   vendor.get("/me", requireSeller, (c) => c.json(c.get("auth")))
   app.route("/vendor", vendor)
 

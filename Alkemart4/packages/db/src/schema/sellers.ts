@@ -15,4 +15,9 @@ export const sellers = pgTable("sellers", {
   status: sellerStatusEnum("status").notNull().default("pending_approval"),
   commissionBps: integer("commission_bps").notNull().default(700),
   deliveryFeePesewas: bigint("delivery_fee_pesewas", { mode: "bigint" }).notNull().default(sql`0`),
+  recipientCode: text("recipient_code"),
+  momoProvider: text("momo_provider"),
+  momoPhone: text("momo_phone"),
+  packRegion: text("pack_region"),
+  digitalAddress: text("digital_address"),
 })

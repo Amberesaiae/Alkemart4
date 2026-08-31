@@ -12,6 +12,7 @@
   "dependencies": {
     "@alkemart/db": "workspace:*",
     "@alkemart/domain": "workspace:*",
+    "@alkemart/paystack": "workspace:*",
     "@alkemart/shared": "workspace:*",
     "hono": "^4.7.0",
     "drizzle-orm": "^0.44.0",
