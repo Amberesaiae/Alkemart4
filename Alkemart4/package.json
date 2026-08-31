@@ -44,6 +44,7 @@
     "packages/api-spec",
     "packages/db",
     "packages/domain",
+    "packages/paystack",
     "packages/shared",
     "packages/ui",
     "scripts"

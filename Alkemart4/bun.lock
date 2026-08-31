@@ -267,6 +267,14 @@
         "vitest": "^4.1.10",
       },
     },
+    "packages/paystack": {
+      "name": "@alkemart/paystack",
+      "version": "0.0.0",
+      "devDependencies": {
+        "typescript": "~5.9.3",
+        "vitest": "^4.1.10",
+      },
+    },
     "packages/shared": {
       "name": "@alkemart/shared",
       "version": "0.1.0",
@@ -338,6 +346,8 @@
     "@alkemart/domain": ["@alkemart/domain@workspace:packages/domain"],
 
     "@alkemart/ghana-vendor": ["@alkemart/ghana-vendor@workspace:apps/backend/apps/ghana-vendor"],
+
+    "@alkemart/paystack": ["@alkemart/paystack@workspace:packages/paystack"],
 
     "@alkemart/shared": ["@alkemart/shared@workspace:packages/shared"],
 
