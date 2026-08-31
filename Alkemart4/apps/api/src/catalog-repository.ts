@@ -391,6 +391,11 @@ export function getSellerShopFrom(data: CatalogSnapshot, handle: string): Seller
 export class InMemoryCatalogRepository implements CatalogRepository {
   constructor(private readonly data: CatalogSnapshot) {}
 
+  /** Shared mutable snapshot for in-memory checkout stock holds. */
+  snapshot(): CatalogSnapshot {
+    return this.data
+  }
+
   async listCategories() {
     return listCategoriesFrom(this.data)
   }
