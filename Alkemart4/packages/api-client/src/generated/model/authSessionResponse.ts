@@ -12,7 +12,10 @@ Checkout charge/initialize is Plan 3 (not documented here).
 
  * OpenAPI spec version: 0.2.0
  */
+import type { AuthUser } from './authUser';
 
-export interface ErrorResponse {
-  error: string;
+export interface AuthSessionResponse {
+  /** HS256 JWT (claims include userId, role, optional sellerId). */
+  token: string;
+  user: AuthUser;
 }

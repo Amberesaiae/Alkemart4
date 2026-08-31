@@ -13,6 +13,12 @@ Checkout charge/initialize is Plan 3 (not documented here).
  * OpenAPI spec version: 0.2.0
  */
 
-export interface ErrorResponse {
-  error: string;
-}
+export type UserRole = typeof UserRole[keyof typeof UserRole];
+
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export const UserRole = {
+  buyer: 'buyer',
+  seller_member: 'seller_member',
+  admin: 'admin',
+} as const;

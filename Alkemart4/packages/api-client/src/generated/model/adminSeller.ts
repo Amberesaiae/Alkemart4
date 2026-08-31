@@ -12,7 +12,16 @@ Checkout charge/initialize is Plan 3 (not documented here).
 
  * OpenAPI spec version: 0.2.0
  */
+import type { SellerStatus } from './sellerStatus';
 
-export interface ErrorResponse {
-  error: string;
+export interface AdminSeller {
+  id: string;
+  handle: string;
+  name: string;
+  status: SellerStatus;
+  /**
+   * @minimum 0
+   * @maximum 10000
+   */
+  commissionBps: number;
 }

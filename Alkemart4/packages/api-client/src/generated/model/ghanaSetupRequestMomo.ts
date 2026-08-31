@@ -12,7 +12,20 @@ Checkout charge/initialize is Plan 3 (not documented here).
 
  * OpenAPI spec version: 0.2.0
  */
+import type { PaystackMomoProvider } from './paystackMomoProvider';
 
-export interface ErrorResponse {
-  error: string;
-}
+export type GhanaSetupRequestMomo = {
+  provider: PaystackMomoProvider;
+  /**
+   * MoMo MSISDN used as Paystack account_number.
+   * @minLength 9
+   * @maxLength 20
+   */
+  phone: string;
+  /**
+   * Paystack transfer recipient name.
+   * @minLength 1
+   * @maxLength 80
+   */
+  accountName: string;
+};

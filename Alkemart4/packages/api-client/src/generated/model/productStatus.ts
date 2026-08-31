@@ -13,6 +13,13 @@ Checkout charge/initialize is Plan 3 (not documented here).
  * OpenAPI spec version: 0.2.0
  */
 
-export interface ErrorResponse {
-  error: string;
-}
+export type ProductStatus = typeof ProductStatus[keyof typeof ProductStatus];
+
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export const ProductStatus = {
+  draft: 'draft',
+  proposed: 'proposed',
+  published: 'published',
+  rejected: 'rejected',
+} as const;

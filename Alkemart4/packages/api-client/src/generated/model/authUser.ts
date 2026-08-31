@@ -12,7 +12,12 @@ Checkout charge/initialize is Plan 3 (not documented here).
 
  * OpenAPI spec version: 0.2.0
  */
+import type { UserRole } from './userRole';
 
-export interface ErrorResponse {
-  error: string;
+export interface AuthUser {
+  id: string;
+  email: string;
+  role: UserRole;
+  /** Present for seller_member sessions. */
+  sellerId?: string;
 }

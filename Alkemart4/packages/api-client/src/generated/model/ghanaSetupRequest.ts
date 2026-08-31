@@ -12,7 +12,19 @@ Checkout charge/initialize is Plan 3 (not documented here).
 
  * OpenAPI spec version: 0.2.0
  */
+import type { PesewasString } from './pesewasString';
+import type { GhanaSetupRequestMomo } from './ghanaSetupRequestMomo';
 
-export interface ErrorResponse {
-  error: string;
+export interface GhanaSetupRequest {
+  /**
+   * @minLength 1
+   * @maxLength 80
+   */
+  displayName: string;
+  /** Ghana region id from @alkemart/shared/ghana (e.g. GH07). */
+  region: string;
+  /** @maxLength 32 */
+  digitalAddress?: string;
+  deliveryFeePesewas: PesewasString;
+  momo: GhanaSetupRequestMomo;
 }

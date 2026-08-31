@@ -12,7 +12,19 @@ Checkout charge/initialize is Plan 3 (not documented here).
 
  * OpenAPI spec version: 0.2.0
  */
+import type { PesewasString } from './pesewasString';
+import type { Currency } from './currency';
 
-export interface ErrorResponse {
-  error: string;
+export interface VendorOffer {
+  id: string;
+  sellerId: string;
+  productId: string;
+  variantId: string;
+  pricePesewas: PesewasString;
+  /** @minimum 0 */
+  onHand: number;
+  /** @minimum 0 */
+  reserved: number;
+  currency: Currency;
+  active: boolean;
 }

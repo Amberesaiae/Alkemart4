@@ -12,7 +12,15 @@ Checkout charge/initialize is Plan 3 (not documented here).
 
  * OpenAPI spec version: 0.2.0
  */
+import type { ProductStatus } from './productStatus';
 
-export interface ErrorResponse {
-  error: string;
-}
+export type VendorProductProduct = {
+  id: string;
+  title: string;
+  /** @nullable */
+  description: string | null;
+  status: ProductStatus;
+  primaryCategoryId: string;
+  /** @nullable */
+  sellerId: string | null;
+};

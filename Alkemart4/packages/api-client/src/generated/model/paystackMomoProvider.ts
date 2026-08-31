@@ -13,6 +13,15 @@ Checkout charge/initialize is Plan 3 (not documented here).
  * OpenAPI spec version: 0.2.0
  */
 
-export interface ErrorResponse {
-  error: string;
-}
+/**
+ * Ghana MoMo provider for Paystack transfer recipient bank code.
+ */
+export type PaystackMomoProvider = typeof PaystackMomoProvider[keyof typeof PaystackMomoProvider];
+
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export const PaystackMomoProvider = {
+  mtn: 'mtn',
+  vodafone: 'vodafone',
+  airteltigo: 'airteltigo',
+} as const;

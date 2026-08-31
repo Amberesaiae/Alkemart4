@@ -73,6 +73,21 @@ async function adminProductApp() {
   return { app, adminToken, productId: createdBody.product.id }
 }
 
+describe("POST /admin/products/:id/approve", () => {
+  it("sets product status to published", async () => {
+    const { app, adminToken, productId } = await adminProductApp()
+
+    const res = await app.request(`/admin/products/${productId}/approve`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${adminToken}` },
+    })
+    expect(res.status).toBe(200)
+    const body = (await res.json()) as { product: { id: string; status: string } }
+    expect(body.product.id).toBe(productId)
+    expect(body.product.status).toBe("published")
+  })
+})
+
 describe("POST /admin/products/:id/reject", () => {
   it("sets product status to rejected", async () => {
     const { app, adminToken, productId } = await adminProductApp()

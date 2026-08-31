@@ -1,11 +1,15 @@
 openapi: 3.0.3
 info:
   title: Alkemart Store API
-  version: 0.1.0
+  version: 0.2.0
   description: |
-    Multivendor Ghana catalog contract. Product is canonical content; Offer is the
-    sellable unit. Money fields are integer pesewas encoded as decimal strings.
+    Multivendor Ghana catalog + Plan 2 identity/seller contract.
+    Product is canonical content; Offer is the sellable unit.
+    Money fields are integer pesewas encoded as decimal strings.
     No major-unit `price` fields.
+    Seller payouts use Paystack transfer recipients (`recipientCode`) only —
+    never Stripe, Flutterwave, or a generic multi-PSP interface.
+    Checkout charge/initialize is Plan 3 (not documented here).
 servers:
   - url: /
     description: API origin (Workers / local wrangler)
@@ -16,6 +20,20 @@ tags:
     description: PDP with peer offers
   - name: sellers
     description: Public seller shop
+  - name: store-auth
+    description: Buyer register/login
+  - name: vendor-auth
+    description: Seller register/login and session
+  - name: vendor-onboarding
+    description: Ghana readiness and Paystack MoMo transfer recipient setup
+  - name: vendor-products
+    description: Seller-scoped product and offer writes
+  - name: admin-auth
+    description: Admin login and session
+  - name: admin-sellers
+    description: Seller lifecycle and commission
+  - name: admin-products
+    description: Product moderation (propose → published/rejected)
 
 paths:
   /store/categories:
@@ -125,7 +143,593 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /store/auth/register:
+    post:
+      operationId: registerBuyer
+      tags: [store-auth]
+      summary: Register buyer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Credentials"
+      responses:
+        "201":
+          description: Buyer session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthSessionResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /store/auth/login:
+    post:
+      operationId: loginBuyer
+      tags: [store-auth]
+      summary: Login buyer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Credentials"
+      responses:
+        "200":
+          description: Buyer session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthSessionResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /vendor/auth/register:
+    post:
+      operationId: registerVendor
+      tags: [vendor-auth]
+      summary: Register vendor (pending seller)
+      description: |
+        Creates user (`seller_member`), seller (`pending_approval`), owner
+        membership, and a JWT that includes `sellerId`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VendorRegisterRequest"
+      responses:
+        "201":
+          description: Vendor session with sellerId
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthSessionResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /vendor/auth/login:
+    post:
+      operationId: loginVendor
+      tags: [vendor-auth]
+      summary: Login vendor
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Credentials"
+      responses:
+        "200":
+          description: Vendor session with sellerId
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthSessionResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /vendor/me:
+    get:
+      operationId: getVendorMe
+      tags: [vendor-auth]
+      summary: Current seller session claims
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Session claims
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionClaims"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /vendor/onboarding/status:
+    get:
+      operationId: getVendorOnboardingStatus
+      tags: [vendor-onboarding]
+      summary: Ghana seller readiness
+      description: |
+        Returns readiness gates. `missing` may include `name`, `region`, and
+        `recipient_code` (Paystack transfer recipient code).
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Readiness
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SellerReadiness"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /vendor/onboarding/ghana-setup:
+    post:
+      operationId: postVendorGhanaSetup
+      tags: [vendor-onboarding]
+      summary: Ghana MoMo payout setup via Paystack transfer recipient
+      description: |
+        Creates a Paystack transfer recipient for MoMo and stores `recipientCode`
+        on the seller. Requires `PAYSTACK_SECRET_KEY` (503 if missing).
+        Does not charge; checkout is Plan 3.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GhanaSetupRequest"
+      responses:
+        "200":
+          description: Updated readiness (typically ready after successful recipient)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SellerReadiness"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "502":
+          description: Paystack transfer recipient call failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: PAYSTACK_SECRET_KEY is not configured
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /vendor/products:
+    get:
+      operationId: listVendorProducts
+      tags: [vendor-products]
+      summary: List products owned by the authenticated seller
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Seller product list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VendorProductListResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    post:
+      operationId: createVendorProduct
+      tags: [vendor-products]
+      summary: Create product + default variant + offer (proposed)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateVendorProductRequest"
+      responses:
+        "201":
+          description: Created vendor product bundle
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VendorProduct"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /vendor/products/{id}:
+    patch:
+      operationId: updateVendorProduct
+      tags: [vendor-products]
+      summary: Patch owned product/offer (404 if not owned)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PatchVendorProductRequest"
+      responses:
+        "200":
+          description: Updated vendor product bundle
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VendorProduct"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /vendor/products/{id}/propose:
+    post:
+      operationId: proposeVendorProduct
+      tags: [vendor-products]
+      summary: Propose owned product for moderation
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Updated vendor product bundle
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VendorProduct"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /admin/auth/login:
+    post:
+      operationId: loginAdmin
+      tags: [admin-auth]
+      summary: Login admin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Credentials"
+      responses:
+        "200":
+          description: Admin session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthSessionResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /admin/me:
+    get:
+      operationId: getAdminMe
+      tags: [admin-auth]
+      summary: Current admin session claims
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Session claims
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionClaims"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /admin/sellers/{id}/approve:
+    post:
+      operationId: approveSeller
+      tags: [admin-sellers]
+      summary: Approve seller (status → open)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/SellerId"
+      responses:
+        "200":
+          description: Seller updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminSellerResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /admin/sellers/{id}/suspend:
+    post:
+      operationId: suspendSeller
+      tags: [admin-sellers]
+      summary: Suspend seller (status → suspended)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/SellerId"
+      responses:
+        "200":
+          description: Seller updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminSellerResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /admin/sellers/{id}/unsuspend:
+    post:
+      operationId: unsuspendSeller
+      tags: [admin-sellers]
+      summary: Unsuspend seller (status → open)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/SellerId"
+      responses:
+        "200":
+          description: Seller updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminSellerResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /admin/sellers/{id}/terminate:
+    post:
+      operationId: terminateSeller
+      tags: [admin-sellers]
+      summary: Terminate seller (status → terminated)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/SellerId"
+      responses:
+        "200":
+          description: Seller updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminSellerResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /admin/sellers/{id}/commission:
+    post:
+      operationId: setSellerCommission
+      tags: [admin-sellers]
+      summary: Set seller commission basis points
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/SellerId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CommissionRequest"
+      responses:
+        "200":
+          description: Seller updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminSellerResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /admin/products/{id}/approve:
+    post:
+      operationId: approveProduct
+      tags: [admin-products]
+      summary: Approve product (status → published)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ProductId"
+      responses:
+        "200":
+          description: Product updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminProductResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /admin/products/{id}/reject:
+    post:
+      operationId: rejectProduct
+      tags: [admin-products]
+      summary: Reject product (status → rejected)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ProductId"
+      responses:
+        "200":
+          description: Product updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminProductResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /admin/products/{id}/request-changes:
+    post:
+      operationId: requestProductChanges
+      tags: [admin-products]
+      summary: Request changes (stays proposed)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ProductId"
+      responses:
+        "200":
+          description: Product updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminProductResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: HS256 session JWT from store/vendor/admin auth.
+
+  parameters:
+    SellerId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+    ProductId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+
+  responses:
+    BadRequest:
+      description: Invalid request
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    Unauthorized:
+      description: Missing or invalid credentials/token
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    Forbidden:
+      description: Authenticated but wrong actor
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    NotFound:
+      description: Resource not found (or not owned)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    Conflict:
+      description: Unique constraint conflict
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+
   schemas:
     Currency:
       type: string
@@ -136,6 +740,363 @@ components:
       type: string
       pattern: "^[0-9]+$"
       description: Integer pesewas as a decimal string (JSON-safe bigint). Never major units.
+
+    UserRole:
+      type: string
+      enum: [buyer, seller_member, admin]
+
+    SellerStatus:
+      type: string
+      enum: [pending_approval, open, suspended, terminated]
+
+    ProductStatus:
+      type: string
+      enum: [draft, proposed, published, rejected]
+
+    PaystackMomoProvider:
+      type: string
+      enum: [mtn, vodafone, airteltigo]
+      description: Ghana MoMo provider for Paystack transfer recipient bank code.
+
+    Credentials:
+      type: object
+      additionalProperties: false
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+
+    VendorRegisterRequest:
+      type: object
+      additionalProperties: false
+      required: [email, password, sellerName, sellerHandle]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+        sellerName:
+          type: string
+          minLength: 1
+          maxLength: 80
+        sellerHandle:
+          type: string
+          minLength: 2
+          maxLength: 40
+          description: Lowercase kebab handle; normalized server-side.
+
+    AuthUser:
+      type: object
+      additionalProperties: false
+      required: [id, email, role]
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+        role:
+          $ref: "#/components/schemas/UserRole"
+        sellerId:
+          type: string
+          description: Present for seller_member sessions.
+
+    AuthSessionResponse:
+      type: object
+      additionalProperties: false
+      required: [token, user]
+      properties:
+        token:
+          type: string
+          description: HS256 JWT (claims include userId, role, optional sellerId).
+        user:
+          $ref: "#/components/schemas/AuthUser"
+
+    SessionClaims:
+      type: object
+      additionalProperties: false
+      required: [userId, role]
+      properties:
+        userId:
+          type: string
+        role:
+          $ref: "#/components/schemas/UserRole"
+        sellerId:
+          type: string
+
+    SellerReadiness:
+      type: object
+      additionalProperties: false
+      required: [ready, missing]
+      properties:
+        ready:
+          type: boolean
+        missing:
+          type: array
+          items:
+            type: string
+          description: Gate keys such as name, region, recipient_code.
+
+    GhanaSetupRequest:
+      type: object
+      additionalProperties: false
+      required: [displayName, region, deliveryFeePesewas, momo]
+      properties:
+        displayName:
+          type: string
+          minLength: 1
+          maxLength: 80
+        region:
+          type: string
+          description: Ghana region id from @alkemart/shared/ghana (e.g. GH07).
+        digitalAddress:
+          type: string
+          maxLength: 32
+        deliveryFeePesewas:
+          $ref: "#/components/schemas/PesewasString"
+        momo:
+          type: object
+          additionalProperties: false
+          required: [provider, phone, accountName]
+          properties:
+            provider:
+              $ref: "#/components/schemas/PaystackMomoProvider"
+            phone:
+              type: string
+              minLength: 9
+              maxLength: 20
+              description: MoMo MSISDN used as Paystack account_number.
+            accountName:
+              type: string
+              minLength: 1
+              maxLength: 80
+              description: Paystack transfer recipient name.
+
+    CreateVendorProductRequest:
+      type: object
+      additionalProperties: false
+      required: [title, primaryCategoryId, pricePesewas, onHand]
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 200
+        description:
+          type: string
+          nullable: true
+          maxLength: 5000
+        primaryCategoryId:
+          type: string
+        pricePesewas:
+          $ref: "#/components/schemas/PesewasString"
+        onHand:
+          type: integer
+          minimum: 0
+        sku:
+          type: string
+          nullable: true
+          maxLength: 64
+        variantTitle:
+          type: string
+          nullable: true
+          maxLength: 120
+
+    PatchVendorProductRequest:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 200
+        description:
+          type: string
+          nullable: true
+          maxLength: 5000
+        primaryCategoryId:
+          type: string
+        pricePesewas:
+          $ref: "#/components/schemas/PesewasString"
+        onHand:
+          type: integer
+          minimum: 0
+        active:
+          type: boolean
+        sku:
+          type: string
+          nullable: true
+          maxLength: 64
+        variantTitle:
+          type: string
+          nullable: true
+          maxLength: 120
+
+    VendorOffer:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - sellerId
+        - productId
+        - variantId
+        - pricePesewas
+        - onHand
+        - reserved
+        - currency
+        - active
+      properties:
+        id:
+          type: string
+        sellerId:
+          type: string
+        productId:
+          type: string
+        variantId:
+          type: string
+        pricePesewas:
+          $ref: "#/components/schemas/PesewasString"
+        onHand:
+          type: integer
+          minimum: 0
+        reserved:
+          type: integer
+          minimum: 0
+        currency:
+          $ref: "#/components/schemas/Currency"
+        active:
+          type: boolean
+
+    VendorProduct:
+      type: object
+      additionalProperties: false
+      required: [product, variant, offer]
+      properties:
+        product:
+          type: object
+          additionalProperties: false
+          required:
+            - id
+            - title
+            - description
+            - status
+            - primaryCategoryId
+            - sellerId
+          properties:
+            id:
+              type: string
+            title:
+              type: string
+            description:
+              type: string
+              nullable: true
+            status:
+              $ref: "#/components/schemas/ProductStatus"
+            primaryCategoryId:
+              type: string
+            sellerId:
+              type: string
+              nullable: true
+        variant:
+          type: object
+          additionalProperties: false
+          required: [id, sku, title]
+          properties:
+            id:
+              type: string
+            sku:
+              type: string
+              nullable: true
+            title:
+              type: string
+              nullable: true
+        offer:
+          $ref: "#/components/schemas/VendorOffer"
+
+    VendorProductListResponse:
+      type: object
+      additionalProperties: false
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/VendorProduct"
+
+    CommissionRequest:
+      type: object
+      additionalProperties: false
+      required: [commissionBps]
+      properties:
+        commissionBps:
+          type: integer
+          minimum: 0
+          maximum: 10000
+
+    AdminSeller:
+      type: object
+      additionalProperties: false
+      required: [id, handle, name, status, commissionBps]
+      properties:
+        id:
+          type: string
+        handle:
+          type: string
+        name:
+          type: string
+        status:
+          $ref: "#/components/schemas/SellerStatus"
+        commissionBps:
+          type: integer
+          minimum: 0
+          maximum: 10000
+
+    AdminSellerResponse:
+      type: object
+      additionalProperties: false
+      required: [seller]
+      properties:
+        seller:
+          $ref: "#/components/schemas/AdminSeller"
+
+    AdminProduct:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - title
+        - description
+        - status
+        - primaryCategoryId
+        - sellerId
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
+        status:
+          $ref: "#/components/schemas/ProductStatus"
+        primaryCategoryId:
+          type: string
+        sellerId:
+          type: string
+          nullable: true
+
+    AdminProductResponse:
+      type: object
+      additionalProperties: false
+      required: [product]
+      properties:
+        product:
+          $ref: "#/components/schemas/AdminProduct"
 
     ProductCard:
       type: object

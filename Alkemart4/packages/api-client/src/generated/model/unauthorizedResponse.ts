@@ -12,7 +12,9 @@ Checkout charge/initialize is Plan 3 (not documented here).
 
  * OpenAPI spec version: 0.2.0
  */
+import type { ErrorResponse } from './errorResponse';
 
-export interface ErrorResponse {
-  error: string;
-}
+/**
+ * Missing or invalid credentials/token
+ */
+export type UnauthorizedResponse = ErrorResponse;
