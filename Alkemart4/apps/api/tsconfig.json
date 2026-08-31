@@ -3,6 +3,7 @@
   "compilerOptions": {
     "lib": ["es2022"],
     "types": ["@cloudflare/workers-types"],
+    "resolveJsonModule": true,
     "noEmit": true,
     "rootDir": "src",
     "outDir": "dist"

@@ -1,0 +1,256 @@
+{
+  "categories": [
+    {
+      "id": "food-groceries",
+      "handle": "food-groceries",
+      "name": "Food & Groceries",
+      "parentId": null,
+      "rank": 0,
+      "isNav": true
+    },
+    {
+      "id": "beverages",
+      "handle": "beverages",
+      "name": "Beverages",
+      "parentId": null,
+      "rank": 1,
+      "isNav": true
+    },
+    {
+      "id": "fashion-apparel",
+      "handle": "fashion-apparel",
+      "name": "Fashion & Apparel",
+      "parentId": null,
+      "rank": 2,
+      "isNav": true
+    },
+    {
+      "id": "phones-electronics",
+      "handle": "phones-electronics",
+      "name": "Phones & Electronics",
+      "parentId": null,
+      "rank": 3,
+      "isNav": true
+    },
+    {
+      "id": "home-living",
+      "handle": "home-living",
+      "name": "Home & Living",
+      "parentId": null,
+      "rank": 4,
+      "isNav": true
+    },
+    {
+      "id": "health-beauty",
+      "handle": "health-beauty",
+      "name": "Health & Beauty",
+      "parentId": null,
+      "rank": 5,
+      "isNav": true
+    },
+    {
+      "id": "baby-kids",
+      "handle": "baby-kids",
+      "name": "Baby & Kids",
+      "parentId": null,
+      "rank": 6,
+      "isNav": true
+    },
+    {
+      "id": "pet-care",
+      "handle": "pet-care",
+      "name": "Pet Care",
+      "parentId": null,
+      "rank": 7,
+      "isNav": true
+    },
+    {
+      "id": "agriculture",
+      "handle": "agriculture",
+      "name": "Agriculture",
+      "parentId": null,
+      "rank": 8,
+      "isNav": true
+    },
+    {
+      "id": "automotive",
+      "handle": "automotive",
+      "name": "Automotive",
+      "parentId": null,
+      "rank": 9,
+      "isNav": true
+    },
+    {
+      "id": "services",
+      "handle": "services",
+      "name": "Services",
+      "parentId": null,
+      "rank": 10,
+      "isNav": true
+    },
+    {
+      "id": "other",
+      "handle": "other",
+      "name": "Other",
+      "parentId": null,
+      "rank": 11,
+      "isNav": true
+    },
+    {
+      "id": "phones",
+      "handle": "phones",
+      "name": "Phones",
+      "parentId": "phones-electronics",
+      "rank": 0,
+      "isNav": true
+    },
+    {
+      "id": "accessories",
+      "handle": "accessories",
+      "name": "Accessories",
+      "parentId": "phones-electronics",
+      "rank": 1,
+      "isNav": true
+    },
+    {
+      "id": "computing",
+      "handle": "computing",
+      "name": "Computing",
+      "parentId": "phones-electronics",
+      "rank": 2,
+      "isNav": true
+    },
+    {
+      "id": "tvs-audio",
+      "handle": "tvs-audio",
+      "name": "TVs & Audio",
+      "parentId": "phones-electronics",
+      "rank": 3,
+      "isNav": true
+    },
+    {
+      "id": "men",
+      "handle": "men",
+      "name": "Men",
+      "parentId": "fashion-apparel",
+      "rank": 0,
+      "isNav": true
+    },
+    {
+      "id": "women",
+      "handle": "women",
+      "name": "Women",
+      "parentId": "fashion-apparel",
+      "rank": 1,
+      "isNav": true
+    },
+    {
+      "id": "kids",
+      "handle": "kids",
+      "name": "Kids",
+      "parentId": "fashion-apparel",
+      "rank": 2,
+      "isNav": true
+    },
+    {
+      "id": "shoes",
+      "handle": "shoes",
+      "name": "Shoes",
+      "parentId": "fashion-apparel",
+      "rank": 3,
+      "isNav": true
+    },
+    {
+      "id": "bags",
+      "handle": "bags",
+      "name": "Bags",
+      "parentId": "fashion-apparel",
+      "rank": 4,
+      "isNav": true
+    },
+    {
+      "id": "staples",
+      "handle": "staples",
+      "name": "Staples",
+      "parentId": "food-groceries",
+      "rank": 0,
+      "isNav": true
+    },
+    {
+      "id": "cooking-oil",
+      "handle": "cooking-oil",
+      "name": "Cooking Oil",
+      "parentId": "food-groceries",
+      "rank": 1,
+      "isNav": true
+    },
+    {
+      "id": "snacks",
+      "handle": "snacks",
+      "name": "Snacks",
+      "parentId": "food-groceries",
+      "rank": 2,
+      "isNav": true
+    }
+  ],
+  "sellers": [
+    {
+      "id": "seller-a",
+      "handle": "seller-a",
+      "name": "Accra Mart",
+      "status": "open",
+      "commissionBps": 700,
+      "deliveryFeePesewas": "500"
+    },
+    {
+      "id": "seller-b",
+      "handle": "seller-b",
+      "name": "Kumasi Tech",
+      "status": "open",
+      "commissionBps": 700,
+      "deliveryFeePesewas": "800"
+    }
+  ],
+  "products": [
+    {
+      "id": "prod-tecno-spark",
+      "title": "Tecno Spark",
+      "description": "Budget Android",
+      "status": "published",
+      "primaryCategoryId": "phones",
+      "sellerId": "seller-a"
+    }
+  ],
+  "variants": [
+    {
+      "id": "var-tecno-spark",
+      "productId": "prod-tecno-spark",
+      "sku": "TECNO-SPARK",
+      "title": "Default"
+    }
+  ],
+  "offers": [
+    {
+      "id": "offer-a",
+      "sellerId": "seller-a",
+      "productId": "prod-tecno-spark",
+      "variantId": "var-tecno-spark",
+      "pricePesewas": "1500",
+      "onHand": 10,
+      "reserved": 0,
+      "currency": "ghs",
+      "active": true
+    },
+    {
+      "id": "offer-b",
+      "sellerId": "seller-b",
+      "productId": "prod-tecno-spark",
+      "variantId": "var-tecno-spark",
+      "pricePesewas": "3000",
+      "onHand": 4,
+      "reserved": 0,
+      "currency": "ghs",
+      "active": true
+    }
+  ]
+}
