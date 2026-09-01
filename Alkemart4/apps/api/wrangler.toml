@@ -14,7 +14,6 @@ id = "6e4c334582d5499c87bbf10fee564b75"
 binding = "HYPERDRIVE_PRIMARY"
 id = "a77fbb34c2374d1d9d6be0e65c92c177"
 
-# Create with: npx wrangler kv namespace create CATALOG_KV
 [[kv_namespaces]]
 binding = "CATALOG_KV"
-id = "REPLACE_WITH_KV_ID"
+id = "4acf1fff9ad24b848248042503b016a9"
