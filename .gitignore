@@ -51,3 +51,4 @@ Thumbs.db
 # Redis dump
 dump.rdb
 .worktrees/
+Alkemart4/supabase/.temp/
