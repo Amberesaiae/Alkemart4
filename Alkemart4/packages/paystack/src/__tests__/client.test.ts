@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest"
 import {
   assertPaystackAmountMatches,
   chargePaystackMobileMoney,
+  createPaystackTransfer,
   createPaystackTransferRecipient,
   initializePaystackTransaction,
   mapMomoProviderToPaystackSlug,
@@ -219,5 +220,44 @@ describe("verifyPaystackTransaction", () => {
 
     const [url] = (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0] as [string]
     expect(url).toBe("https://api.paystack.co/transaction/verify/card_ref_1")
+  })
+})
+
+describe("createPaystackTransfer", () => {
+  const originalFetch = globalThis.fetch
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch
+  })
+
+  it("posts transfer with pesewas and recipient_code", async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        status: true,
+        data: {
+          transfer_code: "TRF_test",
+          reference: "payout_ref_1",
+          status: "success",
+        },
+      }),
+    }) as unknown as typeof fetch
+
+    const result = await createPaystackTransfer(cfg, {
+      amountPesewas: 13950n,
+      recipientCode: "RCP_test",
+      reference: "payout_ref_1",
+    })
+
+    expect(result.transferCode).toBe("TRF_test")
+    const [url, init] = (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0] as [
+      string,
+      RequestInit,
+    ]
+    expect(url).toBe("https://api.paystack.co/transfer")
+    const body = JSON.parse(String(init.body))
+    expect(body.amount).toBe(13950)
+    expect(body.recipient).toBe("RCP_test")
+    expect(body.currency).toBe("GHS")
   })
 })

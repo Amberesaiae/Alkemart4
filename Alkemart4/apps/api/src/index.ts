@@ -13,6 +13,7 @@ import {
 import type {
   AppEnv,
   ChargePaystackMobileMoney,
+  CreatePaystackTransfer,
   CreatePaystackTransferRecipient,
   InitializePaystackTransaction,
   VerifyPaystackTransaction,
@@ -23,6 +24,7 @@ import { parseEnv } from "./env"
 import { requireAdmin, requireSeller } from "./middleware/auth"
 import { errorHandler } from "./middleware/error"
 import { adminAuth } from "./routes/admin/auth"
+import { adminPayouts } from "./routes/admin/payouts"
 import { adminProducts } from "./routes/admin/products"
 import { adminSellers } from "./routes/admin/sellers"
 import { health } from "./routes/health"
@@ -36,6 +38,7 @@ import { sellers } from "./routes/store/sellers"
 import { paystackHooks } from "./routes/hooks/paystack"
 import { vendorAuth } from "./routes/vendor/auth"
 import { vendorOnboarding } from "./routes/vendor/onboarding"
+import { vendorOrders } from "./routes/vendor/orders"
 import { vendorProducts } from "./routes/vendor/products"
 
 export function createApp(
@@ -46,6 +49,7 @@ export function createApp(
     jwtSecret?: string
     paystackSecretKey?: string
     createPaystackTransferRecipient?: CreatePaystackTransferRecipient
+    createPaystackTransfer?: CreatePaystackTransfer
     chargePaystackMobileMoney?: ChargePaystackMobileMoney
     initializePaystackTransaction?: InitializePaystackTransaction
     verifyPaystackTransaction?: VerifyPaystackTransaction
@@ -86,6 +90,9 @@ export function createApp(
     }
     if (options.webhookDedup) {
       c.set("webhookDedup", options.webhookDedup)
+    }
+    if (options.createPaystackTransfer) {
+      c.set("createPaystackTransfer", options.createPaystackTransfer)
     }
     if (options.paystackSecretKey !== undefined) {
       c.set("paystackSecretKey", options.paystackSecretKey)
@@ -144,6 +151,7 @@ export function createApp(
   vendor.route("/auth", vendorAuth)
   vendor.route("/onboarding", vendorOnboarding)
   vendor.route("/products", withBind(bindCatalog, vendorProducts))
+  vendor.route("/orders", withBind(bindCheckout, vendorOrders))
   vendor.get("/me", requireSeller, (c) => c.json(c.get("auth")))
   app.route("/vendor", vendor)
 
@@ -153,6 +161,10 @@ export function createApp(
   admin.get("/me", requireAdmin, (c) => c.json(c.get("auth")))
   admin.route("/sellers", adminSellers)
   admin.route("/products", withBind(bindCatalog, adminProducts))
+  admin.route(
+    "/payouts",
+    withBind(bindAuth, withBind(bindCheckout, adminPayouts)),
+  )
   app.route("/admin", admin)
 
   app.route("/hooks/paystack", withBind(bindCheckout, paystackHooks))

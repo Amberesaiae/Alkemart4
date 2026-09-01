@@ -4,7 +4,12 @@ import { paymentIntents } from "./payments"
 import { products } from "./products"
 import { sellers } from "./sellers"
 
-export const orderStatusEnum = pgEnum("order_status", ["placed"])
+export const orderStatusEnum = pgEnum("order_status", [
+  "placed",
+  "shipped",
+  "delivered",
+  "cancelled",
+])
 
 export const orderGroups = pgTable("order_groups", {
   id: text("id").primaryKey(),

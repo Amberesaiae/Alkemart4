@@ -2,6 +2,7 @@ export type { PaystackConfig, PaystackMomoProvider, PaystackMomoSlug } from "./c
 export {
   assertPaystackAmountMatches,
   chargePaystackMobileMoney,
+  createPaystackTransfer,
   createPaystackTransferRecipient,
   initializePaystackTransaction,
   mapMomoProviderToPaystackSlug,

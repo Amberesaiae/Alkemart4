@@ -10,7 +10,7 @@ Seller payouts use Paystack transfer recipients (`recipientCode`) only —
 never Stripe, Flutterwave, or a generic multi-PSP interface.
 Checkout charge/initialize is Plan 3 (not documented here).
 
- * OpenAPI spec version: 0.3.0
+ * OpenAPI spec version: 0.4.0
  */
 import type {
   AddCartItemBody,
@@ -20,6 +20,7 @@ import type {
   CatalogListResponse,
   CategoryListResponse,
   CommissionRequest,
+  CreateAdminPayoutBody,
   CreateCart201,
   CreateCheckoutBody,
   CreateVendorProductRequest,
@@ -798,6 +799,97 @@ export const paystackWebhook = async (paystackWebhookBody: PaystackWebhookBody, 
     headers: { 'Content-Type': 'application/json', ...options?.headers },
     body: JSON.stringify(
       paystackWebhookBody,)
+  }
+);}
+
+
+
+/**
+ * @summary List seller-scoped orders
+ */
+export const getListVendorOrdersUrl = () => {
+
+
+  
+
+  return `/vendor/orders`
+}
+
+export const listVendorOrders = async ( options?: RequestInit): Promise<void> => {
+  
+  return customFetch<void>(getListVendorOrdersUrl(),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+export const getShipVendorOrderUrl = (id: string,) => {
+
+
+  
+
+  return `/vendor/orders/${id}/ship`
+}
+
+export const shipVendorOrder = async (id: string, options?: RequestInit): Promise<void> => {
+  
+  return customFetch<void>(getShipVendorOrderUrl(id),
+  {      
+    ...options,
+    method: 'POST'
+    
+    
+  }
+);}
+
+
+
+export const getDeliverVendorOrderUrl = (id: string,) => {
+
+
+  
+
+  return `/vendor/orders/${id}/deliver`
+}
+
+export const deliverVendorOrder = async (id: string, options?: RequestInit): Promise<void> => {
+  
+  return customFetch<void>(getDeliverVendorOrderUrl(id),
+  {      
+    ...options,
+    method: 'POST'
+    
+    
+  }
+);}
+
+
+
+/**
+ * @summary Paystack transfer for delivered unpaid orders
+ */
+export const getCreateAdminPayoutUrl = () => {
+
+
+  
+
+  return `/admin/payouts`
+}
+
+export const createAdminPayout = async (createAdminPayoutBody: CreateAdminPayoutBody, options?: RequestInit): Promise<void> => {
+  
+  return customFetch<void>(getCreateAdminPayoutUrl(),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      createAdminPayoutBody,)
   }
 );}
 

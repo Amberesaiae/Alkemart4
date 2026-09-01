@@ -41,6 +41,16 @@ export type VerifyPaystackTransaction = (
   reference: string,
 ) => Promise<{ status: string; amount: number; reference: string; raw: unknown }>
 
+export type CreatePaystackTransfer = (
+  cfg: PaystackConfig,
+  input: {
+    amountPesewas: bigint
+    recipientCode: string
+    reference: string
+    reason?: string
+  },
+) => Promise<{ transferCode: string; reference: string; status: string }>
+
 export type WebhookDedup = {
   get(key: string): Promise<string | null>
   put(key: string, value: string): Promise<void>
@@ -59,6 +69,7 @@ export type AppEnv = {
     chargePaystackMobileMoney?: ChargePaystackMobileMoney
     initializePaystackTransaction?: InitializePaystackTransaction
     verifyPaystackTransaction?: VerifyPaystackTransaction
+    createPaystackTransfer?: CreatePaystackTransfer
     webhookDedup?: WebhookDedup
   }
 }

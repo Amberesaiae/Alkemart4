@@ -255,3 +255,43 @@ export async function verifyPaystackTransaction(
     raw: data,
   }
 }
+
+export async function createPaystackTransfer(
+  cfg: PaystackConfig,
+  input: {
+    amountPesewas: bigint
+    recipientCode: string
+    reference: string
+    reason?: string
+  },
+): Promise<{ transferCode: string; reference: string; status: string }> {
+  if (input.amountPesewas <= 0n || input.amountPesewas > BigInt(Number.MAX_SAFE_INTEGER)) {
+    throw new Error(`amountPesewas must be a positive integer (got ${input.amountPesewas})`)
+  }
+
+  const data = await paystackRequest<{
+    transfer_code?: string
+    reference?: string
+    status?: string
+  }>(cfg, "/transfer", {
+    method: "POST",
+    body: {
+      source: "balance",
+      amount: Number(input.amountPesewas),
+      recipient: input.recipientCode,
+      reason: input.reason ?? "Alkemart seller payout",
+      reference: input.reference,
+      currency: "GHS",
+    },
+  })
+
+  if (!data?.transfer_code || !data.reference) {
+    throw new Error("Paystack transfer did not return transfer_code/reference")
+  }
+
+  return {
+    transferCode: data.transfer_code,
+    reference: data.reference,
+    status: String(data.status ?? ""),
+  }
+}

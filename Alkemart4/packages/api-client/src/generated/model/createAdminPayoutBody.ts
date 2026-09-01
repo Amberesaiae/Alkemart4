@@ -13,19 +13,6 @@ Checkout charge/initialize is Plan 3 (not documented here).
  * OpenAPI spec version: 0.4.0
  */
 
-export interface VendorRegisterRequest {
-  email: string;
-  /** @minLength 8 */
-  password: string;
-  /**
-   * @minLength 1
-   * @maxLength 80
-   */
-  sellerName: string;
-  /**
-   * Lowercase kebab handle; normalized server-side.
-   * @minLength 2
-   * @maxLength 40
-   */
-  sellerHandle: string;
-}
+export type CreateAdminPayoutBody = {
+  sellerId: string;
+};

@@ -1,8 +1,11 @@
 import {
+  assertFulfillmentTransition,
   assertPaymentTransition,
+  computePayoutBatch,
   isSellable,
   quoteCart,
   type CartQuote,
+  type OrderFulfillmentStatus,
   type PaymentIntentStatus,
 } from "@alkemart/domain"
 import type { CatalogOffer, CatalogSnapshot } from "./demo-seed"
@@ -55,7 +58,20 @@ export type OrderRow = {
   sellerId: string
   subtotalPesewas: bigint
   deliveryFeePesewas: bigint
-  status: string
+  status: OrderFulfillmentStatus
+  payoutId: string | null
+}
+
+export type PayoutRow = {
+  id: string
+  sellerId: string
+  status: "pending" | "processing" | "paid" | "failed"
+  grossPesewas: bigint
+  commissionPesewas: bigint
+  netPesewas: bigint
+  commissionBps: number
+  paystackTransferCode: string | null
+  paystackReference: string | null
 }
 
 export type OrderItemRow = {
@@ -93,6 +109,21 @@ export interface CheckoutRepository {
   confirmPaidOrder(paymentIntentId: string): Promise<{ orderGroup: OrderGroupRow; orders: OrderRow[] }>
   getOrderGroupByPaymentIntent(paymentIntentId: string): Promise<OrderGroupRow | null>
   listOrdersForGroup(orderGroupId: string): Promise<OrderRow[]>
+  getOrder(orderId: string): Promise<OrderRow | null>
+  listOrdersForSeller(sellerId: string): Promise<OrderRow[]>
+  updateOrderStatus(
+    orderId: string,
+    sellerId: string,
+    status: OrderFulfillmentStatus,
+  ): Promise<OrderRow | null>
+  listDeliveredUnpaidOrders(sellerId: string): Promise<OrderRow[]>
+  createPayout(input: {
+    sellerId: string
+    commissionBps: number
+    paystackTransferCode: string
+    paystackReference: string
+  }): Promise<PayoutRow>
+  getPayout(id: string): Promise<PayoutRow | null>
 }
 
 export class InMemoryCheckoutRepository implements CheckoutRepository {
@@ -103,6 +134,8 @@ export class InMemoryCheckoutRepository implements CheckoutRepository {
   private orderGroups = new Map<string, OrderGroupRow>()
   private orders = new Map<string, OrderRow[]>()
   private orderItems = new Map<string, OrderItemRow[]>()
+  private orderIndex = new Map<string, OrderRow>()
+  private payouts = new Map<string, PayoutRow>()
 
   constructor(private readonly catalog: CatalogSnapshot) {}
 
@@ -284,8 +317,10 @@ export class InMemoryCheckoutRepository implements CheckoutRepository {
         subtotalPesewas: seller.subtotalPesewas,
         deliveryFeePesewas: seller.deliveryFeePesewas,
         status: "placed",
+        payoutId: null,
       }
       createdOrders.push(order)
+      this.orderIndex.set(order.id, order)
       const items: OrderItemRow[] = []
       for (const line of seller.lines) {
         const view = await this.getOfferView(line.offerId)
@@ -318,5 +353,75 @@ export class InMemoryCheckoutRepository implements CheckoutRepository {
     intent.status = "completed"
 
     return { orderGroup, orders: createdOrders }
+  }
+
+  async getOrder(orderId: string) {
+    const row = this.orderIndex.get(orderId)
+    return row ? { ...row } : null
+  }
+
+  async listOrdersForSeller(sellerId: string) {
+    return [...this.orderIndex.values()]
+      .filter((o) => o.sellerId === sellerId)
+      .map((o) => ({ ...o }))
+  }
+
+  async updateOrderStatus(
+    orderId: string,
+    sellerId: string,
+    status: OrderFulfillmentStatus,
+  ) {
+    const row = this.orderIndex.get(orderId)
+    if (!row || row.sellerId !== sellerId) return null
+    assertFulfillmentTransition(row.status, status)
+    row.status = status
+    return { ...row }
+  }
+
+  async listDeliveredUnpaidOrders(sellerId: string) {
+    return [...this.orderIndex.values()]
+      .filter((o) => o.sellerId === sellerId && o.status === "delivered" && !o.payoutId)
+      .map((o) => ({ ...o }))
+  }
+
+  async createPayout(input: {
+    sellerId: string
+    commissionBps: number
+    paystackTransferCode: string
+    paystackReference: string
+  }) {
+    const unpaid = await this.listDeliveredUnpaidOrders(input.sellerId)
+    if (unpaid.length === 0) throw new Error("no delivered unpaid orders")
+    const batch = computePayoutBatch(
+      input.sellerId,
+      input.commissionBps,
+      unpaid.map((o) => ({
+        orderId: o.id,
+        sellerId: o.sellerId,
+        subtotalPesewas: o.subtotalPesewas,
+      })),
+    )
+    const payout: PayoutRow = {
+      id: crypto.randomUUID(),
+      sellerId: input.sellerId,
+      status: "paid",
+      grossPesewas: batch.grossPesewas,
+      commissionPesewas: batch.commissionPesewas,
+      netPesewas: batch.netPesewas,
+      commissionBps: input.commissionBps,
+      paystackTransferCode: input.paystackTransferCode,
+      paystackReference: input.paystackReference,
+    }
+    this.payouts.set(payout.id, payout)
+    for (const order of unpaid) {
+      const live = this.orderIndex.get(order.id)
+      if (live) live.payoutId = payout.id
+    }
+    return { ...payout }
+  }
+
+  async getPayout(id: string) {
+    const row = this.payouts.get(id)
+    return row ? { ...row } : null
   }
 }

@@ -10,7 +10,7 @@ Seller payouts use Paystack transfer recipients (`recipientCode`) only —
 never Stripe, Flutterwave, or a generic multi-PSP interface.
 Checkout charge/initialize is Plan 3 (not documented here).
 
- * OpenAPI spec version: 0.3.0
+ * OpenAPI spec version: 0.4.0
  */
 import type { PesewasString } from './pesewasString';
 import type { GhanaSetupRequestMomo } from './ghanaSetupRequestMomo';

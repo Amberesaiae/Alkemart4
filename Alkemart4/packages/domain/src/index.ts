@@ -36,3 +36,14 @@ export {
   assertPaymentTransition,
   quoteCart,
 } from "./checkout"
+export type {
+  OrderFulfillmentStatus,
+  PayoutBatchComputed,
+  PayoutLineComputed,
+  PayoutOrderInput,
+} from "./fulfillment"
+export {
+  InvalidFulfillmentTransitionError,
+  assertFulfillmentTransition,
+  computePayoutBatch,
+} from "./fulfillment"

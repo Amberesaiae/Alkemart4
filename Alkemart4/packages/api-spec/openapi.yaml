@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Alkemart Store API
-  version: 0.3.0
+  version: 0.4.0
   description: |
     Multivendor Ghana catalog + Plan 2 identity/seller contract.
     Product is canonical content; Offer is the sellable unit.
@@ -14,6 +14,8 @@ servers:
   - url: /
     description: API origin (Workers / local wrangler)
 tags:
+  - name: fulfillment
+    description: Per-seller ship/deliver and Paystack payouts
   - name: checkout
     description: Multi-seller cart and Paystack checkout
   - name: catalog
@@ -787,6 +789,72 @@ paths:
           description: Accepted
         "401":
           description: Invalid signature
+
+
+  /vendor/orders:
+    get:
+      operationId: listVendorOrders
+      tags: [fulfillment]
+      summary: List seller-scoped orders
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: Seller orders
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /vendor/orders/{id}/ship:
+    post:
+      operationId: shipVendorOrder
+      tags: [fulfillment]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Order shipped
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /vendor/orders/{id}/deliver:
+    post:
+      operationId: deliverVendorOrder
+      tags: [fulfillment]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Order delivered
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /admin/payouts:
+    post:
+      operationId: createAdminPayout
+      tags: [fulfillment]
+      summary: Paystack transfer for delivered unpaid orders
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [sellerId]
+              properties:
+                sellerId: { type: string }
+      responses:
+        "200":
+          description: Payout created
+        "503":
+          description: Paystack key missing
 
 
 components:
