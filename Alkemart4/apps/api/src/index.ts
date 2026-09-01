@@ -10,6 +10,7 @@ import {
   InMemoryCheckoutRepository,
   type CheckoutRepository,
 } from "./checkout-repository"
+import { PostgresCheckoutRepository } from "./postgres-checkout-repository"
 import type {
   AppEnv,
   ChargePaystackMobileMoney,
@@ -76,8 +77,8 @@ export function createApp(
     } else if (options.repo instanceof InMemoryCatalogRepository) {
       c.set("checkoutRepo", new InMemoryCheckoutRepository(options.repo.snapshot()))
     } else {
-      // Postgres checkout repo lands with live DB wiring; tests inject checkoutRepo.
-      throw new Error("checkoutRepo required (Postgres checkout repository not wired yet)")
+      const env = parseEnv(c.env as unknown as Record<string, unknown>)
+      c.set("checkoutRepo", new PostgresCheckoutRepository(primaryDb(env)))
     }
     if (options.chargePaystackMobileMoney) {
       c.set("chargePaystackMobileMoney", options.chargePaystackMobileMoney)
@@ -96,9 +97,22 @@ export function createApp(
     }
     if (options.paystackSecretKey !== undefined) {
       c.set("paystackSecretKey", options.paystackSecretKey)
-    } else if (!options.checkoutRepo && !options.authRepo) {
+    } else if (!options.checkoutRepo) {
       const env = parseEnv(c.env as unknown as Record<string, unknown>)
       c.set("paystackSecretKey", env.PAYSTACK_SECRET_KEY)
+    }
+    // KV webhook dedup when binding present (production Worker)
+    const rawEnv = c.env as unknown as {
+      CATALOG_KV?: {
+        get(k: string): Promise<string | null>
+        put(k: string, v: string): Promise<void>
+      }
+    }
+    if (!options.webhookDedup && rawEnv?.CATALOG_KV) {
+      c.set("webhookDedup", {
+        get: (k) => rawEnv.CATALOG_KV!.get(k),
+        put: (k, v) => rawEnv.CATALOG_KV!.put(k, v),
+      })
     }
     await next()
   }
