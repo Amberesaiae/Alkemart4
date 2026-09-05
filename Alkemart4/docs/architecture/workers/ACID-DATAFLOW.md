@@ -79,5 +79,5 @@ Buyer UI ──► POST /store/checkout
 - Returns table unused; no Workers return API  
 - Address book not persisted (shipping on intent only)  
 - Wishlist Medusa-era paths  
-- Card path historically missed `reserveStock` — must match MoMo  
+- Card and MoMo both `reserveStock` while pending  
 - No automatic expiry job for abandoned pending intents yet  

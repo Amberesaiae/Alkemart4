@@ -174,7 +174,6 @@ Do not expand scope into these unless the human re-opens them:
 
 - Storefront may still contain Medusa SDK dual-path code for lab builds  
 - `apps/backend/packages/api` Medusa tree still in workspaces  
-- Card path must reserve stock like MoMo (parity)  
 - Returns / address book / wishlist / image upload gaps  
 - Live Paystack money matrix + WAF + demo password rotation before public  
 
