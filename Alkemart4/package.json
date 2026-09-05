@@ -13,6 +13,8 @@
     "smoke:acid": "bash scripts/e2e-workers-acid.sh",
     "smoke:local": "ALKEMART_API_URL=http://127.0.0.1:8787 SKIP_PAGES=1 bash scripts/e2e-workers-smoke.sh",
     "smoke:acid:local": "ALKEMART_API_URL=http://127.0.0.1:8787 SKIP_PAGES=1 bash scripts/e2e-workers-acid.sh",
+    "deploy:api": "bash -lc 'export NODE_OPTIONS=\"--dns-result-order=ipv4first${NODE_OPTIONS:+ $NODE_OPTIONS}\"; cd apps/api && wrangler deploy'",
+    "deploy:pages": "bash scripts/deploy-pages.sh",
     "typecheck": "bun run --filter './apps/storefront' --filter './apps/api' --filter './scripts' typecheck",
     "setup": "bun install"
   },
