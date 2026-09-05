@@ -87,6 +87,7 @@ See `docs/DEMO-ACCOUNTS.md` (`buyer@` / `vendor@` / `admin@alkemart.test`). Same
 | UI still hits Medusa / `:9000` | Set `VITE_ALKEMART_API_URL`; restart Vite |
 | Wrangler missing secret | Create `apps/api/.dev.vars` from example |
 | Hyperdrive / DB errors | `wrangler login`; check binding IDs in `apps/api/wrangler.toml` |
+| `wrangler` fetch failed / whoami hangs | Prefer IPv4: `NODE_OPTIONS='--dns-result-order=ipv4first' wrangler deploy` |
 | CORS browser errors | Ensure origin is localhost port above; see `docs/ops/cors-and-origins.md` |
 | Wrong brand / sludge shells | Do not run `archive/workers-shell-*-sludge` |
 
