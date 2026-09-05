@@ -52,3 +52,6 @@ Thumbs.db
 dump.rdb
 .worktrees/
 Alkemart4/supabase/.temp/
+
+# Local agent/session scratch
+.freebuff/

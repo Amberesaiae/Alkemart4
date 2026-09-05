@@ -82,3 +82,10 @@ apps/storefront/**/.tanstack/
 
 # Local IDE/agent config
 opencode.json
+
+# Wrangler local state (never commit)
+apps/api/.wrangler/
+**/.wrangler/
+
+# Local agent/session scratch
+.freebuff/

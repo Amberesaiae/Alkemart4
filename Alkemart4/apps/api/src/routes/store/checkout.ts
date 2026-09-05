@@ -254,6 +254,10 @@ export const storeCheckout = new Hono<AppEnv>()
       shippingAddress,
     })
     await checkout.updatePaymentIntentStatus(intentId, "pending")
+    await checkout.reserveStock(
+      intentId,
+      items.map((i) => ({ offerId: i.offerId, qty: i.qty })),
+    )
 
     return c.json({
       paymentIntentId: intentId,
