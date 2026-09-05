@@ -80,7 +80,7 @@ function AboutPage() {
 
       <article className="space-y-12 pb-8">
         {/* Hero */}
-        <header className="relative overflow-hidden rounded-3xl border border-border bg-card shadow-sm">
+        <header className="relative overflow-hidden rounded-2xl border border-border bg-card shadow-xs">
           <div
             className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-primary/20 blur-3xl"
             aria-hidden

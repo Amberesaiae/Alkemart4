@@ -1,6 +1,7 @@
 /**
  * Self-building facets: only shows attributes with count > 0 from the search API.
  */
+import { Checkbox } from "@workspace/ui"
 import { cn } from "@/lib/utils"
 import type { FacetDistribution } from "@/lib/search"
 
@@ -92,12 +93,10 @@ export function SearchFacets({
                     : active.seller_handles.includes(value)
                 return (
                   <li key={value}>
-                    <label className="flex cursor-pointer items-center gap-2 text-sm">
-                      <input
-                        type="checkbox"
-                        className="size-4 rounded border-border accent-primary"
+                    <label className="flex cursor-pointer items-center gap-2.5 text-sm hover:text-foreground transition-colors">
+                      <Checkbox
                         checked={selected}
-                        onChange={() => {
+                        onCheckedChange={() => {
                           if (attr === "category_handles") {
                             onChange({
                               ...active,

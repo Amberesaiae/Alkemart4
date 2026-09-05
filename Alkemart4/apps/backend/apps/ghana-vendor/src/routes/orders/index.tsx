@@ -79,7 +79,7 @@ function OrdersPage() {
       </div>
 
       {isError ? (
-        <Card className="p-8 text-center border-2 border-destructive/20">
+        <Card className="p-8 text-center border border-destructive/20">
           <AlertCircle className="h-10 w-10 mx-auto mb-3 text-destructive" />
           <h2 className="text-lg font-bold mb-1">Failed to load orders</h2>
           <p className="text-muted-foreground text-sm mb-4">Something went wrong. Please try again.</p>
@@ -88,7 +88,7 @@ function OrdersPage() {
           </Button>
         </Card>
       ) : (
-        <Card className="border-2 overflow-hidden">
+        <Card className="overflow-hidden shadow-sm">
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>

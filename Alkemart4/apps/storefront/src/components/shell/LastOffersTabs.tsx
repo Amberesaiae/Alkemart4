@@ -76,9 +76,9 @@ export function LastOffersTabs({
               title={tab.label}
               onClick={() => onChange(isOn ? "all" : tab.id)}
               className={cn(
-                "flex h-10 w-10 shrink-0 items-center justify-center rounded-md transition sm:h-11 sm:w-11",
+                "flex h-10 w-10 shrink-0 items-center justify-center rounded-lg transition sm:h-11 sm:w-11",
                 isOn
-                  ? "bg-muted text-foreground ring-1 ring-border"
+                  ? "bg-muted text-foreground ring-1 ring-border shadow-xs"
                   : "text-muted-foreground hover:bg-muted/70 hover:text-foreground",
               )}
             >
@@ -97,7 +97,7 @@ export function LastOffersTabs({
           id="offers-sort"
           value={sort}
           onChange={(e) => onSortChange(e.target.value as OfferSort)}
-          className="h-9 rounded-md border border-border bg-card px-2.5 text-sm font-medium outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+          className="h-9 rounded-lg border border-border bg-card px-2.5 text-sm font-medium outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
         >
           <option value="featured">Featured</option>
           <option value="price_asc">Price ↑</option>
@@ -107,7 +107,7 @@ export function LastOffersTabs({
 
         {onViewChange ? (
           <div
-            className="flex overflow-hidden rounded-md border border-border"
+            className="flex overflow-hidden rounded-lg border border-border"
             role="group"
             aria-label="View mode"
           >

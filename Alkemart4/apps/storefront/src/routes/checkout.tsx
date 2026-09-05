@@ -45,12 +45,12 @@ function CheckoutErrorComponent({ error, reset }: { error: Error; reset: () => v
         <p className="mt-2 text-sm text-muted-foreground">
           {error.message || "Something went wrong during checkout."}
         </p>
-        <button
+        <Button
           onClick={reset}
-          className="mt-4 rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground"
+          className="mt-4"
         >
           Try again
-        </button>
+        </Button>
       </div>
     </div>
   )
@@ -59,10 +59,10 @@ function CheckoutErrorComponent({ error, reset }: { error: Error; reset: () => v
 function CheckoutPendingComponent() {
   return (
     <div className="mx-auto max-w-5xl space-y-6 pb-8" role="status" aria-label="Loading checkout">
-      <Skeleton className="h-10 w-48" />
-      <Skeleton className="h-4 w-64" />
+      <Skeleton className="h-10 w-48 rounded-lg" />
+      <Skeleton className="h-4 w-64 rounded-md" />
       <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
-        <Skeleton className="h-96 w-full rounded-3xl" />
+        <Skeleton className="h-96 w-full rounded-2xl" />
         <Skeleton className="h-48 w-full rounded-3xl" />
       </div>
     </div>

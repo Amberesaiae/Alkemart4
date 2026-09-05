@@ -433,7 +433,7 @@ function ProductDetailPage() {
       </div>
 
       {/* ── Inventory & Pricing ── */}
-      <Card className="border-2">
+      <Card className="shadow-sm">
         <button
           type="button"
           className="w-full flex items-center justify-between p-5 text-left"

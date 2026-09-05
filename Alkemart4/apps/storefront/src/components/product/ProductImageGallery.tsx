@@ -49,7 +49,7 @@ export function ProductImageGallery({
       <div className="overflow-hidden rounded-2xl border border-border bg-card">
         {mainSrc ? (
           <img
-            src={fallback ?? mainSrc}
+            src={mainSrc}
             srcSet={srcSet}
             sizes="(max-width: 1024px) 50vw, 40vw"
             alt={title || "Product image"}

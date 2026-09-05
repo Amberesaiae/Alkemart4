@@ -65,7 +65,7 @@ function HelpPage() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-8">
-      <header className="grid items-center gap-6 rounded-3xl border border-border bg-card p-6 shadow-sm sm:grid-cols-[1fr_auto] sm:p-8">
+      <header className="grid items-center gap-6 rounded-2xl border border-border bg-card p-6 shadow-xs sm:grid-cols-[1fr_auto] sm:p-8">
         <div className="space-y-3">
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
             Support

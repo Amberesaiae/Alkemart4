@@ -32,12 +32,12 @@ function AccountErrorComponent({ error, reset }: { error: Error; reset: () => vo
         <p className="mt-2 text-sm text-muted-foreground">
           {error.message || "Something went wrong loading your account."}
         </p>
-        <button
+        <Button
           onClick={reset}
-          className="mt-4 rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground"
+          className="mt-4"
         >
           Try again
-        </button>
+        </Button>
       </div>
     </div>
   )
@@ -46,8 +46,8 @@ function AccountErrorComponent({ error, reset }: { error: Error; reset: () => vo
 function AccountPendingComponent() {
   return (
     <div className="mx-auto max-w-2xl space-y-6" role="status" aria-label="Loading account">
-      <Skeleton className="h-40 w-full rounded-3xl" />
-      <div className="space-y-3 border border-border bg-card p-5 sm:p-6">
+      <Skeleton className="h-40 w-full rounded-2xl" />
+      <div className="space-y-3 rounded-2xl border border-border bg-card p-5 sm:p-6">
         <Skeleton className="h-5 w-40" />
         <Skeleton className="h-4 w-56" />
         <Skeleton className="h-20 w-full rounded-2xl" />
@@ -241,7 +241,7 @@ function AccountPage() {
           <Button
             asChild
             size="sm"
-            className="bg-primary text-primary-foreground"
+            className="bg-primary text-primary-foreground font-medium"
           >
             <Link to="/orders">Your orders</Link>
           </Button>
@@ -249,7 +249,7 @@ function AccountPage() {
             asChild
             size="sm"
             variant="outline"
-            className="border-ink/25 bg-transparent text-primary-foreground hover:bg-ink/10"
+            className="border-white/20 bg-white/10 text-white hover:bg-white/20 font-medium"
           >
             <Link to="/account/wishlist">Wishlist</Link>
           </Button>
@@ -257,7 +257,7 @@ function AccountPage() {
             type="button"
             size="sm"
             variant="outline"
-            className="border-ink/25 bg-transparent text-primary-foreground hover:bg-ink/10"
+            className="border-white/20 bg-white/10 text-white hover:bg-white/20 font-medium"
             onClick={() => {
               setProfileFirst(user.firstName ?? "")
               setProfileLast(user.lastName ?? "")
@@ -271,11 +271,11 @@ function AccountPage() {
             type="button"
             size="sm"
             variant="outline"
-            className="border-ink/25 bg-transparent text-primary-foreground hover:bg-ink/10"
+            className="border-white/20 bg-white/10 text-white hover:bg-white/20 font-medium"
             disabled={signOut.isPending}
             onClick={() => signOut.mutate()}
           >
-            Sign out
+            {signOut.isPending ? "Signing out…" : "Sign out"}
           </Button>
         </div>
       </header>

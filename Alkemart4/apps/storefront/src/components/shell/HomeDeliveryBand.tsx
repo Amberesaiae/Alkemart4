@@ -23,13 +23,13 @@ export function HomeDeliveryBand({
   return (
     <section
       className={cn(
-        "relative overflow-hidden rounded-xl bg-foreground px-5 py-8 sm:px-8 sm:py-10",
+        "relative overflow-hidden rounded-2xl bg-foreground px-6 py-8 sm:px-10 sm:py-10 shadow-md",
         className,
       )}
     >
       <div className="relative grid items-center gap-5 sm:grid-cols-[1fr_auto] sm:gap-8">
         <div className="max-w-lg space-y-3">
-          <h2 className="type-band text-background">
+          <h2 className="type-band text-white">
             {title}{" "}
             <span className="relative inline-block whitespace-nowrap text-primary">
               {titleAccent}
@@ -39,20 +39,20 @@ export function HomeDeliveryBand({
               />
             </span>
           </h2>
-          <p className="text-sm leading-relaxed text-background/70 sm:text-base">
+          <p className="text-sm leading-relaxed text-slate-300 sm:text-base">
             {body}
           </p>
           <Link
             to="/categories/$slug"
             params={{ slug: "all" }}
-            className="inline-flex rounded-full bg-primary px-5 py-2 text-sm font-bold text-foreground transition hover:opacity-90"
+            className="inline-flex min-h-11 items-center justify-center rounded-full bg-primary px-6 py-2.5 text-sm font-bold text-primary-foreground transition hover:opacity-90 shadow-sm"
           >
             {ctaLabel}
           </Link>
         </div>
 
         <div className="mx-auto flex shrink-0 items-center justify-center sm:mx-0">
-          <div className="flex h-32 w-32 items-center justify-center rounded-2xl bg-white/10 sm:h-36 sm:w-36 lg:h-40 lg:w-40">
+          <div className="flex h-32 w-32 items-center justify-center rounded-2xl bg-white/10 sm:h-36 sm:w-36 lg:h-40 lg:w-40 shadow-inner">
             <img
               src={deliveryArt}
               alt=""

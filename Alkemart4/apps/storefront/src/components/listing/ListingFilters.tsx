@@ -128,7 +128,7 @@ export function ListingFilters({
 
   return (
     <aside className={cn("space-y-4", className)} aria-label="Filters">
-      <div className="flex items-center justify-between rounded-lg border border-border bg-card px-4 py-3">
+      <div className="flex items-center justify-between rounded-xl border border-border bg-card px-4 py-3 shadow-sm">
         <h2 className="text-base font-bold tracking-tight">Filters</h2>
         {dirty ? (
           <button
@@ -151,7 +151,7 @@ export function ListingFilters({
       {/* Categories — theme via CSS class, not style={} */}
       {categories.length > 0 ? (
         <div className={cn(themeClass)}>
-          <div className="dept-panel rounded-lg p-4 shadow-sm">
+          <div className="dept-panel rounded-xl p-4 shadow-sm">
             <FilterSection title="Categories" defaultOpen>
               <ul className="space-y-1 type-sm">
                 <li>
@@ -220,7 +220,7 @@ export function ListingFilters({
 
       {/* Sellers — Mowafer dark brands panel */}
       {sellers.length > 0 ? (
-        <div className="brands-panel rounded-lg p-4 shadow-sm">
+        <div className="brands-panel rounded-xl p-4 shadow-sm">
           <FilterSection
             title="Sellers"
             defaultOpen
@@ -258,7 +258,7 @@ export function ListingFilters({
           </FilterSection>
         </div>
       ) : (
-        <p className="rounded-lg border border-dashed border-border bg-card p-3 type-sm text-muted-foreground">
+        <p className="rounded-xl border border-dashed border-border bg-card p-3 type-sm text-muted-foreground">
           No sellers in this view.
         </p>
       )}

@@ -26,12 +26,12 @@ function CartErrorComponent({ error, reset }: { error: Error; reset: () => void 
         <p className="mt-2 text-sm text-muted-foreground">
           {error.message || "Something went wrong loading your cart."}
         </p>
-        <button
+        <Button
           onClick={reset}
-          className="mt-4 rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground"
+          className="mt-4"
         >
           Try again
-        </button>
+        </Button>
       </div>
     </div>
   )

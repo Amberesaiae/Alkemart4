@@ -1,4 +1,4 @@
-@import "tailwindcss" source(none);
+@import "tailwindcss";
 @source "../";
 
 @custom-variant dark (&:is(.dark *));
@@ -56,8 +56,8 @@
   --destructive: #ef4444;
   /* Clean, vibrant amber focus ring */
   --ring: #f59e0b;
-  /* Soft luminous warm card highlight */
-  --surface-cream: #faf9f5;
+  /* Soft luminous clean card highlight */
+  --surface-cream: #f1f5f9;
   /* Premium obsidian footer */
   --footer-bg: #0f172a;
 }

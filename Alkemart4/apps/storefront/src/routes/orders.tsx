@@ -58,7 +58,7 @@ function OrdersPage() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-8">
-      <header className="space-y-2 rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6">
+      <header className="space-y-2 rounded-2xl border border-border bg-card p-5 shadow-xs sm:p-6">
         <p className="type-sm font-semibold uppercase tracking-[0.14em] text-muted-foreground">
           Orders
         </p>
@@ -71,7 +71,7 @@ function OrdersPage() {
         </p>
       </header>
 
-      <section className="space-y-4 rounded-3xl border border-border bg-card p-5 shadow-sm">
+      <section className="space-y-4 rounded-2xl border border-border bg-card p-5 shadow-xs">
         <div>
           <h2 className="text-base font-bold">Find an order</h2>
           <p className="mt-1 text-xs text-muted-foreground">

@@ -22,14 +22,14 @@ export function HomeAdvertiseBand({
   ctaTo = "/sell",
 }: Props) {
   const primaryClass =
-    "inline-flex h-10 shrink-0 items-center justify-center rounded-full bg-foreground px-5 text-sm font-bold text-background transition hover:opacity-90"
+    "inline-flex min-h-11 shrink-0 items-center justify-center rounded-lg bg-foreground px-6 text-sm font-bold text-background transition hover:opacity-90 active:scale-[0.98] shadow-sm cursor-pointer"
   const fieldClass =
-    "h-10 w-full min-w-0 flex-1 rounded-full border-0 bg-white px-4 text-sm text-foreground shadow-sm outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-foreground/15"
+    "h-11 w-full min-w-0 flex-1 rounded-lg border border-border/40 bg-card px-4 text-sm text-foreground shadow-xs outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-foreground/30"
 
   return (
     <section
       className={cn(
-        "relative overflow-hidden rounded-xl bg-primary px-5 py-6 text-primary-foreground sm:px-8 sm:py-7",
+        "relative overflow-hidden rounded-2xl bg-primary px-6 py-7 text-primary-foreground sm:px-10 sm:py-8 shadow-md",
         className,
       )}
     >

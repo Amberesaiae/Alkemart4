@@ -54,26 +54,35 @@ export function ProductBuyPanel({
         amount={lineAmount}
         currencyCode={currencyCode}
         size="lg"
-        className="text-xl font-bold"
+        className="text-2xl font-extrabold text-foreground"
       />
 
       {canAdd ? (
-        <p className="text-sm font-semibold text-emerald-800">Ready to order</p>
+        <div className="flex items-center gap-2 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+          <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
+          <span>In Stock · Cash on Delivery available</span>
+        </div>
       ) : (
-        <p className="text-sm font-semibold text-destructive">
-          Not available to buy yet
-        </p>
+        <div className="flex items-center gap-2 text-xs font-semibold text-destructive">
+          <span className="size-2 rounded-full bg-destructive" />
+          <span>Currently unavailable</span>
+        </div>
       )}
 
-      <p className="text-xs leading-relaxed text-muted-foreground">
-        Delivery fees are set by the seller and confirmed at checkout. Cash on
-        delivery available.
-      </p>
-
-      <div className="space-y-1">
-        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          Quantity
+      <div className="rounded-xl border border-border/60 bg-muted/30 p-3 space-y-1.5 text-xs text-muted-foreground">
+        <div className="flex items-center gap-2 font-medium text-foreground">
+          <span>📦</span>
+          <span>Fast Ghana Delivery</span>
+        </div>
+        <p className="leading-relaxed">
+          Delivery fees are set by the seller and confirmed at checkout. Pay cash or MoMo when your order arrives.
         </p>
+      </div>
+
+      <div className="space-y-1.5">
+        <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          Quantity
+        </label>
         <QtyStepper
           value={quantity}
           onChange={onQuantityChange}
@@ -84,12 +93,12 @@ export function ProductBuyPanel({
       <Button
         type="button"
         size="lg"
-        className="min-h-12 w-full font-bold"
+        className="min-h-12 w-full font-bold shadow-sm"
         disabled={!canAdd || pending}
         onClick={onAdd}
       >
         {pending
-          ? "Adding…"
+          ? "Adding to cart…"
           : quantity > 1
             ? `Add ${quantity} to cart`
             : "Add to cart"}
@@ -105,25 +114,27 @@ export function ProductBuyPanel({
       </Button>
 
       {sellerHandle ? (
-        <Link
-          to="/shops/$slug"
-          params={{ slug: sellerHandle }}
-          className="block text-center text-sm font-semibold underline underline-offset-2"
-        >
-          Visit {sellerName ?? "seller"} store
-        </Link>
+        <div className="pt-1 text-center">
+          <Link
+            to="/shops/$slug"
+            params={{ slug: sellerHandle }}
+            className="text-xs font-semibold text-muted-foreground hover:text-foreground underline underline-offset-2 transition-colors"
+          >
+            Sold by <span className="text-foreground font-bold">{sellerName ?? "seller"}</span>
+          </Link>
+        </div>
       ) : null}
 
       {success ? (
-        <p
-          className="rounded-full bg-primary/20 px-3 py-2 text-center text-sm font-medium"
+        <div
+          className="rounded-xl bg-emerald-50 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/40 p-3 text-center text-sm font-medium"
           aria-live="polite"
         >
-          Item added to cart.{" "}
-          <Link to="/cart" className="underline">
+          ✓ Added to your cart!{" "}
+          <Link to="/cart" className="font-bold underline ml-1">
             View cart
           </Link>
-        </p>
+        </div>
       ) : null}
       {errorMessage ? (
         <p className="text-sm text-destructive" role="alert">

@@ -1,4 +1,4 @@
-@import "tailwindcss" source(none);
+@import "tailwindcss";
 @source "../";
 
 @custom-variant dark (&:is(.dark *));
@@ -45,7 +45,7 @@
   --border: #e2e8f0;
   --destructive: #ef4444;
   --ring: #f59e0b;
-  --surface-cream: #faf9f5;
+  --surface-cream: #f1f5f9;
 }
 
 * { border-color: var(--border); }

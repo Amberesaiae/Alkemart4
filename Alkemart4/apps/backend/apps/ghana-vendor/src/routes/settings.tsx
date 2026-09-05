@@ -186,7 +186,7 @@ function SettingsPage() {
 
           {/* ── Shop Profile ── */}
           {activeTab === "profile" && (
-            <Card className="p-6 border-2 shadow-sm" role="tabpanel" id="panel-profile" aria-labelledby="tab-profile">
+            <Card className="p-6 shadow-sm" role="tabpanel" id="panel-profile" aria-labelledby="tab-profile">
               <form onSubmit={handleProfileSubmit} className="space-y-5">
                 <h2 className="text-lg font-black tracking-tight">Shop Profile</h2>
 
@@ -203,7 +203,7 @@ function SettingsPage() {
                 <div className="space-y-2">
                   <Label>Shop Handle (URL slug)</Label>
                   <div className="flex">
-                    <span className="inline-flex items-center px-3 rounded-l-md border-2 border-r-0 border-border bg-muted text-muted-foreground text-sm font-medium shrink-0">
+                    <span className="inline-flex items-center px-3 rounded-l-lg border border-r-0 border-border bg-muted text-muted-foreground text-sm font-medium shrink-0">
                       alkemart.com/
                     </span>
                     <Input
@@ -258,7 +258,7 @@ function SettingsPage() {
 
           {/* ── Dispatch Address ── */}
           {activeTab === "dispatch" && (
-            <Card className="p-6 border-2 shadow-sm" role="tabpanel" id="panel-dispatch" aria-labelledby="tab-dispatch">
+            <Card className="p-6 shadow-sm" role="tabpanel" id="panel-dispatch" aria-labelledby="tab-dispatch">
               <form onSubmit={handleAddressSubmit} className="space-y-5">
                 <div>
                   <h2 className="text-lg font-black tracking-tight">Dispatch Address</h2>
@@ -367,7 +367,7 @@ function SettingsPage() {
 
           {/* ── MoMo Payout ── */}
           {activeTab === "momo" && (
-            <Card className="p-6 border-2 shadow-sm" role="tabpanel" id="panel-momo" aria-labelledby="tab-momo">
+            <Card className="p-6 shadow-sm" role="tabpanel" id="panel-momo" aria-labelledby="tab-momo">
               <form onSubmit={handlePaymentSubmit} className="space-y-5">
                 <div>
                   <h2 className="text-lg font-black tracking-tight">Mobile Money Payout</h2>

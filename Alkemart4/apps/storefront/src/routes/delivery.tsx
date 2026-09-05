@@ -37,17 +37,17 @@ function DeliveryPage() {
         path="/delivery"
       />
 
-      <div className="delivery-page mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-10 lg:py-14">
+      <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-10 lg:py-12 space-y-8">
         {/* Hero band */}
         <section
-          className="glass-card rounded-xl px-4 py-6 shadow-[inset_0_0_0_1px_color-mix(in_srgb,_var(--primary)_12%,_transparent)] sm:px-8 sm:py-8"
+          className="rounded-2xl border border-border bg-card p-6 shadow-sm sm:p-8"
           aria-labelledby="delivery-hero-title"
         >
-          <div className="flex flex-col items-center gap-4 text-center sm:flex-row sm:gap-8 sm:text-left">
+          <div className="flex flex-col items-center gap-6 text-center sm:flex-row sm:gap-8 sm:text-left">
             <div
               className={cn(
-                "flex shrink-0 items-center justify-center rounded-xl",
-                "bg-primary/10 size-20 sm:size-32",
+                "flex shrink-0 items-center justify-center rounded-2xl",
+                "bg-primary/10 size-20 sm:size-28",
               )}
               aria-hidden="true"
             >
@@ -56,68 +56,66 @@ function DeliveryPage() {
                 alt=""
                 width={128}
                 height={128}
-                className="size-14 object-contain opacity-95 sm:size-24"
+                className="size-14 object-contain opacity-95 sm:size-20"
                 decoding="async"
                 loading="eager"
               />
             </div>
             <div className="space-y-2 sm:space-y-3">
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">
+                Customer Delivery
+              </p>
               <h1
                 id="delivery-hero-title"
-                className="text-xl font-extrabold leading-snug tracking-tight sm:type-hero-sm"
+                className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl"
               >
-                Delivery{" "}
-                <span className="text-primary">across Ghana</span>
+                Delivery across Ghana
               </h1>
-              <p className="max-w-lg text-sm leading-relaxed text-slate-300 sm:text-base">
-                Cash on delivery. Riders bring orders to your door —{" "}
-                no credit card, no upfront payment. Delivery fees are set by
-                each seller and shown at checkout.
+              <p className="max-w-xl text-sm leading-relaxed text-muted-foreground sm:text-base">
+                Cash on delivery. Riders bring orders directly to your door —
+                no credit card or upfront payment needed. Delivery fees are set by
+                each seller and shown transparently at checkout.
               </p>
-              <Link
-                to="/categories/$slug"
-                params={{ slug: "all" }}
-                className={cn(
-                  "inline-flex items-center rounded-full bg-primary font-bold text-primary-foreground",
-                  "mt-2 h-10 min-h-10 px-5 text-sm",
-                  "transition hover:opacity-90",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-ink",
-                )}
-              >
-                Start shopping
-              </Link>
+              <div className="pt-2">
+                <Link
+                  to="/categories/$slug"
+                  params={{ slug: "all" }}
+                  className={cn(
+                    "inline-flex items-center rounded-lg bg-primary font-bold text-primary-foreground",
+                    "h-11 px-6 text-sm",
+                    "transition hover:opacity-90",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
+                  )}
+                >
+                  Start shopping
+                </Link>
+              </div>
             </div>
           </div>
         </section>
 
         {/* How delivery works */}
-        <section className="mt-8 space-y-4 sm:mt-12 sm:space-y-6">
-          <h2 className="type-section text-primary">
+        <section className="space-y-4">
+          <h2 className="text-xl font-bold tracking-tight text-foreground">
             How delivery works
           </h2>
-          <div className="grid gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4 lg:gap-5">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {DELIVERY_STEPS.map((step, i) => (
               <div
                 key={step.title}
-                className={cn(
-                  "flex flex-col gap-3 rounded-xl p-4 sm:gap-4 sm:p-5",
-                  "glass-card",
-                )}
+                className="flex flex-col gap-3 rounded-xl border border-border bg-card p-5 shadow-sm"
               >
                 <span
-                  className={cn(
-                    "flex size-8 items-center justify-center rounded-full bg-primary font-extrabold text-primary-foreground",
-                    "sm:size-10 sm:text-base text-sm",
-                  )}
+                  className="flex size-9 items-center justify-center rounded-full bg-primary font-bold text-primary-foreground text-sm"
                   aria-hidden="true"
                 >
                   {i + 1}
                 </span>
-                <div className="space-y-1">
-                  <h3 className="text-sm font-bold sm:text-base text-white">
+                <div className="space-y-1.5">
+                  <h3 className="text-base font-bold text-foreground">
                     {step.title}
                   </h3>
-                  <p className="text-xs leading-relaxed text-slate-300 sm:text-sm">
+                  <p className="text-xs leading-relaxed text-muted-foreground sm:text-sm">
                     {step.body}
                   </p>
                 </div>
@@ -127,22 +125,14 @@ function DeliveryPage() {
         </section>
 
         {/* Delivery methods */}
-        <section className="mt-8 space-y-4 sm:mt-12 sm:space-y-6">
-          <h2 className="type-section text-primary">
+        <section className="space-y-4">
+          <h2 className="text-xl font-bold tracking-tight text-foreground">
             Delivery methods
           </h2>
-          <div className="grid gap-3 sm:grid-cols-2 sm:gap-4">
-            <div
-              className={cn(
-                "flex items-start gap-4 rounded-xl p-4 sm:p-5",
-                "glass-card",
-              )}
-            >
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="flex items-start gap-4 rounded-xl border border-border bg-card p-5 shadow-sm">
               <div
-                className={cn(
-                  "flex shrink-0 items-center justify-center rounded-lg",
-                  "bg-primary/10 size-14 sm:size-20",
-                )}
+                className="flex shrink-0 items-center justify-center rounded-xl bg-primary/10 size-14 sm:size-16"
                 aria-hidden="true"
               >
                 <img
@@ -150,32 +140,24 @@ function DeliveryPage() {
                   alt=""
                   width={80}
                   height={80}
-                  className="size-10 object-contain sm:size-14"
+                  className="size-10 object-contain sm:size-12"
                   decoding="async"
                   loading="lazy"
                 />
               </div>
               <div className="min-w-0 space-y-1">
-                <h3 className="text-sm font-bold sm:text-base text-white">
+                <h3 className="text-base font-bold text-foreground">
                   Cash on delivery
                 </h3>
-                <p className="text-xs leading-relaxed text-slate-300 sm:text-sm">
+                <p className="text-xs leading-relaxed text-muted-foreground sm:text-sm">
                   Pay cash when the rider arrives. No cards, no sign-up
                   needed. Available for most sellers across Ghana.
                 </p>
               </div>
             </div>
-            <div
-              className={cn(
-                "flex items-start gap-4 rounded-xl p-4 sm:p-5",
-                "glass-card",
-              )}
-            >
+            <div className="flex items-start gap-4 rounded-xl border border-border bg-card p-5 shadow-sm">
               <div
-                className={cn(
-                  "flex shrink-0 items-center justify-center rounded-lg",
-                  "bg-primary/10 size-14 sm:size-20",
-                )}
+                className="flex shrink-0 items-center justify-center rounded-xl bg-primary/10 size-14 sm:size-16"
                 aria-hidden="true"
               >
                 <img
@@ -183,16 +165,16 @@ function DeliveryPage() {
                   alt=""
                   width={80}
                   height={80}
-                  className="size-10 object-contain sm:size-14"
+                  className="size-10 object-contain sm:size-12"
                   decoding="async"
                   loading="lazy"
                 />
               </div>
               <div className="min-w-0 space-y-1">
-                <h3 className="text-sm font-bold sm:text-base text-white">
+                <h3 className="text-base font-bold text-foreground">
                   Doorstep delivery
                 </h3>
-                <p className="text-xs leading-relaxed text-slate-300 sm:text-sm">
+                <p className="text-xs leading-relaxed text-muted-foreground sm:text-sm">
                   Delivered to your address — home, work, or a pickup
                   location you choose. Each seller sets their delivery area
                   and fee.
@@ -203,18 +185,13 @@ function DeliveryPage() {
         </section>
 
         {/* Delivery areas */}
-        <section className="mt-8 space-y-3 sm:mt-12 sm:space-y-4">
-          <h2 className="type-section text-primary">
+        <section className="space-y-4">
+          <h2 className="text-xl font-bold tracking-tight text-foreground">
             Delivery areas
           </h2>
-          <div
-            className={cn(
-              "rounded-xl p-4 sm:p-6",
-              "glass-card",
-            )}
-          >
-            <p className="text-sm leading-relaxed text-slate-300">
-              Sellers on alkemart operate across Ghana. Each seller sets
+          <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+            <p className="text-sm leading-relaxed text-muted-foreground">
+              Sellers on alkemart operate across Greater Accra, Kumasi, Takoradi, and other major regions in Ghana. Each seller sets
               their own delivery areas and fees. You'll see accurate
               delivery options when you enter your address at checkout.
             </p>
@@ -222,30 +199,25 @@ function DeliveryPage() {
         </section>
 
         {/* CTA */}
-        <section className="mt-8 sm:mt-12">
-          <div
-            className={cn(
-              "rounded-xl px-4 py-6 text-center sm:px-8 sm:py-8",
-              "bg-primary/10 shadow-[inset_0_0_0_1px_color-mix(in_srgb,_var(--primary)_20%,_transparent)]",
-            )}
-          >
-            <h2 className="text-lg font-extrabold tracking-tight sm:text-xl text-white">
-              Ready to shop?
-            </h2>
-            <p className="mt-1 text-sm leading-relaxed text-slate-300 sm:text-base">
-              Browse categories, compare sellers, and pay on delivery.
-            </p>
+        <section className="rounded-2xl border border-border bg-primary/10 p-6 text-center sm:p-8">
+          <h2 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
+            Ready to shop?
+          </h2>
+          <p className="mt-2 text-sm leading-relaxed text-muted-foreground sm:text-base">
+            Browse categories, compare sellers, and pay safely on delivery.
+          </p>
+          <div className="mt-4">
             <Link
               to="/categories/$slug"
               params={{ slug: "all" }}
               className={cn(
-                "mt-4 inline-flex items-center rounded-full bg-primary font-bold text-primary-foreground",
-                "h-11 min-h-11 px-6 text-sm",
+                "inline-flex items-center rounded-lg bg-primary font-bold text-primary-foreground",
+                "h-11 px-6 text-sm",
                 "transition hover:opacity-90",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-ink",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
               )}
             >
-              Browse all
+              Browse all products
             </Link>
           </div>
         </section>

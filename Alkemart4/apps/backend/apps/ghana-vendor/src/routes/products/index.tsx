@@ -61,7 +61,7 @@ function ProductsPage() {
       </div>
 
       {isError ? (
-        <Card className="p-8 text-center border-2 border-destructive/20">
+        <Card className="p-8 text-center border border-destructive/20">
           <AlertCircle className="h-10 w-10 mx-auto mb-3 text-destructive" />
           <h2 className="text-lg font-bold mb-1">Failed to load products</h2>
           <p className="text-muted-foreground text-sm mb-4">Something went wrong. Please try again.</p>
@@ -76,7 +76,7 @@ function ProductsPage() {
           ))}
         </div>
       ) : !data?.products || data.products.length === 0 ? (
-        <Card className="flex flex-col items-center justify-center p-12 text-center border-2 border-dashed">
+        <Card className="flex flex-col items-center justify-center p-12 text-center border border-dashed shadow-xs">
           <div className="h-20 w-20 bg-primary/10 text-primary rounded-full flex items-center justify-center mb-4">
             <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"></line><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
           </div>
@@ -95,7 +95,7 @@ function ProductsPage() {
         <>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
           {data.products.map(product => (
-            <Card key={product.id} className="overflow-hidden border-2 hover:border-primary/50 transition-colors flex flex-col">
+            <Card key={product.id} className="overflow-hidden border hover:border-primary/50 transition-all hover:shadow-md flex flex-col">
               <div className="aspect-square bg-muted relative group">
                 {product.thumbnail ? (
                   <img src={product.thumbnail} alt={product.title || "Product"} className="w-full h-full object-cover" />

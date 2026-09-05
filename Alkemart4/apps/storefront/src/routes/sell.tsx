@@ -52,7 +52,7 @@ function SellPage() {
               <Button
                 asChild
                 variant="outline"
-                className="min-h-11 whitespace-nowrap rounded-none px-4 text-sm sm:px-6"
+                className="min-h-11 whitespace-nowrap px-4 text-sm sm:px-6"
               >
                 <a href={loginUrl} target="_blank" rel="noopener noreferrer">
                   Seller Hub login
@@ -61,12 +61,12 @@ function SellPage() {
             ) : null}
           </div>
         </div>
-        <div className="surface-cream mt-4 flex items-center justify-center rounded-3xl p-6 sm:mt-0 sm:p-8">
+        <div className="surface-cream mt-4 flex items-center justify-center rounded-2xl p-6 sm:mt-0 sm:p-8">
           <Illustration name="authSeller" size="lg" priority alt="Seller Hub illustration" />
         </div>
       </header>
 
-      <section className="grid gap-8 sm:grid-cols-3">
+      <section className="grid gap-6 sm:grid-cols-3">
         <Step
           n="1"
           title="Register"
@@ -87,14 +87,14 @@ function SellPage() {
         />
       </section>
 
-      <section className="border border-border bg-muted/30 p-5 text-sm text-muted-foreground">
-        <h2 className="font-bold text-foreground">Already a customer?</h2>
+      <section className="rounded-2xl border border-border bg-muted/40 p-6 text-sm text-muted-foreground shadow-sm">
+        <h2 className="font-bold text-base text-foreground">Already a customer?</h2>
         <p className="mt-1">
           Buying:{" "}
-          <Link to="/login" search={{}} className="min-h-11 font-semibold underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          <Link to="/login" search={{}} className="font-semibold text-primary underline underline-offset-2 hover:opacity-90">
             Sign in
           </Link>
-          . Selling: Seller Hub only.
+          . Selling: Open a merchant account in Seller Hub.
         </p>
       </section>
 
@@ -105,7 +105,7 @@ function SellPage() {
       ) : null}
 
       <p className="text-sm">
-        <Link to="/" className="min-h-11 font-semibold underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+        <Link to="/" className="font-semibold text-foreground underline underline-offset-2 hover:text-primary">
           ← Back to shop
         </Link>
       </p>
@@ -121,16 +121,16 @@ function Step(props: {
 }) {
   return (
     <div
-      className="flex flex-col border border-border bg-card p-6 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      className="flex flex-col rounded-2xl border border-border bg-card p-6 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       aria-label={`Step ${props.n}: ${props.title}`}
     >
-      <div className="surface-cream mb-3 flex justify-center rounded-xl py-3 ring-1 ring-border/50">
+      <div className="surface-cream mb-4 flex justify-center rounded-xl py-4 ring-1 ring-border/50">
         <Illustration name={props.art} size="sm" alt="" />
       </div>
-      <div className="flex h-10 w-10 items-center justify-center bg-primary text-sm font-bold text-primary-foreground">
+      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">
         {props.n}
       </div>
-      <h3 className="mt-3 font-bold text-foreground">{props.title}</h3>
+      <h3 className="mt-3 font-bold text-base text-foreground">{props.title}</h3>
       <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
         {props.body}
       </p>

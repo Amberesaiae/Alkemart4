@@ -316,6 +316,7 @@ export type OrderItem = {
   thumbnail?: string | null
   product_id?: string
   variant_title?: string | null
+  variant?: { product?: { id?: string } } | null
 }
 
 export type Fulfillment = {
@@ -1002,12 +1003,14 @@ export const orders = {
           }
         }>(`/vendor/orders/${id}`)
         const mapped = mapWorkersOrder(data.order)
-        const items = (data.order.items ?? []).map((item) => ({
+        const items: OrderItem[] = (data.order.items ?? []).map((item) => ({
           id: item.id,
           title: item.title,
           quantity: item.qty,
           unit_price: Number(item.unitPricePesewas) || 0,
-          thumbnail: null as string | null,
+          thumbnail: null,
+          product_id: item.productId,
+          variant_title: null,
           variant: { product: { id: item.productId ?? "" } },
         }))
         return {

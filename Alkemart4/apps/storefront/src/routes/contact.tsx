@@ -3,7 +3,7 @@ import { createFileRoute, Link } from "@tanstack/react-router"
 import { PageSeo } from "@/components/page-seo"
 import { brand } from "@/design/brand"
 import { IconSafe } from "@/design/icons"
-import { Textarea } from "@workspace/ui"
+import { Button, Textarea } from "@workspace/ui"
 import { absoluteUrl, organizationJsonLd, siteOrigin } from "@/lib/seo"
 import { cn } from "@/lib/utils"
 
@@ -263,17 +263,18 @@ function ContactPage() {
                   message.
                 </p>
               ) : null}
-              <button
+              <Button
                 type="submit"
-                className="inline-flex h-11 items-center rounded-full bg-primary px-7 text-sm font-bold text-primary-foreground shadow-sm transition hover:opacity-90"
+                size="lg"
+                className="rounded-full px-8 font-bold shadow-sm"
               >
                 Send message
-              </button>
+              </Button>
             </form>
           </section>
 
           <aside className="space-y-4">
-            <div className="rounded-3xl border border-border bg-muted/40 p-6 sm:p-8">
+            <div className="rounded-2xl border border-border bg-card p-6 shadow-xs sm:p-8">
               <h2 className="text-lg font-extrabold tracking-tight">
                 Marketplace notes
               </h2>

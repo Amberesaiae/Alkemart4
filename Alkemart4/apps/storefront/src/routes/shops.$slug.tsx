@@ -163,11 +163,11 @@ function StorePage() {
                 <p className="type-sm font-semibold uppercase tracking-[0.14em] text-primary">
                   Seller store
                 </p>
-                <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
+                <h1 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
                   {name}
                 </h1>
                 {vendor.bio ? (
-                  <p className="max-w-2xl type-sm leading-relaxed text-primary-foreground/70">
+                  <p className="max-w-2xl type-sm leading-relaxed text-white/80">
                     {vendor.bio}
                   </p>
                 ) : null}
@@ -177,21 +177,21 @@ function StorePage() {
                       value={(vendor.ratingAvgX100 ?? 0) / 100}
                       size={14}
                     />
-                    <span className="type-sm text-muted-foreground">
+                    <span className="type-sm text-white/70">
                       {(vendor.ratingAvgX100 ?? 0) / 100} ·{" "}
                       {vendor.ratingCount} review
                       {vendor.ratingCount === 1 ? "" : "s"}
                     </span>
                     {vendor.badgeTopSeller ? (
-                      <Badge className="font-semibold">Top seller</Badge>
+                      <Badge className="font-semibold bg-white/20 text-white border-none">Top seller</Badge>
                     ) : null}
                     {vendor.badgeFastShipper ? (
-                      <Badge className="font-semibold">Fast shipper</Badge>
+                      <Badge className="font-semibold bg-white/20 text-white border-none">Fast shipper</Badge>
                     ) : null}
                   </div>
                 ) : null}
                 {products.length > 0 ? (
-                  <p className="type-sm text-primary-foreground/55">
+                  <p className="type-sm text-white/60">
                     {products.length} product{products.length === 1 ? "" : "s"} in
                     catalog
                     {sections.length > 1
@@ -207,7 +207,7 @@ function StorePage() {
                         <li key={s.title}>
                           <a
                             href={`#store-cat-${slugify(s.title)}`}
-                            className="inline-flex rounded-full bg-ink/10 px-3 py-1 type-sm font-semibold text-primary-foreground/90 ring-1 ring-ink/15 hover:bg-ink/15"
+                            className="inline-flex rounded-full bg-white/10 px-3 py-1 type-sm font-semibold text-white/90 ring-1 ring-white/20 hover:bg-white/20 transition-colors"
                           >
                             {s.title}
                             <span className="ml-1.5 opacity-60">

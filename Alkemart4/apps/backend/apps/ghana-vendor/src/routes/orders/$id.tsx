@@ -207,7 +207,7 @@ function OrderDetailPage() {
 
       <div className="grid md:grid-cols-3 gap-6 items-start">
         <div className="md:col-span-2 space-y-6">
-          <Card className="border-2 p-6 shadow-sm">
+          <Card className="p-6 shadow-sm">
             <h2 className="text-lg font-bold mb-4">Items</h2>
             <div className="space-y-4">
               {order.items?.map(item => (
@@ -250,7 +250,7 @@ function OrderDetailPage() {
           </Card>
 
           {!isCanceled && (
-            <Card className="border-2 p-6 shadow-sm">
+            <Card className="p-6 shadow-sm">
               <h2 className="text-lg font-bold mb-6">Fulfillment Workflow</h2>
 
               <div className="space-y-6">
@@ -333,7 +333,7 @@ function OrderDetailPage() {
         </div>
 
         <div className="space-y-6">
-          <Card className="border-2 p-6 shadow-sm bg-muted/10">
+          <Card className="p-6 shadow-sm bg-muted/10">
             <h2 className="text-base font-bold flex items-center gap-2 mb-4">
               <User className="h-4 w-4 text-muted-foreground" /> Customer
             </h2>
