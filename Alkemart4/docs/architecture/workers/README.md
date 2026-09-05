@@ -14,6 +14,7 @@ Medusa / Mercur / Railway / Neon and other unreliable docs live under `archive/`
 | 1 | [AGNOSTIC-APPROACH.md](./AGNOSTIC-APPROACH.md) | **Doctrine so far** — what agnostic means, decisions, rejected patterns, honesty about gaps |
 | 2 | [AGENT-PLAYBOOK.md](./AGENT-PLAYBOOK.md) | How to implement a change (steps A–D) |
 | 3 | [LOCAL-DEV.md](./LOCAL-DEV.md) | Ports, env, `bun run dev:workers` |
+| — | [FREEBUFF-LIFECYCLE-QA-TASK.md](./FREEBUFF-LIFECYCLE-QA-TASK.md) | **Hand this to Freebuff** — full live+local lifecycle QA matrix |
 | 4 | [ACID-DATAFLOW.md](./ACID-DATAFLOW.md) | Topology, entities, Hyperdrive, ACID hotspots |
 | 5 | Matching lifecycle | Buyer / vendor / admin / payment (below) |
 | 6 | [NAV-MATRIX.md](./NAV-MATRIX.md) | Workers-visible routes + manual clicks |

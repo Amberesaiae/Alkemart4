@@ -115,19 +115,23 @@ export type RailCategory = {
  * Preferred header order for Ghana marketplace departments.
  * Subcategories appear in each chip’s popdown, not as top-level chips.
  */
+/** Exactly six header departments (popdowns carry subcats). */
 export const RAIL_DEPARTMENT_ORDER: readonly string[] = [
   "phones-electronics",
   "food-groceries",
   "fashion-apparel",
   "health-beauty",
   "home-living",
-  "beverages",
   "baby-kids",
 ] as const
+
+/** Hard cap — do not append extra top-level depts to the rail. */
+export const RAIL_MAX = 6
 
 /** Handles kept out of the header rail (still browsable via All / search). */
 const RAIL_EXCLUDED = new Set([
   "pet-care",
+  "beverages",
   "agriculture",
   "automotive",
   "services",
@@ -178,22 +182,15 @@ export function resolveRailCategories(api: NavCategory[]): RailCategory[] {
   const used = new Set<string>()
 
   for (const h of RAIL_DEPARTMENT_ORDER) {
+    if (out.length >= RAIL_MAX) break
     const cat = byHandle.get(h)
     if (!cat || used.has(cat.id) || RAIL_EXCLUDED.has(h)) continue
     used.add(cat.id)
     out.push(toRailItem(cat, api))
   }
 
-  const rest = top
-    .filter((c) => !used.has(c.id))
-    .filter((c) => !RAIL_EXCLUDED.has((c.handle || "").toLowerCase()))
-    .sort((a, b) => (a.rank ?? 0) - (b.rank ?? 0))
-
-  for (const cat of rest) {
-    out.push(toRailItem(cat, api))
-  }
-
-  return out
+  // Do not append leftover top-level depts — keep the header at RAIL_MAX.
+  return out.slice(0, RAIL_MAX)
 }
 
 export type MosaicTile = {
