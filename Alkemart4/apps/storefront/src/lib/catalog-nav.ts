@@ -11,6 +11,7 @@ export type NavCategory = {
   name: string
   handle?: string | null
   rank?: number | null
+  parentCategoryId?: string | null
 }
 
 export type CategoryMeta = {
@@ -103,20 +104,79 @@ export type RailCategory = {
 }
 
 /**
- * Department rail — every real top-level category, in rank order.
+ * Preferred header order for Ghana marketplace departments.
+ * Subcategories (staples, men, phones, …) never belong in the rail —
+ * they live on the PLP filter strip after you open a department.
+ */
+export const RAIL_DEPARTMENT_ORDER: readonly string[] = [
+  "phones-electronics",
+  "food-groceries",
+  "fashion-apparel",
+  "health-beauty",
+  "home-living",
+  "beverages",
+  "pet-care",
+  "baby-kids",
+] as const
+
+/** Handles kept out of the header rail (still browsable via All / search). */
+const RAIL_EXCLUDED = new Set([
+  "agriculture",
+  "automotive",
+  "services",
+  "other",
+])
+
+/**
+ * Department rail — top-level only, curated order, short list.
  * Name always from API; icon from CATEGORY_META when known.
  */
 export function resolveRailCategories(api: NavCategory[]): RailCategory[] {
   if (!api.length) return []
-  const ranked = [...api].sort((a, b) => (a.rank ?? 0) - (b.rank ?? 0))
-  return ranked
-    .filter((c) => c.id && c.name)
-    .map((c) => ({
-      id: c.id,
-      name: c.name,
-      handle: c.handle ?? null,
-      icon: iconForCategory(c.name, c.handle),
-    }))
+
+  // Cloudflare list flattens the tree; rail must ignore children.
+  const top = api.filter(
+    (c) => c.id && c.name && (c.parentCategoryId == null || c.parentCategoryId === ""),
+  )
+  if (!top.length) return []
+
+  const byHandle = new Map(
+    top
+      .filter((c) => c.handle)
+      .map((c) => [(c.handle || "").toLowerCase(), c] as const),
+  )
+
+  const out: RailCategory[] = []
+  const used = new Set<string>()
+
+  for (const h of RAIL_DEPARTMENT_ORDER) {
+    const cat = byHandle.get(h)
+    if (!cat || used.has(cat.id) || RAIL_EXCLUDED.has(h)) continue
+    used.add(cat.id)
+    out.push({
+      id: cat.id,
+      name: cat.name,
+      handle: cat.handle ?? null,
+      icon: iconForCategory(cat.name, cat.handle),
+    })
+  }
+
+  // Any other real top-level depts not in the preferred list (except excluded).
+  const rest = top
+    .filter((c) => !used.has(c.id))
+    .filter((c) => !RAIL_EXCLUDED.has((c.handle || "").toLowerCase()))
+    .sort((a, b) => (a.rank ?? 0) - (b.rank ?? 0))
+
+  for (const cat of rest) {
+    out.push({
+      id: cat.id,
+      name: cat.name,
+      handle: cat.handle ?? null,
+      icon: iconForCategory(cat.name, cat.handle),
+    })
+  }
+
+  return out
 }
 
 export type MosaicTile = {
