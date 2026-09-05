@@ -96,17 +96,24 @@ export function iconForCategory(
   return metaFor(handle)?.icon ?? categoryIconId(name, handle)
 }
 
+export type RailChild = {
+  id: string
+  name: string
+  handle: string
+}
+
 export type RailCategory = {
   id: string
   name: string
   handle?: string | null
   icon: IconId
+  /** Direct children for header popdown (empty = link-only chip). */
+  children: RailChild[]
 }
 
 /**
  * Preferred header order for Ghana marketplace departments.
- * Subcategories (staples, men, phones, …) never belong in the rail —
- * they live on the PLP filter strip after you open a department.
+ * Subcategories appear in each chip’s popdown, not as top-level chips.
  */
 export const RAIL_DEPARTMENT_ORDER: readonly string[] = [
   "phones-electronics",
@@ -115,26 +122,47 @@ export const RAIL_DEPARTMENT_ORDER: readonly string[] = [
   "health-beauty",
   "home-living",
   "beverages",
-  "pet-care",
   "baby-kids",
 ] as const
 
 /** Handles kept out of the header rail (still browsable via All / search). */
 const RAIL_EXCLUDED = new Set([
+  "pet-care",
   "agriculture",
   "automotive",
   "services",
   "other",
 ])
 
+function childrenOf(api: NavCategory[], parentId: string): RailChild[] {
+  return api
+    .filter((c) => c.parentCategoryId === parentId && c.id && c.name)
+    .sort((a, b) => (a.rank ?? 0) - (b.rank ?? 0))
+    .map((c) => ({
+      id: c.id,
+      name: c.name,
+      handle: (c.handle || c.id).toLowerCase(),
+    }))
+}
+
+function toRailItem(cat: NavCategory, api: NavCategory[]): RailCategory {
+  return {
+    id: cat.id,
+    name: cat.name,
+    handle: cat.handle ?? null,
+    icon: iconForCategory(cat.name, cat.handle),
+    children: childrenOf(api, cat.id),
+  }
+}
+
 /**
- * Department rail — top-level only, curated order, short list.
+ * Department rail — top-level only, curated order, short list + children for popdowns.
  * Name always from API; icon from CATEGORY_META when known.
  */
 export function resolveRailCategories(api: NavCategory[]): RailCategory[] {
   if (!api.length) return []
 
-  // Cloudflare list flattens the tree; rail must ignore children.
+  // Cloudflare list flattens the tree; rail chips are top-level only.
   const top = api.filter(
     (c) => c.id && c.name && (c.parentCategoryId == null || c.parentCategoryId === ""),
   )
@@ -153,27 +181,16 @@ export function resolveRailCategories(api: NavCategory[]): RailCategory[] {
     const cat = byHandle.get(h)
     if (!cat || used.has(cat.id) || RAIL_EXCLUDED.has(h)) continue
     used.add(cat.id)
-    out.push({
-      id: cat.id,
-      name: cat.name,
-      handle: cat.handle ?? null,
-      icon: iconForCategory(cat.name, cat.handle),
-    })
+    out.push(toRailItem(cat, api))
   }
 
-  // Any other real top-level depts not in the preferred list (except excluded).
   const rest = top
     .filter((c) => !used.has(c.id))
     .filter((c) => !RAIL_EXCLUDED.has((c.handle || "").toLowerCase()))
     .sort((a, b) => (a.rank ?? 0) - (b.rank ?? 0))
 
   for (const cat of rest) {
-    out.push({
-      id: cat.id,
-      name: cat.name,
-      handle: cat.handle ?? null,
-      icon: iconForCategory(cat.name, cat.handle),
-    })
+    out.push(toRailItem(cat, api))
   }
 
   return out
