@@ -82,9 +82,11 @@ When the laptop cannot reach Supabase (IPv6/pooler issues), use admin one-shots 
 
 Browser Playwright is deferred. Use `docs/architecture/workers/NAV-MATRIX.md` for manual UI checks.
 
-## Docs
+## Docs (canonical)
 
+- Agents: `docs/architecture/workers/AGENT-PLAYBOOK.md` + `LOCAL-DEV.md`
 - Architecture: `docs/architecture/workers/`
 - Ops: `docs/ops/`
 - Demo accounts: `docs/DEMO-ACCOUNTS.md`
-- Medusa-era archive: `archive/docs-medusa-era/`
+- Root: `README.md`, `AGENTS.md`
+- Archives (ignore for implement): `archive/docs-medusa-era/`, `archive/docs-historical/`

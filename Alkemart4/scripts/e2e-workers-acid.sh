@@ -70,16 +70,20 @@ TITLE=$(curl -sS -A "$UA" "$API/store/catalog?q=tecno&limit=1" | json_get 'd["it
 echo "search_hit=$TITLE"
 test -n "$TITLE"
 
-echo "== 5 pages HTTP =="
-for u in \
-  https://alkemart4-storefront.pages.dev \
-  https://alkemart4-vendor.pages.dev \
-  https://alkemart4-admin.pages.dev
-do
-  code=$(curl -sS -o /dev/null -w '%{http_code}' -A "$UA" "$u")
-  echo "$u -> $code"
-  test "$code" = "200"
-done
+if [ "${SKIP_PAGES:-}" = "1" ]; then
+  echo "== 5 pages HTTP skipped (SKIP_PAGES=1) =="
+else
+  echo "== 5 pages HTTP =="
+  for u in \
+    https://alkemart4-storefront.pages.dev \
+    https://alkemart4-vendor.pages.dev \
+    https://alkemart4-admin.pages.dev
+  do
+    code=$(curl -sS -o /dev/null -w '%{http_code}' -A "$UA" "$u")
+    echo "$u -> $code"
+    test "$code" = "200"
+  done
+fi
 
 if [ "${SKIP_PAYSTACK:-}" = "1" ]; then
   echo "== skip MoMo/card live Paystack scenarios (SKIP_PAYSTACK=1) =="

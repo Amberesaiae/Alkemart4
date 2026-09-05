@@ -3,6 +3,18 @@ main = "src/index.ts"
 compatibility_date = "2026-08-28"
 compatibility_flags = ["nodejs_compat"]
 
+# Local: `bun run dev:api` → http://127.0.0.1:8787 (see docs/architecture/workers/LOCAL-DEV.md)
+# Secrets for local: apps/api/.dev.vars (from .dev.vars.example)
+# Production secrets via wrangler secret / dashboard:
+#   JWT_SECRET, PAYSTACK_SECRET_KEY
+#   ALLOWED_ORIGINS = comma-separated extra CORS origins (custom domains)
+#   ENVIRONMENT = development|staging|production
+# See docs/ops/cors-and-origins.md and DEPLOYMENT.md
+
+[dev]
+port = 8787
+local_protocol = "http"
+
 # Supabase alkemart (eu-west-1) — dual Hyperdrive
 # Catalog / cached reads
 [[hyperdrive]]

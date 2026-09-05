@@ -1,0 +1,11 @@
+# Copy to apps/api/.dev.vars (gitignored). Used by `wrangler dev`.
+# Never commit real production secrets.
+
+JWT_SECRET=dev-local-jwt-secret-change-me-32chars
+ENVIRONMENT=development
+
+# Optional for COD-only local. Required for MoMo/card/payouts.
+# PAYSTACK_SECRET_KEY=sk_test_...
+
+# Extra CORS origins (comma-separated). Localhost defaults are already in code.
+# ALLOWED_ORIGINS=http://localhost:5175,http://localhost:3001,http://localhost:3002

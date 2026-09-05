@@ -3,18 +3,20 @@
 **Status:** Living — sole production write path  
 **Stack:** Cloudflare Workers (`apps/api`) + dual Hyperdrive + Supabase Postgres + Paystack + three gold Pages UIs (`#FEBF31`)
 
-Medusa / Mercur / Railway / Neon deploy docs are **archived** under `archive/docs-medusa-era/`. Do not implement against them.
+Medusa / Mercur / Railway / Neon and other unreliable docs live under `archive/`. **Do not implement against archive.**
 
-## Pack
+## Start here (agents)
 
 | Doc | Covers |
 |-----|--------|
-| [ACID-DATAFLOW.md](./ACID-DATAFLOW.md) | Topology, entities, Hyperdrive roles, request paths |
+| [AGENT-PLAYBOOK.md](./AGENT-PLAYBOOK.md) | **Distinct implementation approach** — what to touch, steps A–D |
+| [LOCAL-DEV.md](./LOCAL-DEV.md) | Ports, env, `bun run dev:workers` |
+| [ACID-DATAFLOW.md](./ACID-DATAFLOW.md) | Topology, entities, Hyperdrive, ACID hotspots |
 | [LIFECYCLE-BUYER.md](./LIFECYCLE-BUYER.md) | Auth → browse → cart → checkout → orders |
 | [LIFECYCLE-VENDOR.md](./LIFECYCLE-VENDOR.md) | Register → approve → Ghana MoMo → catalog → fulfill |
 | [LIFECYCLE-ADMIN.md](./LIFECYCLE-ADMIN.md) | Sellers, products, orders, payouts, migrate |
 | [LIFECYCLE-PAYMENT.md](./LIFECYCLE-PAYMENT.md) | COD / MoMo / card, webhook + poll, stock, idempotency |
-| [NAV-MATRIX.md](./NAV-MATRIX.md) | Every Workers-visible route + Playwright click paths |
+| [NAV-MATRIX.md](./NAV-MATRIX.md) | Every Workers-visible route + manual click paths |
 | [ENGINEERING-STANDARDS.md](./ENGINEERING-STANDARDS.md) | Backend-first + frontend production practices |
 
 ## Companion ops

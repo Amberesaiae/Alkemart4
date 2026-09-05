@@ -51,15 +51,19 @@ ATOKEN=$(curl -sS -A "$UA" -X POST "$API/admin/auth/login" \
 curl -sS -A "$UA" "$API/admin/orders?limit=3" -H "Authorization: Bearer $ATOKEN" \
   | json_get 'len(d.get("items") or [])'
 
-echo "== pages =="
-for u in \
-  https://alkemart4-storefront.pages.dev \
-  https://alkemart4-vendor.pages.dev \
-  https://alkemart4-admin.pages.dev
-do
-  code=$(curl -sS -o /dev/null -w '%{http_code}' -A "$UA" "$u")
-  echo "$u -> $code"
-  test "$code" = "200"
-done
+if [ "${SKIP_PAGES:-}" = "1" ]; then
+  echo "== pages skipped (SKIP_PAGES=1) =="
+else
+  echo "== pages =="
+  for u in \
+    https://alkemart4-storefront.pages.dev \
+    https://alkemart4-vendor.pages.dev \
+    https://alkemart4-admin.pages.dev
+  do
+    code=$(curl -sS -o /dev/null -w '%{http_code}' -A "$UA" "$u")
+    echo "$u -> $code"
+    test "$code" = "200"
+  done
+fi
 
 echo "E2E_SMOKE_OK"

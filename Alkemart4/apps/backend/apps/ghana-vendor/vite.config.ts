@@ -30,12 +30,14 @@ export default defineConfig({
   server: {
     host: true,
     port: 3002,
+    // Fallback for relative fetches. Prefer VITE_ALKEMART_API_URL=http://127.0.0.1:8787
     proxy: {
-      '/alkemart': 'http://localhost:9000',
-      '/vendor': 'http://localhost:9000',
-      '/admin': 'http://localhost:9000',
-      '/auth': 'http://localhost:9000',
-      '/store': 'http://localhost:9000',
+      '/vendor': 'http://127.0.0.1:8787',
+      '/admin': 'http://127.0.0.1:8787',
+      '/store': 'http://127.0.0.1:8787',
+      '/hooks': 'http://127.0.0.1:8787',
+      '/health': 'http://127.0.0.1:8787',
     },
   },
 })
+

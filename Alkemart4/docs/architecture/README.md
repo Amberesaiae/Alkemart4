@@ -1,7 +1,12 @@
 # Architecture docs
 
-**Canonical (Workers):** [`workers/`](./workers/)
+## Canonical (implement from these)
 
-**Binding money ADRs:** [`2026-07-13-alkemart-architecture-and-commercial-spine.md`](./2026-07-13-alkemart-architecture-and-commercial-spine.md)
+[`workers/`](./workers/) — agent playbook, local dev, ACID dataflow, lifecycles, nav matrix, standards.
 
-**Archived Medusa/Mercur/Railway planning:** `archive/docs-medusa-era/architecture/`
+Binding money ADRs (still valid): [`2026-07-13-alkemart-architecture-and-commercial-spine.md`](./2026-07-13-alkemart-architecture-and-commercial-spine.md)
+
+## Do not implement from
+
+- `archive/docs-medusa-era/` — Medusa/Mercur/Railway/Neon planning  
+- `archive/docs-historical/` — UI audits, completed plan checklists, stale access docs  
