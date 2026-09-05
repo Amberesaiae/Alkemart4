@@ -1,6 +1,175 @@
 import { getMedusaClient } from "./medusa"
 import type { SellerRef } from "@/components/seller-chip"
 import { groupCartBySeller, type CartLine } from "./cart"
+import { getAlkemartApiUrl } from "./env"
+import { getWorkersAccessToken } from "./auth"
+
+function useWorkersOrders(): boolean {
+  return Boolean(getAlkemartApiUrl())
+}
+
+function pesewasToMajor(pesewas: string | number | null | undefined): number | null {
+  if (pesewas == null) return null
+  const n = typeof pesewas === "string" ? Number(pesewas) : pesewas
+  if (!Number.isFinite(n)) return null
+  return n / 100
+}
+
+type WorkersOrderItem = {
+  id: string
+  title: string
+  qty: number
+  unitPricePesewas: string
+  productId?: string
+  sellerId?: string
+}
+
+type WorkersOrder = {
+  id: string
+  sellerId: string
+  status: string
+  subtotalPesewas: string
+  deliveryFeePesewas: string
+  items: WorkersOrderItem[]
+}
+
+type WorkersOrderGroup = {
+  id: string
+  buyerEmail?: string
+  totalPesewas: string
+  currency: string
+  createdAt?: string | null
+  paymentStatus?: string | null
+  fulfillmentStatus?: string | null
+  shippingAddress?: Record<string, unknown> | null
+  orders: WorkersOrder[]
+}
+
+function mapWorkersOrderGroup(group: WorkersOrderGroup): StoreOrder {
+  const items: OrderItem[] = []
+  for (const order of group.orders ?? []) {
+    for (const item of order.items ?? []) {
+      items.push({
+        id: item.id,
+        title: item.title,
+        quantity: item.qty,
+        unitPrice: pesewasToMajor(item.unitPricePesewas),
+        productId: item.productId ?? null,
+        thumbnail: null,
+        seller: item.sellerId
+          ? { id: item.sellerId, name: item.sellerId, handle: null }
+          : order.sellerId
+            ? { id: order.sellerId, name: order.sellerId, handle: null }
+            : null,
+      })
+    }
+  }
+  const shippingTotal = (group.orders ?? []).reduce(
+    (sum, o) => sum + (Number(o.deliveryFeePesewas) || 0),
+    0,
+  )
+  return {
+    id: group.id,
+    displayId: null,
+    status: group.fulfillmentStatus ?? "placed",
+    paymentStatus: group.paymentStatus ?? "captured",
+    fulfillmentStatus: group.fulfillmentStatus ?? "placed",
+    createdAt: group.createdAt ?? undefined,
+    total: pesewasToMajor(group.totalPesewas),
+    itemTotal: pesewasToMajor(
+      (group.orders ?? []).reduce((sum, o) => sum + (Number(o.subtotalPesewas) || 0), 0),
+    ),
+    shippingTotal: pesewasToMajor(shippingTotal),
+    currencyCode: group.currency || "ghs",
+    email: group.buyerEmail ?? null,
+    items,
+    shippingAddress: mapAddress(group.shippingAddress ?? null),
+  }
+}
+
+async function workersListMyOrders(): Promise<StoreOrder[]> {
+  const token = getWorkersAccessToken()
+  if (!token) throw new Error("Sign in required to list orders")
+  const res = await fetch(`${getAlkemartApiUrl()}/store/orders`, {
+    headers: {
+      Accept: "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+  })
+  const data = (await res.json().catch(() => ({}))) as {
+    items?: WorkersOrderGroup[]
+    error?: string
+    message?: string
+  }
+  if (!res.ok) {
+    throw new Error(data.error || data.message || `Orders failed (${res.status})`)
+  }
+  return (data.items ?? []).map(mapWorkersOrderGroup)
+}
+
+async function workersGetOrder(
+  orderId: string,
+  opts?: { email?: string | null },
+): Promise<StoreOrder> {
+  const token = getWorkersAccessToken()
+  if (token) {
+    const res = await fetch(
+      `${getAlkemartApiUrl()}/store/orders/${encodeURIComponent(orderId)}`,
+      {
+        headers: {
+          Accept: "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      },
+    )
+    if (res.ok) {
+      const data = (await res.json()) as { orderGroup?: WorkersOrderGroup }
+      if (data.orderGroup) return mapWorkersOrderGroup(data.orderGroup)
+    }
+  }
+
+  const email = opts?.email?.trim()
+  if (!email) {
+    throw new Error(
+      token
+        ? "Order not found for this account. Try looking up with the checkout email."
+        : "Enter the email used at checkout to view this order.",
+    )
+  }
+  return workersLookupOrderByEmail(orderId, email)
+}
+
+async function workersLookupOrderByEmail(
+  orderId: string,
+  email: string,
+): Promise<StoreOrder> {
+  const res = await fetch(`${getAlkemartApiUrl()}/store/orders/lookup`, {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      orderId: orderId.trim(),
+      email: email.trim(),
+    }),
+  })
+  const data = (await res.json().catch(() => ({}))) as {
+    orderGroup?: WorkersOrderGroup
+    error?: string
+    message?: string
+  }
+  if (!res.ok || !data.orderGroup) {
+    throw new Error(
+      data.error ||
+        data.message ||
+        (res.status === 404
+          ? "Order not found for that id and email"
+          : `Lookup failed (${res.status})`),
+    )
+  }
+  return mapWorkersOrderGroup(data.orderGroup)
+}
 
 export type OrderItem = {
   id: string
@@ -210,6 +379,8 @@ export function groupOrderItemsBySeller(items: OrderItem[]) {
 }
 
 export async function listMyOrders(): Promise<StoreOrder[]> {
+  if (useWorkersOrders()) return workersListMyOrders()
+
   const sdk = getMedusaClient()
   const token = await sdk.client.getToken()
   if (!token) {
@@ -224,8 +395,8 @@ export async function listMyOrders(): Promise<StoreOrder[]> {
 
 /**
  * Retrieve order:
- * 1) If customer JWT → Medusa order retrieve (owner-scoped when API enforces)
- * 2) Else or on failure → POST /store/alkemart/orders/lookup with email
+ * Workers: Bearer GET /store/orders/:id, else POST /store/orders/lookup
+ * Medusa: JWT retrieve, else POST /store/alkemart/orders/lookup
  */
 export async function getOrder(
   orderId: string,
@@ -233,6 +404,8 @@ export async function getOrder(
 ): Promise<StoreOrder> {
   const id = orderId.trim()
   if (!id) throw new Error("order id required")
+  if (useWorkersOrders()) return workersGetOrder(id, opts)
+
   const sdk = getMedusaClient()
   const token = await sdk.client.getToken()
 
@@ -264,6 +437,8 @@ export async function lookupOrderByEmail(
   orderId: string,
   email: string,
 ): Promise<StoreOrder> {
+  if (useWorkersOrders()) return workersLookupOrderByEmail(orderId, email)
+
   const { getBackendUrl, getPublishableKey } = await import("./env")
   const base = getBackendUrl()
   const pk = getPublishableKey()

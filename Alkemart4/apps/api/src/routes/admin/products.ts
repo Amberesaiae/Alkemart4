@@ -22,8 +22,19 @@ async function moderateProduct(
   }
 }
 
+const PRODUCT_STATUSES = new Set(["draft", "proposed", "published", "rejected"])
+
 export const adminProducts = new Hono<AppEnv>()
   .use("*", requireAdmin)
+  .get("/", async (c) => {
+    const statusRaw = c.req.query("status")?.trim()
+    const status =
+      statusRaw && PRODUCT_STATUSES.has(statusRaw)
+        ? (statusRaw as "draft" | "proposed" | "published" | "rejected")
+        : undefined
+    const items = await c.get("repo").listAdminProducts(status)
+    return c.json({ items })
+  })
   .post("/:id/approve", async (c) => {
     const product = await moderateProduct(c.get("repo"), c.req.param("id"), "approve")
     return c.json({ product })

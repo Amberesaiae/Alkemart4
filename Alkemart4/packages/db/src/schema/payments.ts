@@ -1,4 +1,4 @@
-import { bigint, integer, pgEnum, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core"
+import { bigint, integer, jsonb, pgEnum, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core"
 import { carts } from "./carts"
 import { offers } from "./offers"
 
@@ -27,6 +27,18 @@ export const paymentIntents = pgTable("payment_intents", {
   buyerEmail: text("buyer_email").notNull(),
   momoProvider: text("momo_provider"),
   momoPhone: text("momo_phone"),
+  /** Buyer delivery address captured at checkout (CheckoutAddress snake_case). */
+  shippingAddress: jsonb("shipping_address").$type<{
+    first_name: string
+    last_name: string
+    phone: string
+    address_1: string
+    address_2?: string
+    city: string
+    province?: string
+    country_code: string
+    postal_code?: string
+  } | null>(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 })

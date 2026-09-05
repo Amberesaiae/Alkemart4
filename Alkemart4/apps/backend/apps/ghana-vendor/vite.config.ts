@@ -5,7 +5,8 @@ import tailwindcss from '@tailwindcss/vite'
 import { TanStackRouterVite } from '@tanstack/router-plugin/vite'
 
 export default defineConfig({
-  base: '/seller/',
+  // Separate Cloudflare Pages project `alkemart4-vendor` serves from domain root.
+  base: '/',
   resolve: {
     alias: { '@': path.resolve(__dirname, 'src') },
   },

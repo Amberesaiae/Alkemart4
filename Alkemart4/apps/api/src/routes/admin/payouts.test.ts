@@ -62,6 +62,7 @@ describe("admin Paystack payouts", () => {
       buyerEmail: "buyer@t.test",
       momoProvider: null,
       momoPhone: null,
+      shippingAddress: null,
     })
     const { orders } = await checkoutRepo.confirmPaidOrder(intentId)
     const orderId = orders[0]!.id

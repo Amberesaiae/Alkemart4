@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite --port 3001",
     "build": "tsc -b && vite build",
-    "tsc": "tsc --noEmit"
+    "tsc": "tsc --noEmit",
+    "deploy:pages": "bun run build && bunx wrangler pages deploy dist --project-name alkemart4-admin"
   },
   "dependencies": {
     "@workspace/ui": "workspace:*",

@@ -1,6 +1,7 @@
 import { Link, useRouterState } from "@tanstack/react-router"
 import { LayoutDashboard, Package, ShoppingBag, Settings, LogOut, Store, RefreshCw } from "lucide-react"
 import { useCurrentUser, useLogout } from "../lib/auth"
+import { isWorkersApi } from "../lib/api"
 import { cn, Button, Avatar, AvatarFallback } from "@workspace/ui"
 
 function avatarInitials(name: string | null | undefined): string {
@@ -18,11 +19,14 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const router = useRouterState()
   const pathname = router.location.pathname
 
+  // Returns (and other Mercur-only surfaces) are hidden on the Workers cut.
   const navItems = [
     { name: "Dashboard", to: "/", icon: LayoutDashboard },
     { name: "Products", to: "/products", icon: Package },
     { name: "Orders", to: "/orders", icon: ShoppingBag },
-    { name: "Returns", to: "/returns", icon: RefreshCw },
+    ...(!isWorkersApi()
+      ? [{ name: "Returns", to: "/returns", icon: RefreshCw }]
+      : []),
     { name: "Settings", to: "/settings", icon: Settings },
   ]
 

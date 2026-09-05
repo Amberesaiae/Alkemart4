@@ -23,14 +23,26 @@ function apiBase(): string {
   return (import.meta.env as Record<string, string>).VITE_MEDUSA_BACKEND_URL || ""
 }
 
+function useWorkersSearchHistory(): boolean {
+  return Boolean(
+    (import.meta.env as Record<string, string>).VITE_ALKEMART_API_URL?.trim(),
+  )
+}
+
 async function fetchHistory(): Promise<{ recent: string[]; frequent: string[] }> {
-  const res = await fetch(`${apiBase()}/store/search/history`, { headers: headers() })
+  if (useWorkersSearchHistory()) return { recent: [], frequent: [] }
+  const base = apiBase()
+  if (!base) return { recent: [], frequent: [] }
+  const res = await fetch(`${base}/store/search/history`, { headers: headers() })
   if (!res.ok) return { recent: [], frequent: [] }
   return res.json()
 }
 
 async function trackSearchQuery(query: string) {
-  await fetch(`${apiBase()}/store/search/track`, {
+  if (useWorkersSearchHistory()) return
+  const base = apiBase()
+  if (!base) return
+  await fetch(`${base}/store/search/track`, {
     method: "POST",
     headers: headers(),
     body: JSON.stringify({ query }),
@@ -38,7 +50,10 @@ async function trackSearchQuery(query: string) {
 }
 
 async function removeQuery(query: string) {
-  await fetch(`${apiBase()}/store/search/history`, {
+  if (useWorkersSearchHistory()) return
+  const base = apiBase()
+  if (!base) return
+  await fetch(`${base}/store/search/history`, {
     method: "DELETE",
     headers: headers(),
     body: JSON.stringify({ query }),
@@ -46,7 +61,10 @@ async function removeQuery(query: string) {
 }
 
 async function clearAll() {
-  await fetch(`${apiBase()}/store/search/history`, {
+  if (useWorkersSearchHistory()) return
+  const base = apiBase()
+  if (!base) return
+  await fetch(`${base}/store/search/history`, {
     method: "DELETE",
     headers: headers(),
   })

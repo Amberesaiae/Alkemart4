@@ -1,13 +1,25 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
-import { products, orders, stats, seller, catalog, returns, onboarding, offers, inventoryItems, ApiError } from "./api"
-import { getActiveSellerId } from "./api"
+import {
+  products,
+  orders,
+  stats,
+  seller,
+  catalog,
+  returns,
+  onboarding,
+  offers,
+  inventoryItems,
+  isWorkersApi,
+} from "./api"
 
 // --- Stats ---
 export function useDashboardStats() {
   return useQuery({
-    queryKey: ["vendor", "stats"],
+    queryKey: ["vendor", "stats", isWorkersApi() ? "workers" : "mercur"],
     queryFn: () => stats.get(),
     staleTime: 30_000,
+    // Workers soft-fails inside stats.get; never block the dashboard on stats.
+    retry: isWorkersApi() ? false : 1,
   })
 }
 
@@ -47,24 +59,47 @@ export function useFulfillOrder() {
 export function useShipOrder() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: ({ orderId, fulfillmentId, tracking, trackingUrl }: { orderId: string, fulfillmentId: string, tracking?: string, trackingUrl?: string }) => 
-      orders.markShipped(orderId, fulfillmentId, tracking || trackingUrl ? [{ tracking_number: tracking || "", tracking_url: trackingUrl || undefined }] : []),
+    mutationFn: ({
+      orderId,
+      fulfillmentId,
+      tracking,
+      trackingUrl,
+    }: {
+      orderId: string
+      fulfillmentId?: string
+      tracking?: string
+      trackingUrl?: string
+    }) =>
+      orders.markShipped(
+        orderId,
+        fulfillmentId || "workers",
+        tracking || trackingUrl
+          ? [{ tracking_number: tracking || "", tracking_url: trackingUrl || undefined }]
+          : [],
+      ),
     onSuccess: (_, { orderId }) => {
       qc.invalidateQueries({ queryKey: ["vendor", "orders", orderId] })
       qc.invalidateQueries({ queryKey: ["vendor", "orders"] })
-    }
+      qc.invalidateQueries({ queryKey: ["vendor", "stats"] })
+    },
   })
 }
 
 export function useDeliverOrder() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: ({ orderId, fulfillmentId }: { orderId: string, fulfillmentId: string }) => 
-      orders.markDelivered(orderId, fulfillmentId),
+    mutationFn: ({
+      orderId,
+      fulfillmentId,
+    }: {
+      orderId: string
+      fulfillmentId?: string
+    }) => orders.markDelivered(orderId, fulfillmentId || "workers"),
     onSuccess: (_, { orderId }) => {
       qc.invalidateQueries({ queryKey: ["vendor", "orders", orderId] })
       qc.invalidateQueries({ queryKey: ["vendor", "orders"] })
-    }
+      qc.invalidateQueries({ queryKey: ["vendor", "stats"] })
+    },
   })
 }
 
@@ -206,6 +241,7 @@ export function useReturns(params?: Record<string, string | number | boolean | u
     queryKey: ["vendor", "returns", params],
     queryFn: () => returns.list(params),
     staleTime: 15_000,
+    enabled: !isWorkersApi(),
   })
 }
 
@@ -285,11 +321,14 @@ export function useProductOffers(productId: string) {
   return useQuery({
     queryKey: ["vendor", "offers", productId],
     queryFn: async () => {
+      if (isWorkersApi()) {
+        return { offers: [], count: 0, limit: 0, offset: 0 }
+      }
       const res = await offers.list({ limit: 100 })
-      const productOffers = res.offers.filter(o => o.product_id === productId)
+      const productOffers = res.offers.filter((o) => o.product_id === productId)
       return { ...res, offers: productOffers, count: productOffers.length }
     },
-    enabled: !!productId,
+    enabled: !!productId && !isWorkersApi(),
     staleTime: 30_000,
   })
 }
@@ -298,7 +337,7 @@ export function useOfferStockLevels(inventoryItemId: string | undefined) {
   return useQuery({
     queryKey: ["vendor", "stock-levels", inventoryItemId],
     queryFn: () => inventoryItems.levels(inventoryItemId as string),
-    enabled: !!inventoryItemId,
+    enabled: !!inventoryItemId && !isWorkersApi(),
     staleTime: 15_000,
   })
 }

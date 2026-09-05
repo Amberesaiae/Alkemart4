@@ -30,8 +30,31 @@ export const paystackHooks = new Hono<AppEnv>().post("/", async (c) => {
     return c.json({ ok: true, ignored: true })
   }
 
+  const eventName = event.event ?? ""
+  // Only success charge events should confirm orders.
+  if (
+    eventName &&
+    eventName !== "charge.success" &&
+    eventName !== "paymentrequest.success"
+  ) {
+    if (eventName === "charge.failed" || eventName === "paymentrequest.failed") {
+      const checkout = c.get("checkoutRepo")
+      const intent = await checkout.getPaymentIntentByReference(reference)
+      if (intent && intent.status === "pending") {
+        try {
+          await checkout.updatePaymentIntentStatus(intent.id, "failed")
+          await checkout.releaseReservations(intent.id)
+        } catch {
+          /* ignore transition races */
+        }
+      }
+      return c.json({ ok: true, failed: true })
+    }
+    return c.json({ ok: true, ignored: eventName })
+  }
+
   const dedup = c.get("webhookDedup")
-  const dedupKey = `paystack:${event.data?.id ?? reference}:${event.event ?? "evt"}`
+  const dedupKey = `paystack:${event.data?.id ?? reference}:${eventName || "evt"}`
   if (dedup) {
     const seen = await dedup.get(dedupKey)
     if (seen) return c.json({ ok: true, deduped: true })

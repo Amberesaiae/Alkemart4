@@ -11,13 +11,13 @@
 @theme inline {
   --font-sans: "Montserrat", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
     "Segoe UI", sans-serif;
-  /* Mowafer-soft radii — cards use md (12), tiles lg (16) */
+  /* Soft, modern radii */
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 16px;
   --radius-xl: 20px;
-  --radius-2xl: 20px;
-  --radius-3xl: 24px;
+  --radius-2xl: 24px;
+  --radius-3xl: 32px;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -30,34 +30,36 @@
   --color-destructive: var(--destructive);
   --color-ring: var(--ring);
   --color-ink: var(--ink);
-  --color-success: #16a34a;
+  --color-success: #10b981;
   --color-success-foreground: #ffffff;
-  --color-warning: #d97706;
+  --color-warning: #f59e0b;
   --color-warning-foreground: #ffffff;
 }
 
 :root {
+  /* Radiant, vibrant amber gold brand primary */
   --primary: #FEBF31;
-  /* Dark ink on gold — WCAG AA for bold UI on primary buttons */
-  --primary-foreground: #1a1a1a;
-  /* Brand ink — used for logo wordmark, text on light surfaces */
-  --ink: #1a1a1a;
-  --background: #f0f0f0;
-  --foreground: #2a2a2a;
+  --primary-foreground: #0f172a;
+  /* Deep obsidian ink for headings, logos, and dark accents */
+  --ink: #0f172a;
+  /* Crisp, airy neutral background (eliminates muddy concrete grey) */
+  --background: #f8fafc;
+  --foreground: #0f172a;
+  /* Pure white crisp cards */
   --card: #ffffff;
-  --card-foreground: #2a2a2a;
-  --muted: #f5f5f5;
-  /* ~4.6:1 on white / #f0f0f0 — AA for normal text (was #8a8a8a ~3.2:1) */
-  /* Slightly darker for form hints / meta on white (WCAG) */
-  --muted-foreground: #3d3d3d;
-  --border: #d4d4d4;
-  --destructive: #c41e3a;
-  /* Darker gold ring for 3:1 non-text UI focus (WCAG 1.4.11) */
-  --ring: #8a6b00;
-  /* Soft cream surface (illustrations / plates) — no raw #faf8f2 in components */
-  --surface-cream: #faf8f2;
-  /* Site footer */
-  --footer-bg: #1a1a1a;
+  --card-foreground: #0f172a;
+  /* Refined, modern slate muted tokens */
+  --muted: #f1f5f9;
+  --muted-foreground: #64748b;
+  /* Subtle, ultra-clean slate border */
+  --border: #e2e8f0;
+  --destructive: #ef4444;
+  /* Clean, vibrant amber focus ring */
+  --ring: #f59e0b;
+  /* Soft luminous warm card highlight */
+  --surface-cream: #faf9f5;
+  /* Premium obsidian footer */
+  --footer-bg: #0f172a;
 }
 
 * {
@@ -242,49 +244,49 @@ html {
  * Never set backgroundColor via style={} in components.
  */
 .theme-dept-electronics {
-  --dept-bg: #50d1c8;
+  --dept-bg: #0ea5e9;
   --dept-fg: #ffffff;
-  --dept-soft: #e6faf8;
+  --dept-soft: #f0f9ff;
 }
 .theme-dept-food {
   --dept-bg: #FEBF31;
-  --dept-fg: #3c3c3b;
-  --dept-soft: #fff8e0;
+  --dept-fg: #0f172a;
+  --dept-soft: #fffbeb;
 }
 .theme-dept-pet {
-  --dept-bg: #f0295a;
+  --dept-bg: #ec4899;
   --dept-fg: #ffffff;
-  --dept-soft: #fde8ee;
+  --dept-soft: #fdf2f8;
 }
 .theme-dept-beverages {
-  --dept-bg: #9ac63b;
+  --dept-bg: #84cc16;
   --dept-fg: #ffffff;
-  --dept-soft: #f0f8e0;
+  --dept-soft: #f7fee7;
 }
 .theme-dept-personal {
-  --dept-bg: #f5a3c7;
-  --dept-fg: #3c3c3b;
-  --dept-soft: #fdeef5;
+  --dept-bg: #a855f7;
+  --dept-fg: #ffffff;
+  --dept-soft: #faf5ff;
 }
 .theme-dept-baby {
   --dept-bg: #3b82f6;
   --dept-fg: #ffffff;
-  --dept-soft: #e8f1fe;
+  --dept-soft: #eff6ff;
 }
 .theme-dept-fashion {
-  --dept-bg: #7c6cf0;
+  --dept-bg: #6366f1;
   --dept-fg: #ffffff;
-  --dept-soft: #eeecfd;
+  --dept-soft: #eef2ff;
 }
 .theme-dept-home {
-  --dept-bg: #f0295a;
+  --dept-bg: #f43f5e;
   --dept-fg: #ffffff;
-  --dept-soft: #fde8ee;
+  --dept-soft: #fff1f2;
 }
 .theme-dept-default {
-  --dept-bg: #50d1c8;
+  --dept-bg: #06b6d4;
   --dept-fg: #ffffff;
-  --dept-soft: #e6faf8;
+  --dept-soft: #ecfeff;
 }
 
 .dept-panel {
@@ -296,13 +298,13 @@ html {
   color: var(--foreground);
 }
 
-/* Brands / Sellers — Mowafer dark gray panel */
+/* Brands / Sellers panel */
 .brands-panel {
-  background-color: var(--muted-foreground);
-  color: var(--card);
+  background-color: var(--ink);
+  color: #ffffff;
 }
 
-/* Delivery band glow (replaces inline radial-gradient) */
+/* Delivery band glow */
 .delivery-glow {
   background: radial-gradient(
     ellipse 60% 80% at 85% 50%,
@@ -372,7 +374,7 @@ html {
   color: var(--primary-foreground);
 }
 
-/* Delivery page — near-black from illustration palette (#080807), gold accents */
+/* Delivery page — sleek obsidian from illustration palette, gold accents */
 .delivery-page {
   background-color: var(--ink);
   color: var(--background);
@@ -384,23 +386,23 @@ html {
 
 .site-footer {
   background-color: var(--footer-bg);
-  color: var(--card);
+  color: #ffffff;
 }
 
 /* PLP filter strip card */
 .listing-filter-strip {
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-xl);
   border: 1px solid var(--border);
   background: var(--card);
-  box-shadow: 0 2px 12px color-mix(in srgb, var(--ink) 4%, transparent);
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.04), 0 1px 2px -1px rgb(0 0 0 / 0.04);
 }
 
 /* PLP hero */
 .listing-hero {
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-xl);
   background: var(--card);
   border: 1px solid var(--border);
-  box-shadow: 0 2px 12px color-mix(in srgb, var(--ink) 4%, transparent);
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.04), 0 1px 2px -1px rgb(0 0 0 / 0.04);
 }
 .listing-hero-ground {
   background: radial-gradient(

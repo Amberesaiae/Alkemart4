@@ -170,9 +170,20 @@ function SellerDetailPage() {
                 <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
                 <div>
                   <p className="text-sm text-muted-foreground">Member Since</p>
-                  <p className="font-medium">{new Date(seller.created_at).toLocaleDateString()}</p>
+                  <p className="font-medium">
+                    {seller.created_at ? new Date(seller.created_at).toLocaleDateString() : "—"}
+                  </p>
                 </div>
               </div>
+              {typeof seller.commissionBps === "number" && (
+                <div className="flex items-center gap-3">
+                  <Percent className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <div>
+                    <p className="text-sm text-muted-foreground">Commission</p>
+                    <p className="font-medium">{(seller.commissionBps / 100).toFixed(2)}%</p>
+                  </div>
+                </div>
+              )}
               {seller.approved_at && (
                 <div className="flex items-center gap-3">
                   <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />

@@ -1,9 +1,76 @@
 /**
  * Operating markets from the backend — country is the form driver.
  * Admin enables countries via Regions; this client consumes the result.
+ * Workers path: static Ghana market until /store/markets exists on the API.
  */
+import { GHANA_REGIONS } from "@alkemart/shared/ghana"
 import { commerceContext, getMedusaClient } from "./medusa"
-import { getBackendUrl, getPublishableKey } from "./env"
+import { getAlkemartApiUrl, getBackendUrl, getPublishableKey } from "./env"
+
+function ghanaWorkersMarket(): MarketsResponse {
+  const regionOptions = GHANA_REGIONS.map((r) => ({
+    value: r.name,
+    label: r.name,
+  }))
+  const locale: MarketLocale = {
+    country_code: "gh",
+    display_name: "Ghana",
+    default_currency_code: "ghs",
+    currency_symbol: "₵",
+    phone: {
+      country_calling_code: "+233",
+      example: "0241234567",
+      hint: "Ghana mobile number",
+    },
+    address: {
+      fields: [
+        {
+          key: "address_1",
+          label: "Street / area",
+          required: true,
+          placeholder: "Near Circle, Accra",
+        },
+        {
+          key: "address_2",
+          label: "Landmark",
+          required: false,
+          placeholder: "Opposite the filling station",
+        },
+        { key: "city", label: "City / town", required: true, placeholder: "Accra" },
+        {
+          key: "province",
+          label: "Region",
+          required: true,
+          input: "select",
+          options: regionOptions,
+        },
+        {
+          key: "postal_code",
+          label: "GhanaPostGPS (optional)",
+          required: false,
+          placeholder: "GA-123-4567",
+        },
+      ],
+      help: "Delivery fees are set per seller on the Workers quote.",
+    },
+    payments: { preferred: ["cod", "momo", "card"] },
+    shipping: { hint: "Seller delivery or pickup — confirmed at order time." },
+  }
+  const market: OperatingMarket = {
+    region_id: "gh",
+    region_name: "Ghana",
+    currency_code: "ghs",
+    country_code: "gh",
+    display_name: "Ghana",
+    locale,
+  }
+  return {
+    markets: [market],
+    default_country_code: "gh",
+    default_region_id: "gh",
+    default_currency_code: "ghs",
+  }
+}
 
 export type AddressFieldSpec = {
   key: string
@@ -50,6 +117,10 @@ export type MarketsResponse = {
 }
 
 export async function listOperatingMarkets(): Promise<MarketsResponse> {
+  if (getAlkemartApiUrl()) {
+    return ghanaWorkersMarket()
+  }
+
   const sdk = getMedusaClient()
   // Prefer dedicated alkemart markets route (country → locale).
   try {

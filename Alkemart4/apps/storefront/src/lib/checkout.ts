@@ -1,4 +1,4 @@
-import { getBackendUrl, getPublishableKey } from "./env"
+import { getAlkemartApiUrl, getBackendUrl, getPublishableKey } from "./env"
 import { getMedusaClient } from "./medusa"
 import {
   clearLocalCartId,
@@ -8,6 +8,10 @@ import {
   transferLocalCartToCustomer,
 } from "./cart"
 import { flattenShippingOptions } from "./shipping"
+
+function useWorkersCheckout(): boolean {
+  return Boolean(getAlkemartApiUrl())
+}
 
 export type CheckoutAddress = {
   first_name: string
@@ -53,6 +57,10 @@ export type MomoProvider = "mtn" | "vodafone" | "airteltigo"
 
 /** Public: list shipping options for cart (API only — never invent option ids). */
 export async function listShippingOptionsForCart(cartId?: string) {
+  if (useWorkersCheckout()) {
+    // Workers quotes include per-seller delivery fees; no Medusa shipping-option ids.
+    return []
+  }
   const id = cartId ?? (await ensureCartId())
   return listCartShippingOptions(id)
 }
@@ -181,6 +189,80 @@ export async function placeGhanaOrder(input: {
   momoProvider?: MomoProvider
   callbackUrl?: string
 }): Promise<GhanaCheckoutResult> {
+  if (useWorkersCheckout()) {
+    const email = input.email.trim()
+    if (!email || !email.includes("@")) throw new Error("A valid email is required")
+    if (!input.address.phone?.trim()) throw new Error("Phone is required")
+    const cartId = await ensureCartId()
+    const cart = await retrieveCart(cartId)
+    if (!cart?.items.length) throw new Error("Cart has no line items")
+
+    const body: Record<string, unknown> = {
+      cartId,
+      method: input.paymentMethod,
+      buyerEmail: email,
+      shippingAddress: input.address,
+    }
+    if (input.paymentMethod === "momo") {
+      if (!input.momoProvider) throw new Error("Select a Mobile Money network")
+      body.momo = {
+        provider: input.momoProvider,
+        phone: input.address.phone.trim(),
+      }
+    }
+    if (input.paymentMethod === "card") {
+      if (!input.callbackUrl) throw new Error("Card checkout requires a callback URL")
+      body.callbackUrl = input.callbackUrl
+    }
+
+    const res = await fetch(`${getAlkemartApiUrl()}/store/checkout`, {
+      method: "POST",
+      headers: { "content-type": "application/json", accept: "application/json" },
+      body: JSON.stringify(body),
+    })
+    const data = (await res.json().catch(() => ({}))) as {
+      status?: string
+      paymentIntentId?: string
+      orderGroupId?: string
+      orders?: Array<{ id: string; sellerId: string }>
+      authorizationUrl?: string
+      paystackReference?: string
+      error?: string
+      message?: string
+    }
+
+    if (data.status === "pending" && data.authorizationUrl) {
+      return {
+        status: "card_redirect",
+        cart_id: cartId,
+        authorization_url: data.authorizationUrl,
+        reference: data.paystackReference,
+      }
+    }
+    if (res.status === 202 || data.status === "pending") {
+      return {
+        status: "payment_pending",
+        cart_id: cartId,
+        payment_intent_id: data.paymentIntentId,
+        client_reference: data.paystackReference,
+        provider_reference: data.paystackReference,
+      }
+    }
+    if (!res.ok) {
+      throw new Error(data.error || data.message || `Checkout failed (${res.status})`)
+    }
+    const orderId = data.orderGroupId || data.orders?.[0]?.id
+    if (data.status !== "completed" || !orderId) {
+      throw new Error(data.error || "Unexpected checkout response")
+    }
+    clearLocalCartId()
+    return {
+      status: "completed",
+      order_id: orderId,
+      cart_id: cartId,
+    }
+  }
+
   const cartId = await prepareCartForCod(input)
   const cart = await retrieveCart(cartId)
   if (!cart?.items.length) {
@@ -278,6 +360,59 @@ export async function placeGhanaOrder(input: {
 export async function pollMomoCheckoutStatus(
   cartId: string,
 ): Promise<GhanaCheckoutResult | { status: "failed" | "idle"; message?: string; cart_id: string }> {
+  if (useWorkersCheckout()) {
+    const res = await fetch(
+      `${getAlkemartApiUrl()}/store/checkout/status?cartId=${encodeURIComponent(cartId)}`,
+      { headers: { Accept: "application/json" } },
+    )
+    const data = (await res.json().catch(() => ({}))) as {
+      status?: string
+      order_id?: string | null
+      orderGroupId?: string | null
+      cart_id?: string
+      cartId?: string
+      message?: string
+      error?: string
+      payment_intent_id?: string
+      paymentIntentId?: string
+      client_reference?: string | null
+      provider_reference?: string | null
+      amount_pesewas?: number
+      provider_status?: string
+    }
+    const resolvedCartId = data.cart_id ?? data.cartId ?? cartId
+    if (data.status === "completed" && (data.order_id || data.orderGroupId)) {
+      clearLocalCartId()
+      return {
+        status: "completed",
+        order_id: (data.order_id || data.orderGroupId) as string,
+        cart_id: resolvedCartId,
+      }
+    }
+    if (data.status === "payment_pending") {
+      return {
+        status: "payment_pending",
+        cart_id: resolvedCartId,
+        payment_intent_id: data.payment_intent_id ?? data.paymentIntentId,
+        client_reference: data.client_reference ?? undefined,
+        provider_reference: data.provider_reference ?? undefined,
+        amount_pesewas: data.amount_pesewas,
+        provider_status: data.provider_status,
+      }
+    }
+    if (data.status === "failed" || res.status === 402) {
+      return {
+        status: "failed",
+        cart_id: resolvedCartId,
+        message: data.message || data.error || "Payment failed",
+      }
+    }
+    if (!res.ok) {
+      throw new Error(data.error || data.message || `Status check failed (${res.status})`)
+    }
+    return { status: "idle", cart_id: resolvedCartId }
+  }
+
   const base = getBackendUrl()
   const pk = getPublishableKey()
   const sdk = getMedusaClient()

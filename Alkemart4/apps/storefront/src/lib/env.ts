@@ -70,37 +70,78 @@ export function requiredEnv(name: string): string {
   return v
 }
 
+/**
+ * Cloudflare Workers commerce origin is set.
+ * When true, Medusa/Mercur env is optional and Medusa SDK paths must not run.
+ */
+export function useWorkersCommerce(): boolean {
+  const v = (import.meta.env.VITE_ALKEMART_API_URL as string | undefined)?.trim()
+  return Boolean(v)
+}
+
+function optionalEnv(name: string): string {
+  const raw = import.meta.env[name] as string | undefined
+  return typeof raw === "string" ? raw.trim() : ""
+}
+
+/** Medusa backend URL — required only when Workers commerce is not configured. */
 export function getBackendUrl(): string {
+  if (useWorkersCommerce()) {
+    return optionalEnv("VITE_MEDUSA_BACKEND_URL").replace(/\/$/, "")
+  }
   return requiredEnv("VITE_MEDUSA_BACKEND_URL").replace(/\/$/, "")
 }
 
 export function getPublishableKey(): string {
+  if (useWorkersCommerce()) {
+    return optionalEnv("VITE_MEDUSA_PUBLISHABLE_KEY")
+  }
   return requiredEnv("VITE_MEDUSA_PUBLISHABLE_KEY")
 }
 
 export function getRegionId(): string {
+  if (useWorkersCommerce()) {
+    return optionalEnv("VITE_MEDUSA_REGION_ID")
+  }
   return requiredEnv("VITE_MEDUSA_REGION_ID")
 }
 
 export function getSalesChannelId(): string {
+  if (useWorkersCommerce()) {
+    return optionalEnv("VITE_MEDUSA_SALES_CHANNEL_ID")
+  }
   return requiredEnv("VITE_MEDUSA_SALES_CHANNEL_ID")
 }
 
+/** True when a Medusa backend URL is present (lab dual-path). */
+export function hasMedusaBackend(): boolean {
+  return Boolean(getBackendUrl())
+}
+
 /** Optional external Mercur panel URLs — empty string if unset (no invented defaults). */
+/**
+ * Vendor app URL (Workers-native seller workspace).
+ * Prefers VITE_VENDOR_APP_URL, then legacy VITE_MERCUR_VENDOR_URL.
+ */
 export function getMercurVendorUrl(): string {
-  const v = (import.meta.env.VITE_MERCUR_VENDOR_URL as string | undefined)?.trim()
-  return v ?? ""
+  const next = (import.meta.env.VITE_VENDOR_APP_URL as string | undefined)?.trim()
+  if (next) return next.replace(/\/$/, "")
+  const legacy = (import.meta.env.VITE_MERCUR_VENDOR_URL as string | undefined)?.trim()
+  if (legacy) return legacy.replace(/\/$/, "")
+  return "https://alkemart4-vendor.pages.dev"
 }
 
 /**
  * Admin panel URL for lab/ops tooling only.
- * Never used in production shop chrome — Admin is invitation-only at its own host
- * (e.g. https://api…/dashboard). Do not set VITE_MERCUR_ADMIN_URL on public Vercel.
+ * Prefers VITE_ADMIN_APP_URL, then legacy VITE_MERCUR_ADMIN_URL.
  */
 export function getMercurAdminUrl(): string {
   if (!showAdminLinkOnShop()) return ""
-  const v = (import.meta.env.VITE_MERCUR_ADMIN_URL as string | undefined)?.trim()
-  return v ?? ""
+  const next = (import.meta.env.VITE_ADMIN_APP_URL as string | undefined)?.trim()
+  if (next) return next.replace(/\/$/, "")
+  const legacy = (import.meta.env.VITE_MERCUR_ADMIN_URL as string | undefined)?.trim()
+  if (legacy) return legacy.replace(/\/$/, "")
+  return "https://alkemart4-admin.pages.dev"
 }
 
 /**

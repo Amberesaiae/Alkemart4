@@ -23,7 +23,9 @@ function SellerCard({ seller, onApprove, onSuspend }: { seller: SellerApplicatio
         <div className="mt-4 space-y-1 text-sm">
           <p><span className="font-medium">Owner:</span> {seller.member?.first_name} {seller.member?.last_name}</p>
           <p><span className="font-medium">Email:</span> {seller.member?.email}</p>
-          <p><span className="font-medium">Applied:</span> {new Date(seller.created_at).toLocaleDateString()}</p>
+          {seller.created_at ? (
+            <p><span className="font-medium">Applied:</span> {new Date(seller.created_at).toLocaleDateString()}</p>
+          ) : null}
         </div>
       </div>
       {(onApprove || onSuspend) && (

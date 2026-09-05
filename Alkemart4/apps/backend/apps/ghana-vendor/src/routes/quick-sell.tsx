@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { useState, useRef, useEffect } from "react"
 import { useUploadImage, useQuickSell, useCategories, useReadiness } from "../lib/hooks"
-import type { SellerReadiness } from "../lib/api"
+import { isWorkersApi, type SellerReadiness } from "../lib/api"
 import { useQueryClient } from "@tanstack/react-query"
 import { Button, Input, Label, Card, Textarea, Select, Skeleton } from "@workspace/ui"
 import { UploadCloud, Image as ImageIcon, ArrowRight, CheckCircle2, ChevronLeft, AlertCircle, Clock, ListTree, Plus, Trash2 } from "lucide-react"
@@ -165,7 +165,8 @@ function QuickSellPage() {
 
     try {
       let imageUrl = undefined
-      if (file) {
+      // Workers cut has no /vendor/uploads — list without image.
+      if (file && !isWorkersApi()) {
         imageUrl = await upload.mutateAsync(file)
       }
 
@@ -182,7 +183,8 @@ function QuickSellPage() {
         quantity,
         category_id: categoryId || undefined,
         image_url: imageUrl,
-        ...(variant_entries.length ? { variant_entries } : {}),
+        // Workers create is single-variant only.
+        ...(!isWorkersApi() && variant_entries.length ? { variant_entries } : {}),
       })
 
       qc.invalidateQueries({ queryKey: ["vendor"] })

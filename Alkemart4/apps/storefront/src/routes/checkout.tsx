@@ -574,8 +574,9 @@ function CheckoutPage() {
                   </ul>
                 ) : shippingQ.isSuccess ? (
                   <p className="text-xs text-muted-foreground">
-                    No delivery options for this cart yet. The seller may still
-                    need to set up delivery for your area.
+                    Delivery fee is included in each seller’s total at checkout
+                    (Workers quote). Confirm landmark details so the rider can
+                    find you.
                   </p>
                 ) : null}
               </div>

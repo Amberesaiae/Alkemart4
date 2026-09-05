@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
 import { useState } from "react"
 import { useOrder, useFulfillOrder, useShipOrder, useDeliverOrder, useCancelOrder } from "../../lib/hooks"
-import { maskEmail } from "../../lib/api"
+import { isWorkersApi, maskEmail } from "../../lib/api"
 import { Card, Button, Badge, Input } from "@workspace/ui"
 import { ArrowLeft, Box, Truck, CheckCircle2, User, MapPin, XCircle } from "lucide-react"
 import { format } from "date-fns"
@@ -69,8 +69,16 @@ function OrderDetailPage() {
     )
   }
 
+  const workers = isWorkersApi()
   const fulfillment = order.fulfillments?.[0]
   const isCanceled = order.status === "canceled" || order.canceled_at
+  const orderLabel = order.display_id != null ? `#${order.display_id}` : `#${order.id.slice(-6)}`
+  // Workers: placed → ship → deliver (no pack / fulfillment id).
+  const canPack = !workers && order.fulfillment_status === "not_fulfilled"
+  const canShip = workers
+    ? order.fulfillment_status === "placed" || order.fulfillment_status === "not_fulfilled"
+    : order.fulfillment_status === "fulfilled" && !fulfillment?.shipped_at
+  const canDeliver = order.fulfillment_status === "shipped"
 
   const handleFulfill = async () => {
     if (!order.items) return
@@ -87,9 +95,14 @@ function OrderDetailPage() {
   }
 
   const handleShip = async () => {
-    if (!fulfillment) return
+    if (!workers && !fulfillment) return
     try {
-      await ship.mutateAsync({ orderId: order.id, fulfillmentId: fulfillment.id, tracking, trackingUrl })
+      await ship.mutateAsync({
+        orderId: order.id,
+        fulfillmentId: fulfillment?.id,
+        tracking,
+        trackingUrl,
+      })
       toast.success("Order marked as dispatched.")
       setTracking("")
       setTrackingUrl("")
@@ -100,9 +113,9 @@ function OrderDetailPage() {
   }
 
   const handleDeliver = async () => {
-    if (!fulfillment) return
+    if (!workers && !fulfillment) return
     try {
-      await deliver.mutateAsync({ orderId: order.id, fulfillmentId: fulfillment.id })
+      await deliver.mutateAsync({ orderId: order.id, fulfillmentId: fulfillment?.id })
       toast.success("Delivery confirmed!")
       refetch()
     } catch (e) {
@@ -124,6 +137,7 @@ function OrderDetailPage() {
   const fulfillmentStatusLabel = (status?: string | null) => {
     const map: Record<string, string> = {
       not_fulfilled: "Pending",
+      placed: "Pending",
       partially_fulfilled: "In Progress",
       fulfilled: "Packed",
       shipped: "Dispatched",
@@ -144,10 +158,10 @@ function OrderDetailPage() {
         <div className="flex-1 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl sm:text-3xl font-black tracking-tight flex items-center gap-3">
-              Order #{order.display_id}
+              Order {orderLabel}
               <Badge variant={
                 isCanceled ? "destructive" :
-                order.fulfillment_status === "fulfilled" ? "success" :
+                order.fulfillment_status === "delivered" || order.fulfillment_status === "fulfilled" ? "success" :
                 order.fulfillment_status === "shipped" ? "default" :
                 "warning"
               } className="text-sm">
@@ -158,7 +172,7 @@ function OrderDetailPage() {
               Placed on {order.created_at ? format(new Date(order.created_at), "PPP 'at' p") : "-"}
             </p>
           </div>
-          {!isCanceled && order.fulfillment_status === "not_fulfilled" && (
+          {!workers && !isCanceled && order.fulfillment_status === "not_fulfilled" && (
             <div>
               {!showCancelConfirm ? (
                 <Button
@@ -240,45 +254,51 @@ function OrderDetailPage() {
               <h2 className="text-lg font-bold mb-6">Fulfillment Workflow</h2>
 
               <div className="space-y-6">
-                {/* Step 1: Pack */}
-                <div className="flex gap-4">
-                  <div className={`mt-1 h-8 w-8 rounded-full flex items-center justify-center shrink-0 ${order.fulfillment_status !== "not_fulfilled" ? "bg-success text-white" : "bg-primary text-primary-foreground"}`}>
-                    <Box className="h-4 w-4" />
+                {/* Step 1: Pack (Mercur only) */}
+                {!workers && (
+                  <div className="flex gap-4">
+                    <div className={`mt-1 h-8 w-8 rounded-full flex items-center justify-center shrink-0 ${order.fulfillment_status !== "not_fulfilled" ? "bg-success text-white" : "bg-primary text-primary-foreground"}`}>
+                      <Box className="h-4 w-4" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-bold text-base">Pack Order</h3>
+                      <p className="text-sm text-muted-foreground mb-3 font-medium">Prepare items for dispatch.</p>
+                      {canPack && (
+                        <Button onClick={handleFulfill} isLoading={fulfill.isPending}>
+                          Mark as Packed
+                        </Button>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex-1">
-                    <h3 className="font-bold text-base">Pack Order</h3>
-                    <p className="text-sm text-muted-foreground mb-3 font-medium">Prepare items for dispatch.</p>
-                    {order.fulfillment_status === "not_fulfilled" && (
-                      <Button onClick={handleFulfill} isLoading={fulfill.isPending}>
-                        Mark as Packed
-                      </Button>
-                    )}
-                  </div>
-                </div>
+                )}
 
                 {/* Step 2: Ship */}
-                <div className={`flex gap-4 ${order.fulfillment_status === "not_fulfilled" ? "opacity-50 pointer-events-none" : ""}`}>
-                  <div className={`mt-1 h-8 w-8 rounded-full flex items-center justify-center shrink-0 ${order.fulfillment_status === "shipped" || order.fulfillment_status === "fulfilled" ? "bg-success text-white" : "bg-muted text-muted-foreground"}`}>
+                <div className={`flex gap-4 ${!workers && order.fulfillment_status === "not_fulfilled" ? "opacity-50 pointer-events-none" : ""}`}>
+                  <div className={`mt-1 h-8 w-8 rounded-full flex items-center justify-center shrink-0 ${order.fulfillment_status === "shipped" || order.fulfillment_status === "delivered" || order.fulfillment_status === "fulfilled" ? "bg-success text-white" : "bg-muted text-muted-foreground"}`}>
                     <Truck className="h-4 w-4" />
                   </div>
                   <div className="flex-1">
                     <h3 className="font-bold text-base">Dispatch</h3>
                     <p className="text-sm text-muted-foreground mb-3 font-medium">Hand over to delivery rider.</p>
-                    {order.fulfillment_status === "fulfilled" && !fulfillment?.shipped_at && (
+                    {canShip && (
                       <div className="space-y-3">
-                        <Input
-                          placeholder="Rider Phone or Tracking Number (Optional)"
-                          value={tracking}
-                          onChange={e => setTracking(e.target.value)}
-                          className="h-10"
-                        />
-                        <Input
-                          placeholder="Tracking URL (Optional)"
-                          type="url"
-                          value={trackingUrl}
-                          onChange={e => setTrackingUrl(e.target.value)}
-                          className="h-10"
-                        />
+                        {!workers && (
+                          <>
+                            <Input
+                              placeholder="Rider Phone or Tracking Number (Optional)"
+                              value={tracking}
+                              onChange={e => setTracking(e.target.value)}
+                              className="h-10"
+                            />
+                            <Input
+                              placeholder="Tracking URL (Optional)"
+                              type="url"
+                              value={trackingUrl}
+                              onChange={e => setTrackingUrl(e.target.value)}
+                              className="h-10"
+                            />
+                          </>
+                        )}
                         <Button onClick={handleShip} isLoading={ship.isPending} className="w-full sm:w-auto">
                           Mark as Dispatched
                         </Button>
@@ -288,14 +308,14 @@ function OrderDetailPage() {
                 </div>
 
                 {/* Step 3: Deliver */}
-                <div className={`flex gap-4 ${order.fulfillment_status !== "shipped" ? "opacity-50 pointer-events-none" : ""}`}>
+                <div className={`flex gap-4 ${!canDeliver && order.fulfillment_status !== "delivered" ? "opacity-50 pointer-events-none" : ""}`}>
                   <div className={`mt-1 h-8 w-8 rounded-full flex items-center justify-center shrink-0 ${order.fulfillment_status === "delivered" ? "bg-success text-white" : "bg-muted text-muted-foreground"}`}>
                     <CheckCircle2 className="h-4 w-4" />
                   </div>
                   <div className="flex-1">
                     <h3 className="font-bold text-base">Delivered</h3>
                     <p className="text-sm text-muted-foreground mb-3 font-medium">Customer received the item.</p>
-                    {order.fulfillment_status === "shipped" && (
+                    {canDeliver && (
                       <Button
                         onClick={handleDeliver}
                         isLoading={deliver.isPending}

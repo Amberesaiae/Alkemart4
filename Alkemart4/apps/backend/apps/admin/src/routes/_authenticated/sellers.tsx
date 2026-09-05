@@ -122,7 +122,7 @@ function SellersPage() {
                   <TableCell><SellerStatusBadge status={seller.status} /></TableCell>
                   <TableCell className="text-muted-foreground text-sm">{seller.email || "-"}</TableCell>
                   <TableCell className="text-muted-foreground text-sm">
-                    {new Date(seller.created_at).toLocaleDateString()}
+                    {seller.created_at ? new Date(seller.created_at).toLocaleDateString() : "—"}
                   </TableCell>
                   <TableCell>
                     <Link to="/sellers/$id" params={{ id: seller.id }}>

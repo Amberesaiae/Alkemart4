@@ -95,10 +95,10 @@ function DashboardPage() {
         />
       </div>
 
-      {statsError || ordersError ? (
+      {ordersError ? (
         <Card className="p-8 text-center border-2 border-destructive/20">
           <AlertCircle className="h-10 w-10 mx-auto mb-3 text-destructive" />
-          <h2 className="text-lg font-bold mb-1">Failed to load data</h2>
+          <h2 className="text-lg font-bold mb-1">Failed to load orders</h2>
           <p className="text-muted-foreground text-sm mb-4">Something went wrong. Please try again.</p>
           <Button onClick={() => { qc.invalidateQueries({ queryKey: ["vendor"] }) }} variant="outline" className="gap-2">
             Retry
@@ -106,6 +106,11 @@ function DashboardPage() {
         </Card>
       ) : (
         <div className="space-y-4">
+          {statsError && (
+            <p className="text-xs text-muted-foreground font-medium">
+              Live stats unavailable — showing zeros until the next refresh.
+            </p>
+          )}
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-bold tracking-tight">Recent Orders</h2>
             <Link to="/orders">
@@ -149,16 +154,20 @@ function DashboardPage() {
                   ) : (
                     recentOrders.orders.map((order) => (
                       <TableRow key={order.id}>
-                        <TableCell className="font-bold text-primary">#{order.display_id}</TableCell>
+                        <TableCell className="font-bold text-primary">
+                          #{order.display_id ?? order.id.slice(-6)}
+                        </TableCell>
                         <TableCell className="text-muted-foreground font-medium">
                           {order.created_at ? format(new Date(order.created_at), "MMM d, yyyy") : "-"}
                         </TableCell>
                         <TableCell>
                           <Badge variant={
-                            order.fulfillment_status === "fulfilled" ? "success" : 
+                            order.fulfillment_status === "delivered" || order.fulfillment_status === "fulfilled" ? "success" :
                             order.fulfillment_status === "shipped" ? "default" : "warning"
                           }>
-                            {order.fulfillment_status || "Pending"}
+                            {order.fulfillment_status === "placed" || order.fulfillment_status === "not_fulfilled"
+                              ? "Pending"
+                              : order.fulfillment_status || "Pending"}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right font-bold">

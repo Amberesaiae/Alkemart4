@@ -31,6 +31,7 @@ describe("checkout COD + MoMo", () => {
         cartId,
         method: "cod",
         buyerEmail: "buyer@alkemart.test",
+        shippingAddress: { first_name: "Ama", last_name: "Mensah", phone: "0244123456", address_1: "12 High St", city: "Accra", country_code: "gh" },
       }),
     })
     expect(checkout.status).toBe(200)
@@ -71,6 +72,7 @@ describe("checkout COD + MoMo", () => {
         cartId,
         method: "momo",
         buyerEmail: "buyer@alkemart.test",
+        shippingAddress: { first_name: "Ama", last_name: "Mensah", phone: "0244123456", address_1: "12 High St", city: "Accra", country_code: "gh" },
         momo: { provider: "mtn", phone: "0244123456" },
       }),
     })
@@ -97,6 +99,7 @@ describe("checkout COD + MoMo", () => {
         cartId,
         method: "momo",
         buyerEmail: "buyer@alkemart.test",
+        shippingAddress: { first_name: "Ama", last_name: "Mensah", phone: "0244123456", address_1: "12 High St", city: "Accra", country_code: "gh" },
         momo: { provider: "mtn", phone: "0244123456" },
       }),
     })

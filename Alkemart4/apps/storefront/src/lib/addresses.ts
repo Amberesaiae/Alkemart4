@@ -1,4 +1,9 @@
 import { getMedusaClient } from "./medusa"
+import { getAlkemartApiUrl } from "./env"
+
+function useWorkersAddresses(): boolean {
+  return Boolean(getAlkemartApiUrl())
+}
 
 export type CustomerAddress = {
   id: string
@@ -42,6 +47,9 @@ function mapAddress(raw: Record<string, unknown>): CustomerAddress {
 }
 
 export async function listMyAddresses(): Promise<CustomerAddress[]> {
+  // Workers buyer address book is not persisted yet — checkout uses the inline form.
+  if (useWorkersAddresses()) return []
+
   const sdk = getMedusaClient()
   const token = await sdk.client.getToken()
   if (!token) throw new Error("Sign in required to manage addresses")
@@ -59,6 +67,10 @@ export async function listMyAddresses(): Promise<CustomerAddress[]> {
 export async function createMyAddress(
   data: AddressInput,
 ): Promise<CustomerAddress[]> {
+  if (useWorkersAddresses()) {
+    throw new Error("Saved addresses are not available on Workers yet — enter delivery details at checkout.")
+  }
+
   const sdk = getMedusaClient()
   await sdk.store.customer.createAddress({
     first_name: data.first_name.trim(),
@@ -76,6 +88,9 @@ export async function createMyAddress(
 }
 
 export async function deleteMyAddress(addressId: string): Promise<void> {
+  if (useWorkersAddresses()) {
+    throw new Error("Saved addresses are not available on Workers yet")
+  }
   const sdk = getMedusaClient()
   await sdk.store.customer.deleteAddress(addressId)
 }
@@ -84,6 +99,9 @@ export async function deleteMyAddress(addressId: string): Promise<void> {
 export async function setDefaultShippingAddress(
   addressId: string,
 ): Promise<CustomerAddress[]> {
+  if (useWorkersAddresses()) {
+    throw new Error("Saved addresses are not available on Workers yet")
+  }
   const sdk = getMedusaClient()
   await sdk.store.customer.updateAddress(addressId, {
     is_default_shipping: true,

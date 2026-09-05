@@ -86,6 +86,15 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(import.meta.dirname, "src"),
+      // Workers production builds: quarantine Medusa SDK (no network, fail closed).
+      ...((process.env.VITE_ALKEMART_API_URL || "").trim()
+        ? {
+            "@medusajs/js-sdk": path.resolve(
+              import.meta.dirname,
+              "src/lib/medusa-stub.ts",
+            ),
+          }
+        : {}),
     },
     dedupe: ["react", "react-dom"],
   },

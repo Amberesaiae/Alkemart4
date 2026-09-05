@@ -32,6 +32,8 @@ import type {
 
 export type CatalogListQuery = {
   category?: string
+  /** Case-insensitive title substring filter (Workers search). */
+  q?: string
   limit: number
   offset: number
 }
@@ -127,6 +129,7 @@ export interface CatalogRepository {
   listCatalog(query: CatalogListQuery): Promise<CatalogListDto>
   getProduct(id: string): Promise<ProductDetailDto | null>
   getSellerShop(handle: string): Promise<SellerShopDto | null>
+  listOpenSellers(): Promise<Array<{ id: string; handle: string; name: string }>>
   createVendorProduct(input: CreateVendorProductInput): Promise<VendorProductDto>
   updateVendorProduct(
     sellerId: string,
@@ -135,6 +138,7 @@ export interface CatalogRepository {
   ): Promise<VendorProductDto | null>
   proposeVendorProduct(sellerId: string, productId: string): Promise<VendorProductDto | null>
   listVendorProducts(sellerId: string): Promise<VendorProductDto[]>
+  listAdminProducts(status?: ProductStatus): Promise<AdminProductDto[]>
   moderateProduct(
     productId: string,
     action: AdminProductModerationAction,
@@ -348,6 +352,14 @@ export function listCatalogFrom(data: CatalogSnapshot, query: CatalogListQuery):
     const allowed = new Set(ids)
     productRows = productRows.filter((p) => allowed.has(p.primaryCategoryId))
   }
+  const q = query.q?.trim().toLowerCase()
+  if (q) {
+    productRows = productRows.filter(
+      (p) =>
+        p.title.toLowerCase().includes(q) ||
+        (p.description?.toLowerCase().includes(q) ?? false),
+    )
+  }
   const cards = cardsFor(productRows, data, sellablePeerOffers(data))
   return {
     items: cards.slice(query.offset, query.offset + query.limit),
@@ -388,6 +400,15 @@ export function getSellerShopFrom(data: CatalogSnapshot, handle: string): Seller
   }
 }
 
+export function listOpenSellersFrom(
+  data: CatalogSnapshot,
+): Array<{ id: string; handle: string; name: string }> {
+  return data.sellers
+    .filter((s) => s.status === "open")
+    .map((s) => ({ id: s.id, handle: s.handle, name: s.name }))
+    .sort((a, b) => a.name.localeCompare(b.name))
+}
+
 export class InMemoryCatalogRepository implements CatalogRepository {
   constructor(private readonly data: CatalogSnapshot) {}
 
@@ -410,6 +431,10 @@ export class InMemoryCatalogRepository implements CatalogRepository {
 
   async getSellerShop(handle: string) {
     return getSellerShopFrom(this.data, handle)
+  }
+
+  async listOpenSellers() {
+    return listOpenSellersFrom(this.data)
   }
 
   async createVendorProduct(input: CreateVendorProductInput): Promise<VendorProductDto> {
@@ -499,6 +524,13 @@ export class InMemoryCatalogRepository implements CatalogRepository {
     return items
   }
 
+  async listAdminProducts(status?: ProductStatus): Promise<AdminProductDto[]> {
+    return this.data.products
+      .filter((p) => (status ? p.status === status : true))
+      .map(toAdminProductDto)
+      .sort((a, b) => a.title.localeCompare(b.title))
+  }
+
   async moderateProduct(
     productId: string,
     action: AdminProductModerationAction,
@@ -580,6 +612,10 @@ export class PostgresCatalogRepository implements CatalogRepository {
 
   async getSellerShop(handle: string) {
     return getSellerShopFrom(await this.load(), handle)
+  }
+
+  async listOpenSellers() {
+    return listOpenSellersFrom(await this.load())
   }
 
   private async requireLeafCategory(categoryId: string) {
@@ -724,6 +760,14 @@ export class PostgresCatalogRepository implements CatalogRepository {
     }
     items.sort((a, b) => a.product.title.localeCompare(b.product.title))
     return items
+  }
+
+  async listAdminProducts(status?: ProductStatus): Promise<AdminProductDto[]> {
+    const data = await this.load()
+    return data.products
+      .filter((p) => (status ? p.status === status : true))
+      .map(toAdminProductDto)
+      .sort((a, b) => a.title.localeCompare(b.title))
   }
 
   async moderateProduct(

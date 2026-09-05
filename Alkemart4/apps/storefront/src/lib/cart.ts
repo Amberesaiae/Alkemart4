@@ -1,8 +1,29 @@
-import { getBackendUrl, getPublishableKey } from "./env"
+import { getAlkemartApiUrl, getBackendUrl, getPublishableKey } from "./env"
 import { commerceContext, getMedusaClient } from "./medusa"
 import type { SellerRef } from "@/components/seller-chip"
 
 const CART_STORAGE_KEY = "alkemart.storefront.cart_id"
+
+function useWorkersCart(): boolean {
+  return Boolean(getAlkemartApiUrl())
+}
+
+async function workersJson<T>(path: string, init?: RequestInit): Promise<T> {
+  const base = getAlkemartApiUrl()
+  const res = await fetch(`${base}${path}`, {
+    ...init,
+    headers: {
+      accept: "application/json",
+      ...(init?.body ? { "content-type": "application/json" } : {}),
+      ...(init?.headers as Record<string, string> | undefined),
+    },
+  })
+  const data = (await res.json().catch(() => ({}))) as T & { error?: string }
+  if (!res.ok) {
+    throw Object.assign(new Error(data.error || `HTTP ${res.status}`), { status: res.status })
+  }
+  return data
+}
 
 /** Fields so cart lines can surface product + seller when Mercur hydrates them. */
 const CART_FIELDS =
@@ -155,6 +176,12 @@ export function groupCartBySeller(items: CartLine[]): SellerGroup[] {
 }
 
 async function createCart(): Promise<string> {
+  if (useWorkersCart()) {
+    const data = await workersJson<{ cartId: string }>("/store/cart", { method: "POST" })
+    if (!data.cartId) throw new Error("Workers API did not return a cart id")
+    writeStoredCartId(data.cartId)
+    return data.cartId
+  }
   const sdk = getMedusaClient()
   const { regionId, salesChannelId } = commerceContext()
   const { cart } = await sdk.store.cart.create({
@@ -226,9 +253,75 @@ async function enrichLineSellers(items: CartLine[]): Promise<CartLine[]> {
   }
 }
 
+function mapWorkersCart(data: {
+  cart: { id: string; currency: string }
+  items: Array<{
+    id: string
+    offerId: string
+    sellerId: string
+    qty: number
+    title?: string
+    unitPricePesewas?: string
+    sellerName?: string
+    sellerHandle?: string | null
+  }>
+  quote: {
+    currency: string
+    totalPesewas: string
+  }
+}): StoreCart {
+  return {
+    id: data.cart.id,
+    currencyCode: data.cart.currency || data.quote.currency || "ghs",
+    total: Number(data.quote.totalPesewas) / 100,
+    itemTotal: Number(data.quote.totalPesewas) / 100,
+    shippingTotal: null,
+    items: data.items.map((item) => ({
+      id: item.id,
+      title: item.title?.trim() || item.offerId,
+      quantity: item.qty,
+      unitPrice:
+        item.unitPricePesewas != null ? Number(item.unitPricePesewas) / 100 : null,
+      currencyCode: data.cart.currency || "ghs",
+      offerId: item.offerId,
+      seller: {
+        id: item.sellerId,
+        name: item.sellerName?.trim() || item.sellerId,
+        handle: item.sellerHandle ?? null,
+      },
+    })),
+  }
+}
+
 export async function retrieveCart(cartId?: string): Promise<StoreCart | null> {
   const id = cartId ?? readStoredCartId()
   if (!id) return null
+  if (useWorkersCart()) {
+    try {
+      const data = await workersJson<{
+        cart: { id: string; currency: string }
+        items: Array<{
+          id: string
+          offerId: string
+          sellerId: string
+          qty: number
+          title?: string
+          unitPricePesewas?: string
+          sellerName?: string
+          sellerHandle?: string | null
+        }>
+        quote: { currency: string; totalPesewas: string }
+      }>(`/store/cart/${encodeURIComponent(id)}`)
+      return mapWorkersCart(data)
+    } catch (err) {
+      const status = (err as { status?: number })?.status
+      if (status === 404) {
+        writeStoredCartId(null)
+        return null
+      }
+      throw err
+    }
+  }
   const sdk = getMedusaClient()
   try {
     const { cart } = await sdk.store.cart.retrieve(id, {
@@ -264,11 +357,18 @@ export async function addOfferToCart(
   }
 
   const cartId = await ensureCartId()
-  const sdk = getMedusaClient()
-  await sdk.store.cart.createLineItem(cartId, {
-    offer_id: trimmed,
-    quantity,
-  } as never)
+  if (useWorkersCart()) {
+    await workersJson(`/store/cart/${encodeURIComponent(cartId)}/items`, {
+      method: "POST",
+      body: JSON.stringify({ offerId: trimmed, qty: quantity }),
+    })
+  } else {
+    const sdk = getMedusaClient()
+    await sdk.store.cart.createLineItem(cartId, {
+      offer_id: trimmed,
+      quantity,
+    } as never)
+  }
 
   const cart = await retrieveCart(cartId)
   if (!cart) throw new Error("Cart missing after add line item")
@@ -280,11 +380,21 @@ export async function updateLineQuantity(
   quantity: number,
 ): Promise<StoreCart> {
   const cartId = await ensureCartId()
-  const sdk = getMedusaClient()
-  if (quantity < 1) {
-    await sdk.store.cart.deleteLineItem(cartId, lineId)
+  if (useWorkersCart()) {
+    await workersJson(
+      `/store/cart/${encodeURIComponent(cartId)}/items/${encodeURIComponent(lineId)}`,
+      {
+        method: "PATCH",
+        body: JSON.stringify({ qty: Math.max(0, quantity) }),
+      },
+    )
   } else {
-    await sdk.store.cart.updateLineItem(cartId, lineId, { quantity })
+    const sdk = getMedusaClient()
+    if (quantity < 1) {
+      await sdk.store.cart.deleteLineItem(cartId, lineId)
+    } else {
+      await sdk.store.cart.updateLineItem(cartId, lineId, { quantity })
+    }
   }
   const cart = await retrieveCart(cartId)
   if (!cart) throw new Error("Cart missing after update")
@@ -309,6 +419,10 @@ export function getLocalCartId(): string | null {
  * Non-fatal on failure — login/checkout still proceed.
  */
 export async function transferLocalCartToCustomer(): Promise<boolean> {
+  if (useWorkersCart()) {
+    // Workers carts are anonymous ids; buyer email binds at checkout.
+    return Boolean(readStoredCartId())
+  }
   const cartId = readStoredCartId()
   if (!cartId) return false
   const sdk = getMedusaClient()

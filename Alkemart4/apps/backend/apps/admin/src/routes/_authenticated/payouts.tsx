@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router"
 import { useState } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { adminPayouts, adminSellers, type AdminPayout } from "../../lib/api"
+import { isWorkersApi } from "../../lib/config"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Badge, Button, Skeleton, EmptyState, Modal, Input, Select } from "@workspace/ui"
 import { PageShell } from "../../components/page-shell"
 import { PageHeader } from "../../components/page-header"
@@ -40,9 +41,9 @@ function TriggerPayoutDialog({ isOpen, onClose }: { isOpen: boolean; onClose: ()
     mutationFn: () =>
       adminPayouts.trigger({
         seller_id: sellerId,
-        amount: parseFloat(amountGhs),
-        currency_code: "ghs",
-        note: note || undefined,
+        amount: isWorkersApi ? undefined : parseFloat(amountGhs),
+        currency_code: isWorkersApi ? undefined : "ghs",
+        note: isWorkersApi ? undefined : (note || undefined),
       }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["payouts"] })
@@ -57,14 +58,18 @@ function TriggerPayoutDialog({ isOpen, onClose }: { isOpen: boolean; onClose: ()
 
   const selectedSeller = sellersData?.sellers?.find(s => s.id === sellerId)
   const amount = parseFloat(amountGhs)
-  const isValid = !!sellerId && !isNaN(amount) && amount > 0
+  const isValid = isWorkersApi
+    ? !!sellerId
+    : !!sellerId && !isNaN(amount) && amount > 0
 
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
       <div className="p-6 space-y-5">
         <h3 className="text-lg font-semibold">Trigger Payout</h3>
         <p className="text-sm text-muted-foreground">
-          This will initiate a Paystack transfer directly to the seller's registered MoMo account.
+          {isWorkersApi
+            ? "Pays out all delivered unpaid orders for this seller via Paystack (net of commission)."
+            : "This will initiate a Paystack transfer directly to the seller's registered MoMo account."}
         </p>
 
         <div className="space-y-3">
@@ -86,39 +91,43 @@ function TriggerPayoutDialog({ isOpen, onClose }: { isOpen: boolean; onClose: ()
             </Select>
           </div>
 
-          <div>
-            <label className="text-sm font-medium">Amount (GHS)</label>
-            <div className="relative mt-1">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-muted-foreground">GH₵</span>
-              <Input
-                type="number"
-                className="pl-12"
-                placeholder="0.00"
-                value={amountGhs}
-                onChange={e => setAmountGhs(e.target.value)}
-                min="0"
-                step="0.01"
-              />
-            </div>
-          </div>
+          {!isWorkersApi && (
+            <>
+              <div>
+                <label className="text-sm font-medium">Amount (GHS)</label>
+                <div className="relative mt-1">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-muted-foreground">GH₵</span>
+                  <Input
+                    type="number"
+                    className="pl-12"
+                    placeholder="0.00"
+                    value={amountGhs}
+                    onChange={e => setAmountGhs(e.target.value)}
+                    min="0"
+                    step="0.01"
+                  />
+                </div>
+              </div>
 
-          <div>
-            <label className="text-sm font-medium">Note (optional)</label>
-            <Input
-              className="mt-1"
-              placeholder="e.g. October commission settlement"
-              value={note}
-              onChange={e => setNote(e.target.value)}
-            />
-          </div>
+              <div>
+                <label className="text-sm font-medium">Note (optional)</label>
+                <Input
+                  className="mt-1"
+                  placeholder="e.g. October commission settlement"
+                  value={note}
+                  onChange={e => setNote(e.target.value)}
+                />
+              </div>
+            </>
+          )}
         </div>
 
         {selectedSeller && isValid && (
           <div className="bg-muted/30 rounded-xl p-4 text-sm space-y-1 border">
             <p className="font-bold">Confirmation</p>
             <p>Seller: <strong>{selectedSeller.name}</strong></p>
-            <p>Amount: <strong>GH₵ {amount.toFixed(2)}</strong></p>
-            {note && <p>Note: {note}</p>}
+            {!isWorkersApi && <p>Amount: <strong>GH₵ {amount.toFixed(2)}</strong></p>}
+            {!isWorkersApi && note && <p>Note: {note}</p>}
           </div>
         )}
 
@@ -168,7 +177,14 @@ function PayoutsPage() {
   return (
     <PageShell>
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
-        <PageHeader title="Payouts" description="Platform payouts to sellers." />
+        <PageHeader
+          title="Payouts"
+          description={
+            isWorkersApi
+              ? "Trigger seller payouts. History list is not available on Workers yet."
+              : "Platform payouts to sellers."
+          }
+        />
         <Button className="gap-2" onClick={() => setShowTrigger(true)}>
           <Send className="h-4 w-4" />
           Trigger Payout
@@ -199,7 +215,14 @@ function PayoutsPage() {
             ) : payouts.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={4}>
-                  <EmptyState title="No payouts yet" description="Payouts will appear once orders are captured." />
+                  <EmptyState
+                    title="No payouts yet"
+                    description={
+                      isWorkersApi
+                        ? "Use Trigger Payout to settle delivered unpaid orders."
+                        : "Payouts will appear once orders are captured."
+                    }
+                  />
                 </TableCell>
               </TableRow>
             ) : (

@@ -21,7 +21,7 @@ import {
   type OrderFulfillmentStatus,
   type PaymentIntentStatus,
 } from "@alkemart/domain"
-import { and, eq, isNull, sql } from "drizzle-orm"
+import { and, desc, eq, isNull, sql } from "drizzle-orm"
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js"
 import type {
   CartItemRow,
@@ -29,9 +29,10 @@ import type {
   CheckoutOfferView,
   CheckoutRepository,
   OrderGroupRow,
-  OrderRow,
   PaymentIntentRow,
   PayoutRow,
+  ShippingAddress,
+  OrderRow,
 } from "./checkout-repository"
 
 type Db = PostgresJsDatabase
@@ -60,6 +61,7 @@ function mapIntent(row: typeof paymentIntents.$inferSelect): PaymentIntentRow {
     buyerEmail: row.buyerEmail,
     momoProvider: row.momoProvider,
     momoPhone: row.momoPhone,
+    shippingAddress: (row.shippingAddress as ShippingAddress | null) ?? null,
   }
 }
 
@@ -88,6 +90,8 @@ export class PostgresCheckoutRepository implements CheckoutRepository {
         productStatus: products.status,
         productTitle: products.title,
         sellerStatus: sellers.status,
+        sellerName: sellers.name,
+        sellerHandle: sellers.handle,
         deliveryFeePesewas: sellers.deliveryFeePesewas,
       })
       .from(offers)
@@ -112,6 +116,8 @@ export class PostgresCheckoutRepository implements CheckoutRepository {
       sellerStatus: row.sellerStatus,
       deliveryFeePesewas: row.deliveryFeePesewas,
       productTitle: row.productTitle,
+      sellerName: row.sellerName,
+      sellerHandle: row.sellerHandle,
     }
   }
 
@@ -175,6 +181,33 @@ export class PostgresCheckoutRepository implements CheckoutRepository {
     }
   }
 
+  async setCartItemQty(cartId: string, itemId: string, qty: number): Promise<CartItemRow | null> {
+    if (!(await this.getCart(cartId))) throw new Error("cart not found")
+    const [current] = await this.db
+      .select()
+      .from(cartItems)
+      .where(and(eq(cartItems.cartId, cartId), eq(cartItems.id, itemId)))
+      .limit(1)
+    if (!current) return null
+    if (qty <= 0) {
+      await this.db.delete(cartItems).where(eq(cartItems.id, itemId))
+      return null
+    }
+    const [updated] = await this.db
+      .update(cartItems)
+      .set({ qty })
+      .where(eq(cartItems.id, itemId))
+      .returning()
+    if (!updated) return null
+    return {
+      id: updated.id,
+      cartId: updated.cartId,
+      offerId: updated.offerId,
+      sellerId: updated.sellerId,
+      qty: updated.qty,
+    }
+  }
+
   async listCartItems(cartId: string): Promise<CartItemRow[]> {
     const rows = await this.db.select().from(cartItems).where(eq(cartItems.cartId, cartId))
     return rows.map((r) => ({
@@ -219,6 +252,7 @@ export class PostgresCheckoutRepository implements CheckoutRepository {
         buyerEmail: input.buyerEmail,
         momoProvider: input.momoProvider,
         momoPhone: input.momoPhone,
+        shippingAddress: input.shippingAddress,
       })
       .returning()
     if (!row) throw new Error("failed to create payment intent")
@@ -309,9 +343,63 @@ export class PostgresCheckoutRepository implements CheckoutRepository {
       : null
   }
 
+  async getOrderGroup(id: string) {
+    const [row] = await this.db.select().from(orderGroups).where(eq(orderGroups.id, id)).limit(1)
+    if (!row) return null
+    return {
+      id: row.id,
+      paymentIntentId: row.paymentIntentId,
+      buyerEmail: row.buyerEmail,
+      totalPesewas: row.totalPesewas,
+      currency: row.currency,
+      createdAt: row.createdAt,
+    }
+  }
+
+  async listOrderGroupsByBuyerEmail(email: string) {
+    const normalized = email.trim().toLowerCase()
+    const rows = await this.db
+      .select()
+      .from(orderGroups)
+      .where(sql`lower(${orderGroups.buyerEmail}) = ${normalized}`)
+      .orderBy(desc(orderGroups.createdAt))
+    return rows.map((row) => ({
+      id: row.id,
+      paymentIntentId: row.paymentIntentId,
+      buyerEmail: row.buyerEmail,
+      totalPesewas: row.totalPesewas,
+      currency: row.currency,
+      createdAt: row.createdAt,
+    }))
+  }
+
   async listOrdersForGroup(orderGroupId: string) {
     const rows = await this.db.select().from(orders).where(eq(orders.orderGroupId, orderGroupId))
     return rows.map((r) => mapOrder(r))
+  }
+
+  async listOrderItems(orderId: string) {
+    const rows = await this.db.select().from(orderItems).where(eq(orderItems.orderId, orderId))
+    return rows.map((r) => ({
+      id: r.id,
+      orderId: r.orderId,
+      offerId: r.offerId,
+      sellerId: r.sellerId,
+      productId: r.productId,
+      title: r.title,
+      qty: r.qty,
+      unitPricePesewas: r.unitPricePesewas,
+    }))
+  }
+
+  async getLatestPaymentIntentByCartId(cartId: string) {
+    const [row] = await this.db
+      .select()
+      .from(paymentIntents)
+      .where(eq(paymentIntents.cartId, cartId))
+      .orderBy(desc(paymentIntents.createdAt))
+      .limit(1)
+    return row ? mapIntent(row) : null
   }
 
   async confirmPaidOrder(paymentIntentId: string) {
@@ -454,6 +542,23 @@ export class PostgresCheckoutRepository implements CheckoutRepository {
   async listOrdersForSeller(sellerId: string) {
     const rows = await this.db.select().from(orders).where(eq(orders.sellerId, sellerId))
     return rows.map((r) => mapOrder(r))
+  }
+
+  async listRecentOrderGroups(limit = 50) {
+    const take = Math.max(1, Math.min(limit, 200))
+    const rows = await this.db
+      .select()
+      .from(orderGroups)
+      .orderBy(desc(orderGroups.createdAt))
+      .limit(take)
+    return rows.map((row) => ({
+      id: row.id,
+      paymentIntentId: row.paymentIntentId,
+      buyerEmail: row.buyerEmail,
+      totalPesewas: row.totalPesewas,
+      currency: row.currency,
+      createdAt: row.createdAt,
+    }))
   }
 
   async updateOrderStatus(orderId: string, sellerId: string, status: OrderFulfillmentStatus) {

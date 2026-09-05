@@ -416,12 +416,27 @@ export async function listStoreProducts(opts?: {
   const sellerHandle = opts?.sellerHandle?.trim() || undefined
   const categoryHandle = opts?.categoryHandle?.trim() || undefined
 
-  // Cloudflare multivendor catalog (Plan 1) — product cards with offerCount
-  if (useCloudflareCatalog() && !opts?.categoryId?.trim() && !opts?.q?.trim()) {
+  // Cloudflare multivendor catalog — never fall through to Medusa when configured.
+  if (useCloudflareCatalog()) {
+    const q = opts?.q?.trim() || undefined
+    // Workers catalog filters by handle, not Medusa category UUID.
+    const cfCategory =
+      categoryHandle ||
+      (opts?.categoryId?.trim() && !opts.categoryId.includes("-")
+        ? opts.categoryId.trim()
+        : undefined)
     if (sellerHandle) {
       ensureCloudflareBaseUrl()
       const shop = await getSellerShop(sellerHandle)
-      const products = (shop.items ?? []).map(mapCfProductCard)
+      let products = (shop.items ?? []).map(mapCfProductCard)
+      if (q) {
+        const needle = q.toLowerCase()
+        products = products.filter(
+          (p) =>
+            p.title.toLowerCase().includes(needle) ||
+            (p.description?.toLowerCase().includes(needle) ?? false),
+        )
+      }
       const sliced = products.slice(offset, offset + limit)
       return { products: sliced, count: products.length }
     }
@@ -429,7 +444,8 @@ export async function listStoreProducts(opts?: {
     const res = await getCatalog({
       limit,
       offset,
-      ...(categoryHandle ? { category: categoryHandle } : {}),
+      ...(cfCategory ? { category: cfCategory } : {}),
+      ...(q ? { q } : {}),
     })
     return {
       products: (res.items ?? []).map(mapCfProductCard),
@@ -712,6 +728,14 @@ export async function listRelatedProducts(opts: {
  * Fetch featured products from the storefront API.
  */
 export async function fetchFeaturedProducts(): Promise<StoreProductCard[]> {
+  if (useCloudflareCatalog()) {
+    try {
+      const { products } = await listStoreProducts({ limit: 12, offset: 0 })
+      return products
+    } catch {
+      return []
+    }
+  }
   try {
     const base = getBackendUrl()
     const pk = getPublishableKey()

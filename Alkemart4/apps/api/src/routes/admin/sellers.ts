@@ -22,6 +22,10 @@ function publicSeller(seller: AuthSeller) {
 
 export const adminSellers = new Hono<AppEnv>()
   .use("*", requireAdmin)
+  .get("/", async (c) => {
+    const sellers = await c.get("authRepo").listSellers()
+    return c.json({ items: sellers.map(publicSeller) })
+  })
   .post("/:id/approve", async (c) => {
     const seller = await c.get("authRepo").updateSellerStatus(c.req.param("id"), "open")
     if (!seller) throw new HTTPException(404, { message: "seller not found" })

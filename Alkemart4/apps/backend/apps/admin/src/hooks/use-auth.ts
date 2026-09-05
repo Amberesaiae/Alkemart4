@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { auth } from "../lib/api"
+import { homePath } from "../lib/config"
 import { useNavigate } from "@tanstack/react-router"
 
 export function useAuth() {
@@ -16,7 +17,7 @@ export function useAuth() {
     mutationFn: ({ email, password }: Record<string, string>) => auth.login(email, password),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["session"] })
-      navigate({ to: "/analytics" })
+      navigate({ to: homePath })
     },
   })
 

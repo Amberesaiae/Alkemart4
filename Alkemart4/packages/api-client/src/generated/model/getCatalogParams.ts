@@ -19,6 +19,10 @@ export type GetCatalogParams = {
  */
 category?: string;
 /**
+ * Case-insensitive title/description substring filter.
+ */
+q?: string;
+/**
  * @minimum 1
  * @maximum 100
  */

@@ -62,8 +62,10 @@ export interface AuthRepository {
     role: UserRole
   }): Promise<AuthUser>
   findUserByEmail(email: string): Promise<AuthUser | null>
+  findUserById(id: string): Promise<AuthUser | null>
   findSellerById(id: string): Promise<AuthSeller | null>
   findSellerByHandle(handle: string): Promise<AuthSeller | null>
+  listSellers(): Promise<AuthSeller[]>
   findSellerMemberByUserId(userId: string): Promise<AuthSellerMember | null>
   registerVendor(input: {
     user: { id: string; email: string; passwordHash: string }
@@ -188,12 +190,20 @@ export class InMemoryAuthRepository implements AuthRepository {
     return this.usersByEmail.get(email) ?? null
   }
 
+  async findUserById(id: string) {
+    return this.usersById.get(id) ?? null
+  }
+
   async findSellerById(id: string) {
     return this.sellersById.get(id) ?? null
   }
 
   async findSellerByHandle(handle: string) {
     return this.sellersByHandle.get(handle) ?? null
+  }
+
+  async listSellers() {
+    return [...this.sellersById.values()]
   }
 
   async findSellerMemberByUserId(userId: string) {
@@ -281,6 +291,11 @@ export class PostgresAuthRepository implements AuthRepository {
     return row ? toUser(row) : null
   }
 
+  async findUserById(id: string) {
+    const [row] = await this.db.select().from(users).where(eq(users.id, id)).limit(1)
+    return row ? toUser(row) : null
+  }
+
   async findSellerById(id: string) {
     const [row] = await this.db.select().from(sellers).where(eq(sellers.id, id)).limit(1)
     return row ? toSeller(row) : null
@@ -289,6 +304,11 @@ export class PostgresAuthRepository implements AuthRepository {
   async findSellerByHandle(handle: string) {
     const [row] = await this.db.select().from(sellers).where(eq(sellers.handle, handle)).limit(1)
     return row ? toSeller(row) : null
+  }
+
+  async listSellers() {
+    const rows = await this.db.select().from(sellers)
+    return rows.map(toSeller)
   }
 
   async findSellerMemberByUserId(userId: string) {

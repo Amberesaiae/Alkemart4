@@ -23,8 +23,12 @@ import type {
 import { catalogDb, primaryDb } from "./db"
 import { parseEnv } from "./env"
 import { requireAdmin, requireSeller } from "./middleware/auth"
+import { corsMiddleware } from "./middleware/cors"
 import { errorHandler } from "./middleware/error"
+import { securityMiddleware } from "./middleware/security"
 import { adminAuth } from "./routes/admin/auth"
+import { adminMigrate } from "./routes/admin/migrate"
+import { adminOrders } from "./routes/admin/orders"
 import { adminPayouts } from "./routes/admin/payouts"
 import { adminProducts } from "./routes/admin/products"
 import { adminSellers } from "./routes/admin/sellers"
@@ -34,6 +38,7 @@ import { storeCart } from "./routes/store/cart"
 import { catalog } from "./routes/store/catalog"
 import { categories } from "./routes/store/categories"
 import { storeCheckout } from "./routes/store/checkout"
+import { storeOrders } from "./routes/store/orders"
 import { products } from "./routes/store/products"
 import { sellers } from "./routes/store/sellers"
 import { paystackHooks } from "./routes/hooks/paystack"
@@ -59,6 +64,8 @@ export function createApp(
 ) {
   const app = new Hono<AppEnv>()
   app.onError(errorHandler)
+  app.use("*", corsMiddleware)
+  app.use("*", securityMiddleware)
   app.route("/health", health)
 
   const bindCatalog: MiddlewareHandler<AppEnv> = async (c, next) => {
@@ -158,6 +165,10 @@ export function createApp(
   store.route("/sellers", withBind(bindCatalog, sellers))
   store.route("/cart", withBind(bindCheckout, storeCart))
   store.route("/checkout", withBind(bindCheckout, storeCheckout))
+  store.route(
+    "/orders",
+    withBind(bindAuth, withBind(bindCheckout, storeOrders)),
+  )
   app.route("/store", store)
 
   const vendor = new Hono<AppEnv>()
@@ -175,6 +186,8 @@ export function createApp(
   admin.get("/me", requireAdmin, (c) => c.json(c.get("auth")))
   admin.route("/sellers", adminSellers)
   admin.route("/products", withBind(bindCatalog, adminProducts))
+  admin.route("/orders", withBind(bindCheckout, adminOrders))
+  admin.route("/migrate", adminMigrate)
   admin.route(
     "/payouts",
     withBind(bindAuth, withBind(bindCheckout, adminPayouts)),

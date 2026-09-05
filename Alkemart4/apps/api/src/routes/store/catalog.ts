@@ -7,6 +7,7 @@ const CATALOG_KV_TTL_SECONDS = 60
 
 function parseCatalogQuery(input: {
   category?: string
+  q?: string
   limit?: string
   offset?: string
 }): CatalogListQuery {
@@ -15,16 +16,18 @@ function parseCatalogQuery(input: {
   const limit = Number.isFinite(rawLimit) ? Math.min(100, Math.max(1, Math.trunc(rawLimit))) : 20
   const offset = Number.isFinite(rawOffset) ? Math.max(0, Math.trunc(rawOffset)) : 0
   const category = input.category?.trim() || undefined
-  return { category, limit, offset }
+  const q = input.q?.trim() || undefined
+  return { category, q, limit, offset }
 }
 
 function catalogCacheKey(query: CatalogListQuery): string {
-  return `catalog:v1:${query.category ?? ""}:${query.limit}:${query.offset}`
+  return `catalog:v1:${query.category ?? ""}:${query.q ?? ""}:${query.limit}:${query.offset}`
 }
 
 export const catalog = new Hono<AppEnv>().get("/", async (c) => {
   const query = parseCatalogQuery({
     category: c.req.query("category"),
+    q: c.req.query("q"),
     limit: c.req.query("limit"),
     offset: c.req.query("offset"),
   })

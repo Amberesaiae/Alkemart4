@@ -6,8 +6,8 @@ import { ProductGridShell } from "@/components/product-grid"
 import { EmptyState } from "@/components/empty-state"
 import { ProductGridSkeleton, Skeleton } from "@/components/skeleton"
 import { Avatar, AvatarFallback, AvatarImage, Badge } from "@workspace/ui"
-import { getBackendUrl, getPublishableKey } from "@/lib/env"
 import { listStoreProducts, type StoreProductCard } from "@/lib/products"
+import { getStoreVendorBySlug } from "@/lib/vendors"
 import { trackSellerStoreViewed } from "@/lib/analytics"
 import { PageSeo } from "@/components/page-seo"
 import { storeJsonLd, stripHtml, truncateMeta } from "@/lib/seo"
@@ -17,48 +17,11 @@ export const Route = createFileRoute("/shops/$slug")({
   component: StorePage,
 })
 
-type VendorPayload = {
-  vendor?: {
-    id?: string
-    name?: string
-    slug?: string
-    bio?: string | null
-    logoImageUrl?: string | null
-    coverImageUrl?: string | null
-    logoThumbUrl?: string | null
-    logoWebUrl?: string | null
-    coverThumbUrl?: string | null
-    coverWebUrl?: string | null
-    ratingAvgX100?: number
-    ratingCount?: number
-    badgeTopSeller?: boolean
-    badgeFastShipper?: boolean
-    status?: string
-  }
-}
-
-async function fetchVendorBySlug(slug: string) {
-  const base = getBackendUrl()
-  const pk = getPublishableKey()
-  const res = await fetch(
-    `${base}/store/alkemart/vendors/${encodeURIComponent(slug)}`,
-    {
-      headers: {
-        Accept: "application/json",
-        "x-publishable-api-key": pk,
-      },
-    },
-  )
-  if (res.status === 404) throw new Error("Store not found")
-  if (!res.ok) throw new Error(`Failed to load store (${res.status})`)
-  return (await res.json()) as VendorPayload
-}
-
 function StorePage() {
   const { slug } = Route.useParams()
   const vendorQ = useQuery({
     queryKey: ["store", "vendor", slug],
-    queryFn: () => fetchVendorBySlug(slug),
+    queryFn: () => getStoreVendorBySlug(slug),
   })
 
   /** Server catalog filter by open seller handle (slug). No client invent. */

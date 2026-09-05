@@ -3,8 +3,9 @@ import { ChartColumn, Package, Store, ShoppingCart, Globe, Percent, Star, Tag, R
 import { useState } from "react"
 import { useAuth } from "../../hooks/use-auth"
 import { cn } from "@workspace/ui"
+import { isWorkersApi } from "../../lib/config"
 
-const NAV_GROUPS: { label: string; items: { href: string; label: string; icon: React.ElementType }[] }[] = [
+const ALL_NAV_GROUPS: { label: string; items: { href: string; label: string; icon: React.ElementType; workers?: boolean }[] }[] = [
   {
     label: "Catalogue",
     items: [
@@ -18,22 +19,31 @@ const NAV_GROUPS: { label: string; items: { href: string; label: string; icon: R
   {
     label: "Commerce",
     items: [
-      { href: "/orders", label: "Orders", icon: ShoppingCart },
+      { href: "/orders", label: "Orders", icon: ShoppingCart, workers: true },
       { href: "/returns", label: "Returns", icon: RefreshCw },
       { href: "/disputes", label: "Disputes", icon: Scale },
-      { href: "/payouts", label: "Payouts", icon: Wallet },
+      { href: "/payouts", label: "Payouts", icon: Wallet, workers: true },
     ],
   },
   {
     label: "Sellers",
     items: [
-      { href: "/sellers-queue", label: "Seller Queue", icon: Store },
-      { href: "/sellers", label: "All Sellers", icon: Users },
-      { href: "/product-moderation", label: "Product Review", icon: Package },
+      { href: "/sellers-queue", label: "Seller Queue", icon: Store, workers: true },
+      { href: "/sellers", label: "All Sellers", icon: Users, workers: true },
+      { href: "/product-moderation", label: "Product Review", icon: Package, workers: true },
       { href: "/commission-rates", label: "Commission", icon: Percent },
     ],
   },
 ]
+
+const NAV_GROUPS = isWorkersApi
+  ? ALL_NAV_GROUPS
+      .map((group) => ({
+        ...group,
+        items: group.items.filter((item) => item.workers),
+      }))
+      .filter((group) => group.items.length > 0)
+  : ALL_NAV_GROUPS
 
 function NavItem({ href, label, icon: Icon, collapsed, isActive }: {
   href: string

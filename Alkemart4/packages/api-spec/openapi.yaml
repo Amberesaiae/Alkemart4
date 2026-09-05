@@ -70,6 +70,12 @@ paths:
           description: Category handle; includes descendants.
           schema:
             type: string
+        - name: q
+          in: query
+          required: false
+          description: Case-insensitive title/description substring filter.
+          schema:
+            type: string
         - name: limit
           in: query
           required: false

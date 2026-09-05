@@ -49,28 +49,21 @@ export function useRegister() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async (payload: { email: string; password: string; first_name: string; last_name: string }) => {
-      await authApi.register(payload.email, payload.password)
-      let sellerData
-      try {
-        sellerData = await sellerApi.create({
-          email: payload.email,
-          member_email: payload.email,
-          name: `${payload.first_name} ${payload.last_name}'s Shop`,
-          first_name: payload.first_name,
-          last_name: payload.last_name,
-        })
-      } catch (err) {
-        await authApi.logout()
-        throw err
-      }
-      const sellerId = sellerData.seller.id
-      setActiveSellerId(sellerId)
-      // The register token has an empty actor_id (no member existed yet). Re-login to
-      // obtain a token carrying the freshly-created member id before binding the seller,
-      // otherwise /vendor/sellers/select rejects the session with 401.
-      await authApi.login(payload.email, payload.password)
-      await sellerApi.select(sellerId)
-      return sellerData
+      const sellerName = `${payload.first_name} ${payload.last_name}`.trim() || "New Shop"
+      const sellerHandle = sellerName
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-|-$/g, "")
+        .slice(0, 40) || `shop-${Date.now()}`
+      const data = await authApi.registerSeller({
+        email: payload.email,
+        password: payload.password,
+        sellerName,
+        sellerHandle,
+      })
+      const sellerId = data.user?.sellerId ?? null
+      if (sellerId) setActiveSellerId(sellerId)
+      return { seller: { id: sellerId, name: sellerName, handle: sellerHandle } }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["seller", "me"] })

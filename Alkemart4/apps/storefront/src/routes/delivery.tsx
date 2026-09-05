@@ -69,7 +69,7 @@ function DeliveryPage() {
                 Delivery{" "}
                 <span className="text-primary">across Ghana</span>
               </h1>
-              <p className="max-w-lg text-sm leading-relaxed text-white/55 sm:text-base">
+              <p className="max-w-lg text-sm leading-relaxed text-slate-300 sm:text-base">
                 Cash on delivery. Riders bring orders to your door —{" "}
                 no credit card, no upfront payment. Delivery fees are set by
                 each seller and shown at checkout.
@@ -114,10 +114,10 @@ function DeliveryPage() {
                   {i + 1}
                 </span>
                 <div className="space-y-1">
-                  <h3 className="text-sm font-bold sm:text-base">
+                  <h3 className="text-sm font-bold sm:text-base text-white">
                     {step.title}
                   </h3>
-                  <p className="text-xs leading-relaxed text-white/50 sm:text-sm">
+                  <p className="text-xs leading-relaxed text-slate-300 sm:text-sm">
                     {step.body}
                   </p>
                 </div>
@@ -156,10 +156,10 @@ function DeliveryPage() {
                 />
               </div>
               <div className="min-w-0 space-y-1">
-                <h3 className="text-sm font-bold sm:text-base">
+                <h3 className="text-sm font-bold sm:text-base text-white">
                   Cash on delivery
                 </h3>
-                <p className="text-xs leading-relaxed text-white/50 sm:text-sm">
+                <p className="text-xs leading-relaxed text-slate-300 sm:text-sm">
                   Pay cash when the rider arrives. No cards, no sign-up
                   needed. Available for most sellers across Ghana.
                 </p>
@@ -189,10 +189,10 @@ function DeliveryPage() {
                 />
               </div>
               <div className="min-w-0 space-y-1">
-                <h3 className="text-sm font-bold sm:text-base">
+                <h3 className="text-sm font-bold sm:text-base text-white">
                   Doorstep delivery
                 </h3>
-                <p className="text-xs leading-relaxed text-white/50 sm:text-sm">
+                <p className="text-xs leading-relaxed text-slate-300 sm:text-sm">
                   Delivered to your address — home, work, or a pickup
                   location you choose. Each seller sets their delivery area
                   and fee.
@@ -213,7 +213,7 @@ function DeliveryPage() {
               "glass-card",
             )}
           >
-            <p className="text-sm leading-relaxed text-white/50">
+            <p className="text-sm leading-relaxed text-slate-300">
               Sellers on alkemart operate across Ghana. Each seller sets
               their own delivery areas and fees. You'll see accurate
               delivery options when you enter your address at checkout.
@@ -229,10 +229,10 @@ function DeliveryPage() {
               "bg-primary/10 shadow-[inset_0_0_0_1px_color-mix(in_srgb,_var(--primary)_20%,_transparent)]",
             )}
           >
-            <h2 className="text-lg font-extrabold tracking-tight sm:text-xl">
+            <h2 className="text-lg font-extrabold tracking-tight sm:text-xl text-white">
               Ready to shop?
             </h2>
-            <p className="mt-1 text-sm leading-relaxed text-white/55 sm:text-base">
+            <p className="mt-1 text-sm leading-relaxed text-slate-300 sm:text-base">
               Browse categories, compare sellers, and pay on delivery.
             </p>
             <Link

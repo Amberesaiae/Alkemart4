@@ -1,14 +1,88 @@
+import { getAlkemartApiUrl } from "./env"
 import { getMedusaClient } from "./medusa"
 import { transferLocalCartToCustomer } from "./cart"
+
+const SESSION_KEY = "alkemart_session"
 
 export type SessionCustomer = {
   id: string
   email: string
   firstName?: string | null
   lastName?: string | null
+  role?: string
+  sellerId?: string
+  token?: string
+}
+
+type AuthSession = {
+  token: string
+  user: {
+    id: string
+    email: string
+    role: string
+    sellerId?: string
+  }
+}
+
+function useWorkersAuth(): boolean {
+  return Boolean(getAlkemartApiUrl())
+}
+
+function readStoredSession(): AuthSession | null {
+  try {
+    const raw = localStorage.getItem(SESSION_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as AuthSession
+    if (!parsed?.token || !parsed?.user?.id) return null
+    return parsed
+  } catch {
+    return null
+  }
+}
+
+function writeStoredSession(session: AuthSession | null) {
+  if (!session) {
+    localStorage.removeItem(SESSION_KEY)
+    return
+  }
+  localStorage.setItem(SESSION_KEY, JSON.stringify(session))
+}
+
+function toCustomer(session: AuthSession): SessionCustomer {
+  return {
+    id: session.user.id,
+    email: session.user.email,
+    role: session.user.role,
+    sellerId: session.user.sellerId,
+    token: session.token,
+  }
+}
+
+async function workersAuth(
+  path: "/store/auth/login" | "/store/auth/register",
+  body: Record<string, unknown>,
+): Promise<SessionCustomer> {
+  const base = getAlkemartApiUrl()
+  const res = await fetch(`${base}${path}`, {
+    method: "POST",
+    headers: { "content-type": "application/json", accept: "application/json" },
+    body: JSON.stringify(body),
+  })
+  const json = (await res.json().catch(() => ({}))) as AuthSession & { error?: string }
+  if (!res.ok) {
+    throw new Error(json.error || `auth failed (${res.status})`)
+  }
+  if (!json.token || !json.user) throw new Error("auth response missing token")
+  writeStoredSession({ token: json.token, user: json.user })
+  return toCustomer({ token: json.token, user: json.user })
 }
 
 export async function getSessionCustomer(): Promise<SessionCustomer | null> {
+  if (useWorkersAuth()) {
+    const session = readStoredSession()
+    return session ? toCustomer(session) : null
+  }
+
   const sdk = getMedusaClient()
   const token = await sdk.client.getToken()
   if (!token) return null
@@ -26,6 +100,13 @@ export async function getSessionCustomer(): Promise<SessionCustomer | null> {
 }
 
 export async function login(email: string, password: string): Promise<SessionCustomer> {
+  if (useWorkersAuth()) {
+    return workersAuth("/store/auth/login", {
+      email: email.trim(),
+      password,
+    })
+  }
+
   const sdk = getMedusaClient()
   const result = await sdk.auth.login("customer", "emailpass", {
     email: email.trim(),
@@ -34,7 +115,6 @@ export async function login(email: string, password: string): Promise<SessionCus
   if (typeof result !== "string") {
     throw new Error("Authentication requires additional steps")
   }
-  // P1: bind guest cart → customer so My Orders works after checkout
   await transferLocalCartToCustomer()
   const me = await getSessionCustomer()
   if (!me) throw new Error("Login succeeded but customer session is empty")
@@ -47,6 +127,13 @@ export async function register(input: {
   firstName?: string
   lastName?: string
 }): Promise<SessionCustomer> {
+  if (useWorkersAuth()) {
+    return workersAuth("/store/auth/register", {
+      email: input.email.trim(),
+      password: input.password,
+    })
+  }
+
   const sdk = getMedusaClient()
   await sdk.auth.register("customer", "emailpass", {
     email: input.email.trim(),
@@ -61,6 +148,10 @@ export async function register(input: {
 }
 
 export async function logout(): Promise<void> {
+  if (useWorkersAuth()) {
+    writeStoredSession(null)
+    return
+  }
   const sdk = getMedusaClient()
   try {
     await sdk.auth.logout()
@@ -75,6 +166,17 @@ export async function updateCustomerProfile(input: {
   lastName?: string
   phone?: string
 }): Promise<SessionCustomer> {
+  if (useWorkersAuth()) {
+    const me = await getSessionCustomer()
+    if (!me) throw new Error("Sign in required")
+    // Workers buyer profile fields are not yet persisted beyond email/role.
+    return {
+      ...me,
+      firstName: input.firstName?.trim() || me.firstName,
+      lastName: input.lastName?.trim() || me.lastName,
+    }
+  }
+
   const sdk = getMedusaClient()
   const token = await sdk.client.getToken()
   if (!token) throw new Error("Sign in required")
@@ -95,11 +197,15 @@ export async function updateCustomerProfile(input: {
  * - guest: browse, cart, COD checkout, order-by-id
  * - customer (signed-in): + addresses, account orders, profile
  *
- * Seller / admin / support RBAC screens live in Mercur — not this app.
+ * Seller / admin screens live in dedicated Workers apps.
  */
 export type BuyerAccess = "guest" | "customer"
 
 export async function getBuyerAccess(): Promise<BuyerAccess> {
   const me = await getSessionCustomer()
   return me ? "customer" : "guest"
+}
+
+export function getWorkersAccessToken(): string | null {
+  return readStoredSession()?.token ?? null
 }

@@ -14,6 +14,8 @@ import {
   maskOrderId,
   orderSupportReference,
 } from "@/lib/orders"
+import { getSessionCustomer } from "@/lib/auth"
+import { useWorkersCommerce } from "@/lib/env"
 import { rememberOrderId } from "@/lib/recent-orders"
 import { CopyButton } from "@/components/copy-button"
 import { Illustration } from "@/components/illustration"
@@ -85,13 +87,18 @@ function OrderDetailPage() {
     }
   }, [emailFromSearch])
 
+  const sessionQ = useQuery({
+    queryKey: ["store", "session"],
+    queryFn: () => getSessionCustomer(),
+  })
+
   const { data, isLoading, isError, error, isFetching } = useQuery({
-    queryKey: ["store", "order", id, submittedEmail || ""],
+    queryKey: ["store", "order", id, submittedEmail || "", sessionQ.data?.id ?? ""],
     queryFn: () =>
       getOrder(id, {
-        email: submittedEmail || undefined,
+        email: submittedEmail || sessionQ.data?.email || undefined,
       }),
-    enabled: !!submittedEmail,
+    enabled: Boolean(submittedEmail || sessionQ.data?.email),
     retry: false,
   })
 
@@ -442,7 +449,9 @@ function OrderDetailPage() {
             </Button>
           </div>
 
-          {data.fulfillmentStatus === "delivered" || data.fulfillmentStatus === "fulfilled" ? (
+          {!useWorkersCommerce() &&
+          (data.fulfillmentStatus === "delivered" ||
+            data.fulfillmentStatus === "fulfilled") ? (
             <div className="text-center">
               <Button
                 asChild

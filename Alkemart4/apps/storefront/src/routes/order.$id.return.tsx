@@ -6,7 +6,11 @@ import { ErrorAlert } from "@/components/error-alert"
 import { Skeleton } from "@/components/skeleton"
 import { getOrder } from "@/lib/orders"
 import { getMedusaClient } from "@/lib/medusa"
-import { getBackendUrl, getPublishableKey } from "@/lib/env"
+import {
+  getBackendUrl,
+  getPublishableKey,
+  useWorkersCommerce,
+} from "@/lib/env"
 
 const EMAIL_KEY = "alkemart.storefront.order_lookup_email"
 
@@ -44,9 +48,14 @@ function ReturnRequestPage() {
     retry: false,
   })
 
+  const workers = useWorkersCommerce()
+
   const reasonsQ = useQuery({
     queryKey: ["store", "return-reasons"],
     queryFn: async () => {
+      if (useWorkersCommerce()) {
+        throw new Error("Returns are not available on Workers yet")
+      }
       const base = getBackendUrl()
       const pk = getPublishableKey()
       const res = await fetch(`${base}/store/return-reasons`, {
@@ -59,11 +68,15 @@ function ReturnRequestPage() {
       const data = await res.json() as { return_reasons: ReturnReason[] }
       return data.return_reasons
     },
+    enabled: !workers,
     staleTime: 300_000,
   })
 
   const submitReturn = useMutation({
     mutationFn: async () => {
+      if (useWorkersCommerce()) {
+        throw new Error("Returns are not available on Workers yet")
+      }
       const base = getBackendUrl()
       const pk = getPublishableKey()
       const sdk = getMedusaClient()
@@ -127,6 +140,21 @@ function ReturnRequestPage() {
 
   const formatGhs = (amount = 0) =>
     new Intl.NumberFormat("en-GH", { style: "currency", currency: "GHS" }).format(amount)
+
+  if (workers) {
+    return (
+      <div className="mx-auto max-w-2xl space-y-4 pb-8">
+        <h1 className="text-2xl font-bold tracking-tight">Returns</h1>
+        <p className="text-sm text-muted-foreground">
+          Self-serve returns are not available on the Workers store yet. Contact
+          support with your order reference if you need help.
+        </p>
+        <Button asChild variant="outline">
+          <Link to="/order/$id" params={{ id }}>Back to order</Link>
+        </Button>
+      </div>
+    )
+  }
 
   if (orderQ.isLoading) {
     return (

@@ -24,7 +24,7 @@ const router = createRouter({
   routeTree,
   context: { queryClient },
   defaultPreload: 'intent',
-  basepath: '/seller'
+  basepath: '/',
 })
 
 declare module '@tanstack/react-router' {

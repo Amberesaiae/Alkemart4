@@ -35,7 +35,7 @@ type ProductCardProps = {
 }
 
 const shell =
-  "group overflow-hidden rounded-lg border border-border bg-card shadow-sm transition hover:border-foreground/15 hover:shadow-md"
+  "group overflow-hidden rounded-xl border border-border bg-card shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:border-foreground/15 hover:shadow-md"
 
 /**
  * Concise retail card: category line · image · title (2 lines) · price + cart.

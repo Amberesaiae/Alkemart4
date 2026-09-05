@@ -18,6 +18,7 @@ const PAGE_SIZE = 20
 function fulfillmentStatusLabel(status?: string | null): string {
   const map: Record<string, string> = {
     not_fulfilled: "Pending",
+    placed: "Pending",
     partially_fulfilled: "In Progress",
     fulfilled: "Packed",
     shipped: "Dispatched",
@@ -131,10 +132,10 @@ function OrdersPage() {
                       <TableCell>
                         <Link to="/orders/$id" params={{ id: order.id }} className="block">
                           <div className="font-black text-primary text-base group-hover:underline">
-                            #{order.display_id}
+                            #{order.display_id ?? order.id.slice(-6)}
                           </div>
                           <div className="text-xs text-muted-foreground mt-1 font-medium">
-                            {order.items?.length || 0} items
+                            {order.items?.length ? `${order.items.length} items` : "Seller order"}
                           </div>
                         </Link>
                       </TableCell>

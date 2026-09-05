@@ -1,0 +1,29 @@
+@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700&family=Playfair+Display:wght@700&display=swap");
+:root { font-family: "DM Sans", system-ui, sans-serif; color: #17372d; background: #f4f7f2; }
+* { box-sizing: border-box; } body { margin: 0; } button, input, select, textarea { font: inherit; }
+button { cursor: pointer; } button:disabled { opacity: .6; cursor: not-allowed; }
+.shell { min-height: 100vh; }
+.topbar { display: flex; justify-content: space-between; align-items: center; padding: 16px 24px; border-bottom: 1px solid #dce7da; background: rgba(244,247,242,.95); position: sticky; top: 0; }
+.brand { font-weight: 800; font-size: 1.2rem; text-decoration: none; color: inherit; }
+.brand span { color: #eb6943; }
+.content { width: min(960px, calc(100% - 32px)); margin: 0 auto; padding: 40px 0 80px; }
+h1 { font-family: "Playfair Display", Georgia, serif; font-size: clamp(2rem, 5vw, 3.2rem); margin: 0 0 12px; }
+.lede { color: #678071; line-height: 1.55; margin: 0 0 28px; }
+.panel { background: #fff; border: 1px solid #dfe9dd; border-radius: 16px; padding: 22px; margin-bottom: 18px; box-shadow: 0 8px 24px rgba(35,76,54,.04); }
+.panel h2 { margin: 0 0 14px; font-size: 1.25rem; }
+.stack { display: grid; gap: 12px; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+label { display: grid; gap: 6px; font-size: .8rem; font-weight: 700; color: #416351; }
+input, select, textarea { width: 100%; padding: 11px 12px; border: 1px solid #d4e1d2; border-radius: 8px; background: #fbfdfb; }
+.button { border: 0; border-radius: 9px; padding: 11px 16px; font-weight: 700; }
+.primary { background: #eb6943; color: #fff; }
+.ghost { background: transparent; color: #47705d; }
+.alert { padding: 12px 14px; border-radius: 9px; font-size: .86rem; }
+.error { background: #fff0eb; color: #9f3e2c; border: 1px solid #f6c8bc; }
+.success { background: #e7f6ec; color: #286247; border: 1px solid #bce3c9; }
+.muted { color: #789181; font-size: .85rem; }
+.record { padding: 12px; border-radius: 9px; background: #f5f8f3; margin-top: 8px; }
+.tabs { display: flex; gap: 8px; margin-bottom: 18px; }
+.tab { padding: 8px 12px; border-radius: 999px; border: 1px solid #d4e1d2; background: #fff; }
+.tab.active { background: #17372d; color: #fff; border-color: #17372d; }
+@media (max-width: 640px) { .grid2 { grid-template-columns: 1fr; } }

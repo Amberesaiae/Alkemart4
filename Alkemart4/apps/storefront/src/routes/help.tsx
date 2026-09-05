@@ -39,11 +39,19 @@ const FAQ = [
   },
   {
     q: "Order problem?",
-    a: "Open the order, copy the id, contact support with that reference.",
+    a: "Open the order, copy the support reference, then use Contact with that id. Self-serve returns are not online yet.",
+  },
+  {
+    q: "Returns / refunds?",
+    a: "In-app returns are not available yet. Email or Contact support with your order reference and item details.",
   },
   {
     q: "No price or Add to cart?",
     a: "The seller is still setting up that listing.",
+  },
+  {
+    q: "Search not finding a product?",
+    a: "Try a shorter title keyword (for example Tecno). Search matches product titles and descriptions.",
   },
 ] as const
 

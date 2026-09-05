@@ -2,8 +2,12 @@
  * Discovery search — prefers backend Meilisearch proxy; falls back to product.list.
  * Never invents product IDs; only renders API hits.
  */
-import { getBackendUrl, getPublishableKey } from "./env"
+import { getAlkemartApiUrl, getBackendUrl, getPublishableKey } from "./env"
 import { listStoreProducts, type StoreProductCard } from "./products"
+
+function useWorkersSearch(): boolean {
+  return Boolean(getAlkemartApiUrl())
+}
 
 export type SearchHit = {
   id: string
@@ -82,6 +86,37 @@ export async function searchCatalog(opts: {
   const q = opts.q.trim()
   const limit = opts.limit ?? 48
   const offset = opts.offset ?? 0
+
+  if (useWorkersSearch()) {
+    const list = await listStoreProducts({
+      limit,
+      offset,
+      q: q || undefined,
+      categoryHandle: opts.filters?.category_handles?.[0],
+      sellerHandle: opts.filters?.seller_handles?.[0],
+    })
+    return {
+      hits: list.products.map((p) => ({
+        id: p.id,
+        title: p.title,
+        description: p.description ?? undefined,
+        handle: p.handle,
+        thumbnail: p.thumbnail,
+        seller_id: p.seller?.id ?? null,
+        seller_handle: p.seller?.handle ?? null,
+        seller_name: p.seller?.name ?? null,
+        min_price: p.amount ?? null,
+        currency_code: p.currencyCode ?? null,
+        has_offer: Boolean(p.offerId),
+      })),
+      products: list.products,
+      query: q,
+      estimatedTotalHits: list.count,
+      facetDistribution: {},
+      engine: "disabled",
+    }
+  }
+
   const base = getBackendUrl()
   const pk = getPublishableKey()
 

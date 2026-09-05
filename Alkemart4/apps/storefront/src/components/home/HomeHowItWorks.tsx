@@ -102,10 +102,10 @@ export function HomeHowItWorks({
             </div>
 
             <div className="min-w-0 flex-1 space-y-1">
-              <h3 className="text-base font-bold tracking-tight text-white/90 sm:text-lg">
+              <h3 className="text-base font-bold tracking-tight text-white sm:text-lg">
                 {step.title}
               </h3>
-              <p className="text-sm leading-snug text-white/60 sm:text-base sm:leading-relaxed">
+              <p className="text-sm leading-snug text-slate-300 sm:text-base sm:leading-relaxed">
                 {step.body}
               </p>
             </div>

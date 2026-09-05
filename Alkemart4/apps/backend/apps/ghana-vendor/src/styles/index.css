@@ -22,30 +22,30 @@
   --color-ring: var(--ring);
   --color-ink: var(--ink);
   --color-ink-foreground: #ffffff;
-  --color-success: #16a34a;
+  --color-success: #10b981;
   --color-success-foreground: #ffffff;
-  --color-warning: #d97706;
+  --color-warning: #f59e0b;
   --color-warning-foreground: #ffffff;
-  --radius-2xl: 20px;
-  --radius-3xl: 24px;
+  --radius-2xl: 24px;
+  --radius-3xl: 32px;
 }
 
 :root {
   color-scheme: light;
   --primary: #FEBF31;
-  --primary-foreground: #1a1a1a;
+  --primary-foreground: #0f172a;
   /* Brand ink — sidebar, dark surfaces */
-  --ink: #1a1a1a;
-  --background: #f0f0f0;
-  --foreground: #2a2a2a;
+  --ink: #0f172a;
+  --background: #f8fafc;
+  --foreground: #0f172a;
   --card: #ffffff;
-  --card-foreground: #2a2a2a;
-  --muted: #f5f5f5;
-  --muted-foreground: #3d3d3d;
-  --border: #d4d4d4;
-  --destructive: #c41e3a;
-  --ring: #8a6b00;
-  --surface-cream: #faf8f2;
+  --card-foreground: #0f172a;
+  --muted: #f1f5f9;
+  --muted-foreground: #64748b;
+  --border: #e2e8f0;
+  --destructive: #ef4444;
+  --ring: #f59e0b;
+  --surface-cream: #faf9f5;
 }
 
 * { border-color: var(--border); }

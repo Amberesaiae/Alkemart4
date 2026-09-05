@@ -24,6 +24,18 @@ export type CartRow = {
   buyerEmail: string | null
 }
 
+export type ShippingAddress = {
+  first_name: string
+  last_name: string
+  phone: string
+  address_1: string
+  address_2?: string
+  city: string
+  province?: string
+  country_code: string
+  postal_code?: string
+}
+
 export type PaymentIntentRow = {
   id: string
   cartId: string
@@ -35,6 +47,7 @@ export type PaymentIntentRow = {
   buyerEmail: string
   momoProvider: string | null
   momoPhone: string | null
+  shippingAddress: ShippingAddress | null
 }
 
 export type StockReservationRow = {
@@ -91,12 +104,15 @@ export type CheckoutOfferView = {
   sellerStatus: "pending_approval" | "open" | "suspended" | "terminated"
   deliveryFeePesewas: bigint
   productTitle: string
+  sellerName: string
+  sellerHandle: string
 }
 
 export interface CheckoutRepository {
   createCart(): Promise<CartRow>
   getCart(cartId: string): Promise<CartRow | null>
   addCartItem(cartId: string, offerId: string, qty: number): Promise<CartItemRow>
+  setCartItemQty(cartId: string, itemId: string, qty: number): Promise<CartItemRow | null>
   listCartItems(cartId: string): Promise<CartItemRow[]>
   getOfferView(offerId: string): Promise<CheckoutOfferView | null>
   quote(cartId: string): Promise<CartQuote>
@@ -108,9 +124,16 @@ export interface CheckoutRepository {
   releaseReservations(paymentIntentId: string): Promise<void>
   confirmPaidOrder(paymentIntentId: string): Promise<{ orderGroup: OrderGroupRow; orders: OrderRow[] }>
   getOrderGroupByPaymentIntent(paymentIntentId: string): Promise<OrderGroupRow | null>
+  getOrderGroup(id: string): Promise<(OrderGroupRow & { createdAt?: Date }) | null>
+  listOrderGroupsByBuyerEmail(
+    email: string,
+  ): Promise<Array<OrderGroupRow & { createdAt?: Date }>>
   listOrdersForGroup(orderGroupId: string): Promise<OrderRow[]>
+  listOrderItems(orderId: string): Promise<OrderItemRow[]>
   getOrder(orderId: string): Promise<OrderRow | null>
+  getLatestPaymentIntentByCartId(cartId: string): Promise<PaymentIntentRow | null>
   listOrdersForSeller(sellerId: string): Promise<OrderRow[]>
+  listRecentOrderGroups(limit?: number): Promise<Array<OrderGroupRow & { createdAt?: Date }>>
   updateOrderStatus(
     orderId: string,
     sellerId: string,
@@ -131,7 +154,7 @@ export class InMemoryCheckoutRepository implements CheckoutRepository {
   private items = new Map<string, CartItemRow[]>()
   private intents = new Map<string, PaymentIntentRow>()
   private reservations = new Map<string, StockReservationRow[]>()
-  private orderGroups = new Map<string, OrderGroupRow>()
+  private orderGroups = new Map<string, OrderGroupRow & { createdAt: Date }>()
   private orders = new Map<string, OrderRow[]>()
   private orderItems = new Map<string, OrderItemRow[]>()
   private orderIndex = new Map<string, OrderRow>()
@@ -162,6 +185,8 @@ export class InMemoryCheckoutRepository implements CheckoutRepository {
       sellerStatus: seller.status,
       deliveryFeePesewas: seller.deliveryFeePesewas,
       productTitle: product.title,
+      sellerName: seller.name,
+      sellerHandle: seller.handle,
     }
   }
 
@@ -196,6 +221,20 @@ export class InMemoryCheckoutRepository implements CheckoutRepository {
       qty,
     }
     list.push(row)
+    return row
+  }
+
+  async setCartItemQty(cartId: string, itemId: string, qty: number): Promise<CartItemRow | null> {
+    const list = this.items.get(cartId)
+    if (!list) return null
+    const idx = list.findIndex((i) => i.id === itemId)
+    if (idx < 0) return null
+    if (qty <= 0) {
+      list.splice(idx, 1)
+      return null
+    }
+    const row = list[idx]!
+    row.qty = qty
     return row
   }
 
@@ -276,13 +315,48 @@ export class InMemoryCheckoutRepository implements CheckoutRepository {
 
   async getOrderGroupByPaymentIntent(paymentIntentId: string) {
     for (const g of this.orderGroups.values()) {
-      if (g.paymentIntentId === paymentIntentId) return { ...g }
+      if (g.paymentIntentId === paymentIntentId) {
+        const { createdAt: _c, ...row } = g
+        return row
+      }
     }
     return null
   }
 
+  async getOrderGroup(id: string) {
+    const g = this.orderGroups.get(id)
+    if (!g) return null
+    return { ...g }
+  }
+
+  async listOrderGroupsByBuyerEmail(email: string) {
+    const normalized = email.trim().toLowerCase()
+    return [...this.orderGroups.values()]
+      .filter((g) => g.buyerEmail.toLowerCase() === normalized)
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+      .map((g) => ({ ...g }))
+  }
+
   async listOrdersForGroup(orderGroupId: string) {
     return [...(this.orders.get(orderGroupId) ?? [])]
+  }
+
+  async listOrderItems(orderId: string) {
+    return [...(this.orderItems.get(orderId) ?? [])].map((i) => ({ ...i }))
+  }
+
+  async getLatestPaymentIntentByCartId(cartId: string) {
+    let latest: PaymentIntentRow | null = null
+    for (const intent of this.intents.values()) {
+      if (intent.cartId !== cartId) continue
+      if (!latest) {
+        latest = { ...intent }
+        continue
+      }
+      // Map insertion order is creation order; prefer the last matching intent.
+      latest = { ...intent }
+    }
+    return latest
   }
 
   async confirmPaidOrder(paymentIntentId: string) {
@@ -299,12 +373,13 @@ export class InMemoryCheckoutRepository implements CheckoutRepository {
       throw new Error("quote total mismatch")
     }
 
-    const orderGroup: OrderGroupRow = {
+    const orderGroup: OrderGroupRow & { createdAt: Date } = {
       id: crypto.randomUUID(),
       paymentIntentId,
       buyerEmail: intent.buyerEmail,
       totalPesewas: intent.amountPesewas,
       currency: intent.currency,
+      createdAt: new Date(),
     }
     this.orderGroups.set(orderGroup.id, orderGroup)
 
@@ -364,6 +439,13 @@ export class InMemoryCheckoutRepository implements CheckoutRepository {
     return [...this.orderIndex.values()]
       .filter((o) => o.sellerId === sellerId)
       .map((o) => ({ ...o }))
+  }
+
+  async listRecentOrderGroups(limit = 50) {
+    return [...this.orderGroups.values()]
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+      .slice(0, Math.max(1, Math.min(limit, 200)))
+      .map((g) => ({ ...g }))
   }
 
   async updateOrderStatus(
