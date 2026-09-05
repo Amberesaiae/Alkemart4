@@ -1,30 +1,25 @@
 # Launch gate status (succession)
 
-Updated after Workers gold-path hardening.
+Updated after Workers canonical docs + Medusa planning archive.
+
+**Architecture SoR:** `docs/architecture/workers/`  
+**Medusa planning:** `archive/docs-medusa-era/` (do not implement)
 
 | # | Gate | Status | Evidence |
 |---|------|--------|----------|
-| 1 | Payments harden | **Partial** | Status poll verifies Paystack; webhook only confirms on success events; failures mark intent failed + release stock. Live MoMo/card with real money **not** proven in-session. See `PAYMENTS-LAUNCH-GATE.md`. |
-| 2 | Medusa quarantine | **Done for Workers prod builds** | Vite aliases `@medusajs/js-sdk` → stub when `VITE_ALKEMART_API_URL` set; no `vendor-medusa` chunk in dist. Lab dual-path code still exists without Workers URL. |
-| 3 | Hardening | **Partial** | Security headers + best-effort rate limit on auth/checkout/hooks. Demo passwords warned in `DEMO-ACCOUNTS.md`. Still need Cloudflare WAF rules + secret rotation for public launch. |
-| 4 | Ops | **Partial** | `GET /health/ready` (postgres + paystack checks). `POST /admin/migrate/schema` for idempotent patches. Prefer `packages/db` drizzle migrate when `DATABASE_URL` reachable. |
-| 5 | E2E smoke | **Done (API/Pages)** | `scripts/e2e-workers-smoke.sh` → `E2E_SMOKE_OK`. Not browser Playwright yet. |
-| 6 | Product gaps | **Partial** | Help FAQ covers returns/support/search. Returns still not implemented. Address stored on checkout. Search is title/`q` substring. |
-
-## Live smoke (verified)
-
-- `/health` + `/health/ready` → ok, paystack ok, postgres ok  
-- Security headers present  
-- Buyer COD + order detail 200  
-- Vendor products = 1 (Tecno Spark)  
-- Admin orders list  
-- All three Pages → 200  
+| 1 | Payments harden | **Partial** | Status poll verifies Paystack; webhook confirms on success; fail releases stock. Live MoMo/card money matrix still required. See `PAYMENTS-LAUNCH-GATE.md`. |
+| 2 | Medusa quarantine | **Docs archived; code dual-path remains** | Active docs no longer claim Medusa write path. Storefront still has SDK dual-path for lab; `apps/backend` Medusa package still in tree. Pages builds stub SDK when Workers URL set. |
+| 3 | Hardening | **Partial** | Security headers + rate limit. CORS documented (`cors-and-origins.md`). Need WAF + demo password rotation before public. |
+| 4 | Ops | **Partial** | `/health/ready`, migrate one-shots, Workers runbook/rollback/monitoring rewritten. |
+| 5 | E2E smoke | **API smoke + ACID script done** | `scripts/e2e-workers-smoke.sh`, `scripts/e2e-workers-acid.sh`. Browser Playwright deferred. |
+| 6 | Product gaps | **Partial** | Help FAQ. Returns / address book / wishlist not in Workers SoR. |
 
 ## Still before public launch
 
-1. Run Paystack live matrix in `PAYMENTS-LAUNCH-GATE.md`  
-2. Rotate demo account passwords  
-3. Cloudflare Rate Limiting / WAF on Worker  
-4. Custom domains + CORS `ALLOWED_ORIGINS`  
-5. Browser E2E (Playwright) optional next  
-6. Returns / address book if required for launch scope  
+1. Paystack live money matrix  
+2. Rotate demo passwords  
+3. Cloudflare WAF / Rate Limiting  
+4. Custom domains + `ALLOWED_ORIGINS`  
+5. Optional later: Playwright Workers nav matrix (deferred)  
+6. Remove storefront Medusa dual-path; archive Medusa API package  
+7. Returns / address book only if launch scope requires them  

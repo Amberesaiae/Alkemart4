@@ -34,4 +34,14 @@ Do **not** use `archive/workers-shell-*-sludge` — those were mistaken generic 
 - **Vendor:** `POST /vendor/auth/register` `{ email, password, sellerName, sellerHandle }` (pending until admin approves).
 - **Admin:** provisioned only. Login via `POST /admin/auth/login`.
 
-Rotate these passwords before any public launch.
+Rotate these passwords before any public launch:
+
+```bash
+# Admin JWT required. Supply only the passwords you want to change (min 10 chars).
+curl -X POST "$API/admin/migrate/rotate-demo-passwords" \
+  -H "Authorization: Bearer $ADMIN_JWT" \
+  -H 'content-type: application/json' \
+  -d '{"adminPassword":"…","vendorPassword":"…","buyerPassword":"…"}'
+```
+
+Then update this file and any CI secrets. Do not commit real production passwords.

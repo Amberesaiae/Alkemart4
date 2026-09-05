@@ -1,36 +1,34 @@
-# Rollback Runbook
+# Rollback — Workers
 
-## Railway Deploy Rollback
+Railway/Neon PITR notes archived under `archive/docs-medusa-era/ops/rollback.md`.
 
-```bash
-# List recent deployments
-railway deploy --list
-
-# Rollback to a specific deployment
-railway rollback <deployment-id>
-
-# If Railway CLI is unavailable, use the dashboard:
-# 1. Go to https://railway.app/project/8e3b8293-9aee-48f9-a999-aa69ded1c1e9
-# 2. Select the alkemart-api service
-# 3. Click "Deployments"
-# 4. Find the working deployment
-# 5. Click "Rollback to this deploy"
-```
-
-## Database Rollback (Neon)
+## API
 
 ```bash
-# Neon has built-in PITR. To restore:
-# 1. Go to Neon console → Branches → select your branch
-# 2. Click "Restore" and choose the point in time
-# 3. Or use CLI:
-railway run -- psql "$DATABASE_URL" -c "SELECT pg_backup_start('manual_pre_deploy');"
+cd apps/api
+npx wrangler deployments list
+npx wrangler rollback
 ```
 
-## Rollback Procedure
+Or redeploy a known-good git SHA:
 
-1. **Assess** — determine if the issue is code, data, or config
-2. **Code rollback** — use Railway rollback (above); DB schema is backward-compatible
-3. **Data rollback** — if bad data was written, restore from Neon PITR
-4. **Verify** — check `/health` endpoint, run `smoke:ui` tests
-5. **Communicate** — post in #incidents with before/after timestamps
+```bash
+git checkout <sha>
+cd apps/api && npx wrangler deploy
+```
+
+## Pages
+
+Redeploy previous build artifact / prior commit with the same `VITE_ALKEMART_API_URL`.
+
+## Database
+
+- Prefer forward-fix migrations.  
+- Supabase dashboard → backups / PITR for destructive data incidents.  
+- Admin migrate one-shots are additive (`IF NOT EXISTS`) — safe to re-run.
+
+## Payments
+
+- Do not replay webhooks blindly against a rolled-back DB.  
+- After rollback, verify `/health/ready` and run `./scripts/e2e-workers-smoke.sh`.  
+- Check Paystack dashboard for orphan charges if a deploy mid-checkout failed.
