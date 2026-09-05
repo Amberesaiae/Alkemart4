@@ -384,10 +384,32 @@ html {
   background-color: var(--surface-cream);
 }
 
+/**
+ * Dark footer — use ONLY these on-footer tokens.
+ * Never use text-primary-foreground / text-foreground / text-muted-foreground here:
+ * those are light-theme (dark ink) and vanish on --footer-bg.
+ */
 .site-footer {
   background-color: var(--footer-bg);
+  color: #f8fafc;
+  --footer-fg: #f1f5f9;
+  --footer-muted: #94a3b8;
+  --footer-link: #e2e8f0;
+}
+.site-footer .footer-copy {
+  color: var(--footer-fg);
+}
+.site-footer .footer-muted {
+  color: var(--footer-muted);
+}
+.site-footer .footer-link {
+  color: var(--footer-link);
+}
+.site-footer .footer-link:hover,
+.site-footer .footer-link:focus-visible {
   color: #ffffff;
 }
+
 
 /* PLP filter strip card */
 .listing-filter-strip {
