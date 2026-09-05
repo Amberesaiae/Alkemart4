@@ -1,5 +1,7 @@
 # ACID dataflow — Workers
 
+Doctrine: [`AGNOSTIC-APPROACH.md`](./AGNOSTIC-APPROACH.md). This file is the **data-plane** map (bindings, tables, transactions).
+
 ## Topology
 
 | Binding / service | Role |

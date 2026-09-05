@@ -15,11 +15,12 @@ Ghana-first multivendor marketplace.
 
 ## Agents — start here
 
-1. [`docs/architecture/workers/AGENT-PLAYBOOK.md`](docs/architecture/workers/AGENT-PLAYBOOK.md) — how to implement  
-2. [`docs/architecture/workers/LOCAL-DEV.md`](docs/architecture/workers/LOCAL-DEV.md) — local ports and env  
-3. [`docs/architecture/workers/`](docs/architecture/workers/) — ACID + lifecycles  
-4. [`AGENTS.md`](AGENTS.md) — short rules  
-5. [`DEPLOYMENT.md`](DEPLOYMENT.md) — production deploy  
+1. [`docs/architecture/workers/AGNOSTIC-APPROACH.md`](docs/architecture/workers/AGNOSTIC-APPROACH.md) — **owned kernel doctrine** (why we left Medusa, Product≠Offer, Paystack, single writer)  
+2. [`docs/architecture/workers/AGENT-PLAYBOOK.md`](docs/architecture/workers/AGENT-PLAYBOOK.md) — how to implement  
+3. [`docs/architecture/workers/LOCAL-DEV.md`](docs/architecture/workers/LOCAL-DEV.md) — local ports and env  
+4. [`docs/architecture/workers/`](docs/architecture/workers/) — ACID + lifecycles + nav matrix  
+5. [`AGENTS.md`](AGENTS.md) — short rules  
+6. [`DEPLOYMENT.md`](DEPLOYMENT.md) — production deploy  
 
 Ignore everything under `archive/`.
 

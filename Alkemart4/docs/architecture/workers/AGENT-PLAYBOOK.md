@@ -5,6 +5,8 @@
 
 If a document conflicts with this playbook or `docs/architecture/workers/*`, **this tree wins**. Ignore `archive/**`.
 
+**Doctrine first:** read [`AGNOSTIC-APPROACH.md`](./AGNOSTIC-APPROACH.md) — owned marketplace kernel, single writer, Product≠Offer, Paystack/Ghana invariants, rejected Medusa patterns.
+
 ---
 
 ## 1. What you may touch
@@ -76,12 +78,13 @@ Cross-cutting UI chrome → `NAV-MATRIX.md` + `ENGINEERING-STANDARDS.md`.
 
 ## 5. Reading order for a new agent session
 
-1. This file  
-2. `LOCAL-DEV.md`  
-3. `ACID-DATAFLOW.md`  
-4. The one lifecycle file for your task  
-5. `docs/ops/LAUNCH-GATE-STATUS.md` (honesty about gaps)  
-6. Optional design reference: `docs/superpowers/specs/2026-09-01-cloudflare-e2e-architecture.md`
+1. `AGNOSTIC-APPROACH.md` — doctrine / decisions / non-goals  
+2. This file — how to implement  
+3. `LOCAL-DEV.md` — ports and env  
+4. `ACID-DATAFLOW.md` — entities and txs  
+5. The one lifecycle file for your task  
+6. `docs/ops/LAUNCH-GATE-STATUS.md` — honesty about gaps  
+7. Optional design reference: `docs/superpowers/specs/2026-09-01-cloudflare-e2e-architecture.md`
 
 ## 6. Feature template (copy into PR / commit body)
 

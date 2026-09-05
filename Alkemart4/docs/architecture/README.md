@@ -2,7 +2,7 @@
 
 ## Canonical (implement from these)
 
-[`workers/`](./workers/) — agent playbook, local dev, ACID dataflow, lifecycles, nav matrix, standards.
+[`workers/`](./workers/) — start with **`AGNOSTIC-APPROACH.md`**, then agent playbook, local dev, ACID dataflow, lifecycles, nav matrix, standards.
 
 Binding money ADRs (still valid): [`2026-07-13-alkemart-architecture-and-commercial-spine.md`](./2026-07-13-alkemart-architecture-and-commercial-spine.md)
 

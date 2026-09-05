@@ -12,10 +12,11 @@
 
 ## Required reading (in order)
 
-1. [`docs/architecture/workers/AGENT-PLAYBOOK.md`](docs/architecture/workers/AGENT-PLAYBOOK.md)  
-2. [`docs/architecture/workers/LOCAL-DEV.md`](docs/architecture/workers/LOCAL-DEV.md)  
-3. Matching lifecycle under [`docs/architecture/workers/`](docs/architecture/workers/)  
-4. [`README.md`](README.md) · [`DEPLOYMENT.md`](DEPLOYMENT.md) · [`docs/ops/`](docs/ops/)  
+1. [`docs/architecture/workers/AGNOSTIC-APPROACH.md`](docs/architecture/workers/AGNOSTIC-APPROACH.md) — doctrine so far  
+2. [`docs/architecture/workers/AGENT-PLAYBOOK.md`](docs/architecture/workers/AGENT-PLAYBOOK.md) — how to implement  
+3. [`docs/architecture/workers/LOCAL-DEV.md`](docs/architecture/workers/LOCAL-DEV.md) — local serving  
+4. Matching lifecycle under [`docs/architecture/workers/`](docs/architecture/workers/)  
+5. [`README.md`](README.md) · [`DEPLOYMENT.md`](DEPLOYMENT.md) · [`docs/ops/`](docs/ops/)  
 
 ## Local
 
