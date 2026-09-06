@@ -27,8 +27,8 @@ Doctrine: [`AGNOSTIC-APPROACH.md`](./AGNOSTIC-APPROACH.md). This file is the **d
 | Double payout | eligibility re-validated inside the `createPayout` tx; `payout_lines.order_id` unique is the final arbiter; a ledger failure after a successful transfer returns 502 with the transfer reference for reconciliation |
 | Charge without ledger row | checkout creates the intent row (`initiated`, Paystack reference) **before** calling Paystack; Paystack errors mark it `failed` |
 | Abandoned reservations | hourly cron (`[triggers]` in wrangler.toml → `runPaymentIntentExpiry`) flips stale pending momo/card intents (>60 min) to `expired` and releases stock |
-| Connection storms | postgres clients are cached per connection string per isolate (`db.ts`), not per request |
-| Read amplification | full-catalog snapshot cache (5 s TTL, per isolate) for public reads; invalidation on catalog mutations; `quote`/cart views use one batched join instead of per-item queries |
+| Connection lifecycle | postgres clients are created **per request** — Workers forbids reusing request-context sockets across requests; over Hyperdrive the per-request cost is a local handshake, not a new Postgres connection |
+| Read amplification | full-catalog snapshot cache (5 s TTL, per request instance) for public reads; invalidation on catalog mutations; `quote`/cart views use one batched join instead of per-item queries |
 
 ## Entity model (Postgres)
 

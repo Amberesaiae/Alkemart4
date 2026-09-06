@@ -1,28 +1,21 @@
 import postgres from "postgres"
-import { drizzle, type PostgresJsDatabase } from "drizzle-orm/postgres-js"
+import { drizzle } from "drizzle-orm/postgres-js"
 import type { ApiEnv } from "./env"
 
 /**
- * One postgres client per connection string per isolate. Workers middleware runs
- * per request; building a fresh pool each time leaks sockets into Hyperdrive and
- * stalls under load. Reuse is safe: postgres.js pools are lazy between queries
- * and Hyperdrive multiplexes the upstream connections.
+ * One client per request, on purpose. Workers forbids using I/O objects
+ * (like postgres sockets) created inside one request's context from another
+ * request's handler — "Cannot perform I/O on behalf of a different request".
+ * A Hyperdrive connection string is only obtainable inside a request, so
+ * global-scope pooling is impossible; over Hyperdrive the per-request cost
+ * is a local handshake, not a Postgres connection.
  */
-const clientCache = new Map<string, PostgresJsDatabase>()
-
-function cachedDb(connectionString: string): PostgresJsDatabase {
-  const hit = clientCache.get(connectionString)
-  if (hit) return hit
-  const sql = postgres(connectionString, { max: 5 })
-  const db = drizzle(sql)
-  clientCache.set(connectionString, db)
-  return db
+export function catalogDb(env: ApiEnv) {
+  const sql = postgres(env.HYPERDRIVE.connectionString, { max: 5 })
+  return drizzle(sql)
 }
 
-export function catalogDb(env: ApiEnv): PostgresJsDatabase {
-  return cachedDb(env.HYPERDRIVE.connectionString)
-}
-
-export function primaryDb(env: ApiEnv): PostgresJsDatabase {
-  return cachedDb(env.HYPERDRIVE_PRIMARY.connectionString)
+export function primaryDb(env: ApiEnv) {
+  const sql = postgres(env.HYPERDRIVE_PRIMARY.connectionString, { max: 5 })
+  return drizzle(sql)
 }
