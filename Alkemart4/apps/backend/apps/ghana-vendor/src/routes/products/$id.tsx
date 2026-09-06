@@ -16,6 +16,7 @@ interface ProductFormData {
   title: string
   description: string
   categoryId: string
+  imageUrl: string
 }
 
 type OfferPriceForm = Record<string, { priceGhs: string; stock: string }>
@@ -70,7 +71,7 @@ function ProductDetailPage() {
   const { data: categoriesData } = useCategories()
 
   const [editing, setEditing] = useState(false)
-  const [form, setForm] = useState<ProductFormData>({ title: "", description: "", categoryId: "" })
+  const [form, setForm] = useState<ProductFormData>({ title: "", description: "", categoryId: "", imageUrl: "" })
   const [confirmDelete, setConfirmDelete] = useState(false)
 
   // Offer / pricing editing state
@@ -103,6 +104,7 @@ function ProductDetailPage() {
       title: product.title || "",
       description: product.description || "",
       categoryId: product.categories?.[0]?.id || "",
+      imageUrl: product.thumbnail || "",
     })
     setEditing(true)
   }
@@ -112,6 +114,11 @@ function ProductDetailPage() {
       toast.error("Title must be at least 3 characters.")
       return
     }
+    const imageUrl = form.imageUrl.trim()
+    if (imageUrl && !/^https?:\/\//i.test(imageUrl)) {
+      toast.error("Image URL must start with http:// or https://")
+      return
+    }
     try {
       await update.mutateAsync({
         id,
@@ -119,6 +126,7 @@ function ProductDetailPage() {
           title: form.title.trim(),
           description: form.description.trim() || undefined,
           categories: form.categoryId ? [{ id: form.categoryId }] : [],
+          ...(imageUrl ? { thumbnail: imageUrl } : {}),
         },
       })
       toast.success("Product updated.")
@@ -398,6 +406,19 @@ function ProductDetailPage() {
                     <option key={cat.id} value={cat.id}>{cat.name}</option>
                   ))}
                 </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-image">Image URL</Label>
+                <Input
+                  id="edit-image"
+                  type="url"
+                  placeholder="https://…/product-photo.jpg"
+                  value={form.imageUrl}
+                  onChange={e => setForm(p => ({ ...p, imageUrl: e.target.value }))}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Paste a link to your product photo. Shown on the marketplace card.
+                </p>
               </div>
               <div className="flex gap-3 pt-2">
                 <Button onClick={handleSave} isLoading={update.isPending} className="gap-2">

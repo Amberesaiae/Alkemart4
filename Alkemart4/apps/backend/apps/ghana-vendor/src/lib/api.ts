@@ -452,6 +452,7 @@ type WorkersProductItem = {
     status: ProductStatus
     primaryCategoryId: string
     sellerId: string | null
+    imageUrl?: string | null
   }
   variant: { id: string; sku: string | null; title: string | null }
   offer: {
@@ -480,6 +481,7 @@ function mapWorkersProduct(item: WorkersProductItem): Product {
     description: item.product.description,
     status: item.product.status,
     handle: item.variant.sku,
+    thumbnail: item.product.imageUrl ?? null,
     categories: item.product.primaryCategoryId
       ? [{ id: item.product.primaryCategoryId }]
       : [],
@@ -765,6 +767,7 @@ export const products = {
       const body: Record<string, unknown> = {}
       if (data.title !== undefined) body.title = data.title
       if (data.description !== undefined) body.description = data.description
+      if (data.thumbnail !== undefined) body.imageUrl = data.thumbnail
       if (data.pricePesewas !== undefined) body.pricePesewas = data.pricePesewas
       if (data.onHand !== undefined) body.onHand = data.onHand
       if (data.primaryCategoryId !== undefined) body.primaryCategoryId = data.primaryCategoryId
@@ -844,6 +847,7 @@ export const products = {
         primaryCategoryId: input.category_id,
         pricePesewas,
         onHand: input.quantity ?? 1,
+        ...(input.image_url ? { imageUrl: input.image_url } : {}),
       })
       return {
         product_id: created.product.id,

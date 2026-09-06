@@ -16,6 +16,20 @@ Doctrine: [`AGNOSTIC-APPROACH.md`](./AGNOSTIC-APPROACH.md). This file is the **d
 
 **Rule:** Money and stock mutate only through Workers + primary Hyperdrive. No dual writers. Medusa is archived.
 
+## Concurrency hardening (as built)
+
+| Concern | Mechanism |
+|---------|-----------|
+| Stock oversell | `reserveStock` uses one atomic conditional `UPDATE offers SET reserved = reserved + q WHERE on_hand - reserved >= q RETURNING id` per line inside the tx — no check-then-act window |
+| Intent state machine races (webhook vs status poll vs expiry cron) | `updatePaymentIntentStatus` is compare-and-swap (`WHERE status = observed`); the loser throws instead of silently overwriting |
+| Concurrent add-to-cart | `addCartItem` is a single `INSERT … ON CONFLICT (cart_id, offer_id) DO UPDATE SET qty = qty + excluded.qty` — no duplicate rows, no lost increments |
+| Double confirm (webhook + poll) | `confirmPaidOrder` pre-checks, then the `order_groups.payment_intent_id` unique constraint arbitrates; the loser re-fetches and returns the winner's group (200, not 500) |
+| Double payout | eligibility re-validated inside the `createPayout` tx; `payout_lines.order_id` unique is the final arbiter; a ledger failure after a successful transfer returns 502 with the transfer reference for reconciliation |
+| Charge without ledger row | checkout creates the intent row (`initiated`, Paystack reference) **before** calling Paystack; Paystack errors mark it `failed` |
+| Abandoned reservations | hourly cron (`[triggers]` in wrangler.toml → `runPaymentIntentExpiry`) flips stale pending momo/card intents (>60 min) to `expired` and releases stock |
+| Connection storms | postgres clients are cached per connection string per isolate (`db.ts`), not per request |
+| Read amplification | full-catalog snapshot cache (5 s TTL, per isolate) for public reads; invalidation on catalog mutations; `quote`/cart views use one batched join instead of per-item queries |
+
 ## Entity model (Postgres)
 
 | Area | Tables |

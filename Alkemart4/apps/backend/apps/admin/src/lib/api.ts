@@ -164,6 +164,7 @@ type WorkersProduct = {
   status: string
   primaryCategoryId?: string
   sellerId?: string | null
+  imageUrl?: string | null
 }
 
 function mapWorkersSeller(s: WorkersSeller): AdminSeller {
@@ -191,6 +192,7 @@ function mapWorkersProduct(p: WorkersProduct): ProposedProduct {
   return {
     id: p.id,
     title: p.title,
+    thumbnail: p.imageUrl ?? undefined,
     status: "proposed",
     seller: p.sellerId
       ? { id: p.sellerId, name: "", handle: "" }
