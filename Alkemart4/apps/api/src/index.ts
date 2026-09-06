@@ -73,7 +73,9 @@ export function createApp(
       c.set("repo", options.repo)
     } else {
       const env = parseEnv(c.env as unknown as Record<string, unknown>)
-      c.set("repo", new PostgresCatalogRepository(catalogDb(env)))
+      // Catalog mutations + read-after-write go through HYPERDRIVE_PRIMARY (writeDb);
+      // pure catalog reads keep using the (cached) HYPERDRIVE binding. See ACID-DATAFLOW.md.
+      c.set("repo", new PostgresCatalogRepository(catalogDb(env), primaryDb(env)))
     }
     await next()
   }

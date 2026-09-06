@@ -543,15 +543,29 @@ export class InMemoryCatalogRepository implements CatalogRepository {
 }
 
 export class PostgresCatalogRepository implements CatalogRepository {
-  constructor(private readonly db: PostgresJsDatabase) {}
+  /**
+   * `db` is the (possibly cached) catalog read binding; `writeDb` is the primary
+   * binding used for mutations and their read-after-write reads. Hyperdrive query
+   * caching on the catalog binding can serve a pre-write snapshot, which previously
+   * made createVendorProduct's read-back observe stale rows (live 500s).
+   * See ACID-DATAFLOW.md: money/stock/RYW ops must use HYPERDRIVE_PRIMARY.
+   */
+  constructor(
+    private readonly db: PostgresJsDatabase,
+    private readonly writeDb?: PostgresJsDatabase,
+  ) {}
 
-  private async load(): Promise<CatalogSnapshot> {
+  private get wdb(): PostgresJsDatabase {
+    return this.writeDb ?? this.db
+  }
+
+  private async load(db: PostgresJsDatabase = this.db): Promise<CatalogSnapshot> {
     const [categoryRows, sellerRows, productRows, variantRows, offerRows] = await Promise.all([
-      this.db.select().from(categories),
-      this.db.select().from(sellers),
-      this.db.select().from(products),
-      this.db.select().from(productVariants),
-      this.db.select().from(offers),
+      db.select().from(categories),
+      db.select().from(sellers),
+      db.select().from(products),
+      db.select().from(productVariants),
+      db.select().from(offers),
     ])
     return {
       categories: categoryRows.map((r) => ({
@@ -636,8 +650,9 @@ export class PostgresCatalogRepository implements CatalogRepository {
   private async loadOwnedVendorProduct(
     sellerId: string,
     productId: string,
+    db: PostgresJsDatabase = this.db,
   ): Promise<VendorProductDto | null> {
-    const data = await this.load()
+    const data = await this.load(db)
     const owned = sellerOwnsProduct(data, sellerId, productId)
     return owned ? toVendorProductDto(owned.product, owned.variant, owned.offer) : null
   }
@@ -648,7 +663,7 @@ export class PostgresCatalogRepository implements CatalogRepository {
     const variantId = crypto.randomUUID()
     const offerId = crypto.randomUUID()
     try {
-      await this.db.transaction(async (tx) => {
+      await this.wdb.transaction(async (tx) => {
         await tx.insert(products).values({
           id: productId,
           title: input.title,
@@ -682,7 +697,8 @@ export class PostgresCatalogRepository implements CatalogRepository {
       }
       throw err
     }
-    const created = await this.loadOwnedVendorProduct(input.sellerId, productId)
+    // Read back via primary: the cached catalog binding may not see the insert yet.
+    const created = await this.loadOwnedVendorProduct(input.sellerId, productId, this.wdb)
     if (!created) throw new Error("failed to create vendor product")
     return created
   }
@@ -692,12 +708,13 @@ export class PostgresCatalogRepository implements CatalogRepository {
     productId: string,
     patch: UpdateVendorProductInput,
   ): Promise<VendorProductDto | null> {
-    const owned = await this.loadOwnedVendorProduct(sellerId, productId)
+    // Ownership pre-read via primary: a just-created product may be invisible to the cached binding.
+    const owned = await this.loadOwnedVendorProduct(sellerId, productId, this.wdb)
     if (!owned) return null
     if (patch.primaryCategoryId !== undefined) {
       await this.requireLeafCategory(patch.primaryCategoryId)
     }
-    await this.db.transaction(async (tx) => {
+    await this.wdb.transaction(async (tx) => {
       const productPatch: Partial<{
         title: string
         description: string | null
@@ -734,18 +751,18 @@ export class PostgresCatalogRepository implements CatalogRepository {
         await tx.update(offers).set(offerPatch).where(eq(offers.id, owned.offer.id))
       }
     })
-    return this.loadOwnedVendorProduct(sellerId, productId)
+    return this.loadOwnedVendorProduct(sellerId, productId, this.wdb)
   }
 
   async proposeVendorProduct(
     sellerId: string,
     productId: string,
   ): Promise<VendorProductDto | null> {
-    const owned = await this.loadOwnedVendorProduct(sellerId, productId)
+    const owned = await this.loadOwnedVendorProduct(sellerId, productId, this.wdb)
     if (!owned) return null
     const next = proposeProduct(owned.product.status)
-    await this.db.update(products).set({ status: next }).where(eq(products.id, productId))
-    return this.loadOwnedVendorProduct(sellerId, productId)
+    await this.wdb.update(products).set({ status: next }).where(eq(products.id, productId))
+    return this.loadOwnedVendorProduct(sellerId, productId, this.wdb)
   }
 
   async listVendorProducts(sellerId: string): Promise<VendorProductDto[]> {
@@ -774,11 +791,12 @@ export class PostgresCatalogRepository implements CatalogRepository {
     productId: string,
     action: AdminProductModerationAction,
   ): Promise<AdminProductDto | null> {
-    const data = await this.load()
+    // Status transition must read current state via primary (stale status -> wrong transition).
+    const data = await this.load(this.wdb)
     const product = data.products.find((p) => p.id === productId)
     if (!product) return null
     const next = nextModerationStatus(product.status, action)
-    await this.db.update(products).set({ status: next }).where(eq(products.id, productId))
+    await this.wdb.update(products).set({ status: next }).where(eq(products.id, productId))
     return { ...toAdminProductDto(product), status: next }
   }
 }

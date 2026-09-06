@@ -6,11 +6,13 @@ Doctrine: [`AGNOSTIC-APPROACH.md`](./AGNOSTIC-APPROACH.md). This file is the **d
 
 | Binding / service | Role |
 |-------------------|------|
-| `HYPERDRIVE` | Catalog / category / seller reads (may cache) |
-| `HYPERDRIVE_PRIMARY` | Auth, cart, checkout, stock, orders, payouts (read-after-write) |
+| `HYPERDRIVE` | Catalog / category / seller **pure reads** (query cache allowed) |
+| `HYPERDRIVE_PRIMARY` | Auth, cart, checkout, stock, orders, payouts **and all catalog mutations** (vendor product create/patch/propose, admin moderation) + their read-backs (read-after-write; no query cache) |
 | `CATALOG_KV` | Hot catalog cache + Paystack webhook event dedup |
 | Paystack | MoMo charge, card initialize/verify, transfers, webhook HMAC |
 | Pages UIs | UX only — no ledger |
+
+**Known failure mode (do not reintroduce):** catalog writes that run on the cached `HYPERDRIVE` binding can read back a pre-write snapshot (Hyperdrive query cache TTL ≈ 60s), producing intermittent `failed to create vendor product` 500s in production while local (no query cache) works. Keep insert→read-back pairs on the primary binding.
 
 **Rule:** Money and stock mutate only through Workers + primary Hyperdrive. No dual writers. Medusa is archived.
 

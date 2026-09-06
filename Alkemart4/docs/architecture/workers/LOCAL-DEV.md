@@ -87,6 +87,9 @@ See `docs/DEMO-ACCOUNTS.md` (`buyer@` / `vendor@` / `admin@alkemart.test`). Same
 | UI still hits Medusa / `:9000` | Set `VITE_ALKEMART_API_URL`; restart Vite |
 | Wrangler missing secret | Create `apps/api/.dev.vars` from example |
 | Hyperdrive / DB errors | `wrangler login`; check binding IDs in `apps/api/wrangler.toml` |
+| `wrangler dev` refuses to start: "use a local Postgres connection string to emulate Hyperdrive" | Export per-binding emulation vars before `bun run dev:workers`: `CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE` and `..._HYPERDRIVE_PRIMARY`, both set to the Supabase **pooler** URL from `.local/supabase-alkemart.env` |
+| Hyperdrive emulation: `tenant/user postgres.<ref> not found` | The `.local` env file may name a stale pooler host (Supabase migrates projects between `aws-0-` / `aws-1-` endpoints). Rewrite the host to the other endpoint (e.g. `aws-1-eu-west-1.pooler.supabase.com`) — credentials are unchanged |
+| Direct `db.<ref>.supabase.co:5432` unreachable (`Network is unreachable`) | This network is IPv4-only; use the pooler URL (IPv4) for emulation, not the direct host (IPv6) |
 | `wrangler` fetch failed / whoami hangs | Prefer IPv4. For Workers: `NODE_OPTIONS='--dns-result-order=ipv4first' wrangler deploy`. For Pages on broken IPv6 networks use the preload: `NODE_OPTIONS="--dns-result-order=ipv4first -r $PWD/scripts/node-ipv4-fetch-preload.cjs" wrangler pages deploy …` or `bun run deploy:pages` |
 | CORS browser errors | Ensure origin is localhost port above; see `docs/ops/cors-and-origins.md` |
 | Wrong brand / sludge shells | Do not run `archive/workers-shell-*-sludge` |
