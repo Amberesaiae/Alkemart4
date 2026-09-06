@@ -23,4 +23,6 @@ export interface AdminProduct {
   primaryCategoryId: string;
   /** @nullable */
   sellerId: string | null;
+  /** @nullable */
+  imageUrl: string | null;
 }

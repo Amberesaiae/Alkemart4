@@ -39,4 +39,10 @@ export interface CreateVendorProductRequest {
    * @nullable
    */
   variantTitle?: string | null;
+  /**
+   * Vendor-supplied http(s) image URL (uploads land on Workers later).
+   * @maxLength 2048
+   * @nullable
+   */
+  imageUrl?: string | null;
 }

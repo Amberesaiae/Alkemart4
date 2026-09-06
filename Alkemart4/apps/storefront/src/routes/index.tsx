@@ -13,7 +13,7 @@ import { PageSeo } from "@/components/page-seo"
 import { Skeleton } from "@/components/skeleton"
 import { getMercurVendorUrl } from "@/lib/env"
 import { trackHomepageViewed } from "@/lib/analytics"
-import { fetchFeaturedProducts, listStoreCategories, listStoreProducts } from "@/lib/products"
+import { fetchFeaturedProducts, listStoreCategories } from "@/lib/products"
 import { resolveMosaicTiles } from "@/lib/catalog-nav"
 import {
   absoluteUrl,
@@ -23,8 +23,6 @@ import {
 } from "@/lib/seo"
 import { cn } from "@/lib/utils"
 
-const HOME_OFFERS_TARGET = 14
-
 export const Route = createFileRoute("/")({
   component: HomePage,
 })
@@ -32,15 +30,11 @@ export const Route = createFileRoute("/")({
 /**
  * Homepage — real catalog only (production).
  * No demo seed, no invented products or categories.
+ * Rails: newest listings first (honest curation), then per-category tabs.
  */
 function HomePage() {
   const tracked = useRef(false)
 
-  const productsQ = useQuery({
-    queryKey: ["store", "products", "home", HOME_OFFERS_TARGET],
-    queryFn: () => listStoreProducts({ limit: HOME_OFFERS_TARGET }),
-    staleTime: 60_000,
-  })
   const featuredQ = useQuery({
     queryKey: ["store", "featured-products"],
     queryFn: () => fetchFeaturedProducts(),
@@ -58,22 +52,9 @@ function HomePage() {
   )
 
   const featured = useMemo(
-    () => productsQ.data?.products ?? [],
-    [productsQ.data?.products],
+    () => featuredQ.data ?? [],
+    [featuredQ.data],
   )
-
-  const recent = useMemo(() => {
-    const list = [...featured]
-    list.sort((a, b) => {
-      const at = a.createdAt ? Date.parse(a.createdAt) : Number.NaN
-      const bt = b.createdAt ? Date.parse(b.createdAt) : Number.NaN
-      if (Number.isFinite(at) && Number.isFinite(bt)) return bt - at
-      if (Number.isFinite(at)) return -1
-      if (Number.isFinite(bt)) return 1
-      return 0
-    })
-    return list.slice(0, 4)
-  }, [featured])
 
   const sellUrl = useMemo(() => {
     try {
@@ -83,11 +64,11 @@ function HomePage() {
     }
   }, [])
 
-  const loadingOffers = productsQ.isLoading && featured.length === 0
+  const loadingOffers = featuredQ.isLoading && featured.length === 0
 
   useEffect(() => {
     if (tracked.current) return
-    if (productsQ.isLoading || catsQ.isLoading) return
+    if (featuredQ.isLoading || catsQ.isLoading) return
     tracked.current = true
     trackHomepageViewed({
       productCount: featured.length,
@@ -98,7 +79,7 @@ function HomePage() {
       hasFeatured: featured.length > 0,
     })
   }, [
-    productsQ.isLoading,
+    featuredQ.isLoading,
     catsQ.isLoading,
     featured.length,
     mosaic.length,
@@ -155,22 +136,16 @@ function HomePage() {
         <CategoryMosaic tiles={mosaic} />
       ) : null}
 
-      {featuredQ.data && featuredQ.data.length > 0 ? (
-        <section aria-label="Featured products" className="space-y-4">
-          <h2 className="type-section text-foreground">Featured</h2>
+      {featuredQ.data && featured.length > 0 ? (
+        <section aria-label="Fresh picks — newest products" className="space-y-4">
+          <div className="flex items-baseline justify-between gap-3">
+            <h2 className="type-section text-foreground">Fresh picks</h2>
+            <p className="type-sm text-muted-foreground">
+              Just landed from our sellers
+            </p>
+          </div>
           <ProductGridShell>
-            {featuredQ.data.map((p) => (
-              <ProductCard key={p.id} product={p} size="tile" />
-            ))}
-          </ProductGridShell>
-        </section>
-      ) : null}
-
-      {!loadingOffers && recent.length > 0 ? (
-        <section aria-label="Recently added products" className="space-y-4">
-          <h2 className="type-section text-foreground">Recently Added</h2>
-          <ProductGridShell>
-            {recent.map((p) => (
+            {featured.map((p) => (
               <ProductCard key={p.id} product={p} size="tile" />
             ))}
           </ProductGridShell>

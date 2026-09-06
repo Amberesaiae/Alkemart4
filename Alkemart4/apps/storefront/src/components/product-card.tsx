@@ -5,6 +5,9 @@ import { Price } from "@/components/price"
 import { SellerChip } from "@/components/seller-chip"
 import { AddToCartControl } from "@/components/product/AddToCartControl"
 import { WishlistButton } from "@/components/product/WishlistButton"
+import { Icon } from "@/design/icons"
+import { deptThemeClass } from "@/lib/category-theme"
+import { iconForCategory } from "@/lib/catalog-nav"
 import type { StoreProductCard } from "@/lib/products"
 import { addOfferToCart } from "@/lib/cart"
 import { sellersHintText } from "@/lib/sellers-hint"
@@ -37,11 +40,20 @@ type ProductCardProps = {
 const shell =
   "group overflow-hidden rounded-xl border border-border bg-card shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:border-foreground/15 hover:shadow-md"
 
+/** Stock states surfaced on the card — fewer dead-end add-to-cart clicks. */
+function stockState(product: StoreProductCard): "in" | "low" | "out" | "unknown" {
+  const qty = product.availableQty
+  if (qty == null) return product.offerId ? "in" : "unknown"
+  if (qty <= 0) return "out"
+  if (qty <= 5) return "low"
+  return "in"
+}
+
 /**
- * Concise retail card: category line · image · title (2 lines) · price + cart.
- * Category line renders only when the catalog supplied a category label.
- * Per-card ratings are intentionally omitted — the catalog has no per-product
- * rating source (only vendor-level ratingAvgX100 on the shop page).
+ * Concise retail card: category line · image · title (2 lines) · seller ·
+ * price + cart. Surfaces the facts a Ghana marketplace buyer needs before
+ * clicking: which shop sells it, how many sellers compete, what stock is
+ * left, and the "from" price when peer sellers exist.
  */
 export function ProductCard({
   product,
@@ -55,8 +67,11 @@ export function ProductCard({
   const [error, setError] = useState<string | null>(null)
   const [ok, setOk] = useState(false)
 
-  const canAdd = Boolean(product.offerId)
+  const stock = stockState(product)
+  const soldOut = stock === "out"
+  const canAdd = Boolean(product.offerId) && !soldOut
   const detailId = product.handle?.trim() || product.id
+  const multiSeller = (product.offerCount ?? 0) > 1
 
   async function onAdd() {
     if (!product.offerId) {
@@ -82,7 +97,7 @@ export function ProductCard({
     ok,
     disabled: !canAdd || pending,
     onClick: () => void onAdd(),
-    title: "Add to cart",
+    title: soldOut ? "Sold out" : "Add to cart",
   }
 
   if (row) {
@@ -102,13 +117,16 @@ export function ProductCard({
         <div className="flex min-w-0 flex-1 flex-col justify-center gap-1 p-2.5">
           <CategoryLabel label={product.categoryLabel} />
           <Title product={product} detailId={detailId} />
-          <SellerChip seller={product.seller} short className="line-clamp-1" />
-          <SellersHint offerCount={product.offerCount} />
+          <div className="flex min-w-0 items-center gap-1.5">
+            <SellerChip seller={product.seller} short className="line-clamp-1" />
+            <SellersHint offerCount={product.offerCount} />
+          </div>
           <div className="flex items-center justify-between gap-2">
             <Price
               amount={product.amount}
               currencyCode={product.currencyCode}
               size="sm"
+              from={multiSeller}
               className="font-bold"
             />
             <div className="flex items-center gap-0.5">
@@ -130,21 +148,25 @@ export function ProductCard({
         detailId={detailId}
         className="aspect-square w-full shrink-0"
         showWish
+        stock={stock}
       />
       <div className="flex flex-1 flex-col gap-1 p-2 sm:p-2.5">
         <CategoryLabel label={product.categoryLabel} />
         <Title product={product} detailId={detailId} />
-        <SellerChip
-          seller={product.seller}
-          short
-          className="line-clamp-1 type-sm"
-        />
+        <div className="flex min-w-0 items-center gap-1.5">
+          <SellerChip
+            seller={product.seller}
+            short
+            className="line-clamp-1 type-sm"
+          />
+        </div>
         <SellersHint offerCount={product.offerCount} />
         <div className="mt-auto flex items-center justify-between gap-1.5 pt-1">
           <Price
             amount={product.amount}
             currencyCode={product.currencyCode}
             size="sm"
+            from={multiSeller}
             className="min-w-0 truncate font-bold tabular-nums"
           />
           <AddToCartControl variant="icon" {...cart} />
@@ -155,13 +177,33 @@ export function ProductCard({
   )
 }
 
+function StockBadge({ stock }: { stock: ReturnType<typeof stockState> }) {
+  if (stock === "low") {
+    return (
+      <span className="rounded-full bg-warning/15 px-2 py-0.5 text-[10px] font-semibold text-warning-foreground ring-1 ring-warning/30 backdrop-blur-sm">
+        Few left
+      </span>
+    )
+  }
+  if (stock === "out") {
+    return (
+      <span className="rounded-full bg-foreground/70 px-2 py-0.5 text-[10px] font-semibold text-background backdrop-blur-sm">
+        Sold out
+      </span>
+    )
+  }
+  return null
+}
+
 function Media(props: {
   product: StoreProductCard
   detailId: string
   className?: string
   showWish?: boolean
+  stock?: ReturnType<typeof stockState>
 }) {
-  const { product, detailId, className, showWish } = props
+  const { product, detailId, className, showWish, stock } = props
+  const [broken, setBroken] = useState(false)
   const title = (product.title || "Product").trim()
   // Prefer processed webp derivatives; fall back to raw thumbnail/images/original
   const web = product.webUrl
@@ -170,24 +212,36 @@ function Media(props: {
     product.thumbnail ||
     product.images?.[0]?.url ||
     undefined
-  const src = web ?? thumb ?? fallback
+  const src = !broken ? (web ?? thumb ?? fallback) : undefined
   const inner = src ? (
     <img
       src={src}
       srcSet={buildSrcSet(web, thumb, fallback)}
       sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
       alt=""
+      onError={() => setBroken(true)}
       className="h-full w-full object-contain p-2 transition duration-200 group-hover:scale-[1.03] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
       loading="lazy"
       decoding="async"
     />
   ) : (
+    /* Designed no-photo tile: department tint + category glyph. Reads as
+       intentional art direction, never as a broken image. */
     <div
-      className="flex h-full w-full items-center justify-center bg-muted"
+      className={cn(
+        "cat-fallback flex h-full w-full flex-col items-center justify-center gap-1.5 p-3 text-center",
+        deptThemeClass(product.categoryLabel ?? "", product.categoryHandles?.[0]),
+      )}
       aria-hidden="true"
     >
-      <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-xs font-extrabold text-primary-foreground">
-        {title.charAt(0).toUpperCase()}
+      <span className="cat-fallback-glyph">
+        <Icon
+          name={iconForCategory(product.categoryLabel ?? "", product.categoryHandles?.[0])}
+          size={26}
+        />
+      </span>
+      <span className="cat-fallback-word line-clamp-2 font-semibold uppercase tracking-[0.14em]">
+        {product.categoryLabel?.trim() || title}
       </span>
     </div>
   )
@@ -197,12 +251,17 @@ function Media(props: {
       to="/product/$id"
       params={{ id: detailId }}
       className={cn(
-        "relative block w-full bg-muted/30 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+        "relative block w-full overflow-hidden bg-muted/30 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
         className,
       )}
       aria-label={title}
     >
       {inner}
+      {stock && stock !== "in" && stock !== "unknown" ? (
+        <span className="absolute left-1.5 top-1.5 z-10">
+          <StockBadge stock={stock} />
+        </span>
+      ) : null}
       {showWish ? (
         <span className="absolute right-1.5 top-1.5 z-10">
           <WishlistButton productId={product.id} onMedia size={13} />

@@ -50,11 +50,16 @@ function StorePage() {
   /**
    * Multi-category store arrangement (Mowafer + Ghana marketplace):
    * Group by categoryLabel from catalog (server taxonomy).
-   * Flat grid fallback when all unlabeled.
+   * Flat grid fallback when all unlabeled. Newest first within groups.
    */
   const sections = useMemo(() => {
+    const sorted = [...products].sort((a, b) => {
+      const at = a.createdAt ? Date.parse(a.createdAt) : 0
+      const bt = b.createdAt ? Date.parse(b.createdAt) : 0
+      return bt - at || a.title.localeCompare(b.title)
+    })
     const map = new Map<string, StoreProductCard[]>()
-    for (const p of products) {
+    for (const p of sorted) {
       const key = (p.categoryLabel || "").trim() || "All products"
       const arr = map.get(key) ?? []
       arr.push(p)
@@ -63,7 +68,7 @@ function StorePage() {
     const entries = [...map.entries()]
     // Prefer multi-section when more than one real category
     if (entries.length <= 1) {
-      return [{ title: null as string | null, products }]
+      return [{ title: null as string | null, products: sorted }]
     }
     return entries
       .sort((a, b) => a[0].localeCompare(b[0]))

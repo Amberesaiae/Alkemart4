@@ -19,6 +19,9 @@ export type CatalogProduct = {
   status: ProductStatus
   primaryCategoryId: string
   sellerId: string | null
+  imageUrl?: string | null
+  /** ISO string in snapshots; Date in Postgres rows. */
+  createdAt?: string | null
 }
 
 export type CatalogVariant = {

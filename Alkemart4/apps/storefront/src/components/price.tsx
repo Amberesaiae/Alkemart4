@@ -8,6 +8,8 @@ type PriceProps = {
   size?: "sm" | "md" | "lg"
   /** When amount missing — honest empty, never invent a price */
   unavailableLabel?: string
+  /** Renders "From" before the amount — multi-seller products have no single price. */
+  from?: boolean
 }
 
 const sizeClass = {
@@ -23,6 +25,7 @@ export function Price({
   className,
   size = "md",
   unavailableLabel = "Price unavailable",
+  from = false,
 }: PriceProps) {
   if (amount == null || !Number.isFinite(amount)) {
     return (
@@ -33,6 +36,7 @@ export function Price({
   }
   return (
     <span className={cn(sizeClass[size], "text-foreground tabular-nums", className)}>
+      {from ? <span className="mr-1 font-medium text-muted-foreground">From</span> : null}
       {formatMoney(amount, currencyCode)}
     </span>
   )

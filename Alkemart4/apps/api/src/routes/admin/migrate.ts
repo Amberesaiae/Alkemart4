@@ -33,9 +33,17 @@ export const adminMigrate = new Hono<AppEnv>()
     const env = parseEnv(c.env as unknown as Record<string, unknown>)
     const db = primaryDb(env)
     await db.execute(sql`ALTER TABLE payment_intents ADD COLUMN IF NOT EXISTS shipping_address jsonb`)
+    await db.execute(sql`ALTER TABLE products ADD COLUMN IF NOT EXISTS image_url text`)
+    await db.execute(
+      sql`ALTER TABLE products ADD COLUMN IF NOT EXISTS created_at timestamptz NOT NULL DEFAULT now()`,
+    )
     return c.json({
       ok: true,
-      applied: ["payment_intents.shipping_address"],
+      applied: [
+        "payment_intents.shipping_address",
+        "products.image_url",
+        "products.created_at",
+      ],
       note: "Use packages/db drizzle migrate when direct DATABASE_URL is available",
     })
   })

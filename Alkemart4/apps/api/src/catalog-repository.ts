@@ -30,12 +30,16 @@ import type {
   CatalogVariant,
 } from "./demo-seed"
 
+export type CatalogSort = "newest" | "price_asc" | "price_desc"
+
 export type CatalogListQuery = {
   category?: string
   /** Case-insensitive title substring filter (Workers search). */
   q?: string
   limit: number
   offset: number
+  /** Default ordering stays title-asc (stable across pages). */
+  sort?: CatalogSort
 }
 
 export type CatalogListDto = {
@@ -86,6 +90,7 @@ export type CreateVendorProductInput = {
   onHand: number
   sku?: string | null
   variantTitle?: string | null
+  imageUrl?: string | null
 }
 
 export type UpdateVendorProductInput = {
@@ -97,6 +102,7 @@ export type UpdateVendorProductInput = {
   active?: boolean
   sku?: string | null
   variantTitle?: string | null
+  imageUrl?: string | null
 }
 
 export type AdminProductDto = {
@@ -106,6 +112,7 @@ export type AdminProductDto = {
   status: ProductStatus
   primaryCategoryId: string
   sellerId: string | null
+  imageUrl: string | null
 }
 
 export type AdminProductModerationAction = "approve" | "reject" | "request_changes"
@@ -122,6 +129,22 @@ export class CatalogValidationError extends Error {
     super(message)
     this.name = "CatalogValidationError"
   }
+}
+
+/**
+ * Per-isolate snapshot cache for public catalog reads. The db handle is cached
+ * per connection string (see db.ts), so this survives across requests on one
+ * isolate. Short TTL: mutations invalidate explicitly, and vendor/admin writes
+ * run on the primary handle anyway.
+ */
+const SNAPSHOT_TTL_MS = 5_000
+const catalogSnapshotCache = new WeakMap<
+  PostgresJsDatabase,
+  { at: number; data: CatalogSnapshot }
+>()
+
+function invalidateSnapshot(...dbs: PostgresJsDatabase[]): void {
+  for (const db of dbs) catalogSnapshotCache.delete(db)
 }
 
 export interface CatalogRepository {
@@ -212,6 +235,7 @@ function toAdminProductDto(product: CatalogProduct): AdminProductDto {
     status: product.status,
     primaryCategoryId: product.primaryCategoryId,
     sellerId: product.sellerId,
+    imageUrl: product.imageUrl ?? null,
   }
 }
 
@@ -320,7 +344,8 @@ function cardInput(
     title: product.title,
     categoryHandle: cat?.handle ?? product.primaryCategoryId,
     categoryName: cat?.name ?? product.primaryCategoryId,
-    imageUrl: null as string | null,
+    imageUrl: product.imageUrl ?? null,
+    createdAt: product.createdAt ?? null,
   }
 }
 
@@ -338,6 +363,32 @@ function cardsFor(
   }
   cards.sort((a, b) => a.title.localeCompare(b.title) || a.productId.localeCompare(b.productId))
   return cards
+}
+
+function applySort(cards: ProductCardDto[], sort?: CatalogSort): ProductCardDto[] {
+  if (!sort) return cards
+  const sorted = [...cards]
+  if (sort === "price_asc" || sort === "price_desc") {
+    const dir = sort === "price_asc" ? 1 : -1
+    sorted.sort((a, b) => {
+      const cmp =
+        BigInt(a.fromPricePesewas) < BigInt(b.fromPricePesewas)
+          ? -1
+          : BigInt(a.fromPricePesewas) > BigInt(b.fromPricePesewas)
+            ? 1
+            : 0
+      return cmp * dir || a.productId.localeCompare(b.productId)
+    })
+    return sorted
+  }
+  // newest — ISO strings sort lexically; missing timestamps sink to the end
+  sorted.sort(
+    (a, b) =>
+      (Date.parse(b.createdAt ?? "") || 0) - (Date.parse(a.createdAt ?? "") || 0) ||
+      a.title.localeCompare(b.title) ||
+      a.productId.localeCompare(b.productId),
+  )
+  return sorted
 }
 
 export function listCategoriesFrom(data: CatalogSnapshot): CategoryNode[] {
@@ -360,7 +411,7 @@ export function listCatalogFrom(data: CatalogSnapshot, query: CatalogListQuery):
         (p.description?.toLowerCase().includes(q) ?? false),
     )
   }
-  const cards = cardsFor(productRows, data, sellablePeerOffers(data))
+  const cards = applySort(cardsFor(productRows, data, sellablePeerOffers(data)), query.sort)
   return {
     items: cards.slice(query.offset, query.offset + query.limit),
     total: cards.length,
@@ -379,7 +430,7 @@ export function getProductFrom(data: CatalogSnapshot, id: string): ProductDetail
       description: product.description,
       categoryHandle: cat?.handle ?? product.primaryCategoryId,
       categoryName: cat?.name ?? product.primaryCategoryId,
-      imageUrls: [],
+      imageUrls: product.imageUrl ? [product.imageUrl] : [],
     },
     offersForProduct,
   )
@@ -560,6 +611,19 @@ export class PostgresCatalogRepository implements CatalogRepository {
   }
 
   private async load(db: PostgresJsDatabase = this.db): Promise<CatalogSnapshot> {
+    if (db === this.db) {
+      // Full-catalog snapshot cache (per isolate, short TTL). Public reads hit
+      // this multiple times per request; writes invalidate via invalidateSnapshot.
+      const cached = catalogSnapshotCache.get(db)
+      if (cached && Date.now() - cached.at < SNAPSHOT_TTL_MS) return cached.data
+      const fresh = await this.loadFresh(db)
+      catalogSnapshotCache.set(db, { at: Date.now(), data: fresh })
+      return fresh
+    }
+    return this.loadFresh(db)
+  }
+
+  private async loadFresh(db: PostgresJsDatabase): Promise<CatalogSnapshot> {
     const [categoryRows, sellerRows, productRows, variantRows, offerRows] = await Promise.all([
       db.select().from(categories),
       db.select().from(sellers),
@@ -591,6 +655,8 @@ export class PostgresCatalogRepository implements CatalogRepository {
         status: r.status,
         primaryCategoryId: r.primaryCategoryId,
         sellerId: r.sellerId,
+        imageUrl: r.imageUrl,
+        createdAt: r.createdAt ? r.createdAt.toISOString() : null,
       })),
       variants: variantRows.map((r) => ({
         id: r.id,
@@ -671,6 +737,7 @@ export class PostgresCatalogRepository implements CatalogRepository {
           status: "proposed",
           primaryCategoryId: input.primaryCategoryId,
           sellerId: input.sellerId,
+          imageUrl: input.imageUrl ?? null,
         })
         await tx.insert(productVariants).values({
           id: variantId,
@@ -697,6 +764,7 @@ export class PostgresCatalogRepository implements CatalogRepository {
       }
       throw err
     }
+    invalidateSnapshot(this.wdb, this.db)
     // Read back via primary: the cached catalog binding may not see the insert yet.
     const created = await this.loadOwnedVendorProduct(input.sellerId, productId, this.wdb)
     if (!created) throw new Error("failed to create vendor product")
@@ -719,12 +787,14 @@ export class PostgresCatalogRepository implements CatalogRepository {
         title: string
         description: string | null
         primaryCategoryId: string
+        imageUrl: string | null
       }> = {}
       if (patch.title !== undefined) productPatch.title = patch.title
       if (patch.description !== undefined) productPatch.description = patch.description
       if (patch.primaryCategoryId !== undefined) {
         productPatch.primaryCategoryId = patch.primaryCategoryId
       }
+      if (patch.imageUrl !== undefined) productPatch.imageUrl = patch.imageUrl
       if (Object.keys(productPatch).length > 0) {
         await tx.update(products).set(productPatch).where(eq(products.id, productId))
       }
@@ -751,6 +821,7 @@ export class PostgresCatalogRepository implements CatalogRepository {
         await tx.update(offers).set(offerPatch).where(eq(offers.id, owned.offer.id))
       }
     })
+    invalidateSnapshot(this.wdb, this.db)
     return this.loadOwnedVendorProduct(sellerId, productId, this.wdb)
   }
 
@@ -762,6 +833,7 @@ export class PostgresCatalogRepository implements CatalogRepository {
     if (!owned) return null
     const next = proposeProduct(owned.product.status)
     await this.wdb.update(products).set({ status: next }).where(eq(products.id, productId))
+    invalidateSnapshot(this.wdb, this.db)
     return this.loadOwnedVendorProduct(sellerId, productId, this.wdb)
   }
 
@@ -797,6 +869,7 @@ export class PostgresCatalogRepository implements CatalogRepository {
     if (!product) return null
     const next = nextModerationStatus(product.status, action)
     await this.wdb.update(products).set({ status: next }).where(eq(products.id, productId))
+    invalidateSnapshot(this.wdb, this.db)
     return { ...toAdminProductDto(product), status: next }
   }
 }

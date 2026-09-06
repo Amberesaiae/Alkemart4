@@ -91,6 +91,15 @@ paths:
             type: integer
             minimum: 0
             default: 0
+        - name: sort
+          in: query
+          required: false
+          description: |
+            Card ordering. Default stays title-asc (stable across pages);
+            `newest` sorts by product creation time.
+          schema:
+            type: string
+            enum: [newest, price_asc, price_desc]
       responses:
         "200":
           description: Paginated product cards
@@ -1092,6 +1101,11 @@ components:
           type: string
           nullable: true
           maxLength: 120
+        imageUrl:
+          type: string
+          nullable: true
+          maxLength: 2048
+          description: Vendor-supplied http(s) image URL (uploads land on Workers later).
 
     PatchVendorProductRequest:
       type: object
@@ -1123,6 +1137,11 @@ components:
           type: string
           nullable: true
           maxLength: 120
+        imageUrl:
+          type: string
+          nullable: true
+          maxLength: 2048
+          description: Vendor-supplied http(s) image URL (uploads land on Workers later).
 
     VendorOffer:
       type: object
@@ -1261,6 +1280,7 @@ components:
         - status
         - primaryCategoryId
         - sellerId
+        - imageUrl
       properties:
         id:
           type: string
@@ -1274,6 +1294,9 @@ components:
         primaryCategoryId:
           type: string
         sellerId:
+          type: string
+          nullable: true
+        imageUrl:
           type: string
           nullable: true
 
@@ -1297,6 +1320,11 @@ components:
         - fromPricePesewas
         - bestOfferId
         - offerCount
+        - sellerId
+        - sellerHandle
+        - sellerName
+        - availableQty
+        - createdAt
         - currency
       properties:
         productId:
@@ -1319,6 +1347,21 @@ components:
           type: integer
           minimum: 1
           description: Count of sellable peer offers for this product (this seller only on shop pages).
+        sellerId:
+          type: string
+          description: Seller behind the best offer.
+        sellerHandle:
+          type: string
+        sellerName:
+          type: string
+        availableQty:
+          type: integer
+          minimum: 1
+          description: Sellable units on the best offer (on_hand − reserved).
+        createdAt:
+          type: string
+          nullable: true
+          description: ISO product creation timestamp; null for rows predating the column.
         currency:
           $ref: "#/components/schemas/Currency"
 

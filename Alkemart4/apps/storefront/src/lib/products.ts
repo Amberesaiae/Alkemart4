@@ -58,6 +58,8 @@ export type StoreProductCard = {
   createdAt?: string | null
   /** 0–5 star rating when known (demo / reviews API). */
   rating?: number | null
+  /** Sellable units behind the card's best offer — null when unknown. */
+  availableQty?: number | null
 }
 
 function ensureCloudflareBaseUrl(): void {
@@ -89,6 +91,15 @@ function mapCfProductCard(c: CfProductCard): StoreProductCard {
     currencyCode: c.currency === "ghs" ? "ghs" : c.currency,
     categoryLabel: c.categoryName,
     categoryHandles: c.categoryHandle ? [c.categoryHandle] : null,
+    seller: c.sellerName
+      ? {
+          id: c.sellerId,
+          name: c.sellerName,
+          handle: c.sellerHandle,
+        }
+      : null,
+    availableQty: typeof c.availableQty === "number" ? c.availableQty : null,
+    createdAt: c.createdAt ?? null,
   }
 }
 
@@ -293,6 +304,7 @@ type CatalogQuery = {
   offset?: number
   sellerHandle?: string
   categoryHandle?: string
+  sort?: "newest" | "price_asc" | "price_desc"
 }
 
 /**
@@ -407,6 +419,8 @@ export async function listStoreProducts(opts?: {
   sellerHandle?: string
   /** Product category handle — server catalog filter */
   categoryHandle?: string
+  /** Server-side card ordering (Workers catalog) */
+  sort?: "newest" | "price_asc" | "price_desc"
 }): Promise<{
   products: StoreProductCard[]
   count: number
@@ -446,6 +460,7 @@ export async function listStoreProducts(opts?: {
       offset,
       ...(cfCategory ? { category: cfCategory } : {}),
       ...(q ? { q } : {}),
+      ...(opts?.sort ? { sort: opts.sort } : {}),
     })
     return {
       products: (res.items ?? []).map(mapCfProductCard),
@@ -730,7 +745,8 @@ export async function listRelatedProducts(opts: {
 export async function fetchFeaturedProducts(): Promise<StoreProductCard[]> {
   if (useCloudflareCatalog()) {
     try {
-      const { products } = await listStoreProducts({ limit: 12, offset: 0 })
+      // Honest curation: newest real listings first (no invented "trending").
+      const { products } = await listStoreProducts({ limit: 12, offset: 0, sort: "newest" })
       return products
     } catch {
       return []

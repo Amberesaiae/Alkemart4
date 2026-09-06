@@ -30,5 +30,19 @@ export interface ProductCard {
    * @minimum 1
    */
   offerCount: number;
+  /** Seller behind the best offer. */
+  sellerId: string;
+  sellerHandle: string;
+  sellerName: string;
+  /**
+   * Sellable units on the best offer (on_hand − reserved).
+   * @minimum 1
+   */
+  availableQty: number;
+  /**
+   * ISO product creation timestamp; null for rows predating the column.
+   * @nullable
+   */
+  createdAt: string | null;
   currency: Currency;
 }

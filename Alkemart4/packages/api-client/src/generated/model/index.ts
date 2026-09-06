@@ -38,6 +38,7 @@ export * from './currency';
 export * from './errorResponse';
 export * from './forbiddenResponse';
 export * from './getCatalogParams';
+export * from './getCatalogSort';
 export * from './ghanaSetupRequest';
 export * from './ghanaSetupRequestMomo';
 export * from './notFoundResponse';

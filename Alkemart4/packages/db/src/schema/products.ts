@@ -1,4 +1,4 @@
-import { pgEnum, pgTable, text } from "drizzle-orm/pg-core"
+import { pgEnum, pgTable, text, timestamp } from "drizzle-orm/pg-core"
 import { categories } from "./categories"
 import { sellers } from "./sellers"
 
@@ -19,6 +19,9 @@ export const products = pgTable("products", {
     .notNull()
     .references(() => categories.id),
   sellerId: text("seller_id").references(() => sellers.id),
+  /** Vendor-supplied image URL. Uploads are not on Workers yet; a pasted URL is honest media. */
+  imageUrl: text("image_url"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 })
 
 export const productVariants = pgTable("product_variants", {

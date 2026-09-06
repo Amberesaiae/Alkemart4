@@ -12,30 +12,13 @@ Checkout charge/initialize is Plan 3 (not documented here).
 
  * OpenAPI spec version: 0.4.0
  */
-import type { GetCatalogSort } from './getCatalogSort';
 
-export type GetCatalogParams = {
-/**
- * Category handle; includes descendants.
- */
-category?: string;
-/**
- * Case-insensitive title/description substring filter.
- */
-q?: string;
-/**
- * @minimum 1
- * @maximum 100
- */
-limit?: number;
-/**
- * @minimum 0
- */
-offset?: number;
-/**
- * Card ordering. Default stays title-asc (stable across pages);
-`newest` sorts by product creation time.
+export type GetCatalogSort = typeof GetCatalogSort[keyof typeof GetCatalogSort];
 
- */
-sort?: GetCatalogSort;
-};
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export const GetCatalogSort = {
+  newest: 'newest',
+  price_asc: 'price_asc',
+  price_desc: 'price_desc',
+} as const;

@@ -298,6 +298,36 @@ html {
   color: var(--foreground);
 }
 
+/* ─── Product-card no-photo tile ───
+ * Designed fallback for products without an image: department tint +
+ * category glyph. Must read as art direction, never as a broken image.
+ */
+.cat-fallback {
+  background-color: var(--dept-soft);
+  color: var(--foreground);
+}
+.cat-fallback-glyph {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 9999px;
+  background-color: var(--dept-bg);
+  color: var(--dept-fg);
+  opacity: 0.92;
+  transition: transform 200ms ease;
+}
+.group:hover .cat-fallback-glyph {
+  transform: scale(1.06);
+}
+.cat-fallback-word {
+  font-size: 10px;
+  line-height: 1.35;
+  color: color-mix(in srgb, var(--dept-bg) 70%, var(--foreground));
+  max-width: 90%;
+}
+
 /* Brands / Sellers panel */
 .brands-panel {
   background-color: var(--ink);

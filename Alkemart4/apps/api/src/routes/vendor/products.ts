@@ -11,6 +11,16 @@ import { requireSeller } from "../../middleware/auth"
 
 const PesewasString = z.string().regex(/^\d+$/)
 
+/** Honest media for now: a vendor-pasted image URL. Uploads land on Workers later. */
+const ImageUrl = z
+  .string()
+  .trim()
+  .url()
+  .max(2048)
+  .refine((v) => v.startsWith("https://") || v.startsWith("http://"), {
+    message: "image URL must be http(s)",
+  })
+
 const CreateBody = z.object({
   title: z.string().trim().min(1).max(200),
   description: z.string().trim().max(5000).optional().nullable(),
@@ -19,6 +29,7 @@ const CreateBody = z.object({
   onHand: z.number().int().min(0),
   sku: z.string().trim().min(1).max(64).optional().nullable(),
   variantTitle: z.string().trim().min(1).max(120).optional().nullable(),
+  imageUrl: ImageUrl.optional().nullable(),
 })
 
 const PatchBody = z
@@ -31,6 +42,7 @@ const PatchBody = z
     active: z.boolean().optional(),
     sku: z.string().trim().min(1).max(64).optional().nullable(),
     variantTitle: z.string().trim().min(1).max(120).optional().nullable(),
+    imageUrl: ImageUrl.optional().nullable(),
   })
   .refine((v) => Object.keys(v).length > 0, { message: "empty patch" })
 
@@ -71,6 +83,7 @@ export const vendorProducts = new Hono<AppEnv>()
         onHand: parsed.data.onHand,
         sku: parsed.data.sku ?? null,
         variantTitle: parsed.data.variantTitle ?? null,
+        imageUrl: parsed.data.imageUrl ?? null,
       })
       return c.json(created, 201)
     } catch (err) {

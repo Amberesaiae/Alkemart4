@@ -43,6 +43,13 @@
       "when": 1788300000000,
       "tag": "0005_shipping_address",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1788679114977,
+      "tag": "0006_product_media_and_created_at",
+      "breakpoints": true
     }
   ]
 }
