@@ -32,7 +32,9 @@ export function PeerOffersList({
     >
       <div className="flex items-center justify-between">
         <h2 className="text-sm font-bold text-foreground">{title}</h2>
-        <span className="text-xs font-medium text-muted-foreground">{offers.length} offers</span>
+        <span className="text-xs font-medium text-muted-foreground">
+          {offers.length} {offers.length === 1 ? "offer" : "offers"}
+        </span>
       </div>
       <ul className="divide-y divide-border/60">
         {offers.map((o) => {

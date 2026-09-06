@@ -150,6 +150,15 @@ function SearchPage() {
         ? "Catalog search"
         : null
 
+  // Facets panel hides itself when the API has no facet data; the results
+  // must then take the full width instead of sitting in the 220px column.
+  const facetDistribution = productsQ.data?.facetDistribution
+  const hasFacets =
+    !!facetDistribution &&
+    Object.values(facetDistribution).some(
+      (counts) => counts && Object.keys(counts).length > 0,
+    )
+
   const multiFacet =
     active.category_handles.length + active.seller_handles.length > 1 ||
     (active.category_handles.length > 0 && active.seller_handles.length > 0)
@@ -223,18 +232,26 @@ function SearchPage() {
           </Button>
         </form>
 
-        <div className="grid gap-8 lg:grid-cols-[220px_1fr]">
-          <SearchFacets
-            className="rounded-2xl border border-border bg-card p-4"
-            distribution={productsQ.data?.facetDistribution ?? {}}
-            active={active}
-            onChange={(next) =>
-              setSearch({
-                category: next.category_handles,
-                seller: next.seller_handles,
-              })
-            }
-          />
+        <div
+          className={
+            hasFacets
+              ? "grid gap-8 lg:grid-cols-[220px_1fr]"
+              : "space-y-4"
+          }
+        >
+          {hasFacets ? (
+            <SearchFacets
+              className="rounded-2xl border border-border bg-card p-4"
+              distribution={facetDistribution ?? {}}
+              active={active}
+              onChange={(next) =>
+                setSearch({
+                  category: next.category_handles,
+                  seller: next.seller_handles,
+                })
+              }
+            />
+          ) : null}
 
           <div className="min-w-0 space-y-4">
             {productsQ.isLoading ? <ProductGridSkeleton count={8} /> : null}

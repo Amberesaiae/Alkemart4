@@ -235,6 +235,8 @@ function ProductDetailPage() {
               webUrl={p.webUrl}
               thumbUrl={p.thumbUrl}
               title={p.title}
+              categoryLabel={p.categoryLabel}
+              categoryHandle={p.categoryHandles?.[0] ?? null}
             />
           </div>
 

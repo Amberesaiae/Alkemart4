@@ -1,5 +1,8 @@
 import { useState } from "react"
 import { cn } from "@/lib/utils"
+import { Icon } from "@/design/icons"
+import { deptThemeClass } from "@/lib/category-theme"
+import { iconForCategory } from "@/lib/catalog-nav"
 
 type Props = {
   images: { url: string }[] | null | undefined
@@ -8,7 +11,36 @@ type Props = {
   webUrl?: string | null
   /** Processed webp thumbnail */
   thumbUrl?: string | null
+  /** Category context for the no-photo tile (same art direction as cards). */
+  categoryLabel?: string | null
+  categoryHandle?: string | null
   className?: string
+}
+
+function NoPhotoTile({
+  title,
+  categoryLabel,
+  categoryHandle,
+}: Pick<Props, "title" | "categoryLabel" | "categoryHandle">) {
+  return (
+    <div
+      className={cn(
+        "cat-fallback flex aspect-square w-full flex-col items-center justify-center gap-3 p-6 text-center",
+        deptThemeClass(categoryLabel ?? "", categoryHandle),
+      )}
+      aria-hidden
+    >
+      <span className="cat-fallback-glyph h-20 w-20">
+        <Icon
+          name={iconForCategory(categoryLabel ?? "", categoryHandle)}
+          size={40}
+        />
+      </span>
+      <span className="cat-fallback-word line-clamp-2 text-[11px] font-semibold uppercase tracking-[0.14em]">
+        {categoryLabel?.trim() || title}
+      </span>
+    </div>
+  )
 }
 
 export function ProductImageGallery({
@@ -16,6 +48,8 @@ export function ProductImageGallery({
   title,
   webUrl,
   thumbUrl,
+  categoryLabel,
+  categoryHandle,
   className,
 }: Props) {
   const all = images?.filter((i) => i.url) ?? []
@@ -32,14 +66,11 @@ export function ProductImageGallery({
   if (!active) {
     return (
       <div className={cn("overflow-hidden rounded-2xl border border-border bg-card", className)}>
-        <div
-          className="flex aspect-square flex-col items-center justify-center gap-2 bg-primary/15"
-          aria-hidden
-        >
-          <span className="flex h-16 w-16 items-center justify-center rounded-full bg-primary text-2xl font-extrabold text-primary-foreground">
-            {(title || "A").trim().charAt(0).toUpperCase()}
-          </span>
-        </div>
+        <NoPhotoTile
+          title={title}
+          categoryLabel={categoryLabel}
+          categoryHandle={categoryHandle}
+        />
       </div>
     )
   }
@@ -56,14 +87,11 @@ export function ProductImageGallery({
             className="aspect-square w-full object-contain p-4 transition-opacity"
           />
         ) : (
-          <div
-            className="flex aspect-square flex-col items-center justify-center gap-2 bg-primary/15"
-            aria-hidden
-          >
-            <span className="flex h-16 w-16 items-center justify-center rounded-full bg-primary text-2xl font-extrabold text-primary-foreground">
-              {(title || "A").trim().charAt(0).toUpperCase()}
-            </span>
-          </div>
+          <NoPhotoTile
+            title={title}
+            categoryLabel={categoryLabel}
+            categoryHandle={categoryHandle}
+          />
         )}
       </div>
 
