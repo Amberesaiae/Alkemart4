@@ -23,7 +23,6 @@ import { DocumentTitle } from "@/components/document-title"
 import { RouteAnnouncer } from "@/components/a11y/RouteAnnouncer"
 import { SkipLink } from "@/components/skip-link"
 import { ScrollToTop } from "@/components/scroll-to-top"
-import { SearchMicroHeader } from "@/components/search/SearchMicroHeader"
 import { NotFoundPage } from "@/components/not-found"
 import { trackPageview } from "@/lib/analytics"
 
@@ -108,7 +107,6 @@ function Shell() {
     cartQ.data?.items.reduce((s, l) => s + l.quantity, 0) ?? 0
 
   const isAuthPage = pathname.startsWith("/login")
-  const isSearchPage = pathname === "/search" || pathname.startsWith("/search?")
   const isCheckout = pathname.startsWith("/checkout")
 
   /**
@@ -163,22 +161,15 @@ function Shell() {
     /* optional */
   }
 
-  if (isAuthPage || isSearchPage) {
+  // Search keeps the standard site chrome — the bare gold micro-shell read as
+  // a different app from the rest of the storefront.
+  if (isAuthPage) {
     return (
       <div className="flex min-h-screen flex-col bg-background">
         <SkipLink />
-        {isSearchPage ? (
-          <div className="flex min-h-screen flex-col bg-primary">
-            <SearchMicroHeader />
-            <main id="main" tabIndex={-1} className="flex flex-1 flex-col outline-none">
-              <Outlet />
-            </main>
-          </div>
-        ) : (
-          <main id="main" tabIndex={-1} className="flex min-h-screen flex-1 flex-col outline-none">
-            <Outlet />
-          </main>
-        )}
+        <main id="main" tabIndex={-1} className="flex min-h-screen flex-1 flex-col outline-none">
+          <Outlet />
+        </main>
       </div>
     )
   }

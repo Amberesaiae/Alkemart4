@@ -152,11 +152,29 @@ function HomePage() {
         </section>
       ) : null}
 
-      <HomeLastOffers
-        products={featured}
-        categories={catsQ.data ?? []}
-        loading={loadingOffers}
-      />
+      {/* Only when there is something to show — an empty rail would contradict
+          the catalog (honesty rule: no fake emptiness claims). */}
+      {featured.length > 0 ? (
+        <HomeLastOffers
+          products={featured}
+          categories={catsQ.data ?? []}
+          loading={loadingOffers}
+        />
+      ) : null}
+      {featuredQ.isError && !loadingOffers ? (
+        <div className="rounded-2xl border border-border bg-card p-6 text-center">
+          <p className="text-sm text-muted-foreground">
+            Couldn't load the market just now.
+          </p>
+          <button
+            type="button"
+            className="mt-2 text-sm font-semibold text-primary underline-offset-2 hover:underline"
+            onClick={() => void featuredQ.refetch()}
+          >
+            Try again
+          </button>
+        </div>
+      ) : null}
       {!loadingOffers && featured.length === 0 && mosaic.length === 0 ? (
         <p className="text-center text-sm text-muted-foreground">
           No listings yet.{" "}

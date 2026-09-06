@@ -326,7 +326,9 @@ function ProductDetailPage() {
         </div>
       ) : null}
 
-      {p ? (
+      {/* Related rail only when it has content (loading skeleton or items) —
+          a bare heading over empty space reads as unfinished. */}
+      {p && (relatedQ.isLoading || (relatedQ.data?.products.length ?? 0) > 0) ? (
         <section className="space-y-4 border-t border-border pt-8">
           <SectionHeader
             title={

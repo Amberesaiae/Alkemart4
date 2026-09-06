@@ -129,6 +129,8 @@ function StorePage() {
 
       {vendor && name ? (
         <div className="space-y-4">
+          {/* Cover art only when the seller supplied one — a big empty
+              placeholder would read as unfinished. */}
           {vendor.coverImageUrl ? (
             <div className="aspect-video w-full overflow-hidden rounded-3xl">
               <img
@@ -148,9 +150,7 @@ function StorePage() {
                 loading="lazy"
               />
             </div>
-          ) : (
-            <div className="aspect-video w-full overflow-hidden rounded-3xl bg-gradient-to-b from-primary/25 via-primary/10 to-muted/30" />
-          )}
+          ) : null}
 
           <header className="store-hero overflow-hidden rounded-3xl border border-border p-6 shadow-sm sm:p-8">
             <div className="flex flex-wrap items-start gap-4">

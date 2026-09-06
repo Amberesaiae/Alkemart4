@@ -119,9 +119,9 @@ function SellersPage() {
                   {s.bio}
                 </p>
               ) : (
-                <p className="text-sm text-muted-foreground">
-                  Shop products from this seller when listings include seller
-                  fields.
+                <p className="text-sm leading-relaxed text-muted-foreground">
+                  Local seller on alkemart — browse their listings, compare
+                  prices and order with cash on delivery.
                 </p>
               )}
             </Link>

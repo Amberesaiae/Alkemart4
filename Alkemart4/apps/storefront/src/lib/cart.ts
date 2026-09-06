@@ -268,28 +268,41 @@ function mapWorkersCart(data: {
   quote: {
     currency: string
     totalPesewas: string
+    sellers?: Array<{ deliveryFeePesewas: string }>
   }
 }): StoreCart {
+  const items = data.items.map((item) => ({
+    id: item.id,
+    title: item.title?.trim() || item.offerId,
+    quantity: item.qty,
+    unitPrice:
+      item.unitPricePesewas != null ? Number(item.unitPricePesewas) / 100 : null,
+    currencyCode: data.cart.currency || "ghs",
+    offerId: item.offerId,
+    seller: {
+      id: item.sellerId,
+      name: item.sellerName?.trim() || item.sellerId,
+      handle: item.sellerHandle ?? null,
+    },
+  }))
+  // Items vs delivery are quoted separately — show both, never a lump total.
+  const itemTotalPesewas = items.reduce(
+    (sum, line) =>
+      sum + (line.unitPrice != null ? line.unitPrice * line.quantity * 100 : 0),
+    0,
+  )
+  const deliveryPesewas = (data.quote.sellers ?? []).reduce(
+    (sum, s) => sum + Number(s.deliveryFeePesewas || 0),
+    0,
+  )
+  const total = Number(data.quote.totalPesewas) / 100
   return {
     id: data.cart.id,
     currencyCode: data.cart.currency || data.quote.currency || "ghs",
-    total: Number(data.quote.totalPesewas) / 100,
-    itemTotal: Number(data.quote.totalPesewas) / 100,
-    shippingTotal: null,
-    items: data.items.map((item) => ({
-      id: item.id,
-      title: item.title?.trim() || item.offerId,
-      quantity: item.qty,
-      unitPrice:
-        item.unitPricePesewas != null ? Number(item.unitPricePesewas) / 100 : null,
-      currencyCode: data.cart.currency || "ghs",
-      offerId: item.offerId,
-      seller: {
-        id: item.sellerId,
-        name: item.sellerName?.trim() || item.sellerId,
-        handle: item.sellerHandle ?? null,
-      },
-    })),
+    total,
+    itemTotal: itemTotalPesewas / 100 || total - deliveryPesewas / 100,
+    shippingTotal: deliveryPesewas / 100,
+    items,
   }
 }
 
@@ -310,7 +323,11 @@ export async function retrieveCart(cartId?: string): Promise<StoreCart | null> {
           sellerName?: string
           sellerHandle?: string | null
         }>
-        quote: { currency: string; totalPesewas: string }
+        quote: {
+          currency: string
+          totalPesewas: string
+          sellers?: Array<{ deliveryFeePesewas: string }>
+        }
       }>(`/store/cart/${encodeURIComponent(id)}`)
       return mapWorkersCart(data)
     } catch (err) {

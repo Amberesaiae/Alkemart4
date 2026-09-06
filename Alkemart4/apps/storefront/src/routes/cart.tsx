@@ -166,15 +166,43 @@ function CartPage() {
           </div>
 
           <OrderSummary>
-            <Price
-              amount={cart?.total}
-              currencyCode={cart?.currencyCode}
-              size="lg"
-              className="text-2xl font-bold"
-            />
+            <div className="space-y-2 text-sm">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-muted-foreground">Subtotal</span>
+                <Price
+                  amount={cart?.itemTotal}
+                  currencyCode={cart?.currencyCode}
+                  size="sm"
+                  className="font-semibold"
+                />
+              </div>
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-muted-foreground">Delivery</span>
+                {cart?.shippingTotal != null ? (
+                  <Price
+                    amount={cart.shippingTotal}
+                    currencyCode={cart?.currencyCode}
+                    size="sm"
+                    className="font-semibold"
+                  />
+                ) : (
+                  <span className="text-xs text-muted-foreground">
+                    Set at checkout
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center justify-between gap-2 border-t border-border pt-2">
+                <span className="font-semibold text-foreground">Total</span>
+                <Price
+                  amount={cart?.total}
+                  currencyCode={cart?.currencyCode}
+                  size="lg"
+                  className="text-xl font-bold"
+                />
+              </div>
+            </div>
             <p className="text-xs leading-relaxed text-muted-foreground">
-              Shipping calculated at checkout from seller options. Cash on
-              delivery available.
+              Pay on delivery (cash) or mobile money at checkout.
             </p>
             <Button
               asChild
@@ -253,7 +281,7 @@ function CartLineRow(props: {
           />
           {line.unitPrice != null && line.quantity > 1 ? (
             <span className="text-xs text-muted-foreground">
-              line{" "}
+              × {line.quantity} ={" "}
               <Price
                 amount={line.unitPrice * line.quantity}
                 currencyCode={line.currencyCode}

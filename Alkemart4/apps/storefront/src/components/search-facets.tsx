@@ -41,11 +41,8 @@ export function SearchFacets({
   )
 
   if (!groups.length) {
-    return (
-      <p className={cn("text-xs text-muted-foreground", className)}>
-        Filters appear when the catalog has facet data (after search sync).
-      </p>
-    )
+    // No facet data yet — hide the panel instead of showing developer notes.
+    return null
   }
 
   const hasActive =
