@@ -63,24 +63,36 @@ export const adminPayouts = new Hono<AppEnv>()
       })
     }
 
-    const payout = await checkout.createPayout({
-      sellerId: seller.id,
-      commissionBps: seller.commissionBps,
-      paystackTransferCode: transfer.transferCode,
-      paystackReference: transfer.reference,
-    })
+    // Transfer first (money truth), ledger second. If the ledger write fails
+    // after the transfer succeeded, say so explicitly with the reference —
+    // ops can reconcile instead of silently double-paying on retry.
+    try {
+      const payout = await checkout.createPayout({
+        sellerId: seller.id,
+        commissionBps: seller.commissionBps,
+        paystackTransferCode: transfer.transferCode,
+        paystackReference: transfer.reference,
+      })
 
-    return c.json({
-      payout: {
-        id: payout.id,
-        sellerId: payout.sellerId,
-        status: payout.status,
-        grossPesewas: payout.grossPesewas.toString(),
-        commissionPesewas: payout.commissionPesewas.toString(),
-        netPesewas: payout.netPesewas.toString(),
-        commissionBps: payout.commissionBps,
-        paystackTransferCode: payout.paystackTransferCode,
-        paystackReference: payout.paystackReference,
-      },
-    })
+      return c.json({
+        payout: {
+          id: payout.id,
+          sellerId: payout.sellerId,
+          status: payout.status,
+          grossPesewas: payout.grossPesewas.toString(),
+          commissionPesewas: payout.commissionPesewas.toString(),
+          netPesewas: payout.netPesewas.toString(),
+          commissionBps: payout.commissionBps,
+          paystackTransferCode: payout.paystackTransferCode,
+          paystackReference: payout.paystackReference,
+        },
+      })
+    } catch (err) {
+      if (err instanceof HTTPException) throw err
+      throw new HTTPException(502, {
+        message: `Transfer ${transfer.reference} may have succeeded but payout ledger write failed: ${
+          err instanceof Error ? err.message : "unknown error"
+        }. Do not retry until reconciled.`,
+      })
+    }
   })

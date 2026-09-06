@@ -48,6 +48,7 @@ export type PaymentIntentRow = {
   momoProvider: string | null
   momoPhone: string | null
   shippingAddress: ShippingAddress | null
+  createdAt?: Date
 }
 
 export type StockReservationRow = {
@@ -115,6 +116,7 @@ export interface CheckoutRepository {
   setCartItemQty(cartId: string, itemId: string, qty: number): Promise<CartItemRow | null>
   listCartItems(cartId: string): Promise<CartItemRow[]>
   getOfferView(offerId: string): Promise<CheckoutOfferView | null>
+  getOfferViews(offerIds: string[]): Promise<Map<string, CheckoutOfferView>>
   quote(cartId: string): Promise<CartQuote>
   createPaymentIntent(input: Omit<PaymentIntentRow, "status"> & { status: PaymentIntentStatus }): Promise<PaymentIntentRow>
   getPaymentIntent(id: string): Promise<PaymentIntentRow | null>
@@ -132,6 +134,8 @@ export interface CheckoutRepository {
   listOrderItems(orderId: string): Promise<OrderItemRow[]>
   getOrder(orderId: string): Promise<OrderRow | null>
   getLatestPaymentIntentByCartId(cartId: string): Promise<PaymentIntentRow | null>
+  /** Non-terminal momo/card intents created before `cutoff` — inputs for the expiry job. */
+  listStalePendingIntents(cutoff: Date): Promise<PaymentIntentRow[]>
   listOrdersForSeller(sellerId: string): Promise<OrderRow[]>
   listRecentOrderGroups(limit?: number): Promise<Array<OrderGroupRow & { createdAt?: Date }>>
   updateOrderStatus(
@@ -188,6 +192,15 @@ export class InMemoryCheckoutRepository implements CheckoutRepository {
       sellerName: seller.name,
       sellerHandle: seller.handle,
     }
+  }
+
+  async getOfferViews(offerIds: string[]): Promise<Map<string, CheckoutOfferView>> {
+    const out = new Map<string, CheckoutOfferView>()
+    for (const id of offerIds) {
+      const view = await this.getOfferView(id)
+      if (view) out.set(id, view)
+    }
+    return out
   }
 
   async addCartItem(cartId: string, offerId: string, qty: number): Promise<CartItemRow> {
@@ -262,8 +275,8 @@ export class InMemoryCheckoutRepository implements CheckoutRepository {
   async createPaymentIntent(
     input: Omit<PaymentIntentRow, "status"> & { status: PaymentIntentStatus },
   ) {
-    this.intents.set(input.id, { ...input })
-    return { ...input }
+    this.intents.set(input.id, { ...input, createdAt: new Date() })
+    return { ...input, createdAt: new Date() }
   }
 
   async getPaymentIntent(id: string) {
@@ -357,6 +370,17 @@ export class InMemoryCheckoutRepository implements CheckoutRepository {
       latest = { ...intent }
     }
     return latest
+  }
+
+  async listStalePendingIntents(cutoff: Date): Promise<PaymentIntentRow[]> {
+    const stale: PaymentIntentRow[] = []
+    for (const intent of this.intents.values()) {
+      if (intent.method === "cod") continue
+      if (intent.status !== "pending" && intent.status !== "initiated") continue
+      const createdAt = intent.createdAt ?? new Date(0)
+      if (createdAt.getTime() < cutoff.getTime()) stale.push({ ...intent })
+    }
+    return stale
   }
 
   async confirmPaidOrder(paymentIntentId: string) {

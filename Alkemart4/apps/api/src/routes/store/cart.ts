@@ -67,10 +67,10 @@ export const storeCart = new Hono<AppEnv>()
     if (!cart) throw new HTTPException(404, { message: "cart not found" })
     const items = await checkout.listCartItems(cart.id)
     const quote = await checkout.quote(cart.id)
-    const enriched = []
-    for (const i of items) {
-      const view = await checkout.getOfferView(i.offerId)
-      enriched.push({
+    const views = await checkout.getOfferViews(items.map((i) => i.offerId))
+    const enriched = items.map((i) => {
+      const view = views.get(i.offerId)
+      return {
         id: i.id,
         offerId: i.offerId,
         sellerId: i.sellerId,
@@ -79,8 +79,8 @@ export const storeCart = new Hono<AppEnv>()
         unitPricePesewas: (view?.offer.pricePesewas ?? 0n).toString(),
         sellerName: view?.sellerName ?? i.sellerId,
         sellerHandle: view?.sellerHandle ?? null,
-      })
-    }
+      }
+    })
     return c.json({
       cart: { id: cart.id, currency: cart.currency },
       items: enriched,

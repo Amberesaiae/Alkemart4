@@ -172,6 +172,39 @@ export const storeCheckout = new Hono<AppEnv>()
       throw new HTTPException(503, { message: "PAYSTACK_SECRET_KEY is not configured" })
     }
 
+    // The intent row is created (with its Paystack reference) BEFORE contacting
+    // Paystack. Any charge that reaches Paystack is therefore traceable in
+    // Postgres: if the row were created after the charge, a failed insert or a
+    // fast webhook would leave real money with no ledger record.
+    const momo = parsed.data.method === "momo" ? parsed.data.momo : null
+    const method = momo ? "momo" : "card"
+    await checkout.createPaymentIntent({
+      id: intentId,
+      cartId: cart.id,
+      method,
+      status: "initiated",
+      amountPesewas: quote.totalPesewas,
+      currency: "ghs",
+      paystackReference: reference,
+      buyerEmail: parsed.data.buyerEmail,
+      momoProvider: momo?.provider ?? null,
+      momoPhone: momo?.phone ?? null,
+      shippingAddress,
+    })
+
+    /** Mark the intent failed, then surface the error to the buyer. */
+    async function failIntent(
+      message: string,
+      httpStatus: 502 | 409,
+    ): Promise<HTTPException> {
+      try {
+        await checkout.updatePaymentIntentStatus(intentId, "failed")
+      } catch {
+        /* terminal-state races leave the intent pending for the expiry job */
+      }
+      return new HTTPException(httpStatus, { message })
+    }
+
     if (parsed.data.method === "momo") {
       const charge =
         c.get("chargePaystackMobileMoney") ?? chargePaystackMobileMoney
@@ -188,34 +221,33 @@ export const storeCheckout = new Hono<AppEnv>()
           },
         )
       } catch (err) {
-        throw new HTTPException(502, {
-          message: err instanceof Error ? err.message : "Paystack charge failed",
-        })
+        throw await failIntent(
+          err instanceof Error ? err.message : "Paystack charge failed",
+          502,
+        )
       }
 
-      await checkout.createPaymentIntent({
-        id: intentId,
-        cartId: cart.id,
-        method: "momo",
-        status: "initiated",
-        amountPesewas: quote.totalPesewas,
-        currency: "ghs",
-        paystackReference: charged.reference,
-        buyerEmail: parsed.data.buyerEmail,
-        momoProvider: parsed.data.momo.provider,
-        momoPhone: parsed.data.momo.phone,
-        shippingAddress,
-      })
+      const paystackReference = charged.reference || reference
       await checkout.updatePaymentIntentStatus(intentId, "pending")
-      await checkout.reserveStock(
-        intentId,
-        items.map((i) => ({ offerId: i.offerId, qty: i.qty })),
-      )
+      try {
+        await checkout.reserveStock(
+          intentId,
+          items.map((i) => ({ offerId: i.offerId, qty: i.qty })),
+        )
+      } catch (err) {
+        await checkout.releaseReservations(intentId)
+        throw await failIntent(
+          err instanceof Error && err.message.includes("insufficient stock")
+            ? "Some items in your cart just sold out. Remove or adjust them and try again."
+            : "Could not hold stock for this order",
+          409,
+        )
+      }
 
       return c.json({
         paymentIntentId: intentId,
         status: "pending",
-        paystackReference: charged.reference,
+        paystackReference,
         paystackStatus: charged.status,
       })
     }
@@ -235,34 +267,33 @@ export const storeCheckout = new Hono<AppEnv>()
         },
       )
     } catch (err) {
-      throw new HTTPException(502, {
-        message: err instanceof Error ? err.message : "Paystack initialize failed",
-      })
+      throw await failIntent(
+        err instanceof Error ? err.message : "Paystack initialize failed",
+        502,
+      )
     }
 
-    await checkout.createPaymentIntent({
-      id: intentId,
-      cartId: cart.id,
-      method: "card",
-      status: "initiated",
-      amountPesewas: quote.totalPesewas,
-      currency: "ghs",
-      paystackReference: initResult.reference,
-      buyerEmail: parsed.data.buyerEmail,
-      momoProvider: null,
-      momoPhone: null,
-      shippingAddress,
-    })
+    const paystackReference = initResult.reference || reference
     await checkout.updatePaymentIntentStatus(intentId, "pending")
-    await checkout.reserveStock(
-      intentId,
-      items.map((i) => ({ offerId: i.offerId, qty: i.qty })),
-    )
+    try {
+      await checkout.reserveStock(
+        intentId,
+        items.map((i) => ({ offerId: i.offerId, qty: i.qty })),
+      )
+    } catch (err) {
+      await checkout.releaseReservations(intentId)
+      throw await failIntent(
+        err instanceof Error && err.message.includes("insufficient stock")
+          ? "Some items in your cart just sold out. Remove or adjust them and try again."
+          : "Could not hold stock for this order",
+        409,
+      )
+    }
 
     return c.json({
       paymentIntentId: intentId,
       status: "pending",
       authorizationUrl: initResult.authorizationUrl,
-      paystackReference: initResult.reference,
+      paystackReference,
     })
   })

@@ -27,6 +27,7 @@ export const securityMiddleware: MiddlewareHandler<AppEnv> = async (c, next) => 
       path.startsWith("/vendor/auth") ||
       path.startsWith("/admin/auth") ||
       path === "/store/checkout" ||
+      path === "/store/orders/lookup" ||
       path.startsWith("/hooks/"))
 
   if (sensitive) {
@@ -54,4 +55,5 @@ export const securityMiddleware: MiddlewareHandler<AppEnv> = async (c, next) => 
     "Permissions-Policy",
     "camera=(), microphone=(), geolocation=()",
   )
+  return undefined
 }

@@ -3,6 +3,10 @@ main = "src/index.ts"
 compatibility_date = "2026-08-28"
 compatibility_flags = ["nodejs_compat"]
 
+# Expire abandoned pending payment intents + release their stock (hourly).
+[triggers]
+crons = ["0 * * * *"]
+
 # Local: `bun run dev:api` → http://127.0.0.1:8787 (see docs/architecture/workers/LOCAL-DEV.md)
 # Secrets for local: apps/api/.dev.vars (from .dev.vars.example)
 # Production secrets via wrangler secret / dashboard:

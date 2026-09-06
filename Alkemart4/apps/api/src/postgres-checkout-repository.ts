@@ -21,7 +21,7 @@ import {
   type OrderFulfillmentStatus,
   type PaymentIntentStatus,
 } from "@alkemart/domain"
-import { and, desc, eq, isNull, sql } from "drizzle-orm"
+import { and, desc, eq, inArray, isNull, sql } from "drizzle-orm"
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js"
 import type {
   CartItemRow,
@@ -36,6 +36,18 @@ import type {
 } from "./checkout-repository"
 
 type Db = PostgresJsDatabase
+
+/** Walks the cause chain for a Postgres unique-violation (23505), matching on constraint name. */
+function isUniqueViolation(err: unknown, constraintFragment: string): boolean {
+  let current: unknown = err
+  while (current && typeof current === "object") {
+    const rec = current as Record<string, unknown>
+    const constraint = typeof rec.constraint === "string" ? rec.constraint : ""
+    if (rec.code === "23505" && constraint.includes(constraintFragment)) return true
+    current = rec.cause
+  }
+  return false
+}
 
 function mapOrder(row: typeof orders.$inferSelect, payoutId: string | null = null): OrderRow {
   return {
@@ -62,6 +74,7 @@ function mapIntent(row: typeof paymentIntents.$inferSelect): PaymentIntentRow {
     momoProvider: row.momoProvider,
     momoPhone: row.momoPhone,
     shippingAddress: (row.shippingAddress as ShippingAddress | null) ?? null,
+    createdAt: row.createdAt,
   }
 }
 
@@ -84,7 +97,15 @@ export class PostgresCheckoutRepository implements CheckoutRepository {
   }
 
   async getOfferView(offerId: string): Promise<CheckoutOfferView | null> {
-    const [row] = await this.db
+    const views = await this.getOfferViews([offerId])
+    return views.get(offerId) ?? null
+  }
+
+  /** Batched offer views — one join query for N cart lines instead of N. */
+  async getOfferViews(offerIds: string[]): Promise<Map<string, CheckoutOfferView>> {
+    const out = new Map<string, CheckoutOfferView>()
+    if (offerIds.length === 0) return out
+    const rows = await this.db
       .select({
         offer: offers,
         productStatus: products.status,
@@ -97,28 +118,29 @@ export class PostgresCheckoutRepository implements CheckoutRepository {
       .from(offers)
       .innerJoin(products, eq(products.id, offers.productId))
       .innerJoin(sellers, eq(sellers.id, offers.sellerId))
-      .where(eq(offers.id, offerId))
-      .limit(1)
-    if (!row) return null
-    return {
-      offer: {
-        id: row.offer.id,
-        sellerId: row.offer.sellerId,
-        productId: row.offer.productId,
-        variantId: row.offer.variantId,
-        pricePesewas: row.offer.pricePesewas,
-        onHand: row.offer.onHand,
-        reserved: row.offer.reserved,
-        currency: row.offer.currency,
-        active: row.offer.active,
-      },
-      productStatus: row.productStatus,
-      sellerStatus: row.sellerStatus,
-      deliveryFeePesewas: row.deliveryFeePesewas,
-      productTitle: row.productTitle,
-      sellerName: row.sellerName,
-      sellerHandle: row.sellerHandle,
+      .where(inArray(offers.id, offerIds))
+    for (const row of rows) {
+      out.set(row.offer.id, {
+        offer: {
+          id: row.offer.id,
+          sellerId: row.offer.sellerId,
+          productId: row.offer.productId,
+          variantId: row.offer.variantId,
+          pricePesewas: row.offer.pricePesewas,
+          onHand: row.offer.onHand,
+          reserved: row.offer.reserved,
+          currency: row.offer.currency,
+          active: row.offer.active,
+        },
+        productStatus: row.productStatus,
+        sellerStatus: row.sellerStatus,
+        deliveryFeePesewas: row.deliveryFeePesewas,
+        productTitle: row.productTitle,
+        sellerName: row.sellerName,
+        sellerHandle: row.sellerHandle,
+      })
     }
+    return out
   }
 
   async addCartItem(cartId: string, offerId: string, qty: number) {
@@ -139,29 +161,9 @@ export class PostgresCheckoutRepository implements CheckoutRepository {
       throw new Error("offer not sellable")
     }
 
-    const [existing] = await this.db
-      .select()
-      .from(cartItems)
-      .where(and(eq(cartItems.cartId, cartId), eq(cartItems.offerId, offerId)))
-      .limit(1)
-
-    if (existing) {
-      const [updated] = await this.db
-        .update(cartItems)
-        .set({ qty: existing.qty + qty })
-        .where(eq(cartItems.id, existing.id))
-        .returning()
-      if (!updated) throw new Error("failed to update cart item")
-      return {
-        id: updated.id,
-        cartId: updated.cartId,
-        offerId: updated.offerId,
-        sellerId: updated.sellerId,
-        qty: updated.qty,
-      }
-    }
-
-    const [created] = await this.db
+    // Atomic upsert on (cartId, offerId): concurrent adds either insert or
+    // increment — never duplicate rows, never lost quantity updates.
+    const [row] = await this.db
       .insert(cartItems)
       .values({
         id: crypto.randomUUID(),
@@ -170,14 +172,18 @@ export class PostgresCheckoutRepository implements CheckoutRepository {
         sellerId: view.offer.sellerId,
         qty,
       })
+      .onConflictDoUpdate({
+        target: [cartItems.cartId, cartItems.offerId],
+        set: { qty: sql`${cartItems.qty} + excluded.qty` },
+      })
       .returning()
-    if (!created) throw new Error("failed to create cart item")
+    if (!row) throw new Error("failed to add cart item")
     return {
-      id: created.id,
-      cartId: created.cartId,
-      offerId: created.offerId,
-      sellerId: created.sellerId,
-      qty: created.qty,
+      id: row.id,
+      cartId: row.cartId,
+      offerId: row.offerId,
+      sellerId: row.sellerId,
+      qty: row.qty,
     }
   }
 
@@ -221,18 +227,19 @@ export class PostgresCheckoutRepository implements CheckoutRepository {
 
   async quote(cartId: string) {
     const items = await this.listCartItems(cartId)
-    const lines = []
-    for (const item of items) {
-      const view = await this.getOfferView(item.offerId)
+    if (items.length === 0) return quoteCart([])
+    const views = await this.getOfferViews(items.map((i) => i.offerId))
+    const lines = items.map((item) => {
+      const view = views.get(item.offerId)
       if (!view) throw new Error(`offer missing: ${item.offerId}`)
-      lines.push({
+      return {
         offerId: item.offerId,
         sellerId: item.sellerId,
         qty: item.qty,
         unitPricePesewas: view.offer.pricePesewas,
         deliveryFeePesewas: view.deliveryFeePesewas,
-      })
-    }
+      }
+    })
     return quoteCart(lines)
   }
 
@@ -277,27 +284,39 @@ export class PostgresCheckoutRepository implements CheckoutRepository {
     const current = await this.getPaymentIntent(id)
     if (!current) throw new Error("payment intent not found")
     assertPaymentTransition(current.status, status)
+    // Compare-and-swap on the observed status: a webhook and the status poll can
+    // race; the first writer wins and the loser observes the row no longer in
+    // `current.status` instead of silently overwriting it.
     const [row] = await this.db
       .update(paymentIntents)
       .set({ status, updatedAt: new Date() })
-      .where(eq(paymentIntents.id, id))
+      .where(and(eq(paymentIntents.id, id), eq(paymentIntents.status, current.status)))
       .returning()
-    if (!row) throw new Error("failed to update payment intent")
+    if (!row) {
+      throw new Error(`payment intent status changed concurrently (${current.status})`)
+    }
     return mapIntent(row)
   }
 
   async reserveStock(paymentIntentId: string, lines: Array<{ offerId: string; qty: number }>) {
     await this.db.transaction(async (tx) => {
       for (const line of lines) {
-        const [offer] = await tx.select().from(offers).where(eq(offers.id, line.offerId)).limit(1)
-        if (!offer) throw new Error(`offer not found: ${line.offerId}`)
-        if (offer.onHand - offer.reserved < line.qty) {
+        // Atomic conditional reserve: the increment only lands when the offer
+        // still has enough available. Check-then-update here would let two
+        // concurrent checkouts both pass the check and oversell.
+        const reservedRows = await tx
+          .update(offers)
+          .set({ reserved: sql`${offers.reserved} + ${line.qty}` })
+          .where(
+            and(
+              eq(offers.id, line.offerId),
+              sql`${offers.onHand} - ${offers.reserved} >= ${line.qty}`,
+            ),
+          )
+          .returning({ id: offers.id })
+        if (reservedRows.length === 0) {
           throw new Error(`insufficient stock for ${line.offerId}`)
         }
-        await tx
-          .update(offers)
-          .set({ reserved: offer.reserved + line.qty })
-          .where(eq(offers.id, line.offerId))
         await tx.insert(stockReservations).values({
           id: crypto.randomUUID(),
           paymentIntentId,
@@ -402,12 +421,44 @@ export class PostgresCheckoutRepository implements CheckoutRepository {
     return row ? mapIntent(row) : null
   }
 
+  async listStalePendingIntents(cutoff: Date): Promise<PaymentIntentRow[]> {
+    const rows = await this.db
+      .select()
+      .from(paymentIntents)
+      .where(
+        and(
+          inArray(paymentIntents.status, ["pending", "initiated"]),
+          inArray(paymentIntents.method, ["momo", "card"]),
+          sql`${paymentIntents.createdAt} < ${cutoff.toISOString()}`,
+        ),
+      )
+      .limit(100)
+    return rows.map(mapIntent)
+  }
+
   async confirmPaidOrder(paymentIntentId: string) {
     const existing = await this.getOrderGroupByPaymentIntent(paymentIntentId)
     if (existing) {
       return { orderGroup: existing, orders: await this.listOrdersForGroup(existing.id) }
     }
 
+    try {
+      return await this.confirmPaidOrderTx(paymentIntentId)
+    } catch (err) {
+      // Two confirmations raced past the pre-check; the unique constraint on
+      // order_groups.payment_intent_id makes the second insert fail — return
+      // the winner's group instead of a 500.
+      if (isUniqueViolation(err, "payment_intent_id")) {
+        const raced = await this.getOrderGroupByPaymentIntent(paymentIntentId)
+        if (raced) {
+          return { orderGroup: raced, orders: await this.listOrdersForGroup(raced.id) }
+        }
+      }
+      throw err
+    }
+  }
+
+  private async confirmPaidOrderTx(paymentIntentId: string) {
     return this.db.transaction(async (tx) => {
       const [intent] = await tx
         .select()
@@ -605,6 +656,22 @@ export class PostgresCheckoutRepository implements CheckoutRepository {
     )
 
     return this.db.transaction(async (tx) => {
+      // Re-validate payout eligibility inside the transaction: the pre-read
+      // above is stale under concurrency, and paying an already-paid order
+      // twice is unrecoverable. Unique payout_lines.orderId is the last line
+      // of defense; this check keeps the error honest and pre-insert.
+      const stillUnpaid = await tx
+        .select({ orderId: orders.id })
+        .from(orders)
+        .leftJoin(payoutLines, eq(payoutLines.orderId, orders.id))
+        .where(and(eq(orders.sellerId, input.sellerId), eq(orders.status, "delivered"), isNull(payoutLines.id)))
+      const unpaidIds = new Set(stillUnpaid.map((r) => r.orderId))
+      for (const line of batch.lines) {
+        if (!unpaidIds.has(line.orderId)) {
+          throw new Error(`order ${line.orderId} is no longer payout-eligible`)
+        }
+      }
+
       const payoutId = crypto.randomUUID()
       const [payout] = await tx
         .insert(payouts)
