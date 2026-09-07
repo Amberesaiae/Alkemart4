@@ -38,7 +38,7 @@ type ProductCardProps = {
 }
 
 const shell =
-  "group overflow-hidden rounded-xl border border-border bg-card shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:border-foreground/15 hover:shadow-md"
+  "group overflow-hidden rounded-2xl border border-border bg-card shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/45 hover:shadow-md"
 
 /** Stock states surfaced on the card — fewer dead-end add-to-cart clicks. */
 function stockState(product: StoreProductCard): "in" | "low" | "out" | "unknown" {
@@ -306,7 +306,7 @@ function Title(props: {
     >
       <h3
         className={cn(
-          "line-clamp-2 min-h-[2.25rem] text-[13px] font-medium leading-snug text-foreground sm:text-sm",
+          "line-clamp-2 min-h-[2.5rem] text-sm font-semibold leading-snug text-foreground",
           props.className,
         )}
       >

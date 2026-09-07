@@ -30,36 +30,46 @@
   --color-destructive: var(--destructive);
   --color-ring: var(--ring);
   --color-ink: var(--ink);
-  --color-success: #10b981;
+  --color-success: #178a50;
   --color-success-foreground: #ffffff;
-  --color-warning: #f59e0b;
-  --color-warning-foreground: #ffffff;
+  --color-warning: #e89b00;
+  --color-warning-foreground: #231a05;
+  /* Warm-tinted shadow scale — depth with the ink's own hue, never gray-black */
+  --shadow-xs: 0 1px 2px 0 rgb(43 35 26 / 0.05);
+  --shadow-sm: 0 1px 3px 0 rgb(43 35 26 / 0.07), 0 1px 2px -1px rgb(43 35 26 / 0.06);
+  --shadow-md: 0 6px 16px -6px rgb(43 35 26 / 0.14), 0 2px 6px -2px rgb(43 35 26 / 0.08);
+  --shadow-lg: 0 16px 40px -16px rgb(43 35 26 / 0.22), 0 4px 12px -4px rgb(43 35 26 / 0.1);
 }
 
 :root {
-  /* Radiant, vibrant amber gold brand primary */
-  --primary: #FEBF31;
-  --primary-foreground: #0f172a;
-  /* Deep obsidian ink for headings, logos, and dark accents */
-  --ink: #0f172a;
-  /* Crisp, airy neutral background (eliminates muddy concrete grey) */
-  --background: #f8fafc;
-  --foreground: #0f172a;
-  /* Pure white crisp cards */
+  /* ─── Alkemart premium palette ───
+   * Warm espresso charcoal + cream paper + hero gold + warm stone.
+   * Every dark surface shares the ink's warm undertone so gold sits in
+   * harmony instead of fighting a blue-slate cast. */
+  --primary: #febf31;
+  --primary-foreground: #231a05;
+  --primary-strong: #e89b00;
+  /* Espresso ink — headings, dark bands, footer, sidebars */
+  --ink: #1a1510;
+  --ink-soft: #2b231a;
+  /* Cream paper — bright and warm, never gray-musky */
+  --background: #fbf7ee;
+  --foreground: #241d12;
+  /* Cards stay pure white on cream for crisp product presentation */
   --card: #ffffff;
-  --card-foreground: #0f172a;
-  /* Refined, modern slate muted tokens */
-  --muted: #f1f5f9;
-  --muted-foreground: #64748b;
-  /* Subtle, ultra-clean slate border */
-  --border: #e2e8f0;
-  --destructive: #ef4444;
-  /* Clean, vibrant amber focus ring */
-  --ring: #f59e0b;
-  /* Soft luminous clean card highlight */
-  --surface-cream: #f1f5f9;
-  /* Premium obsidian footer */
-  --footer-bg: #0f172a;
+  --card-foreground: #241d12;
+  --muted: #f4edde;
+  --muted-foreground: #6e6248;
+  --border: #eae1cc;
+  --destructive: #d64545;
+  --ring: #e89b00;
+  --surface-cream: #f6f0e2;
+  --footer-bg: #1a1510;
+}
+
+::selection {
+  background: #febf31;
+  color: #231a05;
 }
 
 * {
@@ -241,52 +251,54 @@ html {
 
 /* ─── Department themes (imgi_11 / imgi_12 Categories panel) ───
  * Apply theme-* on a parent; children use .dept-panel / .dept-soft.
+ * Hues are category coding — kept distinct but deepened into the warm
+ * premium register (no neon candy against cream/espresso).
  * Never set backgroundColor via style={} in components.
  */
 .theme-dept-electronics {
-  --dept-bg: #0ea5e9;
+  --dept-bg: #2f8fbb;
   --dept-fg: #ffffff;
-  --dept-soft: #f0f9ff;
+  --dept-soft: #eaf4f6;
 }
 .theme-dept-food {
   --dept-bg: #FEBF31;
-  --dept-fg: #0f172a;
+  --dept-fg: #241d12;
   --dept-soft: #fffbeb;
 }
 .theme-dept-pet {
-  --dept-bg: #ec4899;
+  --dept-bg: #d9567b;
   --dept-fg: #ffffff;
-  --dept-soft: #fdf2f8;
+  --dept-soft: #fae8ec;
 }
 .theme-dept-beverages {
-  --dept-bg: #84cc16;
+  --dept-bg: #7ca63c;
   --dept-fg: #ffffff;
-  --dept-soft: #f7fee7;
+  --dept-soft: #f1f4e3;
 }
 .theme-dept-personal {
-  --dept-bg: #a855f7;
+  --dept-bg: #a96a9e;
   --dept-fg: #ffffff;
-  --dept-soft: #faf5ff;
+  --dept-soft: #f7ecf4;
 }
 .theme-dept-baby {
-  --dept-bg: #3b82f6;
+  --dept-bg: #5b8fd9;
   --dept-fg: #ffffff;
-  --dept-soft: #eff6ff;
+  --dept-soft: #eaf0f9;
 }
 .theme-dept-fashion {
-  --dept-bg: #6366f1;
+  --dept-bg: #c4693b;
   --dept-fg: #ffffff;
-  --dept-soft: #eef2ff;
+  --dept-soft: #f8ece3;
 }
 .theme-dept-home {
-  --dept-bg: #f43f5e;
+  --dept-bg: #c2574b;
   --dept-fg: #ffffff;
-  --dept-soft: #fff1f2;
+  --dept-soft: #f9e9e4;
 }
 .theme-dept-default {
-  --dept-bg: #06b6d4;
+  --dept-bg: #3e9ea0;
   --dept-fg: #ffffff;
-  --dept-soft: #ecfeff;
+  --dept-soft: #e8f2f0;
 }
 
 .dept-panel {
@@ -426,10 +438,10 @@ html {
  */
 .site-footer {
   background-color: var(--footer-bg);
-  color: #f8fafc;
-  --footer-fg: #f1f5f9;
-  --footer-muted: #94a3b8;
-  --footer-link: #e2e8f0;
+  color: #f7f1e3;
+  --footer-fg: #f7f1e3;
+  --footer-muted: #b3a68b;
+  --footer-link: #efe5cd;
 }
 .site-footer .footer-copy {
   color: var(--footer-fg);
@@ -442,7 +454,7 @@ html {
 }
 .site-footer .footer-link:hover,
 .site-footer .footer-link:focus-visible {
-  color: #ffffff;
+  color: var(--primary);
 }
 
 
@@ -508,6 +520,6 @@ html {
 
 /* Seller store hero (dark board — no inline gradient) */
 .store-hero {
-  background: linear-gradient(135deg, var(--ink) 0%, var(--foreground) 100%);
+  background: linear-gradient(135deg, var(--ink-soft) 0%, var(--ink) 70%);
   color: var(--card);
 }

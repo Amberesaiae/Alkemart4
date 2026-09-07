@@ -101,7 +101,7 @@ function Tile({
       <div className="relative z-10 p-3 sm:p-3.5">
         <span
           className={cn(
-            "inline-block max-w-full truncate rounded-md bg-black/75 px-2 py-1",
+            "inline-block max-w-full truncate rounded-md bg-[#1a1510]/85 px-2 py-1",
             "text-sm font-bold tracking-tight text-white backdrop-blur-[2px]",
             "sm:text-base lg:text-lg lg:px-3 lg:py-1.5",
           )}

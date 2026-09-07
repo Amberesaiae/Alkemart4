@@ -39,7 +39,7 @@ export function HomeDeliveryBand({
               />
             </span>
           </h2>
-          <p className="text-sm leading-relaxed text-slate-300 sm:text-base">
+          <p className="text-sm leading-relaxed text-[#e9dfc8] sm:text-base">
             {body}
           </p>
           <Link
