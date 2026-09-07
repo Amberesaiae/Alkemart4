@@ -14,9 +14,10 @@
 
 ## Remaining before public pilot
 
-1. `wrangler deploy` the API (ships the Hyperdrive RYW fix + concurrency hardening).
+1. ~~`wrangler deploy` the API~~ Done 2026-09-06: Hyperdrive RYW fix + concurrency hardening live; storefront/vendor/admin Pages redeployed.
 2. Run the live money matrix (`PAYMENTS-LAUNCH-GATE.md`) — blocked by policy, not code.
 3. Rotate demo passwords + enable Cloudflare WAF/rate-limiting rules for public traffic.
+4. Payment-intent expiry cron: deploy registered the worker but the account is on Workers **Free** (5 cron triggers already used), so `wrangler.toml [triggers]` could not be applied (API error 10072). The expiry handler ships; it activates on Workers Paid, or free the account's cron slots and re-run `wrangler deploy`.
 
 ## Local for agents
 
