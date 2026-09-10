@@ -1,7 +1,7 @@
 "use client"
 import * as React from "react"
 import * as DialogPrimitive from "@radix-ui/react-dialog"
-import { X } from "lucide-react"
+import { X } from "@phosphor-icons/react"
 import { cn } from "./cn"
 
 interface LegacyModalProps {
@@ -19,29 +19,31 @@ function Modal({ isOpen, onClose, title, children, footer, className }: LegacyMo
       <DialogPrimitive.Portal>
         <DialogPrimitive.Overlay
           className={cn(
-            "fixed inset-0 z-50 bg-ink/50 backdrop-blur-sm",
+            "fixed inset-0 z-50 bg-black/60 backdrop-blur-xs",
             "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
           )}
         />
         <DialogPrimitive.Content
+          style={{ position: "fixed", top: "50%", left: "50%", transform: "translate(-50%, -50%)" }}
           className={cn(
-            "fixed left-1/2 top-1/2 z-50 w-full max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-xl border border-border bg-card text-card-foreground shadow-lg",
+            "fixed left-1/2 top-1/2 z-50 w-[calc(100%-2rem)] max-w-lg max-h-[85vh] overflow-y-auto rounded-2xl border border-border bg-background p-6 text-foreground shadow-2xl",
             "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
             "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
             className,
           )}
         >
+          <DialogPrimitive.Close className="absolute top-4 right-4 rounded-lg h-8 w-8 inline-flex items-center justify-center text-muted-foreground opacity-70 hover:opacity-100 hover:bg-muted hover:text-foreground transition-all focus:outline-none focus:ring-2 focus:ring-ring">
+            <X className="h-4 w-4" />
+          </DialogPrimitive.Close>
+
           {title && (
-            <div className="flex items-center justify-between p-6 border-b">
-              <h2 className="text-lg font-semibold">{title}</h2>
-              <DialogPrimitive.Close className="rounded-full h-8 w-8 inline-flex items-center justify-center opacity-70 hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring">
-                <X className="h-4 w-4" />
-              </DialogPrimitive.Close>
+            <div className="pb-4 mb-4 border-b border-border pr-8">
+              <h2 className="text-lg font-bold tracking-tight text-foreground">{title}</h2>
             </div>
           )}
-          <div className="p-6">{children}</div>
+          <div className="space-y-4">{children}</div>
           {footer && (
-            <div className="px-6 py-4 border-t bg-muted/20 flex items-center justify-end gap-3 rounded-b-xl">
+            <div className="-mx-6 -mb-6 mt-6 px-6 py-4 bg-muted/30 flex items-center justify-end gap-3 rounded-b-2xl">
               {footer}
             </div>
           )}

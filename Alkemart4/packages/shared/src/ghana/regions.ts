@@ -57,3 +57,18 @@ export const GHANA_MAJOR_CITIES = [
   "Accra", "Kumasi", "Tamale", "Takoradi", "Cape Coast",
   "Tema", "Sunyani", "Ho", "Koforidua", "Wa", "Bolgatanga",
 ] as const
+
+/**
+ * Canonical region ID — accepts an ID ("GH07") or display name
+ * ("Greater Accra"). Writes should always store the result of this.
+ */
+export function resolveRegionId(input: string): string | null {
+  const v = input.trim()
+  return getRegionById(v)?.id ?? getRegionByName(v)?.id ?? null
+}
+
+/** Display name for a stored region value (ID or legacy name). */
+export function displayRegionName(stored: string | null | undefined): string | null {
+  if (!stored) return null
+  return getRegionById(stored)?.name ?? getRegionByName(stored)?.name ?? stored
+}

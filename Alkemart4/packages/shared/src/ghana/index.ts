@@ -1,4 +1,5 @@
 export * from "./regions"
+export * from "./districts"
 export * from "./phone"
 export * from "./currency"
 export * from "./address"
