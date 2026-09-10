@@ -4,7 +4,7 @@ import { useReturns, useReturnReasons, useReceiveReturnItems, useConfirmReceiveR
 import type { Return, ReturnItem } from "../lib/api"
 import { Card, Button, Badge, Skeleton, Input, Label } from "@workspace/ui"
 import { format } from "date-fns"
-import { RefreshCw, Package, CheckCircle2, XCircle, Banknote } from "lucide-react"
+import { ArrowsClockwise, Package, CheckCircle, XCircle, Money } from "@phosphor-icons/react"
 import { PageShell } from "../components/page-shell"
 import { PageHeader } from "../components/page-header"
 import { toast } from "sonner"
@@ -153,10 +153,10 @@ function ReturnsPage() {
           <button
             key={tab.id}
             onClick={() => setFilter(tab.id)}
-            className={`px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-colors border-2 ${
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all border ${
               filter === tab.id
-                ? "bg-primary text-primary-foreground border-primary shadow-sm"
-                : "bg-card text-muted-foreground border-transparent hover:border-border hover:bg-muted"
+                ? "bg-primary text-primary-foreground border-primary shadow-2xs"
+                : "bg-card text-muted-foreground border-border/60 hover:border-primary/40 hover:bg-accent hover:text-accent-foreground"
             }`}
           >
             {tab.label}
@@ -179,7 +179,7 @@ function ReturnsPage() {
         </Card>
       ) : !data?.returns || data.returns.length === 0 ? (
         <Card className="p-16 text-center border-2 border-dashed">
-          <RefreshCw className="h-10 w-10 mx-auto mb-4 text-muted-foreground opacity-40" />
+          <ArrowsClockwise className="h-10 w-10 mx-auto mb-4 text-muted-foreground opacity-40" />
           <h2 className="text-lg font-bold mb-1">No returns</h2>
           <p className="text-sm text-muted-foreground">No return requests match your current filter.</p>
         </Card>
@@ -190,7 +190,7 @@ function ReturnsPage() {
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
                   <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center shrink-0">
-                    <RefreshCw className="h-5 w-5 text-muted-foreground" />
+                    <ArrowsClockwise className="h-5 w-5 text-muted-foreground" />
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
@@ -253,7 +253,7 @@ function ReturnsPage() {
                         onClick={() => handleConfirm(ret)}
                         isLoading={confirmReceive.isPending}
                       >
-                        <CheckCircle2 className="h-4 w-4 mr-1" />
+                        <CheckCircle className="h-4 w-4 mr-1" />
                         Confirm Received
                       </Button>
                       <Button
@@ -275,7 +275,7 @@ function ReturnsPage() {
                           onClick={() => handleRefund(ret)}
                           isLoading={refund.isPending}
                         >
-                          <Banknote className="h-4 w-4 mr-1" />
+                          <Money className="h-4 w-4 mr-1" />
                           Refund {formatGhs(ret.refund_amount / 100)}
                         </Button>
                       )}
@@ -312,7 +312,7 @@ function ReturnsPage() {
                       onClick={() => handleConfirm(ret)}
                       isLoading={confirmReceive.isPending}
                     >
-                      <CheckCircle2 className="h-4 w-4 mr-1" />
+                      <CheckCircle className="h-4 w-4 mr-1" />
                       Confirm Receive (Finalize)
                     </Button>
                   )}

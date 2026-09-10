@@ -1,10 +1,10 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { useState, useRef, useEffect } from "react"
 import { useUploadImage, useQuickSell, useCategories, useReadiness } from "../lib/hooks"
-import { isWorkersApi, type SellerReadiness } from "../lib/api"
+import { type SellerReadiness } from "../lib/api"
 import { useQueryClient } from "@tanstack/react-query"
 import { Button, Input, Label, Card, Textarea, Select, Skeleton } from "@workspace/ui"
-import { UploadCloud, Image as ImageIcon, ArrowRight, CheckCircle2, ChevronLeft, AlertCircle, Clock, ListTree, Plus, Trash2 } from "lucide-react"
+import { CloudArrowUp, Image, ArrowRight, CheckCircle, CaretLeft, WarningCircle, Clock, TreeStructure, Plus, Trash } from "@phosphor-icons/react"
 import { PageShell } from "../components/page-shell"
 import { PageHeader } from "../components/page-header"
 
@@ -127,6 +127,7 @@ function QuickSellPage() {
 
   const validate = (): string | null => {
     if (!title || title.trim().length < 3) return "Title must be at least 3 characters."
+    if (!categoryId) return "Please choose a category for your product."
     if (!priceGhs || Number(priceGhs) < 0.5) return "Price must be at least GH₵0.50."
     if (Number(priceGhs) > 500_000) return "Price must not exceed GH₵500,000."
     if (hasVariations) {
@@ -165,8 +166,7 @@ function QuickSellPage() {
 
     try {
       let imageUrl = undefined
-      // Workers cut has no /vendor/uploads — list without image.
-      if (file && !isWorkersApi()) {
+      if (file) {
         imageUrl = await upload.mutateAsync(file)
       }
 
@@ -183,8 +183,6 @@ function QuickSellPage() {
         quantity,
         category_id: categoryId || undefined,
         image_url: imageUrl,
-        // Workers create is single-variant only.
-        ...(!isWorkersApi() && variant_entries.length ? { variant_entries } : {}),
       })
 
       qc.invalidateQueries({ queryKey: ["vendor"] })
@@ -204,7 +202,7 @@ function QuickSellPage() {
     <PageShell className="max-w-2xl">
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" onClick={() => step === 2 ? setStep(1) : navigate({ to: "/" })}>
-          <ChevronLeft className="h-6 w-6" />
+          <CaretLeft className="h-6 w-6" />
         </Button>
         <PageHeader title="Quick Sell" description="List an item in under a minute." />
       </div>
@@ -231,7 +229,7 @@ function QuickSellPage() {
         {step === 1 && (
           <div className="p-8 sm:p-12 flex flex-col items-center text-center">
             <div className="h-24 w-24 bg-primary/10 text-primary rounded-full flex items-center justify-center mb-6">
-              <ImageIcon className="h-10 w-10" />
+              <Image className="h-10 w-10" />
             </div>
             <h2 className="text-2xl font-bold mb-2">Snap a Photo</h2>
             <p className="text-muted-foreground font-medium max-w-sm mb-8">
@@ -252,8 +250,8 @@ function QuickSellPage() {
               className="w-full sm:w-auto min-w-[200px] h-14 text-lg gap-2"
               onClick={() => fileInputRef.current?.click()}
             >
-              <UploadCloud className="h-6 w-6" />
-              Upload Photo
+              <CloudArrowUp className="h-6 w-6" />
+              UploadSimple Photo
             </Button>
 
             {fileError && (
@@ -284,7 +282,7 @@ function QuickSellPage() {
                     <img src={preview} alt="Preview" className="w-full h-full object-cover" />
                   ) : (
                     <div className="text-center p-4">
-                      <ImageIcon className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+                      <Image className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
                       <span className="text-xs font-semibold text-muted-foreground">Add Photo</span>
                     </div>
                   )}
@@ -391,7 +389,7 @@ function QuickSellPage() {
                       className="gap-1.5"
                        onClick={toggleVariations}
                     >
-                      <ListTree className="h-4 w-4" />
+                      <TreeStructure className="h-4 w-4" />
                       {hasVariations ? "Remove variations" : "Add variations"}
                     </Button>
                   </div>
@@ -419,7 +417,7 @@ function QuickSellPage() {
                                 className="text-destructive shrink-0"
                                 onClick={() => removeType(i)}
                               >
-                                <Trash2 className="h-4 w-4" />
+                                <Trash className="h-4 w-4" />
                               </Button>
                             )}
                           </div>
@@ -492,7 +490,7 @@ function QuickSellPage() {
                                 className="text-destructive shrink-0"
                                 onClick={() => removeVariation(i)}
                               >
-                                <Trash2 className="h-4 w-4" />
+                                <Trash className="h-4 w-4" />
                               </Button>
                             </div>
                           ))}
@@ -538,7 +536,7 @@ function QuickSellPage() {
                 className="gap-2 px-8"
                 isLoading={upload.isPending || quickSell.isPending}
               >
-                <CheckCircle2 className="h-5 w-5" />
+                <CheckCircle className="h-5 w-5" />
                 Submit for Review
               </Button>
             </div>
@@ -582,8 +580,8 @@ function SetupGate({ readiness }: { readiness: SellerReadiness }) {
     <Card className="border-2 shadow-lg overflow-hidden">
       <div className="p-8 sm:p-12">
         <div className="flex items-center gap-3 mb-4">
-          <div className="h-11 w-11 rounded-full bg-warning/10 text-warning flex items-center justify-center shrink-0">
-            <AlertCircle className="h-6 w-6" />
+          <div className="h-11 w-11 rounded-full bg-warning/10 text-warning-fg flex items-center justify-center shrink-0">
+            <WarningCircle className="h-6 w-6" />
           </div>
           <div>
             <h2 className="text-xl font-bold">Finish setting up your shop</h2>
@@ -597,9 +595,9 @@ function SetupGate({ readiness }: { readiness: SellerReadiness }) {
           {items.map(([key, done]) => (
             <li key={key} className="flex items-center gap-3 p-3 rounded-xl border-2 border-border">
               {done ? (
-                <CheckCircle2 className="h-5 w-5 text-success shrink-0" />
+                <CheckCircle className="h-5 w-5 text-success shrink-0" />
               ) : (
-                <AlertCircle className="h-5 w-5 text-warning shrink-0" />
+                <WarningCircle className="h-5 w-5 text-warning-fg shrink-0" />
               )}
               <span className="font-semibold text-sm">
                 {readiness.checklist_labels?.[key] ?? key}

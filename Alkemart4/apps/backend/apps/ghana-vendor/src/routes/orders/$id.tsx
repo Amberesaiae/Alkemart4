@@ -1,9 +1,9 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
 import { useState } from "react"
 import { useOrder, useFulfillOrder, useShipOrder, useDeliverOrder, useCancelOrder } from "../../lib/hooks"
-import { isWorkersApi, maskEmail } from "../../lib/api"
+import { maskEmail } from "../../lib/api"
 import { Card, Button, Badge, Input } from "@workspace/ui"
-import { ArrowLeft, Box, Truck, CheckCircle2, User, MapPin, XCircle } from "lucide-react"
+import { ArrowLeft, Cube, Truck, CheckCircle, User, MapPin, XCircle } from "@phosphor-icons/react"
 import { format } from "date-fns"
 import { PageShell } from "../../components/page-shell"
 import { toast } from "sonner"
@@ -69,7 +69,8 @@ function OrderDetailPage() {
     )
   }
 
-  const workers = isWorkersApi()
+  // Workers is the only backend.
+  const workers = true
   const fulfillment = order.fulfillments?.[0]
   const isCanceled = order.status === "canceled" || order.canceled_at
   const orderLabel = order.display_id != null ? `#${order.display_id}` : `#${order.id.slice(-6)}`
@@ -216,7 +217,7 @@ function OrderDetailPage() {
                     {item.thumbnail ? (
                       <img src={item.thumbnail} alt={item.title || ""} className="h-full w-full object-cover" />
                     ) : (
-                      <Box className="h-6 w-6 text-muted-foreground opacity-50" />
+                      <Cube className="h-6 w-6 text-muted-foreground opacity-50" />
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
@@ -258,7 +259,7 @@ function OrderDetailPage() {
                 {!workers && (
                   <div className="flex gap-4">
                     <div className={`mt-1 h-8 w-8 rounded-full flex items-center justify-center shrink-0 ${order.fulfillment_status !== "not_fulfilled" ? "bg-success text-white" : "bg-primary text-primary-foreground"}`}>
-                      <Box className="h-4 w-4" />
+                      <Cube className="h-4 w-4" />
                     </div>
                     <div className="flex-1">
                       <h3 className="font-bold text-base">Pack Order</h3>
@@ -310,7 +311,7 @@ function OrderDetailPage() {
                 {/* Step 3: Deliver */}
                 <div className={`flex gap-4 ${!canDeliver && order.fulfillment_status !== "delivered" ? "opacity-50 pointer-events-none" : ""}`}>
                   <div className={`mt-1 h-8 w-8 rounded-full flex items-center justify-center shrink-0 ${order.fulfillment_status === "delivered" ? "bg-success text-white" : "bg-muted text-muted-foreground"}`}>
-                    <CheckCircle2 className="h-4 w-4" />
+                    <CheckCircle className="h-4 w-4" />
                   </div>
                   <div className="flex-1">
                     <h3 className="font-bold text-base">Delivered</h3>

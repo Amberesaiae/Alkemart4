@@ -1,7 +1,6 @@
 import { Link, useRouterState } from "@tanstack/react-router"
-import { LayoutDashboard, Package, ShoppingBag, Settings, LogOut, Store, RefreshCw } from "lucide-react"
+import { SquaresFour, Package, ShoppingBag, Gear, SignOut, Storefront, Star } from "@phosphor-icons/react"
 import { useCurrentUser, useLogout } from "../lib/auth"
-import { isWorkersApi } from "../lib/api"
 import { cn, Button, Avatar, AvatarFallback } from "@workspace/ui"
 
 function avatarInitials(name: string | null | undefined): string {
@@ -19,19 +18,18 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const router = useRouterState()
   const pathname = router.location.pathname
 
-  // Returns (and other Mercur-only surfaces) are hidden on the Workers cut.
+  // Returns stays out of the vendor nav — no seller returns surface yet.
   const navItems = [
-    { name: "Dashboard", to: "/", icon: LayoutDashboard },
+    { name: "Dashboard", to: "/", icon: SquaresFour },
     { name: "Products", to: "/products", icon: Package },
     { name: "Orders", to: "/orders", icon: ShoppingBag },
-    ...(!isWorkersApi()
-      ? [{ name: "Returns", to: "/returns", icon: RefreshCw }]
-      : []),
-    { name: "Settings", to: "/settings", icon: Settings },
+    { name: "Store", to: "/store", icon: Storefront },
+    { name: "Reviews", to: "/reviews", icon: Star },
+    { name: "Settings", to: "/settings", icon: Gear },
   ]
 
   const navIsActive = (to: string) =>
-    to === "/" ? pathname === "/" : pathname.startsWith(to)
+    to === "/" ? pathname === "/" : pathname === to || pathname.startsWith(to + "/")
 
   return (
     <div className="flex min-h-[100dvh] w-full bg-background flex-col md:flex-row">
@@ -41,8 +39,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
       </a>
 
       {/* Desktop Sidebar */}
-      <aside aria-label="Sidebar" className="hidden md:flex w-64 flex-col border-r border-border bg-ink text-ink-foreground">
-        <div className="p-6 border-b border-ink-foreground/10 flex flex-col items-center text-center gap-3">
+      <aside aria-label="Sidebar" className="hidden md:flex w-64 h-screen sticky top-0 flex-col border-r border-border bg-ink text-ink-foreground shrink-0">
+        <div className="p-6 flex flex-col items-center text-center gap-3">
           <Avatar className="h-16 w-16">
             <AvatarFallback className="text-2xl font-bold text-primary-foreground bg-primary">
               {avatarInitials(user?.seller_name)}
@@ -74,14 +72,14 @@ export function Layout({ children }: { children: React.ReactNode }) {
             )
           })}
         </nav>
-        <div className="p-4 border-t border-ink-foreground/10">
+        <div className="p-4">
           <Button 
             variant="ghost" 
             className="w-full justify-start gap-3 text-ink-foreground/70 hover:text-ink-foreground hover:bg-ink-foreground/10"
             onClick={() => logout.mutate()}
             isLoading={logout.isPending}
           >
-            <LogOut className="h-5 w-5" />
+            <SignOut className="h-5 w-5" />
             Sign Out
           </Button>
         </div>
@@ -92,7 +90,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <div className="md:hidden flex items-center justify-between p-4 bg-ink text-ink-foreground sticky top-0 z-20 shadow-sm">
           <div className="flex items-center gap-2">
             <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground">
-              <Store className="h-4 w-4" />
+              <Storefront className="h-4 w-4" />
             </div>
             <span className="font-bold text-sm">{user?.seller_name || "My Shop"}</span>
           </div>
@@ -103,7 +101,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
       </main>
 
       {/* Mobile Bottom Tab Bar */}
-      <nav aria-label="Mobile navigation" className="md:hidden fixed bottom-0 left-0 right-0 bg-ink text-ink-foreground/70 border-t border-ink-foreground/10 flex justify-around items-center p-2 pb-safe z-50">
+      <nav aria-label="Mobile navigation" className="md:hidden fixed bottom-0 left-0 right-0 bg-ink text-ink-foreground/70 flex justify-around items-center p-2 pb-safe z-50 shadow-lg">
         {navItems.map((item) => {
           const isActive = navIsActive(item.to)
           return (
@@ -126,7 +124,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
           className="flex flex-col items-center gap-0.5 text-ink-foreground/60 hover:text-ink-foreground transition-colors"
           aria-label="Sign out"
         >
-          <LogOut className="h-5 w-5" aria-hidden="true" />
+          <SignOut className="h-5 w-5" aria-hidden="true" />
           <span className="text-[10px] font-medium">Sign Out</span>
         </button>
       </nav>

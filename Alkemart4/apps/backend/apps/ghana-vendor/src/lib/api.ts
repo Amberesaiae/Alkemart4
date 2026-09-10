@@ -3,20 +3,17 @@
  *
  * Single source of truth for every endpoint the Seller SPA calls.
  * Handles:
- *  - session cookie auth (credentials: 'include')
- *  - x-seller-id header for Mercur seller scoping
+ *  - Bearer token auth (sessionStorage) + session cookies (credentials: 'include')
  *  - Structured ApiError on non-2xx
  *  - Seller context persistence across page refreshes (localStorage)
  *
- * Endpoint mapping (Mercur v2.2.x):
- *   Auth          → /auth/member/emailpass[/register]
- *   Seller        → /vendor/sellers/*, /vendor/members/me
- *   Products      → /vendor/products, /vendor/alkemart/products (lightweight)
- *   Offers        → /vendor/offers
- *   Orders        → /vendor/orders (NOT /admin/orders — vendor-scoped)
- *   Stats         → /vendor/alkemart/stats
- *   Onboarding    → /vendor/alkemart/onboarding/*
- *   Quick-list    → /vendor/alkemart/quick-list
+ * Backend: Cloudflare Workers API only.
+ *   Auth          → /vendor/auth/login, /vendor/auth/register
+ *   Seller        → /vendor/sellers/me, /vendor/me
+ *   Products      → /vendor/products
+ *   Orders        → /vendor/orders
+ *   Onboarding    → /vendor/onboarding/*
+ *   Catalog       → /store/categories
  *   Uploads       → /vendor/uploads
  */
 
@@ -92,15 +89,10 @@ function setToken(t: string | null) {
 // Base fetch
 // ---------------------------------------------------------------------------
 
-/** Workers API origin when set; empty keeps relative paths (local Vite proxy / Mercur). */
+/** Workers API origin; empty keeps relative paths (local Vite proxy). */
 function apiBase(): string {
   const raw = (import.meta.env.VITE_ALKEMART_API_URL as string | undefined)?.trim()
   return raw ? raw.replace(/\/$/, "") : ""
-}
-
-/** True when talking to the Cloudflare Workers API (not Medusa/Mercur). */
-export function isWorkersApi(): boolean {
-  return Boolean(apiBase())
 }
 
 function resolveUrl(path: string): string {
@@ -111,11 +103,6 @@ function resolveUrl(path: string): string {
 
 async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
   const extraHeaders: Record<string, string> = {}
-  // Mercur scopes via x-seller-id; Workers JWT already carries sellerId — skip header there.
-  if (!isWorkersApi()) {
-    const sellerId = getActiveSellerId()
-    if (sellerId) extraHeaders["x-seller-id"] = sellerId
-  }
   const token = getToken()
   if (token) {
     extraHeaders["Authorization"] = `Bearer ${token}`
@@ -187,8 +174,11 @@ function put<T>(path: string, body?: unknown): Promise<T> {
   })
 }
 
-function del<T>(path: string): Promise<T> {
-  return apiFetch<T>(path, { method: "DELETE" })
+function patchJson<T>(path: string, body?: unknown): Promise<T> {
+  return apiFetch<T>(path, {
+    method: "PATCH",
+    body: body !== undefined ? JSON.stringify(body) : undefined,
+  })
 }
 
 // ---------------------------------------------------------------------------
@@ -198,10 +188,22 @@ function del<T>(path: string): Promise<T> {
 export type SellerStatus = "pending_approval" | "open" | "suspended" | "terminated"
 export type ProductStatus = "draft" | "proposed" | "published" | "rejected"
 
+export type VendorAppeal = {
+  id: string
+  productId: string
+  message: string
+  status: "open" | "closed"
+  decision: "reopened" | "upheld" | null
+  response: string | null
+}
+
 export type SellerAddress = {
   address_1?: string | null
   address_2?: string | null
   city?: string | null
+  district?: string | null
+  latitude?: number | null
+  longitude?: number | null
   country_code?: string | null
   province?: string | null
   postal_code?: string | null
@@ -213,6 +215,45 @@ export type SellerPaymentDetails = {
   provider?: string | null
   account_name?: string | null
   [key: string]: unknown
+}
+
+export type SellerStorefront = {
+  tagline: string | null
+  announcement: { text: string; startsAt: string; endsAt: string } | null
+  announcementActive: boolean
+  seoDescription: string | null
+}
+
+export type SellerDisplay = {
+  categoryOrder: string[]
+  featuredCategoryId: string | null
+  stockMode: "exact" | "bands"
+}
+
+export type SellerContact = {
+  phone: string | null
+  hours: { days: string; open: string; close: string } | null
+  social: { instagram?: string; facebook?: string; tiktok?: string; whatsapp?: string }
+}
+
+export type StorefrontPatch = {
+  tagline?: string | null
+  bio?: string | null
+  announcement?: { text: string; startsAt: string; endsAt: string } | null
+  seoDescription?: string | null
+}
+
+export type SellerAvailability = {
+  state: "open" | "paused"
+  pausedUntil: string | null
+  note: string | null
+}
+
+export type ShopPolicy = {
+  id: string
+  version: number
+  body: { shipping?: string; returnsDays?: number; warranty?: string }
+  effectiveFrom: string
 }
 
 export type Seller = {
@@ -228,6 +269,10 @@ export type Seller = {
   metadata?: Record<string, unknown> | null
   address?: SellerAddress | null
   payment_details?: SellerPaymentDetails | null
+  storefront?: SellerStorefront | null
+  availability?: SellerAvailability | null
+  display?: SellerDisplay | null
+  contact?: SellerContact | null
 }
 
 export type SellerMember = {
@@ -474,7 +519,9 @@ type WorkersOrderItem = {
 }
 
 function mapWorkersProduct(item: WorkersProductItem): Product {
-  const amount = Number(item.offer.pricePesewas)
+  // Workers pesewas → Medusa-shaped major units.
+  const amount = Number(item.offer.pricePesewas) / 100
+  const onHand = Number(item.offer.onHand)
   return {
     id: item.product.id,
     title: item.product.title,
@@ -567,31 +614,20 @@ function flattenStoreCategories(
 
 export const seller = {
   /**
-   * GET /vendor/sellers/me — current seller profile (Mercur).
-   * Workers: stub from JWT `/vendor/me`.
+   * GET /vendor/sellers/me — current seller profile.
    */
   me: async () => {
-    if (isWorkersApi()) {
-      const me = await get<{ userId: string; role: string; sellerId?: string }>("/vendor/me")
-      if (me.sellerId) setActiveSellerId(me.sellerId)
-      return {
-        seller: {
-          id: me.sellerId ?? me.userId,
-          name: "My Shop",
-          email: null,
-          status: "open" as SellerStatus,
-        },
-      }
-    }
-    return get<{ seller: Seller }>("/vendor/sellers/me")
+    const data = await get<{ seller: Seller }>("/vendor/sellers/me")
+    if (data.seller?.id) setActiveSellerId(data.seller.id)
+    return data
   },
 
   /**
-   * GET /vendor/alkemart/me — Alkemart custom convenience endpoint.
-   * Requires x-seller-id header (called after seller_id is known).
+   * Alkemart profile is not available yet — no GET /vendor/alkemart/me on Workers.
    */
-  alkemartMe: () =>
-    get<AlkemartMe>("/vendor/alkemart/me"),
+  alkemartMe: (): Promise<AlkemartMe> => {
+    return Promise.reject(new ApiError(501, "Alkemart profile is not available yet"))
+  },
 
   /**
    * Workers `/vendor/me` bootstrap (JWT only).
@@ -609,8 +645,7 @@ export const seller = {
   },
 
   /**
-   * POST /vendor/sellers — Register a new seller (Mercur).
-   * Workers registration goes through /vendor/auth/register.
+   * Seller creation is not available yet — use registration instead.
    */
   create: (input: {
     name: string
@@ -622,29 +657,19 @@ export const seller = {
     last_name?: string
     phone?: string
   }) => {
-    if (isWorkersApi()) {
-      return Promise.reject(new ApiError(501, "Use /vendor/auth/register on Workers API"))
-    }
-    return post<{ seller: Seller }>("/vendor/sellers", {
-      ...input,
-      currency_code: input.currency_code ?? "ghs",
-    })
+    return Promise.reject(new ApiError(501, "Seller creation is not available yet"))
   },
 
   /**
-   * POST /vendor/sellers/select — Bind a seller to the current session (Mercur).
+   * Bind a seller to the current session (local-only).
    */
   select: (sellerId: string) => {
-    if (isWorkersApi()) {
-      setActiveSellerId(sellerId)
-      return Promise.resolve({ success: true })
-    }
-    return post<{ success: boolean }>("/vendor/sellers/select", { seller_id: sellerId })
+    setActiveSellerId(sellerId)
+    return Promise.resolve({ success: true })
   },
 
   /**
-   * POST /vendor/sellers/me — Update current seller profile fields (Mercur).
-   * Workers profile updates go through /vendor/onboarding/ghana-setup.
+   * POST /vendor/sellers/me — Update current seller profile fields.
    */
   update: (input: {
     name?: string
@@ -655,39 +680,96 @@ export const seller = {
     currency_code?: string
     metadata?: Record<string, unknown> | null
   }) => {
-    if (isWorkersApi()) {
-      return Promise.reject(
-        new ApiError(501, "Profile update via Settings is not wired to Workers yet — use Ghana setup"),
-      )
-    }
     return post<{ seller: Seller }>("/vendor/sellers/me", input)
   },
 
   /**
-   * POST /vendor/sellers/:id/address — Upsert seller's pack / dispatch address (Mercur).
+   * POST /vendor/sellers/me/address — Upsert seller's pack / dispatch address.
    */
-  updateAddress: (sellerId: string, address: SellerAddress) => {
-    if (isWorkersApi()) {
-      return Promise.reject(
-        new ApiError(501, "Address update via Settings is not wired to Workers yet — use Ghana setup"),
-      )
-    }
-    return post<{ seller: Seller }>(`/vendor/sellers/${sellerId}/address`, address)
+  updateAddress: (sellerId: string, address: SellerAddress & { delivery_fee_pesewas?: string }) => {
+    return post<{ seller: Seller }>("/vendor/sellers/me/address", {
+      pack_region: address.province ?? null,
+      digital_address: address.postal_code ?? null,
+      delivery_fee_pesewas: address.delivery_fee_pesewas,
+      address_1: address.address_1 ?? null,
+      address_2: address.address_2 ?? null,
+      city: address.city ?? null,
+      district: address.district ?? null,
+      latitude: address.latitude ?? null,
+      longitude: address.longitude ?? null,
+      country_code: address.country_code ?? "gh",
+    })
   },
 
   /**
-   * POST /vendor/sellers/:id/payment-details — Upsert MoMo / payout info (Mercur).
+   * POST /vendor/sellers/me/payment-details — Upsert MoMo / payout info.
    */
   updatePaymentDetails: (
     sellerId: string,
     details: SellerPaymentDetails,
   ) => {
-    if (isWorkersApi()) {
-      return Promise.reject(
-        new ApiError(501, "MoMo update via Settings is not wired to Workers yet — use Ghana setup"),
-      )
-    }
-    return post<{ seller: Seller }>(`/vendor/sellers/${sellerId}/payment-details`, details)
+    return post<{ seller: Seller }>("/vendor/sellers/me/payment-details", {
+      provider: details.provider,
+      phone: details.phone,
+    })
+  },
+
+  /**
+   * PATCH /vendor/sellers/me/storefront — buyer-visible shop copy
+   * (tagline, bio, announcement, SEO description). Returns the seller view.
+   */
+  updateStorefront: (patch: StorefrontPatch) => {
+    return patchJson<{ seller: Seller }>("/vendor/sellers/me/storefront", patch)
+  },
+
+  /**
+   * POST /vendor/sellers/me/pause — pause order intake (server-enforced
+   * 409 at checkout). Optional note + scheduled return date.
+   */
+  pause: (input: { note?: string | null; until?: string | null }) => {
+    return post<{ seller: Seller }>("/vendor/sellers/me/pause", input)
+  },
+
+  /** POST /vendor/sellers/me/unpause — reopen order intake. */
+  unpause: () => {
+    return post<{ seller: Seller }>("/vendor/sellers/me/unpause", {})
+  },
+
+  /** GET /vendor/sellers/me/policies — current + version history. */
+  policies: () => {
+    return get<{ current: ShopPolicy | null; history: ShopPolicy[] }>("/vendor/sellers/me/policies")
+  },
+
+  /**
+   * POST /vendor/sellers/me/policies — append a policy version
+   * ({ shipping?, returnsDays?, warranty? }). Returns the new version.
+   */
+  savePolicy: (body: ShopPolicy["body"]) => {
+    return post<{ policy: ShopPolicy }>("/vendor/sellers/me/policies", body)
+  },
+
+  /** PATCH /vendor/sellers/me/display — catalog arrangement prefs. */
+  updateDisplay: (patch: Partial<SellerDisplay>) => {
+    return patchJson<{ seller: Seller }>("/vendor/sellers/me/display", patch)
+  },
+
+  /** PATCH /vendor/sellers/me/contact — phone, hours, social links. */
+  updateContact: (patch: {
+    phone?: string | null
+    hours?: SellerContact["hours"]
+    social?: SellerContact["social"] | null
+  }) => {
+    return patchJson<{ seller: Seller }>("/vendor/sellers/me/contact", patch)
+  },
+
+  /** GET /vendor/sellers/me/featured — ranked featured product ids. */
+  featured: () => {
+    return get<{ productIds: string[] }>("/vendor/sellers/me/featured")
+  },
+
+  /** PUT /vendor/sellers/me/featured — replace the shelf (≤ 8 own products). */
+  setFeatured: (productIds: string[]) => {
+    return put<{ productIds: string[] }>("/vendor/sellers/me/featured", { productIds })
   },
 }
 
@@ -697,59 +779,33 @@ export const seller = {
 
 export const products = {
   /**
-   * List seller products.
-   * Workers: GET /vendor/products → `{ items }` adapted to `{ products }`.
-   * Mercur: GET /vendor/alkemart/products.
+   * List seller products — GET /vendor/products (`{ items }` adapted to `{ products }`).
    */
   list: async (params?: { limit?: number; offset?: number }) => {
-    if (isWorkersApi()) {
-      const data = await get<{ items: WorkersProductItem[] }>("/vendor/products")
-      const all = (data.items ?? []).map(mapWorkersProduct)
-      const offset = params?.offset ?? 0
-      const limit = params?.limit ?? all.length
-      return {
-        products: all.slice(offset, offset + limit),
-        count: all.length,
-        limit,
-        offset,
-      }
+    const data = await get<{ items: WorkersProductItem[] }>("/vendor/products")
+    const all = (data.items ?? []).map(mapWorkersProduct)
+    const offset = params?.offset ?? 0
+    const limit = params?.limit ?? all.length
+    return {
+      products: all.slice(offset, offset + limit),
+      count: all.length,
+      limit,
+      offset,
     }
-    return get<{ products: Product[]; count: number; limit: number; offset: number }>(
-      "/vendor/alkemart/products",
-      params,
-    )
   },
 
   /**
-   * GET /vendor/products — Mercur full product list (seller-scoped).
-   * Slower but returns full graph including variants, categories.
-   */
-  mercurList: (params?: {
-    limit?: number
-    offset?: number
-    status?: ProductStatus
-    q?: string
-  }) =>
-    get<{ products: Product[]; count: number; limit: number; offset: number }>(
-      "/vendor/products",
-      params,
-    ),
-
-  /**
-   * Product detail. Workers has no GET-by-id — resolve from list.
+   * Product detail — no GET-by-id, resolved from the list.
    */
   get: async (id: string) => {
-    if (isWorkersApi()) {
-      const data = await get<{ items: WorkersProductItem[] }>("/vendor/products")
-      const hit = (data.items ?? []).find((i) => i.product.id === id)
-      if (!hit) throw new ApiError(404, "Product not found")
-      return { product: mapWorkersProduct(hit) }
-    }
-    return get<{ product: Product }>(`/vendor/alkemart/products/${id}`)
+    const data = await get<{ items: WorkersProductItem[] }>("/vendor/products")
+    const hit = (data.items ?? []).find((i) => i.product.id === id)
+    if (!hit) throw new ApiError(404, "Product not found")
+    return { product: mapWorkersProduct(hit) }
   },
 
   /**
-   * Update product. Workers: PATCH /vendor/products/:id.
+   * Update product — PATCH /vendor/products/:id.
    */
   update: async (
     id: string,
@@ -763,9 +819,8 @@ export const products = {
       primaryCategoryId?: string
     },
   ) => {
-    if (isWorkersApi()) {
-      const body: Record<string, unknown> = {}
-      if (data.title !== undefined) body.title = data.title
+    const body: Record<string, unknown> = {}
+    if (data.title !== undefined) body.title = data.title
       if (data.description !== undefined) body.description = data.description
       if (data.thumbnail !== undefined) body.imageUrl = data.thumbnail
       if (data.pricePesewas !== undefined) body.pricePesewas = data.pricePesewas
@@ -777,56 +832,42 @@ export const products = {
         body: JSON.stringify(body),
       })
       return { product: mapWorkersProduct(updated), message: "Updated" }
-    }
-    return put<{ product: Product; message: string }>(`/vendor/alkemart/products/${id}`, data)
   },
 
   /**
-   * DELETE /vendor/alkemart/products/:id — Delete product (Mercur only).
+   * Product delete is not available yet.
    */
   delete: (id: string) => {
-    if (isWorkersApi()) {
-      return Promise.reject(new ApiError(501, "Product delete is not available on Workers API yet"))
-    }
-    return del<{ success: boolean; message: string }>(`/vendor/alkemart/products/${id}`)
+    return Promise.reject(new ApiError(501, "Product delete is not available yet"))
   },
 
   /**
-   * GET /vendor/products/:id — Full product detail with variants (Mercur).
-   */
-  mercurGet: (id: string) =>
-    get<{ product: Product }>(`/vendor/products/${id}`),
-
-  /**
-   * GET /vendor/alkemart/products/:id/quality — Quality score (Mercur only).
+   * Quality score is not available yet.
    */
   quality: (id: string) => {
-    if (isWorkersApi()) {
-      return Promise.reject(new ApiError(501, "Quality score is not available on Workers API"))
-    }
-    return get<{ quality: ProductQuality; product_id: string }>(
-      `/vendor/alkemart/products/${id}/quality`,
-    )
+    return Promise.reject(new ApiError(501, "Quality score is not available yet"))
   },
 
   /**
-   * Submit for admin review.
-   * Workers: POST /vendor/products/:id/propose
+   * Submit for admin review — POST /vendor/products/:id/propose.
    */
   propose: async (id: string) => {
-    if (isWorkersApi()) {
-      const updated = await post<WorkersProductItem>(`/vendor/products/${id}/propose`)
-      return { success: true, product_id: updated.product.id }
-    }
-    return post<{ success: boolean; product_id: string }>(
-      `/vendor/alkemart/products/${id}/propose`,
-    )
+    const updated = await post<WorkersProductItem>(`/vendor/products/${id}/propose`)
+    return { success: true, product_id: updated.product.id }
   },
 
   /**
-   * One-shot listing.
-   * Workers: POST /vendor/products (title, primaryCategoryId, pricePesewas, onHand…).
-   * Mercur: POST /vendor/alkemart/quick-list.
+   * Appeal a rejection — POST /vendor/products/:id/appeal.
+   * GET /vendor/products/appeals/mine lists your appeals.
+   */
+  appeal: async (id: string, message: string) => {
+    const data = await post<{ appeal: VendorAppeal }>(`/vendor/products/${id}/appeal`, { message })
+    return data.appeal
+  },
+  appealsMine: () => get<{ appeals: VendorAppeal[] }>("/vendor/products/appeals/mine"),
+
+  /**
+   * One-shot listing — POST /vendor/products (title, primaryCategoryId, pricePesewas, onHand…).
    */
   quickList: async (input: {
     title: string
@@ -838,37 +879,28 @@ export const products = {
     variant_options?: { name: string; values: string[] }[]
     variant_entries?: { options: Record<string, string>; price_ghs?: number; quantity?: number }[]
   }) => {
-    if (isWorkersApi()) {
-      if (!input.category_id) throw new ApiError(400, "Category is required")
-      const pricePesewas = String(Math.round(Number(input.price_ghs) * 100))
-      const created = await post<WorkersProductItem>("/vendor/products", {
-        title: input.title,
-        description: input.description,
-        primaryCategoryId: input.category_id,
-        pricePesewas,
-        onHand: input.quantity ?? 1,
-        ...(input.image_url ? { imageUrl: input.image_url } : {}),
-      })
-      return {
-        product_id: created.product.id,
-        status: created.product.status,
-        message: "Product created",
-      }
+    if (!input.category_id) throw new ApiError(400, "Please choose a category for your product")
+    const pricePesewas = String(Math.round(Number(input.price_ghs) * 100))
+    const created = await post<WorkersProductItem>("/vendor/products", {
+      title: input.title,
+      description: input.description,
+      primaryCategoryId: input.category_id,
+      pricePesewas,
+      onHand: input.quantity ?? 1,
+      ...(input.image_url ? { imageUrl: input.image_url } : {}),
+    })
+    return {
+      product_id: created.product.id,
+      status: created.product.status,
+      message: "Product created",
     }
-    return post<{ product_id: string; status: string; message: string }>(
-      "/vendor/alkemart/quick-list",
-      input,
-    )
   },
 
   /**
    * POST /vendor/uploads — Upload a file (image) and get back a URL.
-   * Not available on Workers cut — callers should skip image when Workers.
+   * Sends field `files`, accepts `{ files: [{ url }] }` or `{ url }` in reply.
    */
   upload: async (file: File): Promise<string> => {
-    if (isWorkersApi()) {
-      throw new ApiError(501, "Image upload is not available on Workers API yet")
-    }
     const form = new FormData()
     form.append("files", file)
     const data = await apiFetch<{ files?: { url: string }[]; url?: string }>(
@@ -887,58 +919,62 @@ export const products = {
 
 export const offers = {
   /**
-   * GET /vendor/offers — List this seller's offers.
+   * Offers are not available yet — no /vendor/offers/* on Workers.
    */
-  list: (params?: { limit?: number; offset?: number }) =>
-    get<{ offers: Offer[]; count: number; limit: number; offset: number }>(
-      "/vendor/offers",
-      params,
-    ),
+  list: (params?: {
+    limit?: number
+    offset?: number
+  }): Promise<{ offers: Offer[]; count: number; limit: number; offset: number }> => {
+    return Promise.reject(new ApiError(501, "Offers are not available yet"))
+  },
 
   /**
-   * GET /vendor/offers/:id — Offer detail.
+   * Offers are not available yet — no /vendor/offers/* on Workers.
    */
-  get: (id: string) =>
-    get<{ offer: Offer }>(`/vendor/offers/${id}`),
+  get: (id: string): Promise<{ offer: Offer }> => {
+    return Promise.reject(new ApiError(501, "Offers are not available yet"))
+  },
 
   /**
-   * POST /vendor/offers/:id — Update price / sku on an existing offer.
+   * Offers are not available yet — no /vendor/offers/* on Workers.
    */
   update: (
     id: string,
     input: { prices?: { amount: number; currency_code: string }[]; sku?: string },
-  ) =>
-    post<{ offer: Offer }>(`/vendor/offers/${id}`, input),
+  ): Promise<{ offer: Offer }> => {
+    return Promise.reject(new ApiError(501, "Offers are not available yet"))
+  },
 
   /**
-   * DELETE /vendor/offers/:id — Remove an offer (unlists from store).
+   * Offers are not available yet — no /vendor/offers/* on Workers.
    */
-  delete: (id: string) =>
-    del<{ id: string; deleted: boolean }>(`/vendor/offers/${id}`),
+  delete: (id: string): Promise<{ id: string; deleted: boolean }> => {
+    return Promise.reject(new ApiError(501, "Offers are not available yet"))
+  },
 }
 
 // ---------------------------------------------------------------------------
-// Vendor — Inventory (Mercur seller-scoped inventory endpoints)
+// Vendor — Inventory (no seller-scoped inventory endpoints on Workers yet)
 // ---------------------------------------------------------------------------
 
 export const inventoryItems = {
   /**
-   * GET /vendor/inventory-items/:id/location-levels — Stock levels per location.
+   * Stock levels are not available yet — no /vendor/inventory-items/* on Workers.
    */
-  levels: (id: string) =>
-    get<{ inventory_levels: StockLevel[]; count?: number }>(
-      `/vendor/inventory-items/${id}/location-levels`,
-    ),
+  levels: (id: string): Promise<{ inventory_levels: StockLevel[]; count?: number }> => {
+    return Promise.reject(new ApiError(501, "Stock levels are not available yet"))
+  },
 
   /**
-   * POST /vendor/inventory-items/:id/location-levels/:locationId —
-   * Set the stocked quantity at a location (ownership-validated server-side).
+   * Stock updates are not available yet — no /vendor/inventory-items/* on Workers.
    */
-  setLevel: (id: string, locationId: string, stockedQuantity: number) =>
-    post<{ inventory_item: unknown }>(
-      `/vendor/inventory-items/${id}/location-levels/${locationId}`,
-      { stocked_quantity: stockedQuantity },
-    ),
+  setLevel: (
+    id: string,
+    locationId: string,
+    stockedQuantity: number,
+  ): Promise<{ inventory_item: unknown }> => {
+    return Promise.reject(new ApiError(501, "Stock updates are not available yet"))
+  },
 }
 
 // ---------------------------------------------------------------------------
@@ -948,7 +984,7 @@ export const inventoryItems = {
 export const orders = {
   /**
    * GET /vendor/orders — Orders scoped to this seller.
-   * Workers returns `{ items }`; adapted to `{ orders }` for the SPA.
+   * Returns `{ items }`, adapted to `{ orders }` for the SPA.
    */
   list: async (params?: {
     limit?: number
@@ -959,9 +995,8 @@ export const orders = {
     created_at_from?: string
     created_at_to?: string
   }) => {
-    if (isWorkersApi()) {
-      const data = await get<{ items: WorkersOrderItem[] }>("/vendor/orders")
-      let all = (data.items ?? []).map(mapWorkersOrder)
+    const data = await get<{ items: WorkersOrderItem[] }>("/vendor/orders")
+    let all = (data.items ?? []).map(mapWorkersOrder)
       const fs = params?.fulfillment_status
       if (fs === "not_fulfilled") {
         all = all.filter((o) => o.fulfillment_status === "placed" || o.fulfillment_status === "not_fulfilled")
@@ -980,19 +1015,13 @@ export const orders = {
         limit,
         offset,
       }
-    }
-    return get<{ orders: Order[]; count: number; limit: number; offset: number }>(
-      "/vendor/orders",
-      params,
-    )
   },
 
   /**
-   * Single order detail. Workers: GET /vendor/orders/:id (items + address).
+   * Single order detail — GET /vendor/orders/:id (items + address), list fallback.
    */
   get: async (id: string) => {
-    if (isWorkersApi()) {
-      try {
+    try {
         const data = await get<{
           order: WorkersOrderItem & {
             items?: Array<{
@@ -1050,85 +1079,57 @@ export const orders = {
         if (!hit) throw new ApiError(404, "Order not found")
         return { order: mapWorkersOrder(hit) }
       }
-    }
-    return get<{ order: Order }>(`/vendor/orders/${id}`)
   },
 
   /**
-   * POST /vendor/orders/:id/fulfillments — Create a fulfillment (Mercur only).
-   * Workers fulfillment is placed → ship → deliver (no pack step).
+   * Pack step is not available yet — fulfillment is placed → ship → deliver.
    */
   createFulfillment: (
     orderId: string,
     input: { items: { id: string; quantity: number }[]; location_id?: string },
   ) => {
-    if (isWorkersApi()) {
-      return Promise.reject(
-        new ApiError(501, "Pack step is not used on Workers API — mark as dispatched directly"),
-      )
-    }
-    return post<{ fulfillment: Fulfillment }>(
-      `/vendor/orders/${orderId}/fulfillments`,
-      { ...input, requires_shipping: true },
+    return Promise.reject(
+      new ApiError(501, "Pack step is not available yet — mark as dispatched directly"),
     )
   },
 
   /**
-   * Mark as shipped.
-   * Workers: POST /vendor/orders/:id/ship (fulfillmentId ignored).
+   * Mark as shipped — POST /vendor/orders/:id/ship (fulfillmentId ignored).
    */
   markShipped: async (
     orderId: string,
     fulfillmentId: string,
     labels: { tracking_number: string; tracking_url?: string }[],
   ) => {
-    if (isWorkersApi()) {
-      const data = await post<{ order: WorkersOrderItem }>(`/vendor/orders/${orderId}/ship`)
-      return {
-        fulfillment: {
-          id: fulfillmentId || "workers",
-          shipped_at: new Date().toISOString(),
-        } satisfies Fulfillment,
-        order: mapWorkersOrder(data.order),
-      }
+    const data = await post<{ order: WorkersOrderItem }>(`/vendor/orders/${orderId}/ship`)
+    return {
+      fulfillment: {
+        id: fulfillmentId || "workers",
+        shipped_at: new Date().toISOString(),
+      } satisfies Fulfillment,
+      order: mapWorkersOrder(data.order),
     }
-    return post<{ fulfillment: Fulfillment }>(
-      `/vendor/orders/${orderId}/fulfillments/${fulfillmentId}/shipments`,
-      { labels },
-    )
   },
 
   /**
-   * Mark as delivered.
-   * Workers: POST /vendor/orders/:id/deliver (fulfillmentId ignored).
+   * Mark as delivered — POST /vendor/orders/:id/deliver (fulfillmentId ignored).
    */
   markDelivered: async (orderId: string, fulfillmentId: string) => {
-    if (isWorkersApi()) {
-      const data = await post<{ order: WorkersOrderItem }>(`/vendor/orders/${orderId}/deliver`)
-      return {
-        fulfillment: {
-          id: fulfillmentId || "workers",
-          delivered_at: new Date().toISOString(),
-        } satisfies Fulfillment,
-        order: mapWorkersOrder(data.order),
-      }
+    const data = await post<{ order: WorkersOrderItem }>(`/vendor/orders/${orderId}/deliver`)
+    return {
+      fulfillment: {
+        id: fulfillmentId || "workers",
+        delivered_at: new Date().toISOString(),
+      } satisfies Fulfillment,
+      order: mapWorkersOrder(data.order),
     }
-    return post<{ fulfillment: Fulfillment }>(
-      `/vendor/orders/${orderId}/fulfillments/${fulfillmentId}/mark-as-delivered`,
-    )
   },
 
   /**
-   * Soft-cancel request (Mercur only).
+   * Cancel request is not available yet.
    */
   cancel: (orderId: string, reason?: string) => {
-    if (isWorkersApi()) {
-      return Promise.reject(new ApiError(501, "Cancel request is not available on Workers API yet"))
-    }
-    return post<{ order_id: string; cancel_requested: boolean }>(
-      `/vendor/alkemart/orders/${orderId}/cancel`,
-      { reason },
-    )
+    return Promise.reject(new ApiError(501, "Cancel request is not available yet"))
   },
 }
 
@@ -1178,75 +1179,48 @@ export type ReturnReason = {
 
 export const returns = {
   /**
-   * Returns list — Mercur only. Workers cut returns empty (nav hidden).
+   * Returns list is not available yet — returns empty (nav hidden).
    */
   list: (params?: { limit?: number; offset?: number; status?: string; order_id?: string }) => {
-    if (isWorkersApi()) {
-      return Promise.resolve({
-        returns: [] as Return[],
-        count: 0,
-        limit: Number(params?.limit ?? 0),
-        offset: Number(params?.offset ?? 0),
-      })
-    }
-    return get<{ returns: Return[]; count: number; limit: number; offset: number }>(
-      "/vendor/alkemart/returns",
-      params,
-    )
+    return Promise.resolve({
+      returns: [] as Return[],
+      count: 0,
+      limit: Number(params?.limit ?? 0),
+      offset: Number(params?.offset ?? 0),
+    })
   },
 
   get: (id: string) => {
-    if (isWorkersApi()) {
-      return Promise.reject(new ApiError(501, "Returns are not available on Workers API"))
-    }
-    return get<{ return: Return }>(`/vendor/returns/${id}`)
+    return Promise.reject(new ApiError(501, "Returns are not available yet"))
   },
 
   receiveItems: (
     returnId: string,
     input: { items: { id: string; quantity: number; description?: string }[] },
   ) => {
-    if (isWorkersApi()) {
-      return Promise.reject(new ApiError(501, "Returns are not available on Workers API"))
-    }
-    return post<{ return: Return }>(`/vendor/returns/${returnId}/receive-items`, input)
+    return Promise.reject(new ApiError(501, "Returns are not available yet"))
   },
 
   confirmReceive: (
     returnId: string,
     input?: { internal_note?: string; description?: string; metadata?: Record<string, unknown> },
   ) => {
-    if (isWorkersApi()) {
-      return Promise.reject(new ApiError(501, "Returns are not available on Workers API"))
-    }
-    return post<{ return: Return }>(`/vendor/returns/${returnId}/receive`, input)
+    return Promise.reject(new ApiError(501, "Returns are not available yet"))
   },
 
   dismissItems: (
     returnId: string,
     input: { items: { id: string; quantity: number; internal_note?: string }[] },
   ) => {
-    if (isWorkersApi()) {
-      return Promise.reject(new ApiError(501, "Returns are not available on Workers API"))
-    }
-    return post<{ return: Return }>(`/vendor/returns/${returnId}/dismiss-items`, input)
+    return Promise.reject(new ApiError(501, "Returns are not available yet"))
   },
 
   refund: (paymentId: string, input: { amount?: number }) => {
-    if (isWorkersApi()) {
-      return Promise.reject(new ApiError(501, "Refunds are not available on Workers API"))
-    }
-    return post<{ refund: { id: string; amount: number } }>(
-      `/vendor/payments/${paymentId}/refund`,
-      input,
-    )
+    return Promise.reject(new ApiError(501, "Refunds are not available yet"))
   },
 
   reasons: () => {
-    if (isWorkersApi()) {
-      return Promise.resolve({ return_reasons: [] as ReturnReason[] })
-    }
-    return get<{ return_reasons: ReturnReason[] }>("/vendor/return-reasons")
+    return Promise.resolve({ return_reasons: [] as ReturnReason[] })
   },
 }
 
@@ -1254,74 +1228,99 @@ export const returns = {
 // Vendor — Stats & Onboarding
 // ---------------------------------------------------------------------------
 
+export type VendorTask = {
+  kind: "approval" | "changes" | "drafts" | "dispatch" | "logo" | "momo" | "address"
+  title: string
+  detail: string
+  href: string
+  count: number
+}
+
+export type VendorHealth = {
+  status: "healthy" | "attention" | "blocked"
+  items: { key: string; label: string; detail: string; state: string; href: string }[]
+}
+
+export const health = {
+  /** GET /vendor/health — account standing scorecard. */
+  get: () => get<VendorHealth>("/vendor/health"),
+}
+
+export const tasks = {
+  /** GET /vendor/tasks — what needs this seller's attention. */
+  list: () => get<{ tasks: VendorTask[] }>("/vendor/tasks"),
+}
+
+export type ShopTraffic = {
+  views30d: number
+  conversion: number
+  series: { date: string; views: number }[]
+  top: { productId: string; title: string; thumbnail: string | null; views: number }[]
+}
+
+export const shopTraffic = {
+  /** GET /vendor/stats/shop — own traffic: views, conversion, top products. */
+  get: () => get<ShopTraffic>("/vendor/stats/shop"),
+}
+
 export const stats = {
   /**
-   * Live ops snapshot.
-   * Workers: soft-derived from products + orders (no /vendor/alkemart/stats).
+   * Live ops snapshot — derived from products + orders.
    */
   get: async (): Promise<VendorStats> => {
-    if (isWorkersApi()) {
-      try {
-        const [prods, ords] = await Promise.all([
-          get<{ items: WorkersProductItem[] }>("/vendor/products"),
-          get<{ items: WorkersOrderItem[] }>("/vendor/orders"),
-        ])
-        const ordersMapped = (ords.items ?? []).map(mapWorkersOrder)
-        const gmvPesewas = ordersMapped.reduce((sum, o) => sum + (o.total ?? 0), 0)
-        return {
-          orders_count: ordersMapped.length,
-          products_count: (prods.items ?? []).length,
-          offers_count: (prods.items ?? []).length,
-          gmv_ghs: gmvPesewas / 100,
-          readiness: null,
-        }
-      } catch {
-        return emptyStats()
+    try {
+      const [prods, ords] = await Promise.all([
+        get<{ items: WorkersProductItem[] }>("/vendor/products"),
+        get<{ items: WorkersOrderItem[] }>("/vendor/orders"),
+      ])
+      const ordersMapped = (ords.items ?? []).map(mapWorkersOrder)
+      const gmvPesewas = ordersMapped.reduce((sum, o) => sum + (o.total ?? 0), 0)
+      return {
+        orders_count: ordersMapped.length,
+        products_count: (prods.items ?? []).length,
+        offers_count: (prods.items ?? []).length,
+        gmv_ghs: gmvPesewas / 100,
+        readiness: null,
       }
+    } catch {
+      return emptyStats()
     }
-    return get<VendorStats>("/vendor/alkemart/stats")
   },
 
   /**
-   * Seller readiness.
-   * Workers: GET /vendor/onboarding/status → `{ ready, missing }` mapped to SellerReadiness.
+   * Seller readiness — GET /vendor/onboarding/status mapped to SellerReadiness.
    */
   readiness: async (): Promise<SellerReadiness> => {
-    if (isWorkersApi()) {
-      const data = await get<{ ready: boolean; missing: string[] }>("/vendor/onboarding/status")
-      const keys = ["name", "region", "recipient_code"] as const
-      const checklist: Record<string, boolean> = {}
-      for (const k of keys) checklist[k] = !(data.missing ?? []).includes(k)
-      return {
-        seller_id: getActiveSellerId() ?? "",
-        phase: data.ready ? "active" : "setup_incomplete",
-        mercur_status: "open",
-        setup_complete: Boolean(data.ready),
-        can_propose_products: Boolean(data.ready),
-        can_create_offers: Boolean(data.ready),
-        checklist,
-        checklist_labels: {
-          name: "Shop name",
-          region: "Pack region",
-          recipient_code: "MoMo payout",
-        },
-        next_action: data.ready
-          ? null
-          : {
-              code: (data.missing ?? [])[0] ?? "setup",
-              label: "Complete Ghana setup in Settings",
-            },
-      }
+    const data = await get<{ ready: boolean; missing: string[] }>("/vendor/onboarding/status")
+    const keys = ["name", "region", "recipient_code"] as const
+    const checklist: Record<string, boolean> = {}
+    for (const k of keys) checklist[k] = !(data.missing ?? []).includes(k)
+    return {
+      seller_id: getActiveSellerId() ?? "",
+      phase: data.ready ? "active" : "setup_incomplete",
+      mercur_status: "open",
+      setup_complete: Boolean(data.ready),
+      can_propose_products: Boolean(data.ready),
+      can_create_offers: Boolean(data.ready),
+      checklist,
+      checklist_labels: {
+        name: "Shop name",
+        region: "Pack region",
+        recipient_code: "MoMo payout",
+      },
+      next_action: data.ready
+        ? null
+        : {
+            code: (data.missing ?? [])[0] ?? "setup",
+            label: "Complete Ghana setup in Settings",
+          },
     }
-    return get<SellerReadiness>("/vendor/alkemart/onboarding/status")
   },
 }
 
 export const onboarding = {
   /**
-   * Ghana delivery / MoMo setup.
-   * Workers expects displayName, region, deliveryFeePesewas, momo{…}.
-   * Mercur Alkemart path kept for local Medusa.
+   * Ghana delivery / MoMo setup — expects displayName, region, deliveryFeePesewas, momo{…}.
    */
   ghanaSetup: (input: {
     pack_from_name?: string
@@ -1338,31 +1337,25 @@ export const onboarding = {
     digitalAddress?: string
     momo?: { provider: "mtn" | "vodafone" | "airteltigo"; phone: string; accountName: string }
   }) => {
-    if (isWorkersApi()) {
-      if (!input.momo || !input.region) {
-        return Promise.reject(
-          new ApiError(400, "Workers ghana-setup requires region and momo details"),
-        )
-      }
-      const deliveryFeePesewas =
-        input.deliveryFeePesewas ??
-        String(Math.round((input.delivery_fee_ghs ?? 0) * 100))
-      return post<{ ready: boolean; missing: string[] }>("/vendor/onboarding/ghana-setup", {
-        displayName: input.displayName || input.pack_from_name || "My Shop",
-        region: input.region,
-        digitalAddress: input.digitalAddress || input.postal_code,
-        deliveryFeePesewas,
-        momo: input.momo,
-      }).then((r) => ({
-        message: r.ready ? "Setup complete" : "Setup saved",
-        phase: r.ready ? "active" : "setup_incomplete",
-        setup_complete: r.ready,
-      }))
+    if (!input.momo || !input.region) {
+      return Promise.reject(
+        new ApiError(400, "Workers ghana-setup requires region and momo details"),
+      )
     }
-    return post<{ message: string; phase?: string; setup_complete?: boolean }>(
-      "/vendor/alkemart/onboarding/ghana-setup",
-      input,
-    )
+    const deliveryFeePesewas =
+      input.deliveryFeePesewas ??
+      String(Math.round((input.delivery_fee_ghs ?? 0) * 100))
+    return post<{ ready: boolean; missing: string[] }>("/vendor/onboarding/ghana-setup", {
+      displayName: input.displayName || input.pack_from_name || "My Shop",
+      region: input.region,
+      digitalAddress: input.digitalAddress || input.postal_code,
+      deliveryFeePesewas,
+      momo: input.momo,
+    }).then((r) => ({
+      message: r.ready ? "Setup complete" : "Setup saved",
+      phase: r.ready ? "active" : "setup_incomplete",
+      setup_complete: r.ready,
+    }))
   },
 }
 
@@ -1372,55 +1365,32 @@ export const onboarding = {
 
 export const catalog = {
   /**
-   * Category list for product tagging.
-   * Workers: GET /store/categories (nav tree) → flattened leaves.
-   * Mercur: GET /vendor/product-categories (filter is_internal).
+   * Category list for product tagging — GET /store/categories (nav tree) flattened to leaves.
    */
   categories: async () => {
-    if (isWorkersApi()) {
-      const data = await get<{
-        categories: {
+    const data = await get<{
+      categories: {
+        id: string
+        name: string
+        handle?: string
+        children?: {
           id: string
           name: string
           handle?: string
-          children?: {
-            id: string
-            name: string
-            handle?: string
-            children?: { id: string; name: string; handle?: string }[]
-          }[]
+          children?: { id: string; name: string; handle?: string }[]
         }[]
-      }>("/store/categories")
-      return {
-        product_categories: flattenStoreCategories(data.categories ?? []),
-      }
-    }
-    const data = await get<{
-      product_categories: {
-        id: string
-        name: string
-        handle: string
-        is_internal?: boolean
       }[]
-    }>("/vendor/product-categories")
+    }>("/store/categories")
     return {
-      ...data,
-      product_categories: (data.product_categories ?? []).filter(
-        (c) => !c.is_internal,
-      ),
+      product_categories: flattenStoreCategories(data.categories ?? []),
     }
   },
 
   /**
-   * GET /vendor/alkemart/markets — Operating regions / delivery areas (Mercur).
+   * Markets list is not available yet — returns empty.
    */
   markets: () => {
-    if (isWorkersApi()) {
-      return Promise.resolve({ markets: [] as { id: string; name: string; countries: string[] }[] })
-    }
-    return get<{ markets: { id: string; name: string; countries: string[] }[] }>(
-      "/vendor/alkemart/markets",
-    )
+    return Promise.resolve({ markets: [] as { id: string; name: string; countries: string[] }[] })
   },
 }
 
@@ -1439,7 +1409,7 @@ export function maskEmail(email?: string | null): string | null {
 // ---------------------------------------------------------------------------
 
 /**
- * Workers login — sellerId is on the JWT claims / login payload.
+ * Login — sellerId is on the JWT claims / login payload.
  */
 export async function loginAndSelectSeller(
   email: string,

@@ -1,10 +1,10 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { useState } from "react"
-import { useQueryClient } from "@tanstack/react-query"
-import { useProduct, useUpdateProduct, useDeleteProduct, useCategories, useProposeProduct, useProductOffers, useUpdateOffer, useOfferStockLevels } from "../../lib/hooks"
-import { type ProductStatus, inventoryItems } from "../../lib/api"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { useProduct, useUpdateProduct, useDeleteProduct, useCategories, useProposeProduct, useUploadImage } from "../../lib/hooks"
+import { type ProductStatus, products as productsApi } from "../../lib/api"
 import { Card, Button, Input, Label, Textarea, Select, Skeleton } from "@workspace/ui"
-import { ArrowLeft, Save, Trash2, AlertCircle, Clock, SendHorizonal, ChevronDown, ChevronUp, Tag } from "lucide-react"
+import { ArrowLeft, FloppyDisk, Trash, WarningCircle, Clock, PaperPlaneTilt, CaretDown, CaretUp, Tag } from "@phosphor-icons/react"
 import { PageShell } from "../../components/page-shell"
 import { toast } from "sonner"
 
@@ -19,64 +19,44 @@ interface ProductFormData {
   imageUrl: string
 }
 
-type OfferPriceForm = Record<string, { priceGhs: string; stock: string }>
-
-/** Stock quantity editor for one offer — shows current level, lets vendor type a new one. */
-function OfferStockInput({
-  inventoryItemId,
-  value,
-  onChange,
-}: {
-  inventoryItemId?: string
-  value: string
-  onChange: (v: string) => void
-}) {
-  const { data, isLoading } = useOfferStockLevels(inventoryItemId)
-  const level = data?.inventory_levels?.[0]
-
-  if (!inventoryItemId) return null
-
-  return (
-    <div className="relative w-[110px]">
-      <Input
-        type="number"
-        className="h-10"
-        placeholder={
-          isLoading ? "…" : level ? String(level.stocked_quantity) : "0"
-        }
-        value={value}
-        onChange={e => onChange(e.target.value)}
-        min="0"
-        step="1"
-        inputMode="numeric"
-        aria-label="Stock quantity"
-      />
-      <span className="absolute -bottom-4 left-0 text-[10px] text-muted-foreground whitespace-nowrap">
-        {level ? `Current: ${level.stocked_quantity} in stock` : isLoading ? "Loading stock…" : "No stock record"}
-      </span>
-    </div>
-  )
-}
-
 function ProductDetailPage() {
   const { id } = Route.useParams()
   const navigate = useNavigate()
   const qc = useQueryClient()
   const { data, isLoading, isError } = useProduct(id)
-  const { data: offersData, isLoading: offersLoading } = useProductOffers(id)
   const update = useUpdateProduct()
-  const updateOffer = useUpdateOffer()
+  const upload = useUploadImage()
   const del = useDeleteProduct()
   const propose = useProposeProduct()
   const { data: categoriesData } = useCategories()
 
   const [editing, setEditing] = useState(false)
+  const [uploadingPhoto, setUploadingPhoto] = useState(false)
+  const [appealMessage, setAppealMessage] = useState("")
+  const [appealOpen, setAppealOpen] = useState(false)
+
+  const handleAppeal = async () => {
+    if (!appealMessage.trim()) {
+      toast.error("Tell the ops team why this should be reviewed again.")
+      return
+    }
+    try {
+      await productsApi.appeal(id, appealMessage.trim())
+      toast.success("Appeal sent — the ops team will review it.")
+      setAppealMessage("")
+      setAppealOpen(false)
+      qc.invalidateQueries({ queryKey: ["vendor", "appeals", id] })
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to send appeal.")
+    }
+  }
   const [form, setForm] = useState<ProductFormData>({ title: "", description: "", categoryId: "", imageUrl: "" })
   const [confirmDelete, setConfirmDelete] = useState(false)
 
-  // Offer / pricing editing state
+  // Pricing & stock editing state (single Workers offer, from product data)
   const [offerFormOpen, setOfferFormOpen] = useState(false)
-  const [offerForm, setOfferForm] = useState<OfferPriceForm>({})
+  const [priceGhs, setPriceGhs] = useState("")
+  const [stockQty, setStockQty] = useState("")
   const [savingOffers, setSavingOffers] = useState(false)
 
   const product = data?.product
@@ -86,7 +66,18 @@ function ProductDetailPage() {
   const rejectionReason = product?.status === "rejected" ? (moderation?.reason as string | undefined) : undefined
   const changesRequestedReason = moderation?.action === "changes_requested" ? (moderation?.reason as string | undefined) : undefined
 
-  const offers = offersData?.offers || []
+  // Single Workers offer, read off the product itself (major GHS units).
+  const currentPriceGhs = product?.variants?.[0]?.prices?.[0]?.amount ?? 0
+  const currentStock = typeof product?.metadata?.onHand === "number" ? (product.metadata.onHand as number) : 0
+
+  const { data: appealsData } = useQuery({
+    queryKey: ["vendor", "appeals", id],
+    queryFn: () => productsApi.appealsMine(),
+    enabled: product?.status === "rejected",
+    staleTime: 30_000,
+  })
+  const openAppeal = (appealsData?.appeals ?? []).find(a => a.productId === id && a.status === "open")
+  const closedAppeal = (appealsData?.appeals ?? []).filter(a => a.productId === id && a.status === "closed").slice(-1)[0]
 
   const handleReSubmit = async () => {
     try {
@@ -109,6 +100,28 @@ function ProductDetailPage() {
     setEditing(true)
   }
 
+  const handlePhotoPick = async (file: File | undefined) => {
+    if (!file) return
+    if (!["image/png", "image/jpeg", "image/webp", "image/gif"].includes(file.type)) {
+      toast.error("Only PNG, JPG, WebP, or GIF images are accepted.")
+      return
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image must be smaller than 5 MB.")
+      return
+    }
+    setUploadingPhoto(true)
+    try {
+      const url = await upload.mutateAsync(file)
+      setForm(p => ({ ...p, imageUrl: url }))
+      toast.success("Photo uploaded — save to apply it.")
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Photo upload failed.")
+    } finally {
+      setUploadingPhoto(false)
+    }
+  }
+
   const handleSave = async () => {
     if (!form.title || form.title.trim().length < 3) {
       toast.error("Title must be at least 3 characters.")
@@ -120,7 +133,8 @@ function ProductDetailPage() {
       return
     }
     try {
-      await update.mutateAsync({
+      const wasPublished = product?.status === "published"
+      const res = await update.mutateAsync({
         id,
         data: {
           title: form.title.trim(),
@@ -129,7 +143,11 @@ function ProductDetailPage() {
           ...(imageUrl ? { thumbnail: imageUrl } : {}),
         },
       })
-      toast.success("Product updated.")
+      if (wasPublished && res.product.status === "proposed") {
+        toast.success("Saved — sent back for review.")
+      } else {
+        toast.success("Product updated.")
+      }
       setEditing(false)
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to update.")
@@ -146,112 +164,48 @@ function ProductDetailPage() {
     }
   }
 
-  // Start editing offers: pre-fill form with current prices
+  // Start editing pricing: pre-fill form with current values
   const startOfferEditing = () => {
-    const initial: OfferPriceForm = {}
-    for (const offer of offers) {
-      const priceAmount = offer.prices?.find(p => p.currency_code === "ghs")?.amount
-        ?? offer.prices?.[0]?.amount
-        ?? 0
-      initial[offer.id] = { priceGhs: priceAmount > 0 ? String(priceAmount.toFixed(2)) : "", stock: "" }
-    }
-    setOfferForm(initial)
+    setPriceGhs(currentPriceGhs > 0 ? String(currentPriceGhs.toFixed(2)) : "")
+    setStockQty("")
     setOfferFormOpen(true)
   }
 
   const handleSaveOffers = async () => {
-    // ── Phase 1: validate everything and collect only CHANGED fields.
-    //    Nothing is written until the whole form is valid, so a bad entry
-    //    can never leave a half-saved offer behind.
-    type OfferOp = { offerId: string; label: string; priceGhs?: number; stock?: number; invItemId?: string }
-    const ops: OfferOp[] = []
-
-    for (const [offerId, val] of Object.entries(offerForm)) {
-      const offer = offers.find(o => o.id === offerId)
-      if (!offer) continue
-      const label = getVariantTitle(offer)
-      const op: OfferOp = { offerId, label }
-
-      const priceRaw = val.priceGhs.trim()
-      if (priceRaw !== "") {
-        const priceGhs = parseFloat(priceRaw)
-        if (isNaN(priceGhs) || priceGhs <= 0) {
-          toast.error(`${label}: enter a valid price above GH₵0. Nothing was saved.`)
-          return
-        }
-        const currentAmount = offer.prices?.find(p => p.currency_code === "ghs")?.amount
-          ?? offer.prices?.[0]?.amount ?? 0
-        // Amounts are stored in MAJOR units (85 = GH₵85) — see lib/offer-pricing.ts.
-        // Only submit if actually changed — a stock-only save must never
-        // overwrite a price with a stale prefilled value.
-        if (priceGhs !== currentAmount) op.priceGhs = priceGhs
+    const patch: { pricePesewas?: string; onHand?: number } = {}
+    const priceRaw = priceGhs.trim()
+    if (priceRaw !== "") {
+      const price = parseFloat(priceRaw)
+      if (isNaN(price) || price <= 0) {
+        toast.error("Enter a valid price above GH₵0. Nothing was saved.")
+        return
       }
-
-      const stockRaw = val.stock.trim()
-      if (stockRaw !== "") {
-        const stockQty = Number(stockRaw)
-        if (!Number.isInteger(stockQty) || stockQty < 0) {
-          toast.error(`${label}: stock must be a whole number of 0 or more. Nothing was saved.`)
-          return
-        }
-        const invItemId = offer.inventory_items?.[0]?.inventory_item_id
-        if (!invItemId) {
-          toast.error(`${label}: no inventory record — stock cannot be updated. Nothing was saved.`)
-          return
-        }
-        op.stock = stockQty
-        op.invItemId = invItemId
-      }
-
-      if (op.priceGhs !== undefined || op.stock !== undefined) ops.push(op)
+      if (price !== currentPriceGhs) patch.pricePesewas = String(Math.round(price * 100))
     }
-
-    if (ops.length === 0) {
+    const stockRaw = stockQty.trim()
+    if (stockRaw !== "") {
+      const qty = Number(stockRaw)
+      if (!Number.isInteger(qty) || qty < 0) {
+        toast.error("Stock must be a whole number of 0 or more. Nothing was saved.")
+        return
+      }
+      if (qty !== currentStock) patch.onHand = qty
+    }
+    if (Object.keys(patch).length === 0) {
       toast.info("No changes to save.")
       return
     }
-
-    // ── Phase 2: execute, tracking per-offer outcomes.
     setSavingOffers(true)
-    const failures: string[] = []
-    for (const op of ops) {
-      if (op.priceGhs !== undefined) {
-        try {
-          await updateOffer.mutateAsync({
-            id: op.offerId,
-            input: { prices: [{ amount: op.priceGhs, currency_code: "ghs" }] },
-          })
-        } catch (err) {
-          failures.push(`${op.label} price (${err instanceof Error ? err.message : "unknown error"})`)
-        }
-      }
-      if (op.stock !== undefined && op.invItemId) {
-        try {
-          const { inventory_levels } = await inventoryItems.levels(op.invItemId)
-          const level = inventory_levels?.[0]
-          if (!level) throw new Error("no stock location found")
-          await inventoryItems.setLevel(op.invItemId, level.location_id, op.stock)
-          qc.invalidateQueries({ queryKey: ["vendor", "stock-levels", op.invItemId] })
-        } catch (err) {
-          failures.push(`${op.label} stock (${err instanceof Error ? err.message : "unknown error"})`)
-        }
-      }
-    }
-    setSavingOffers(false)
-    // Always refetch so the panel reflects what actually saved.
-    qc.invalidateQueries({ queryKey: ["vendor", "offers", id] })
-
-    if (failures.length === 0) {
+    try {
+      await update.mutateAsync({ id, data: patch })
       toast.success("Pricing & stock updated.")
       setOfferFormOpen(false)
-    } else {
-      toast.error(`Some changes did not save: ${failures.join("; ")}. Displayed values have been refreshed — please review and retry.`)
+      qc.invalidateQueries({ queryKey: ["vendor", "products", id] })
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to update pricing.")
+    } finally {
+      setSavingOffers(false)
     }
-  }
-
-  const getVariantTitle = (offer: { variant_id?: string }) => {
-    if (!offer.variant_id || !product?.variants) return "Default"
-    return product.variants.find(v => v.id === offer.variant_id)?.title || "Variant"
   }
 
   if (isLoading) {
@@ -269,7 +223,7 @@ function ProductDetailPage() {
     return (
       <PageShell>
         <Card className="p-8 text-center">
-          <AlertCircle className="h-10 w-10 mx-auto mb-3 text-destructive" />
+          <WarningCircle className="h-10 w-10 mx-auto mb-3 text-destructive" />
           <h2 className="text-lg font-bold mb-1">Product not found</h2>
           <p className="text-muted-foreground text-sm mb-4">
             This product doesn't exist or you don't have access to it.
@@ -285,12 +239,12 @@ function ProductDetailPage() {
   const statusBadge = (status: ProductStatus) => {
     const map: Record<ProductStatus, string> = {
       draft: "bg-muted text-muted-foreground",
-      proposed: "bg-warning/10 text-warning",
+      proposed: "bg-warning/10 text-warning-fg",
       published: "bg-success/10 text-success",
       rejected: "bg-destructive/10 text-destructive",
     }
     return (
-      <span className={`px-3 py-1 rounded-full text-xs font-bold ${map[status] || "bg-muted"}`}>
+      <span className={`px-2.5 py-0.5 rounded-md border text-xs font-semibold ${map[status] || "bg-muted border-border"}`}>
         {status === "proposed" ? "In Review" : status.charAt(0).toUpperCase() + status.slice(1)}
       </span>
     )
@@ -311,11 +265,43 @@ function ProductDetailPage() {
       {rejectionReason && (
         <div className="mb-4 p-4 bg-destructive/10 border border-destructive/20 rounded-xl">
           <div className="flex items-start gap-3">
-            <AlertCircle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+            <WarningCircle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
             <div className="flex-1">
               <h3 className="font-bold text-sm text-destructive mb-1">Product Rejected</h3>
               <p className="text-sm text-destructive/90">{rejectionReason}</p>
-              <p className="text-xs text-destructive/60 mt-2">Edit the product to address the feedback, then re-submit for review.</p>
+              <p className="text-xs text-destructive/60 mt-2">Edit the product to address the feedback, then re-submit for review — or appeal below.</p>
+              {openAppeal ? (
+                <p className="text-sm font-semibold text-foreground mt-3" role="status">
+                  Appeal pending review.
+                </p>
+              ) : closedAppeal ? (
+                <p className="text-sm text-muted-foreground mt-3">
+                  Last appeal {closedAppeal.decision === "reopened" ? "reopened this listing" : "was upheld"}
+                  {closedAppeal.response ? ` — “${closedAppeal.response}”` : "."}
+                </p>
+              ) : appealOpen ? (
+                <div className="mt-3 space-y-2">
+                  <Textarea
+                    placeholder="Why should this be reviewed again?"
+                    value={appealMessage}
+                    onChange={e => setAppealMessage(e.target.value)}
+                    className="h-24 bg-card"
+                    autoFocus
+                  />
+                  <div className="flex gap-2">
+                    <Button size="sm" onClick={() => { void handleAppeal() }}>
+                      Send appeal
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => { setAppealOpen(false); setAppealMessage("") }}>
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <Button size="sm" variant="outline" className="mt-3" onClick={() => setAppealOpen(true)}>
+                  Appeal this decision
+                </Button>
+              )}
             </div>
           </div>
         </div>
@@ -324,10 +310,10 @@ function ProductDetailPage() {
       {changesRequestedReason && !rejectionReason && (
         <div className="mb-4 p-4 bg-warning/10 border border-warning/20 rounded-xl">
           <div className="flex items-start gap-3">
-            <Clock className="h-5 w-5 text-warning shrink-0 mt-0.5" />
+            <Clock className="h-5 w-5 text-warning-fg shrink-0 mt-0.5" />
             <div className="flex-1">
-              <h3 className="font-bold text-sm text-warning mb-1">Changes Requested</h3>
-              <p className="text-sm text-warning/90">{changesRequestedReason}</p>
+              <h3 className="font-bold text-sm text-warning-fg mb-1">Changes Requested</h3>
+              <p className="text-sm text-warning-fg/90">{changesRequestedReason}</p>
             </div>
           </div>
         </div>
@@ -350,30 +336,29 @@ function ProductDetailPage() {
               <span className="text-sm font-semibold text-muted-foreground">Status:</span>
               {statusBadge(product.status || "draft")}
             </div>
-            {product.status !== "published" && (
-              <div className="flex gap-2">
-                {!editing && (
-                  <Button onClick={startEditing} variant="outline" size="sm">
-                    Edit
-                  </Button>
-                )}
-                {product.status === "rejected" && (
-                  <Button
-                    size="sm"
-                    className="gap-1"
-                    onClick={handleReSubmit}
-                    isLoading={propose.isPending}
-                  >
-                    <SendHorizonal className="h-4 w-4" />
-                    Re-submit
-                  </Button>
-                )}
-                {!confirmDelete ? (
+            <div className="flex gap-2">
+              {!editing && (
+                <Button onClick={startEditing} variant="outline" size="sm">
+                  Edit
+                </Button>
+              )}
+              {product.status === "rejected" && (
+                <Button
+                  size="sm"
+                  className="gap-1"
+                  onClick={handleReSubmit}
+                  isLoading={propose.isPending}
+                >
+                  <PaperPlaneTilt className="h-4 w-4" />
+                  Re-submit
+                </Button>
+              )}
+              {product.status !== "published" && !confirmDelete ? (
                   <Button onClick={() => setConfirmDelete(true)} variant="outline" size="sm" className="text-destructive border-destructive/30">
-                    <Trash2 className="h-4 w-4 mr-1" />
+                    <Trash className="h-4 w-4 mr-1" />
                     Delete
                   </Button>
-                ) : (
+                ) : product.status !== "published" ? (
                   <div className="flex gap-2 items-center">
                     <span className="text-xs text-destructive font-semibold">Sure?</span>
                     <Button onClick={handleDelete} size="sm" variant="destructive" isLoading={del.isPending}>
@@ -383,9 +368,8 @@ function ProductDetailPage() {
                       Cancel
                     </Button>
                   </div>
-                )}
+                ) : null}
               </div>
-            )}
           </div>
 
           {editing ? (
@@ -408,22 +392,37 @@ function ProductDetailPage() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="edit-image">Image URL</Label>
+                <Label htmlFor="edit-image">Photo</Label>
+                {form.imageUrl ? (
+                  <div className="flex items-center gap-3">
+                    <img src={form.imageUrl} alt="Product preview" className="h-20 w-20 rounded-xl object-cover ring-1 ring-border" />
+                    <Button variant="outline" size="sm" onClick={() => setForm(p => ({ ...p, imageUrl: "" }))}>
+                      Remove
+                    </Button>
+                  </div>
+                ) : null}
+                <Input
+                  id="edit-image-file"
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp,image/gif"
+                  disabled={uploadingPhoto}
+                  onChange={e => { void handlePhotoPick(e.target.files?.[0]); e.target.value = "" }}
+                />
+                <p className="text-xs text-muted-foreground">
+                  {uploadingPhoto ? "Uploading…" : "Upload a photo — stored as WebP automatically."}
+                </p>
                 <Input
                   id="edit-image"
                   type="url"
-                  placeholder="https://…/product-photo.jpg"
+                  placeholder="…or paste a photo link (https://)"
                   value={form.imageUrl}
                   onChange={e => setForm(p => ({ ...p, imageUrl: e.target.value }))}
                 />
-                <p className="text-xs text-muted-foreground">
-                  Paste a link to your product photo. Shown on the marketplace card.
-                </p>
               </div>
               <div className="flex gap-3 pt-2">
                 <Button onClick={handleSave} isLoading={update.isPending} className="gap-2">
-                  <Save className="h-4 w-4" />
-                  Save
+                  <FloppyDisk className="h-4 w-4" />
+                  Save Changes
                 </Button>
                 <Button onClick={() => setEditing(false)} variant="outline">Cancel</Button>
               </div>
@@ -467,94 +466,77 @@ function ProductDetailPage() {
             <Tag className="h-5 w-5 text-muted-foreground" />
             <div>
               <h3 className="font-bold text-base">Inventory &amp; Pricing</h3>
-              {!offerFormOpen && offers.length > 0 && (
+              {!offerFormOpen && (
                 <p className="text-sm text-muted-foreground font-medium">
-                  {offers.length} offer{offers.length > 1 ? "s" : ""} · GH₵{" "}
-                  {(offers[0].prices?.find(p => p.currency_code === "ghs")?.amount ?? 0).toFixed(2)}
-                  {offers.length > 1 ? " – ..." : ""}
+                  GH₵ {currentPriceGhs.toFixed(2)} · {currentStock} in stock
                 </p>
               )}
             </div>
           </div>
-          {offerFormOpen ? <ChevronUp className="h-5 w-5 text-muted-foreground" /> : <ChevronDown className="h-5 w-5 text-muted-foreground" />}
+          {offerFormOpen ? <CaretUp className="h-5 w-5 text-muted-foreground" /> : <CaretDown className="h-5 w-5 text-muted-foreground" />}
         </button>
 
         {offerFormOpen && (
           <div className="px-5 pb-5 pt-0 border-t border-border space-y-4">
-            {offersLoading ? (
-              <div className="space-y-3 pt-4">
-                {[1, 2].map(i => <Skeleton key={i} className="h-10 w-full" />)}
+            <div className="pt-4 flex items-end gap-4 p-3 bg-muted/30 rounded-lg border border-border/50">
+              <div className="flex-1 space-y-1.5">
+                <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wide">
+                  Price (GHS)
+                </Label>
+                <div className="relative flex-1 max-w-[160px]">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-muted-foreground select-none">
+                    GH₵
+                  </span>
+                  <Input
+                    type="number"
+                    className="pl-14 h-10"
+                    placeholder={currentPriceGhs > 0 ? String(currentPriceGhs.toFixed(2)) : "0.00"}
+                    value={priceGhs}
+                    onChange={e => setPriceGhs(e.target.value)}
+                    min="0"
+                    step="0.01"
+                  />
+                </div>
+                {currentPriceGhs > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    Current: GH₵ {currentPriceGhs.toFixed(2)}
+                  </p>
+                )}
               </div>
-            ) : offers.length === 0 ? (
-              <div className="pt-4 text-center py-8">
-                <p className="text-sm text-muted-foreground font-medium">
-                  No offers yet. Use <strong>Quick Sell</strong> to list this product with a price.
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wide">
+                  Stock
+                </Label>
+                <Input
+                  type="number"
+                  className="h-10 w-[110px]"
+                  placeholder={String(currentStock)}
+                  value={stockQty}
+                  onChange={e => setStockQty(e.target.value)}
+                  min="0"
+                  step="1"
+                  inputMode="numeric"
+                  aria-label="Stock quantity"
+                />
+                <p className="text-[10px] text-muted-foreground whitespace-nowrap">
+                  Current: {currentStock} in stock
                 </p>
               </div>
-            ) : (
-              <div className="pt-4 space-y-4">
-                {offers.map(offer => {
-                  const currentPrice = offer.prices?.find(p => p.currency_code === "ghs")?.amount
-                    ?? offer.prices?.[0]?.amount ?? 0
+            </div>
 
-                  return (
-                    <div key={offer.id} className="flex items-end gap-4 p-3 bg-muted/30 rounded-lg border border-border/50">
-                      <div className="flex-1 space-y-1.5">
-                        <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wide">
-                          {getVariantTitle(offer)}
-                        </Label>
-                        <div className="flex items-center gap-3">
-                          <div className="relative flex-1 max-w-[160px]">
-                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-muted-foreground select-none">
-                              GH₵
-                            </span>
-                            <Input
-                              type="number"
-                              className="pl-14 h-10"
-                              placeholder={currentPrice > 0 ? String(currentPrice.toFixed(2)) : "0.00"}
-                              value={offerForm[offer.id]?.priceGhs ?? ""}
-                              onChange={e => setOfferForm(f => ({ ...f, [offer.id]: { ...(f[offer.id] ?? { priceGhs: "", stock: "" }), priceGhs: e.target.value } }))}
-                              min="0"
-                              step="0.01"
-                            />
-                          </div>
-                          <OfferStockInput
-                            inventoryItemId={offer.inventory_items?.[0]?.inventory_item_id}
-                            value={offerForm[offer.id]?.stock ?? ""}
-                            onChange={v => setOfferForm(f => ({ ...f, [offer.id]: { ...(f[offer.id] ?? { priceGhs: "", stock: "" }), stock: v } }))}
-                          />
-                        </div>
-                        {currentPrice > 0 && (
-                          <p className="text-xs text-muted-foreground">
-                            Current: GH₵ {currentPrice.toFixed(2)}
-                          </p>
-                        )}
-                      </div>
-                      {offer.sku && (
-                        <div className="shrink-0 text-right">
-                          <p className="text-xs text-muted-foreground">SKU</p>
-                          <p className="text-xs font-mono font-bold">{offer.sku}</p>
-                        </div>
-                      )}
-                    </div>
-                  )
-                })}
-
-                <div className="flex gap-3 pt-2">
-                  <Button
-                    onClick={handleSaveOffers}
-                    isLoading={savingOffers}
-                    className="gap-2"
-                  >
-                    <Save className="h-4 w-4" />
-                    Save Pricing &amp; Stock
-                  </Button>
-                  <Button onClick={() => setOfferFormOpen(false)} variant="outline">
-                    Cancel
-                  </Button>
-                </div>
-              </div>
-            )}
+            <div className="flex gap-3 pt-2">
+              <Button
+                onClick={() => { void handleSaveOffers() }}
+                isLoading={savingOffers}
+                className="gap-2"
+              >
+                <FloppyDisk className="h-4 w-4" />
+                Save Pricing &amp; Stock
+              </Button>
+              <Button onClick={() => setOfferFormOpen(false)} variant="outline">
+                Cancel
+              </Button>
+            </div>
           </div>
         )}
       </Card>

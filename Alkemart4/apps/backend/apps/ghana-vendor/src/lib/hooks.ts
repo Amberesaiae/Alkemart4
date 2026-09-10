@@ -3,23 +3,55 @@ import {
   products,
   orders,
   stats,
+  tasks,
+  health,
+  shopTraffic,
   seller,
   catalog,
   returns,
   onboarding,
   offers,
   inventoryItems,
-  isWorkersApi,
 } from "./api"
+
+// --- Account health ---
+export function useHealth() {
+  return useQuery({
+    queryKey: ["vendor", "health"],
+    queryFn: () => health.get(),
+    staleTime: 60_000,
+    retry: false,
+  })
+}
+
+// --- Tasks ---
+export function useTasks() {
+  return useQuery({
+    queryKey: ["vendor", "tasks"],
+    queryFn: () => tasks.list(),
+    staleTime: 30_000,
+    retry: false,
+  })
+}
 
 // --- Stats ---
 export function useDashboardStats() {
   return useQuery({
-    queryKey: ["vendor", "stats", isWorkersApi() ? "workers" : "mercur"],
+    queryKey: ["vendor", "stats"],
     queryFn: () => stats.get(),
     staleTime: 30_000,
     // Workers soft-fails inside stats.get; never block the dashboard on stats.
-    retry: isWorkersApi() ? false : 1,
+    retry: false,
+  })
+}
+
+// --- Shop traffic ---
+export function useShopTraffic() {
+  return useQuery({
+    queryKey: ["vendor", "shop-traffic"],
+    queryFn: () => shopTraffic.get(),
+    staleTime: 60_000,
+    retry: false,
   })
 }
 
@@ -200,6 +232,80 @@ export function useUpdateProfile() {
   })
 }
 
+export function useUpdateStorefront() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (patch: Parameters<typeof seller.updateStorefront>[0]) => seller.updateStorefront(patch),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["vendor", "profile"] })
+    }
+  })
+}
+
+export function usePauseShop() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (input: Parameters<typeof seller.pause>[0]) => seller.pause(input),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["vendor", "profile"] }),
+  })
+}
+
+export function useUnpauseShop() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: () => seller.unpause(),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["vendor", "profile"] }),
+  })
+}
+
+export function useShopPolicies() {
+  return useQuery({
+    queryKey: ["vendor", "policies"],
+    queryFn: () => seller.policies(),
+    staleTime: 30_000,
+  })
+}
+
+export function useSavePolicy() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (body: Parameters<typeof seller.savePolicy>[0]) => seller.savePolicy(body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["vendor", "policies"] }),
+  })
+}
+
+export function useUpdateDisplay() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (patch: Parameters<typeof seller.updateDisplay>[0]) => seller.updateDisplay(patch),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["vendor", "profile"] }),
+  })
+}
+
+export function useUpdateContact() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (patch: Parameters<typeof seller.updateContact>[0]) => seller.updateContact(patch),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["vendor", "profile"] }),
+  })
+}
+
+export function useFeatured() {
+  return useQuery({
+    queryKey: ["vendor", "featured"],
+    queryFn: () => seller.featured(),
+    staleTime: 30_000,
+  })
+}
+
+export function useSetFeatured() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (ids: string[]) => seller.setFeatured(ids),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["vendor", "featured"] }),
+  })
+}
+
 export function useUpdateAddress() {
   const qc = useQueryClient()
   return useMutation({
@@ -241,7 +347,6 @@ export function useReturns(params?: Record<string, string | number | boolean | u
     queryKey: ["vendor", "returns", params],
     queryFn: () => returns.list(params),
     staleTime: 15_000,
-    enabled: !isWorkersApi(),
   })
 }
 
@@ -321,14 +426,11 @@ export function useProductOffers(productId: string) {
   return useQuery({
     queryKey: ["vendor", "offers", productId],
     queryFn: async () => {
-      if (isWorkersApi()) {
-        return { offers: [], count: 0, limit: 0, offset: 0 }
-      }
       const res = await offers.list({ limit: 100 })
       const productOffers = res.offers.filter((o) => o.product_id === productId)
       return { ...res, offers: productOffers, count: productOffers.length }
     },
-    enabled: !!productId && !isWorkersApi(),
+    enabled: !!productId,
     staleTime: 30_000,
   })
 }
@@ -337,7 +439,7 @@ export function useOfferStockLevels(inventoryItemId: string | undefined) {
   return useQuery({
     queryKey: ["vendor", "stock-levels", inventoryItemId],
     queryFn: () => inventoryItems.levels(inventoryItemId as string),
-    enabled: !!inventoryItemId && !isWorkersApi(),
+    enabled: !!inventoryItemId,
     staleTime: 15_000,
   })
 }

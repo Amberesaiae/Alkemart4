@@ -9,7 +9,9 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as StoreRouteImport } from './routes/store'
 import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as ReviewsRouteImport } from './routes/reviews'
 import { Route as ReturnsRouteImport } from './routes/returns'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as QuickSellRouteImport } from './routes/quick-sell'
@@ -20,9 +22,19 @@ import { Route as OrdersIndexRouteImport } from './routes/orders/index'
 import { Route as ProductsIdRouteImport } from './routes/products/$id'
 import { Route as OrdersIdRouteImport } from './routes/orders/$id'
 
+const StoreRoute = StoreRouteImport.update({
+  id: '/store',
+  path: '/store',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReviewsRoute = ReviewsRouteImport.update({
+  id: '/reviews',
+  path: '/reviews',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ReturnsRoute = ReturnsRouteImport.update({
@@ -77,7 +89,9 @@ export interface FileRoutesByFullPath {
   '/quick-sell': typeof QuickSellRoute
   '/register': typeof RegisterRoute
   '/returns': typeof ReturnsRoute
+  '/reviews': typeof ReviewsRoute
   '/settings': typeof SettingsRoute
+  '/store': typeof StoreRoute
   '/orders/$id': typeof OrdersIdRoute
   '/products/$id': typeof ProductsIdRoute
   '/orders/': typeof OrdersIndexRoute
@@ -89,7 +103,9 @@ export interface FileRoutesByTo {
   '/quick-sell': typeof QuickSellRoute
   '/register': typeof RegisterRoute
   '/returns': typeof ReturnsRoute
+  '/reviews': typeof ReviewsRoute
   '/settings': typeof SettingsRoute
+  '/store': typeof StoreRoute
   '/orders/$id': typeof OrdersIdRoute
   '/products/$id': typeof ProductsIdRoute
   '/orders': typeof OrdersIndexRoute
@@ -102,7 +118,9 @@ export interface FileRoutesById {
   '/quick-sell': typeof QuickSellRoute
   '/register': typeof RegisterRoute
   '/returns': typeof ReturnsRoute
+  '/reviews': typeof ReviewsRoute
   '/settings': typeof SettingsRoute
+  '/store': typeof StoreRoute
   '/orders/$id': typeof OrdersIdRoute
   '/products/$id': typeof ProductsIdRoute
   '/orders/': typeof OrdersIndexRoute
@@ -116,7 +134,9 @@ export interface FileRouteTypes {
     | '/quick-sell'
     | '/register'
     | '/returns'
+    | '/reviews'
     | '/settings'
+    | '/store'
     | '/orders/$id'
     | '/products/$id'
     | '/orders/'
@@ -128,7 +148,9 @@ export interface FileRouteTypes {
     | '/quick-sell'
     | '/register'
     | '/returns'
+    | '/reviews'
     | '/settings'
+    | '/store'
     | '/orders/$id'
     | '/products/$id'
     | '/orders'
@@ -140,7 +162,9 @@ export interface FileRouteTypes {
     | '/quick-sell'
     | '/register'
     | '/returns'
+    | '/reviews'
     | '/settings'
+    | '/store'
     | '/orders/$id'
     | '/products/$id'
     | '/orders/'
@@ -153,7 +177,9 @@ export interface RootRouteChildren {
   QuickSellRoute: typeof QuickSellRoute
   RegisterRoute: typeof RegisterRoute
   ReturnsRoute: typeof ReturnsRoute
+  ReviewsRoute: typeof ReviewsRoute
   SettingsRoute: typeof SettingsRoute
+  StoreRoute: typeof StoreRoute
   OrdersIdRoute: typeof OrdersIdRoute
   ProductsIdRoute: typeof ProductsIdRoute
   OrdersIndexRoute: typeof OrdersIndexRoute
@@ -162,11 +188,25 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/store': {
+      id: '/store'
+      path: '/store'
+      fullPath: '/store'
+      preLoaderRoute: typeof StoreRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/settings': {
       id: '/settings'
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reviews': {
+      id: '/reviews'
+      path: '/reviews'
+      fullPath: '/reviews'
+      preLoaderRoute: typeof ReviewsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/returns': {
@@ -241,7 +281,9 @@ const rootRouteChildren: RootRouteChildren = {
   QuickSellRoute: QuickSellRoute,
   RegisterRoute: RegisterRoute,
   ReturnsRoute: ReturnsRoute,
+  ReviewsRoute: ReviewsRoute,
   SettingsRoute: SettingsRoute,
+  StoreRoute: StoreRoute,
   OrdersIdRoute: OrdersIdRoute,
   ProductsIdRoute: ProductsIdRoute,
   OrdersIndexRoute: OrdersIndexRoute,

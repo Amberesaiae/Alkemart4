@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { useState, useEffect } from "react"
-import { useSellerProfile, useUpdateProfile, useGhanaSetup, useUpdatePayment, useUploadImage } from "../lib/hooks"
+import { useSellerProfile, useUpdateProfile, useUpdateAddress, useUpdatePayment, useUploadImage } from "../lib/hooks"
 import { Card, Button, Input, Label, Select, Skeleton } from "@workspace/ui"
 import { PageShell } from "../components/page-shell"
 import { PageHeader } from "../components/page-header"
@@ -8,6 +8,7 @@ import {
   GHANA_REGIONS,
   GHANA_UI,
   MOMO_NETWORKS,
+  districtsOf,
   type MomoProvider,
   detectProvider,
   validatePhone,
@@ -15,7 +16,8 @@ import {
   normalizePhone,
   prefixHint,
 } from "../lib/ghana"
-import { Store, MapPin, CreditCard, Save, CheckCircle2, AlertCircle, Smartphone, Upload, X } from "lucide-react"
+import { detectLiveLocality } from "../lib/live-location"
+import { Storefront, MapPin, CreditCard, FloppyDisk, CheckCircle, WarningCircle, DeviceMobile, UploadSimple, X, ArrowLeft, ArrowRight } from "@phosphor-icons/react"
 
 export const Route = createFileRoute('/settings')({
   validateSearch: (search: Record<string, unknown>) => {
@@ -32,7 +34,7 @@ function SettingsPage() {
   const { data, isLoading, isError } = useSellerProfile()
   const seller = data?.seller
   const updateProfile = useUpdateProfile()
-  const ghanaSetup    = useGhanaSetup()
+  const updateAddress = useUpdateAddress()
   const updatePayment = useUpdatePayment()
   const upload        = useUploadImage()
   const { tab: searchTab } = Route.useSearch()
@@ -48,22 +50,50 @@ function SettingsPage() {
     address_1: string
     address_2: string
     city: string
+    district: string
     province: string
     postal_code: string
     country_code: string
     delivery_fee_ghs: string
+    latitude: number | null
+    longitude: number | null
   }>({
     address_1: "",
     address_2: "",
     city: "",
+    district: "",
     province: "",
     postal_code: "",
     country_code: "gh",
     delivery_fee_ghs: "",
+    latitude: null,
+    longitude: null,
   })
   const [phoneRaw,  setPhoneRaw]  = useState("")
   const [provider,  setProvider]  = useState<MomoProvider>("mtn")
   const [phoneTouched, setPhoneTouched] = useState(false)
+  const [locating, setLocating] = useState(false)
+  const [locateError, setLocateError] = useState<string | null>(null)
+
+  const handleLiveLocation = async () => {
+    setLocating(true)
+    setLocateError(null)
+    try {
+      const loc = await detectLiveLocality()
+      setAddressForm(f => ({
+        ...f,
+        city: loc.city || f.city,
+        province: loc.region || f.province,
+        district: loc.district || (loc.region && loc.region !== f.province ? "" : f.district),
+        latitude: loc.latitude,
+        longitude: loc.longitude,
+      }))
+    } catch (err) {
+      setLocateError(err instanceof Error ? err.message : "Could not read your location")
+    } finally {
+      setLocating(false)
+    }
+  }
 
   const detectedProvider = detectProvider(phoneRaw)
   const phoneError       = phoneTouched ? validatePhone(phoneRaw) : null
@@ -79,10 +109,13 @@ function SettingsPage() {
         address_1:   seller.address.address_1   || "",
         address_2:   seller.address.address_2   || "",
         city:        seller.address.city        || "",
+        district:    seller.address.district    || "",
         province:    seller.address.province    || "",
         postal_code: seller.address.postal_code || "",
         country_code: "gh",
         delivery_fee_ghs: sellerMeta?.delivery_fee_ghs != null ? String(sellerMeta.delivery_fee_ghs) : "",
+        latitude:  typeof seller.address.latitude === "number"  ? seller.address.latitude  : null,
+        longitude: typeof seller.address.longitude === "number" ? seller.address.longitude : null,
       })
     }
     if (seller.payment_details) {
@@ -103,13 +136,14 @@ function SettingsPage() {
 
   const handleAddressSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    if (!seller) return
     const fee = parseFloat(addressForm.delivery_fee_ghs)
-    ghanaSetup.mutate({
-      address_1: addressForm.address_1,
-      city: addressForm.city,
-      region: addressForm.province,
-      postal_code: addressForm.postal_code,
-      delivery_fee_ghs: !isNaN(fee) && fee >= 0 ? fee : undefined,
+    updateAddress.mutate({
+      id: seller.id,
+      data: {
+        ...addressForm,
+        delivery_fee_pesewas: !isNaN(fee) && fee >= 0 ? String(Math.round(fee * 100)) : undefined,
+      },
     })
   }
 
@@ -131,7 +165,7 @@ function SettingsPage() {
 
   if (isLoading) return (
     <PageShell className="max-w-4xl">
-      <PageHeader title="Shop Settings" description="Configure your store details and payouts." />
+      <PageHeader title="Settings" description="Configure your store details and payouts." />
       <div className="space-y-4">
         <Skeleton className="h-8 w-48" />
         <Skeleton className="h-96 w-full rounded-xl" />
@@ -149,14 +183,14 @@ function SettingsPage() {
   }
 
   const tabs = [
-    { id: "profile"  as const, label: "Shop Profile",    icon: Store },
+    { id: "profile"  as const, label: "Shop Profile",    icon: Storefront },
     { id: "dispatch" as const, label: "Dispatch Address", icon: MapPin },
     { id: "momo"     as const, label: "MoMo Payout",     icon: CreditCard },
   ]
 
   return (
     <PageShell className="max-w-4xl">
-      <PageHeader title="Shop Settings" description="Configure your store details and payouts." />
+      <PageHeader title="Settings" description="Configure your store details and payouts." />
 
       <div className="flex flex-col md:flex-row gap-8 items-start">
 
@@ -245,12 +279,18 @@ function SettingsPage() {
                    isUploading={upload.isPending}
                  />
 
-                 <StatusRow mutation={updateProfile} successText="Profile saved" />
+                  <StatusRow mutation={updateProfile} successText="Profile saved" />
 
-                <div className="flex justify-end pt-2">
-                  <Button type="submit" isLoading={updateProfile.isPending} className="gap-2 px-8">
-                    <Save className="h-4 w-4" /> Save Profile
-                  </Button>
+                <div className="flex justify-between items-center pt-2">
+                  <span />
+                  <div className="flex gap-2">
+                    <Button type="submit" isLoading={updateProfile.isPending} className="gap-2 px-8">
+                      <FloppyDisk className="h-4 w-4" /> Save Profile
+                    </Button>
+                    <Button type="button" variant="outline" className="gap-2 px-6" onClick={() => setActiveTab("dispatch")}>
+                      Next <ArrowRight className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               </form>
             </Card>
@@ -308,7 +348,7 @@ function SettingsPage() {
                     <Label>Region</Label>
                     <Select
                       value={addressForm.province}
-                      onChange={e => setAddressForm({ ...addressForm, province: e.target.value })}
+                      onChange={e => setAddressForm({ ...addressForm, province: e.target.value, district: "" })}
                     >
                       <option value="" disabled>Select region</option>
                       {GHANA_REGIONS.map(r => (
@@ -317,6 +357,44 @@ function SettingsPage() {
                     </Select>
                   </div>
                 </div>
+
+                {/* district — municipal dropdown, options follow the region */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Municipal / District</Label>
+                    <Select
+                      value={addressForm.district}
+                      onChange={e => setAddressForm({ ...addressForm, district: e.target.value })}
+                      disabled={!addressForm.province}
+                    >
+                      <option value="" disabled>{addressForm.province ? "Select municipal" : "Pick a region first"}</option>
+                      {districtsOf(addressForm.province).map(d => (
+                        <option key={d} value={d}>{d}</option>
+                      ))}
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Live location</Label>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full gap-2"
+                      disabled={locating}
+                      onClick={() => { void handleLiveLocation() }}
+                    >
+                      <MapPin className="h-4 w-4" />
+                      {locating ? "Locating…" : "Use my location"}
+                    </Button>
+                  </div>
+                </div>
+                {locateError ? (
+                  <p className="text-sm font-semibold text-destructive" role="alert">{locateError}</p>
+                ) : null}
+                {addressForm.latitude != null && addressForm.longitude != null ? (
+                  <p className="text-xs text-muted-foreground">
+                    Pinned at {addressForm.latitude.toFixed(5)}, {addressForm.longitude.toFixed(5)} — riders navigate here.
+                  </p>
+                ) : null}
 
                 {/* postal_code — GhanaPostGPS (optional) */}
                 <div className="space-y-2">
@@ -354,12 +432,20 @@ function SettingsPage() {
                   </p>
                 </div>
 
-                <StatusRow mutation={ghanaSetup} successText="Ghana delivery setup complete" />
+                <StatusRow mutation={updateAddress} successText="Delivery setup saved" />
 
-                <div className="flex justify-end pt-2">
-                  <Button type="submit" isLoading={ghanaSetup.isPending} className="gap-2 px-8">
-                    <Save className="h-4 w-4" /> Complete Delivery Setup
+                <div className="flex justify-between items-center pt-2">
+                  <Button type="button" variant="ghost" className="gap-2" onClick={() => setActiveTab("profile")}>
+                    <ArrowLeft className="h-4 w-4" /> Back
                   </Button>
+                  <div className="flex gap-2">
+                    <Button type="submit" isLoading={updateAddress.isPending} className="gap-2 px-8">
+                      <FloppyDisk className="h-4 w-4" /> Save Delivery Setup
+                    </Button>
+                    <Button type="button" variant="outline" className="gap-2 px-6" onClick={() => setActiveTab("momo")}>
+                      Next <ArrowRight className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               </form>
             </Card>
@@ -397,8 +483,8 @@ function SettingsPage() {
                     {phoneTouched && phoneRaw && (
                       <span className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
                         {phoneValid
-                          ? <CheckCircle2 className="h-5 w-5 text-success" />
-                          : <AlertCircle className="h-5 w-5 text-destructive" />
+                          ? <CheckCircle className="h-5 w-5 text-success" />
+                          : <WarningCircle className="h-5 w-5 text-destructive" />
                         }
                       </span>
                     )}
@@ -406,13 +492,13 @@ function SettingsPage() {
 
                   {phoneError && (
                     <p className="text-xs text-destructive font-semibold flex items-center gap-1">
-                      <AlertCircle className="h-3 w-3 shrink-0" /> {phoneError}
+                      <WarningCircle className="h-3 w-3 shrink-0" /> {phoneError}
                     </p>
                   )}
 
                   {phoneValid && (
                     <p className="text-xs text-success font-semibold flex items-center gap-1">
-                      <CheckCircle2 className="h-3 w-3 shrink-0" />
+                      <CheckCircle className="h-3 w-3 shrink-0" />
                       {formatPhoneDisplay(phoneRaw)}
                       {detectedProvider && ` — ${MOMO_NETWORKS[detectedProvider].label}`}
                     </p>
@@ -422,7 +508,7 @@ function SettingsPage() {
                 {/* Network selector — auto-set from prefix, overrideable */}
                 <div className="space-y-3">
                   <Label className="flex items-center gap-2">
-                    <Smartphone className="h-4 w-4" />
+                    <DeviceMobile className="h-4 w-4" />
                     Network
                     {detectedProvider && (
                       <span className="ml-auto text-xs font-normal text-muted-foreground">
@@ -431,34 +517,49 @@ function SettingsPage() {
                     )}
                   </Label>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    {(Object.entries(MOMO_NETWORKS) as [MomoProvider, { label: string; prefixes: string[] }][]).map(([key, net]) => (
-                      <button
-                        key={key}
-                        type="button"
-                        onClick={() => setProvider(key)}
-                        aria-pressed={provider === key}
-                        className={`relative flex flex-col items-start p-4 rounded-xl border-2 text-left transition-all ${
-                          provider === key
-                            ? "border-primary bg-primary/5 shadow-sm"
-                            : "border-border bg-card hover:border-primary/40"
-                        }`}
-                      >
-                        {provider === key && (
-                          <CheckCircle2 className="absolute top-3 right-3 h-4 w-4 text-primary" />
-                        )}
-                        <span className="font-black text-sm leading-tight">{net.label}</span>
-                        <span className="text-xs text-muted-foreground mt-1.5 font-medium">
-                          {prefixHint(key)}
-                        </span>
-                      </button>
-                    ))}
+                  <div className="grid grid-cols-3 gap-3">
+                    {(Object.entries(MOMO_NETWORKS) as [MomoProvider, (typeof MOMO_NETWORKS)[MomoProvider]][]).map(([key, net]) => {
+                      const active = provider === key
+                      const brandClasses = {
+                        mtn: "border-[#FFCC00] bg-[#FFCC00]/10 text-amber-950 dark:text-amber-200 ring-2 ring-[#FFCC00]/40 shadow-sm",
+                        vodafone: "border-[#E60000] bg-[#E60000]/10 text-red-950 dark:text-red-200 ring-2 ring-[#E60000]/40 shadow-sm",
+                        airteltigo: "border-[#003399] bg-[#003399]/10 text-blue-950 dark:text-blue-200 ring-2 ring-[#003399]/40 shadow-sm",
+                      }
+                      return (
+                        <button
+                          key={key}
+                          type="button"
+                          onClick={() => setProvider(key)}
+                          aria-pressed={active}
+                          className={`group relative flex flex-col items-center justify-between p-3.5 rounded-xl border-2 text-center transition-all duration-200 gap-2 cursor-pointer ${
+                            active
+                              ? brandClasses[key]
+                              : "border-border bg-card hover:border-primary/40 hover:bg-muted/30"
+                          }`}
+                        >
+                          {active && (
+                            <span className="absolute top-2 right-2 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm z-10">
+                              <CheckCircle className="h-5 w-5 fill-current" />
+                            </span>
+                          )}
+                          <div className="h-16 w-full flex items-center justify-center rounded-xl bg-white dark:bg-zinc-900 p-2 shadow-2xs border border-black/5 group-hover:scale-105 transition-transform">
+                            <img src={net.logo} alt={net.short} className="h-12 w-auto max-w-full object-contain" />
+                          </div>
+                          <div className="space-y-0.5">
+                            <span className="font-extrabold text-xs block text-foreground">{net.short}</span>
+                            <span className="text-[10px] text-muted-foreground block font-mono font-medium">
+                              {prefixHint(key)}
+                            </span>
+                          </div>
+                        </button>
+                      )
+                    })}
                   </div>
 
                   {/* Mismatch warning */}
                   {detectedProvider && detectedProvider !== provider && (
-                    <div className="flex items-start gap-2 p-3 rounded-lg bg-warning/10 text-warning text-xs font-semibold border border-warning/20">
-                      <AlertCircle className="h-4 w-4 shrink-0 mt-0.5 text-warning" />
+                    <div className="flex items-start gap-2 p-3 rounded-lg bg-warning/10 text-warning-fg text-xs font-semibold border border-warning/20">
+                      <WarningCircle className="h-4 w-4 shrink-0 mt-0.5 text-warning-fg" />
                       <span>
                         Your number prefix suggests <strong>{MOMO_NETWORKS[detectedProvider].label}</strong>,
                         but you selected <strong>{MOMO_NETWORKS[provider].label}</strong>.
@@ -470,14 +571,17 @@ function SettingsPage() {
 
                 <StatusRow mutation={updatePayment} successText="Payout details saved" />
 
-                <div className="flex justify-end pt-2">
+                <div className="flex justify-between items-center pt-2">
+                  <Button type="button" variant="ghost" className="gap-2" onClick={() => setActiveTab("dispatch")}>
+                    <ArrowLeft className="h-4 w-4" /> Back
+                  </Button>
                   <Button
                     type="submit"
                     isLoading={updatePayment.isPending}
                     disabled={phoneTouched && !!phoneError}
                     className="gap-2 px-8"
                   >
-                    <Save className="h-4 w-4" /> Save Payout Details
+                    <FloppyDisk className="h-4 w-4" /> Save Payout Details
                   </Button>
                 </div>
               </form>
@@ -490,7 +594,7 @@ function SettingsPage() {
 }
 
 // ---------------------------------------------------------------------------
-// Image upload control — reuses /vendor/uploads (R2-backed Medusa file service)
+// Image upload control — reuses /vendor/uploads (R2-backed file service)
 // and persists the returned URL via POST /vendor/sellers/me { logo | banner }.
 // ---------------------------------------------------------------------------
 
@@ -537,7 +641,7 @@ function ImageUploader({
     try {
       await onUpload(file)
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Upload failed.")
+      setError(e instanceof Error ? e.message : "UploadSimple failed.")
     } finally {
       URL.revokeObjectURL(objectUrl)
     }
@@ -576,7 +680,7 @@ function ImageUploader({
         </div>
       ) : (
         <label className="flex h-20 w-20 cursor-pointer items-center justify-center rounded-xl border-2 border-dashed border-border bg-muted/30 text-muted-foreground transition hover:border-primary hover:text-primary">
-          <Upload className="h-5 w-5" />
+          <UploadSimple className="h-5 w-5" />
           <input
             type="file"
             accept="image/*"
@@ -606,7 +710,7 @@ function StatusRow({
   mutation,
   successText,
 }: {
-  mutation: { isPending?: boolean; isSuccess: boolean; isError: boolean }
+  mutation: { isPending?: boolean; isSuccess: boolean; isError: boolean; error?: unknown }
   successText: string
 }) {
   const [visible, setVisible] = useState<"success" | "error" | null>(null)
@@ -630,13 +734,18 @@ function StatusRow({
   if (visible === "success") {
     return (
       <div className="flex items-center gap-2 p-3 rounded-lg bg-success/10 text-success text-sm font-semibold border border-success/20" role="status">
-        <CheckCircle2 className="h-4 w-4 shrink-0" /> {successText}
+        <CheckCircle className="h-4 w-4 shrink-0" /> {successText}
       </div>
     )
   }
+  const detail = mutation.error instanceof Error && mutation.error.message ? mutation.error.message : null
   return (
-    <div className="flex items-center gap-2 p-3 rounded-lg bg-destructive/10 text-destructive text-sm font-semibold border border-destructive/20" role="alert">
-      <AlertCircle className="h-4 w-4 shrink-0" /> Could not save — try again
+    <div className="flex items-start gap-2 p-3 rounded-lg bg-destructive/10 text-destructive text-sm border border-destructive/20" role="alert">
+      <WarningCircle className="h-4 w-4 shrink-0 mt-0.5" />
+      <div>
+        <p className="font-semibold">Could not save — try again</p>
+        {detail ? <p className="mt-0.5 text-xs text-destructive/80">{detail}</p> : null}
+      </div>
     </div>
   )
 }

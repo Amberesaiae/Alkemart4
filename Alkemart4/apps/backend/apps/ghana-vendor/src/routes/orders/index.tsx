@@ -5,7 +5,7 @@ import { useOrders } from "../../lib/hooks"
 import { maskEmail } from "../../lib/api"
 import { Card, Badge, Button, Skeleton, Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@workspace/ui"
 import { format } from "date-fns"
-import { ShoppingBag, AlertCircle } from "lucide-react"
+import { ShoppingBag, WarningCircle } from "@phosphor-icons/react"
 import { PageShell } from "../../components/page-shell"
 import { PageHeader } from "../../components/page-header"
 
@@ -66,10 +66,10 @@ function OrdersPage() {
             <button
               key={tab.id}
               onClick={() => { setFilter(tab.id); setOffset(0) }}
-              className={`px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-colors border-2 ${
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all border ${
                 filter === tab.id 
-                  ? "bg-primary text-primary-foreground border-primary shadow-sm" 
-                  : "bg-card text-muted-foreground border-transparent hover:border-border hover:bg-muted"
+                  ? "bg-primary text-primary-foreground border-primary shadow-2xs" 
+                  : "bg-card text-muted-foreground border-border/60 hover:border-primary/40 hover:bg-accent hover:text-accent-foreground"
               }`}
             >
               {tab.label}
@@ -80,7 +80,7 @@ function OrdersPage() {
 
       {isError ? (
         <Card className="p-8 text-center border border-destructive/20">
-          <AlertCircle className="h-10 w-10 mx-auto mb-3 text-destructive" />
+          <WarningCircle className="h-10 w-10 mx-auto mb-3 text-destructive" />
           <h2 className="text-lg font-bold mb-1">Failed to load orders</h2>
           <p className="text-muted-foreground text-sm mb-4">Something went wrong. Please try again.</p>
           <Button onClick={() => { qc.invalidateQueries({ queryKey: ["vendor", "orders"] }) }} variant="outline" className="gap-2">
@@ -90,7 +90,8 @@ function OrdersPage() {
       ) : (
         <Card className="overflow-hidden shadow-sm">
           <div className="overflow-x-auto">
-            <Table>
+            <Table label="Orders">
+              <caption className="sr-only">Orders list</caption>
               <TableHeader>
                 <TableRow>
                   <TableHead>Order Details</TableHead>
@@ -156,7 +157,7 @@ function OrdersPage() {
                           {fulfillmentStatusLabel(order.fulfillment_status)}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-right font-black text-lg">
+                      <TableCell className="text-right font-black text-lg tabular-nums">
                         {formatGhs(order.total ? order.total / 100 : 0)}
                       </TableCell>
                     </TableRow>
@@ -170,7 +171,7 @@ function OrdersPage() {
 
       {(data?.count ?? 0) > PAGE_SIZE && (
         <div className="flex justify-between items-center">
-          <span className="text-sm text-muted-foreground">
+          <span className="text-sm text-muted-foreground" aria-live="polite">
             {data?.orders?.length ? `${offset + 1}–${offset + data.orders.length}` : "0"} of {data?.count ?? "…"}
           </span>
           <div className="flex gap-2">

@@ -26,6 +26,12 @@ export const GHANA_REGIONS = GHANA_REGIONS_LIST
 export type GhanaRegion = (typeof GHANA_REGIONS)[number]
 
 // ---------------------------------------------------------------------------
+// Districts (MMDA municipals) — single source of truth in
+// packages/shared/src/ghana/districts.ts (260 total, vendored CC-BY-4.0)
+// ---------------------------------------------------------------------------
+export { GHANA_DISTRICTS, districtsOf } from "@alkemart/shared/ghana"
+
+// ---------------------------------------------------------------------------
 // Mobile Money providers
 // PaystackMomoProvider = "mtn" | "vodafone" | "airteltigo" (Paystack API slugs)
 // ---------------------------------------------------------------------------
@@ -41,18 +47,24 @@ export type MomoProvider = PaystackMomoProvider
  */
 export const MOMO_NETWORKS: Record<
   MomoProvider,
-  { label: string; prefixes: string[] }
+  { label: string; short: string; logo: string; prefixes: string[] }
 > = {
   mtn: {
-    label: "MTN Mobile Money",
+    label: "MTN",
+    short: "MTN",
+    logo: "/momo/mtn.png",
     prefixes: ["024", "054", "055", "059"],
   },
   vodafone: {
-    label: "Telecel Cash",
+    label: "Telecel",
+    short: "Telecel",
+    logo: "/momo/telecel.png",
     prefixes: ["020", "050"],
   },
   airteltigo: {
-    label: "AirtelTigo Money",
+    label: "AT",
+    short: "AT",
+    logo: "/momo/airteltigo.png",
     prefixes: ["026", "027", "056", "057"],
   },
 }

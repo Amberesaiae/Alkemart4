@@ -1,8 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router"
 import { useQueryClient } from "@tanstack/react-query"
-import { useDashboardStats, useOrders } from "../lib/hooks"
+import { useDashboardStats, useOrders, useTasks, useShopTraffic, useHealth } from "../lib/hooks"
 import { Card, Button, Badge, cn, Skeleton, Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@workspace/ui"
-import { ArrowRight, Package, TrendingUp, ShoppingBag, Clock, PlusCircle, AlertCircle, CheckCircle2 } from "lucide-react"
+import { ArrowRight, Package, TrendUp, ShoppingBag, Clock, PlusCircle, WarningCircle, CheckCircle, ShieldCheck } from "@phosphor-icons/react"
 import { format } from "date-fns"
 import { PageShell } from "../components/page-shell"
 import { PageHeader } from "../components/page-header"
@@ -15,6 +15,10 @@ function DashboardPage() {
   const qc = useQueryClient()
   const { data: stats, isLoading: statsLoading, isError: statsError } = useDashboardStats()
   const { data: recentOrders, isLoading: ordersLoading, isError: ordersError } = useOrders({ limit: 5 })
+  const { data: tasksData } = useTasks()
+  const tasks = tasksData?.tasks ?? []
+  const { data: traffic } = useShopTraffic()
+  const { data: health } = useHealth()
 
   // format currency
   const formatGhs = (amount = 0) => 
@@ -32,12 +36,20 @@ function DashboardPage() {
         </Link>
       </div>
 
+      {traffic && traffic.views30d > 0 ? (
+        <p className="text-sm text-muted-foreground -mt-2" aria-live="polite">
+          Last 30 days: <span className="font-bold text-foreground">{traffic.views30d.toLocaleString()} shop views</span>
+          {" · "}
+          <span className="font-bold text-foreground">{(traffic.conversion * 100).toFixed(1)}% converted</span>
+        </p>
+      ) : null}
+
       {stats?.readiness && !stats.readiness.setup_complete && stats.readiness.phase === "setup_incomplete" && (
         <Card className="p-5 border-2 border-warning/30 bg-warning/5">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <h2 className="font-black flex items-center gap-2">
-                <AlertCircle className="h-5 w-5 text-warning shrink-0" />
+                <WarningCircle className="h-5 w-5 text-warning-fg shrink-0" />
                 Finish setting up your shop
               </h2>
               <p className="text-sm text-muted-foreground font-medium mt-1">
@@ -47,8 +59,8 @@ function DashboardPage() {
                 {Object.entries(stats.readiness.checklist || {}).map(([key, done]) => (
                   <li key={key} className="flex items-center gap-2 text-sm font-semibold">
                     {done
-                      ? <CheckCircle2 className="h-4 w-4 text-success shrink-0" />
-                      : <AlertCircle className="h-4 w-4 text-warning shrink-0" />}
+                      ? <CheckCircle className="h-4 w-4 text-success shrink-0" />
+                      : <WarningCircle className="h-4 w-4 text-warning-fg shrink-0" />}
                     {stats.readiness?.checklist_labels?.[key] ?? key}
                   </li>
                 ))}
@@ -71,7 +83,7 @@ function DashboardPage() {
         <StatCard 
           title="Total Sales" 
           value={statsLoading ? "" : formatGhs(stats?.gmv_ghs || 0)} 
-          icon={TrendingUp}
+          icon={TrendUp}
           highlight
           loading={statsLoading}
         />
@@ -89,15 +101,90 @@ function DashboardPage() {
         />
         <StatCard 
           title="Pending Action" 
-          value={statsLoading ? "" : "0"}
+          value={statsLoading ? "" : String(tasks.length || 0)}
           icon={Clock}
           loading={statsLoading}
         />
       </div>
 
+      <Card className="p-5">
+        <h2 className="font-black flex items-center gap-2 mb-1">
+          <ShieldCheck className="h-5 w-5 text-primary" />
+          Shop standing
+          {health ? (
+            <span
+              className={
+                health.status === "healthy"
+                  ? "ml-auto text-xs font-bold uppercase tracking-wide text-success"
+                  : health.status === "blocked"
+                    ? "ml-auto text-xs font-bold uppercase tracking-wide text-destructive"
+                    : "ml-auto text-xs font-bold uppercase tracking-wide text-warning-fg"
+              }
+            >
+              {health.status}
+            </span>
+          ) : null}
+        </h2>
+        {!health || health.items.length === 0 ? (
+          <p className="text-sm text-muted-foreground font-medium">
+            {health ? "Everything looks good — keep it up." : "Checking your standing…"}
+          </p>
+        ) : (
+          <ul className="space-y-2 mt-3">
+            {health.items.map((h) => (
+              <li key={h.key}>
+                <a
+                  href={h.href}
+                  className="flex items-center gap-3 p-3 rounded-xl border hover:bg-muted/50 transition-colors"
+                >
+                  <WarningCircle
+                    className={`h-5 w-5 shrink-0 ${h.state === "blocked" ? "text-destructive" : "text-warning-fg"}`}
+                  />
+                  <span className="flex-1 min-w-0">
+                    <span className="block font-bold text-sm">{h.label}</span>
+                    <span className="block text-xs text-muted-foreground truncate">{h.detail}</span>
+                  </span>
+                  <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                </a>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
+
+      <Card className="p-5">
+        <h2 className="font-black flex items-center gap-2 mb-3">
+          <Clock className="h-5 w-5 text-primary" />
+          Needs your attention
+        </h2>
+        {tasks.length === 0 ? (
+          <p className="text-sm text-muted-foreground font-medium">
+            All clear — nothing needs you right now.
+          </p>
+        ) : (
+          <ul className="space-y-2">
+            {tasks.map((t) => (
+              <li key={t.kind}>
+                <a
+                  href={t.href}
+                  className="flex items-center gap-3 p-3 rounded-xl border hover:bg-muted/50 transition-colors"
+                >
+                  <WarningCircle className="h-5 w-5 text-warning-fg shrink-0" />
+                  <span className="flex-1 min-w-0">
+                    <span className="block font-bold text-sm">{t.title}</span>
+                    <span className="block text-xs text-muted-foreground truncate">{t.detail}</span>
+                  </span>
+                  <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                </a>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
+
       {ordersError ? (
         <Card className="p-8 text-center border-2 border-destructive/20">
-          <AlertCircle className="h-10 w-10 mx-auto mb-3 text-destructive" />
+          <WarningCircle className="h-10 w-10 mx-auto mb-3 text-destructive" />
           <h2 className="text-lg font-bold mb-1">Failed to load orders</h2>
           <p className="text-muted-foreground text-sm mb-4">Something went wrong. Please try again.</p>
           <Button onClick={() => { qc.invalidateQueries({ queryKey: ["vendor"] }) }} variant="outline" className="gap-2">
@@ -122,14 +209,15 @@ function DashboardPage() {
           
           <Card className="overflow-hidden border-2">
             <div className="overflow-x-auto">
-              <Table>
+              <Table label="Recent orders">
+                <caption className="sr-only">Recent orders</caption>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Order #</TableHead>
                     <TableHead>Date</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="text-right">Amount</TableHead>
-                    <TableHead className="text-right">Action</TableHead>
+                    <TableHead className="text-right"><span className="sr-only">Actions</span></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -148,7 +236,7 @@ function DashboardPage() {
                           <ShoppingBag className="h-10 w-10 mb-3 opacity-20" />
                           <p className="font-semibold text-foreground">No orders yet</p>
                           <p className="text-xs">When customers buy your items, they'll appear here.</p>
-                        </div>
+      </div>
                       </TableCell>
                     </TableRow>
                   ) : (
@@ -170,7 +258,7 @@ function DashboardPage() {
                               : order.fulfillment_status || "Pending"}
                           </Badge>
                         </TableCell>
-                        <TableCell className="text-right font-bold">
+                        <TableCell className="text-right font-bold tabular-nums">
                           {formatGhs(order.total ? order.total / 100 : 0)}
                         </TableCell>
                         <TableCell className="text-right">

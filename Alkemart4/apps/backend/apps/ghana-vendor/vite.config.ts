@@ -12,7 +12,7 @@ export default defineConfig({
   },
   plugins: [TanStackRouterVite({ target: 'react', autoCodeSplitting: true }), react(), tailwindcss()],
   optimizeDeps: {
-    include: ['lucide-react'],
+    include: ['@phosphor-icons/react'],
   },
   build: {
     outDir: 'dist',
@@ -22,7 +22,7 @@ export default defineConfig({
         manualChunks: {
           react: ['react', 'react-dom'],
           tanstack: ['@tanstack/react-router', '@tanstack/react-query'],
-          icons: ['lucide-react'],
+          icons: ['@phosphor-icons/react'],
         },
       },
     },

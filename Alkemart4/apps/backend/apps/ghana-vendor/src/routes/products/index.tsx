@@ -3,7 +3,7 @@ import { useState } from "react"
 import { useQueryClient } from "@tanstack/react-query"
 import { useProducts, useProposeProduct } from "../../lib/hooks"
 import { Card, Button, Badge, Skeleton } from "@workspace/ui"
-import { PlusCircle, CheckCircle, Clock, AlertCircle } from "lucide-react"
+import { PlusCircle, CheckCircle, Clock, WarningCircle } from "@phosphor-icons/react"
 import { PageShell } from "../../components/page-shell"
 import { PageHeader } from "../../components/page-header"
 
@@ -34,7 +34,7 @@ function ProductsPage() {
         const reason = mod?.reason as string | undefined
         return (
           <Badge variant="destructive" className="gap-1 group relative" title={reason || "Rejected"}>
-            <AlertCircle className="h-3 w-3" />
+            <WarningCircle className="h-3 w-3" />
             Rejected
             {reason && (
               <span className="absolute bottom-full right-0 mb-2 hidden group-hover:block bg-popover text-popover-foreground text-xs rounded-lg px-3 py-2 shadow-lg whitespace-nowrap z-10 max-w-64 overflow-hidden text-ellipsis border">
@@ -62,7 +62,7 @@ function ProductsPage() {
 
       {isError ? (
         <Card className="p-8 text-center border border-destructive/20">
-          <AlertCircle className="h-10 w-10 mx-auto mb-3 text-destructive" />
+          <WarningCircle className="h-10 w-10 mx-auto mb-3 text-destructive" />
           <h2 className="text-lg font-bold mb-1">Failed to load products</h2>
           <p className="text-muted-foreground text-sm mb-4">Something went wrong. Please try again.</p>
           <Button onClick={() => { qc.invalidateQueries({ queryKey: ["vendor", "products"] }) }} variant="outline" className="gap-2">
