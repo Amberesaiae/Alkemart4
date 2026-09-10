@@ -50,6 +50,62 @@
       "when": 1788679114977,
       "tag": "0006_product_media_and_created_at",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1788800000000,
+      "tag": "0007_seller_profile_media",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1788800000001,
+      "tag": "0008_admin_actions",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1788800000002,
+      "tag": "0009_shop_views",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1788800000003,
+      "tag": "0010_moderation_appeals",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1788800000004,
+      "tag": "0011_seller_created_at",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1788800000005,
+      "tag": "0012_shop_pause_policies",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1788800000006,
+      "tag": "0013_shop_featured",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1788800000007,
+      "tag": "0014_notifications",
+      "breakpoints": true
     }
   ]
 }

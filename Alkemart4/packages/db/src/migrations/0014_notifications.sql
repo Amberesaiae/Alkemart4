@@ -1,0 +1,2 @@
+CREATE TYPE "notification_status" AS ENUM('pending', 'sent', 'failed');--> statement-breakpoint
+CREATE TABLE "notifications" ("id" text PRIMARY KEY NOT NULL, "key" text NOT NULL, "channel" text DEFAULT 'sms' NOT NULL, "recipient" text NOT NULL, "body" text NOT NULL, "status" "notification_status" DEFAULT 'pending' NOT NULL, "attempts" integer DEFAULT 0 NOT NULL, "last_error" text, "created_at" timestamp with time zone DEFAULT now() NOT NULL, "sent_at" timestamp with time zone, CONSTRAINT "notifications_key_unique" UNIQUE("key"));

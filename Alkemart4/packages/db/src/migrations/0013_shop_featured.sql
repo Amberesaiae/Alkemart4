@@ -1,0 +1,3 @@
+CREATE TABLE "shop_featured" ("seller_id" text NOT NULL, "product_id" text NOT NULL, "rank" integer NOT NULL, "created_at" timestamp with time zone DEFAULT now() NOT NULL, CONSTRAINT "shop_featured_seller_id_sellers_id_fk" FOREIGN KEY ("seller_id") REFERENCES "sellers"("id") ON DELETE NO ACTION ON UPDATE NO ACTION, CONSTRAINT "shop_featured_product_id_products_id_fk" FOREIGN KEY ("product_id") REFERENCES "products"("id") ON DELETE NO ACTION ON UPDATE NO ACTION);--> statement-breakpoint
+CREATE UNIQUE INDEX "shop_featured_seller_product_uidx" ON "shop_featured" ("seller_id", "product_id");--> statement-breakpoint
+CREATE UNIQUE INDEX "shop_featured_seller_rank_uidx" ON "shop_featured" ("seller_id", "rank");

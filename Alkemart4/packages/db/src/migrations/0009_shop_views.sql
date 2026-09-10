@@ -1,0 +1,3 @@
+CREATE TABLE "shop_views" ("seller_id" text NOT NULL, "product_id" text, "day" date NOT NULL, "views" integer DEFAULT 0 NOT NULL, CONSTRAINT "shop_views_seller_id_sellers_id_fk" FOREIGN KEY ("seller_id") REFERENCES "sellers"("id") ON DELETE NO ACTION ON UPDATE NO ACTION, CONSTRAINT "shop_views_product_id_products_id_fk" FOREIGN KEY ("product_id") REFERENCES "products"("id") ON DELETE NO ACTION ON UPDATE NO ACTION);--> statement-breakpoint
+CREATE UNIQUE INDEX "shop_views_product_day_uidx" ON "shop_views" ("seller_id", "product_id", "day");--> statement-breakpoint
+CREATE UNIQUE INDEX "shop_views_shop_day_uidx" ON "shop_views" ("seller_id", "day") WHERE "product_id" IS NULL;
