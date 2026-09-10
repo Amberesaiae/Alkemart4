@@ -1,6 +1,6 @@
 import { IconSafe } from "@/design/icons"
 import { Breadcrumbs, type Crumb } from "@/components/shell/Breadcrumbs"
-import type { ListingSort } from "@/components/listing/ListingFilters"
+import type { ListingSort } from "@/components/listing/ListingFacets"
 import { cn } from "@/lib/utils"
 import { useId, type ReactNode } from "react"
 
@@ -14,6 +14,8 @@ type Props = {
   breadcrumbLabel?: string
   hero?: ReactNode
   filterStrip?: ReactNode
+  /** Removable applied-facet chips, shown directly above the grid. */
+  applied?: ReactNode
   sidebar: ReactNode
   toolbar?: ReactNode
   children: ReactNode
@@ -45,6 +47,7 @@ export function ListingLayout({
   breadcrumbLabel,
   hero,
   filterStrip,
+  applied,
   sidebar,
   toolbar,
   children,
@@ -212,7 +215,10 @@ export function ListingLayout({
             {sidebar}
           </div>
         ) : null}
-        <div className="min-w-0 space-y-4">{children}</div>
+        <div className="min-w-0 space-y-4">
+          {applied}
+          {children}
+        </div>
       </div>
     </div>
   )

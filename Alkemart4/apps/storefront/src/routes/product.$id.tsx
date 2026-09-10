@@ -21,6 +21,7 @@ import {
   listPeerOffersForProduct,
   listRelatedProducts,
 } from "@/lib/products"
+import { getStoreVendorBySlug } from "@/lib/vendors"
 import {
   trackProductAdded,
   trackProductViewed,
@@ -134,7 +135,22 @@ function ProductDetailPage() {
     },
   })
 
-  const canAdd = Boolean(activeOfferId) && (!requiresOfferPick || Boolean(selectedOfferId))
+  const canAddBase = Boolean(activeOfferId) && (!requiresOfferPick || Boolean(selectedOfferId))
+
+  /** Paused sellers keep listings visible but block checkout server-side —
+      the buy panel mirrors that with a disabled CTA + reason. */
+  const pauseQ = useQuery({
+    queryKey: ["store", "vendor-pause", displaySeller?.handle],
+    queryFn: () => getStoreVendorBySlug(displaySeller!.handle as string),
+    enabled: Boolean(displaySeller?.handle),
+    staleTime: 60_000,
+  })
+  const pauseInfo = pauseQ.data?.vendor.availability
+  const sellerPaused = pauseInfo?.state === "paused"
+  const canAdd = canAddBase && !sellerPaused
+  const pausedReason = sellerPaused
+    ? `This shop is paused${pauseInfo?.note ? ` — ${pauseInfo.note}` : ""}${pauseInfo?.pausedUntil ? ` (back ${new Date(pauseInfo.pausedUntil).toLocaleDateString()})` : ""}`
+    : null
   const productPath = `/product/${id}`
 
   const jsonLd = p?.id
@@ -299,6 +315,7 @@ function ProductDetailPage() {
               onAdd={() => add.mutate()}
               sellerName={displaySeller?.name}
               sellerHandle={displaySeller?.handle}
+              unavailableReason={pausedReason}
             />
           </div>
         </article>
@@ -324,6 +341,7 @@ function ProductDetailPage() {
             onAdd={() => add.mutate()}
             sellerName={displaySeller?.name}
             sellerHandle={displaySeller?.handle}
+            unavailableReason={pausedReason}
           />
         </div>
       ) : null}

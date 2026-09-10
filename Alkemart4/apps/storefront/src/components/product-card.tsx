@@ -6,6 +6,7 @@ import { SellerChip } from "@/components/seller-chip"
 import { AddToCartControl } from "@/components/product/AddToCartControl"
 import { WishlistButton } from "@/components/product/WishlistButton"
 import { Icon } from "@/design/icons"
+import { Badge } from "@workspace/ui"
 import { deptThemeClass } from "@/lib/category-theme"
 import { iconForCategory } from "@/lib/catalog-nav"
 import type { StoreProductCard } from "@/lib/products"
@@ -180,16 +181,17 @@ export function ProductCard({
 function StockBadge({ stock }: { stock: ReturnType<typeof stockState> }) {
   if (stock === "low") {
     return (
-      <span className="rounded-full bg-warning/15 px-2 py-0.5 text-[10px] font-semibold text-warning-foreground ring-1 ring-warning/30 backdrop-blur-sm">
+      <Badge tone="scarce" emphasis="solid">
         Few left
-      </span>
+      </Badge>
     )
   }
   if (stock === "out") {
+    // Espresso rather than a hue: unavailable reads as "closed", not "alert".
     return (
-      <span className="rounded-full bg-foreground/70 px-2 py-0.5 text-[10px] font-semibold text-background backdrop-blur-sm">
+      <Badge tone="neutral" emphasis="solid" className="bg-ink text-white">
         Sold out
-      </span>
+      </Badge>
     )
   }
   return null
@@ -258,12 +260,12 @@ function Media(props: {
     >
       {inner}
       {stock && stock !== "in" && stock !== "unknown" ? (
-        <span className="absolute left-1.5 top-1.5 z-10">
+        <span className="absolute left-2 top-2 z-10">
           <StockBadge stock={stock} />
         </span>
       ) : null}
       {showWish ? (
-        <span className="absolute right-1.5 top-1.5 z-10">
+        <span className="absolute right-2 top-2 z-10">
           <WishlistButton productId={product.id} onMedia size={13} />
         </span>
       ) : null}
@@ -275,7 +277,7 @@ function CategoryLabel({ label }: { label?: string | null }) {
   if (!label?.trim()) return null
   return (
     <p
-      className="line-clamp-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground"
+      className="eyebrow line-clamp-1 text-muted-foreground"
       aria-label={`Category: ${label.trim()}`}
     >
       {label.trim()}

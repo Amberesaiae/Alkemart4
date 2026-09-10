@@ -1,22 +1,21 @@
+/**
+ * PLP facet strip.
+ *
+ * Reads and writes the same `ListingFacetState` as the sidebar — the
+ * subcategory fieldset used to hold its own copy while the sidebar changed
+ * routes for the same thing, so the two could disagree.
+ *
+ * Rating options carry live result counts and hide the buckets that would
+ * return nothing; a facet that leads to an empty grid is worse than no
+ * facet at all.
+ */
 import { ProductRating } from "@/components/product/ProductRating"
-import type { ListingSort } from "@/components/listing/ListingFilters"
-import type { ListingViewMode } from "@/components/listing/ListingLayout"
+import type { ListingFacetState } from "@/components/listing/ListingFacets"
 import {
   ListingLocationFilter,
   type LocationFilterValue,
 } from "@/components/listing/ListingLocationFilter"
 import { cn } from "@/lib/utils"
-
-export type FilterStripState = {
-  /** Child category id when the department has a real subcategory — "all" otherwise. */
-  subCategory: string
-  minRating: number
-  priceMin: number | null
-  priceMax: number | null
-  sort: ListingSort
-  viewMode: ListingViewMode
-  location: LocationFilterValue
-}
 
 type Props = {
   departmentLabel: string
@@ -26,25 +25,39 @@ type Props = {
    * instead of showing a fake "All X / X" pair that filters nothing.
    */
   subCategories?: { id: string; label: string }[]
-  state: FilterStripState
-  onChange: (next: FilterStripState) => void
+  /** How many products would remain at each minimum rating. */
+  ratingCounts?: Record<number, number>
+  state: ListingFacetState
+  onChange: (next: ListingFacetState) => void
   locationEnabled?: boolean
   className?: string
 }
 
 const RATING_OPTIONS = [5, 4, 3, 2, 1] as const
 
-/**
- * PLP filter facets as a responsive grid of chip fields.
- */
+const chipBase = cn(
+  "min-h-10 rounded-lg border px-3 py-2 type-sm font-medium transition",
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
+)
+const chipOn = "facet-row-on border-transparent font-semibold"
+const chipOff =
+  "border-border bg-background text-muted-foreground hover:bg-muted hover:text-foreground"
+
 export function ListingFilterStrip({
   departmentLabel,
   subCategories = [],
+  ratingCounts,
   state,
   onChange,
   locationEnabled = false,
   className,
 }: Props) {
+  const ratingOptions = RATING_OPTIONS.filter(
+    // Keep the current selection visible even if it now yields nothing,
+    // otherwise the control vanishes under the user's own choice.
+    (n) => !ratingCounts || (ratingCounts[n] ?? 0) > 0 || state.minRating === n,
+  )
+
   return (
     <div
       className={cn(
@@ -57,7 +70,7 @@ export function ListingFilterStrip({
     >
       {subCategories.length > 0 ? (
         <fieldset className="min-w-0 space-y-2">
-          <legend className="type-sm font-bold text-foreground">
+          <legend className="type-sm font-semibold text-foreground">
             {departmentLabel}
           </legend>
           <div
@@ -71,11 +84,9 @@ export function ListingFilterStrip({
               aria-checked={state.subCategory === "all"}
               onClick={() => onChange({ ...state, subCategory: "all" })}
               className={cn(
-                "min-h-10 rounded-xl border px-3 py-2 text-left type-sm font-medium transition",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
-                state.subCategory === "all"
-                  ? "border-primary bg-primary/15 font-semibold text-foreground"
-                  : "border-border bg-background text-muted-foreground hover:bg-muted",
+                chipBase,
+                "text-left",
+                state.subCategory === "all" ? chipOn : chipOff,
               )}
             >
               All {departmentLabel}
@@ -89,13 +100,7 @@ export function ListingFilterStrip({
                   role="radio"
                   aria-checked={on}
                   onClick={() => onChange({ ...state, subCategory: sub.id })}
-                  className={cn(
-                    "min-h-10 rounded-xl border px-3 py-2 text-left type-sm font-medium transition",
-                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
-                    on
-                      ? "border-primary bg-primary/15 font-semibold text-foreground"
-                      : "border-border bg-background text-muted-foreground hover:bg-muted",
-                  )}
+                  className={cn(chipBase, "text-left", on ? chipOn : chipOff)}
                 >
                   {sub.label}
                 </button>
@@ -106,8 +111,8 @@ export function ListingFilterStrip({
       ) : null}
 
       <fieldset className="min-w-0 space-y-2">
-        <legend className="type-sm font-bold text-foreground">
-          Average Rating
+        <legend className="type-sm font-semibold text-foreground">
+          Average rating
         </legend>
         <div
           className="grid grid-cols-2 gap-1.5 sm:grid-cols-3"
@@ -120,39 +125,42 @@ export function ListingFilterStrip({
             aria-checked={state.minRating === 0}
             onClick={() => onChange({ ...state, minRating: 0 })}
             className={cn(
-              "min-h-10 rounded-xl border px-2 py-2 type-sm font-medium transition",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
-              state.minRating === 0
-                ? "border-primary bg-primary/15 font-semibold text-foreground"
-                : "border-border bg-background text-muted-foreground hover:bg-muted",
+              chipBase,
+              "px-2",
+              state.minRating === 0 ? chipOn : chipOff,
             )}
           >
             Any
           </button>
-          {RATING_OPTIONS.map((n) => (
-            <button
-              key={n}
-              type="button"
-              role="radio"
-              aria-checked={state.minRating === n}
-              onClick={() => onChange({ ...state, minRating: n })}
-              className={cn(
-                "inline-flex min-h-10 items-center justify-center gap-1 rounded-xl border px-2 py-2 type-sm transition",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
-                state.minRating === n
-                  ? "border-primary bg-primary/15 font-semibold text-foreground"
-                  : "border-border bg-background text-muted-foreground hover:bg-muted",
-              )}
-            >
-              <ProductRating value={n} size={12} />
-              <span className="sr-only sm:not-sr-only sm:inline">&amp; up</span>
-            </button>
-          ))}
+          {ratingOptions.map((n) => {
+            const on = state.minRating === n
+            const c = ratingCounts?.[n]
+            return (
+              <button
+                key={n}
+                type="button"
+                role="radio"
+                aria-checked={on}
+                onClick={() => onChange({ ...state, minRating: n })}
+                className={cn(
+                  chipBase,
+                  "inline-flex items-center justify-center gap-1 px-2",
+                  on ? chipOn : chipOff,
+                )}
+              >
+                <ProductRating value={n} size={12} />
+                <span className="sr-only sm:not-sr-only sm:inline">&amp; up</span>
+                {typeof c === "number" ? (
+                  <span className="tabular-nums opacity-70">{c}</span>
+                ) : null}
+              </button>
+            )
+          })}
         </div>
       </fieldset>
 
       <fieldset className="min-w-0 space-y-2">
-        <legend className="type-sm font-bold text-foreground">Price</legend>
+        <legend className="type-sm font-semibold text-foreground">Price</legend>
         <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
           <input
             type="number"
@@ -161,12 +169,9 @@ export function ListingFilterStrip({
             value={state.priceMin ?? ""}
             onChange={(e) => {
               const v = e.target.value
-              onChange({
-                ...state,
-                priceMin: v === "" ? null : Number(v),
-              })
+              onChange({ ...state, priceMin: v === "" ? null : Number(v) })
             }}
-            className="h-11 w-full min-w-0 rounded-full border border-border bg-background px-3 type-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+            className="h-11 w-full min-w-0 rounded-lg border border-border bg-background px-3 type-sm outline-none focus:border-primary-strong focus:ring-2 focus:ring-primary/20"
             aria-label="Minimum price"
           />
           <span className="text-muted-foreground" aria-hidden>
@@ -179,12 +184,9 @@ export function ListingFilterStrip({
             value={state.priceMax ?? ""}
             onChange={(e) => {
               const v = e.target.value
-              onChange({
-                ...state,
-                priceMax: v === "" ? null : Number(v),
-              })
+              onChange({ ...state, priceMax: v === "" ? null : Number(v) })
             }}
-            className="h-11 w-full min-w-0 rounded-full border border-border bg-background px-3 type-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+            className="h-11 w-full min-w-0 rounded-lg border border-border bg-background px-3 type-sm outline-none focus:border-primary-strong focus:ring-2 focus:ring-primary/20"
             aria-label="Maximum price"
           />
         </div>
@@ -193,7 +195,9 @@ export function ListingFilterStrip({
       <ListingLocationFilter
         value={state.location}
         enabled={locationEnabled}
-        onChange={(location) => onChange({ ...state, location })}
+        onChange={(location: LocationFilterValue) =>
+          onChange({ ...state, location })
+        }
       />
     </div>
   )

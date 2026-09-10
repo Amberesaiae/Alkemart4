@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
 import { useQuery } from "@tanstack/react-query"
 import { ProductCard } from "@/components/product-card"
@@ -8,10 +8,12 @@ import { ErrorAlert } from "@/components/error-alert"
 import { LoadMore } from "@/components/load-more"
 import { ProductGridSkeleton } from "@/components/skeleton"
 import {
+  ListingAppliedFacets,
   ListingFilters,
   ListingFilterStrip,
   ListingHero,
   ListingLayout,
+  appliedFacets,
   filterListingByPrice,
   filterListingByRating,
   filterListingBySellers,
@@ -19,9 +21,9 @@ import {
   listingHeroTitle,
   listingHeroAccent,
   listingHeroBody,
+  resetFacets,
   sortListingProducts,
-  type FilterStripState,
-  type ListingFilterState,
+  type ListingFacetState,
   type ListingSort,
   type ListingViewMode,
 } from "@/components/listing"
@@ -33,15 +35,33 @@ import {
   resolveBrowseCategory,
   resolveRailCategories,
 } from "@/lib/catalog-nav"
+import { deptThemeClass } from "@/lib/category-theme"
 import { cn } from "@/lib/utils"
 
 export const Route = createFileRoute("/categories/$slug")({
+  /**
+   * Every facet lives here — the URL is the single source of truth, so a
+   * filtered listing is shareable and survives back/forward. Defaults are
+   * omitted from the querystring to keep canonical URLs clean.
+   */
   validateSearch: (search: Record<string, unknown>) => {
     const seller = parseList(search.seller)
     const sort = parseSort(search.sort)
+    const sub = parseSlug(search.sub)
+    const rating = parseRating(search.rating)
+    const min = parseAmount(search.min)
+    const max = parseAmount(search.max)
+    const region = parseSlug(search.region)
+    const city = parseSlug(search.city)
     return {
       ...(seller.length ? { seller } : {}),
       ...(sort && sort !== "featured" ? { sort } : {}),
+      ...(sub ? { sub } : {}),
+      ...(rating ? { rating } : {}),
+      ...(min != null ? { min } : {}),
+      ...(max != null ? { max } : {}),
+      ...(region ? { region } : {}),
+      ...(city ? { city } : {}),
     }
   },
   component: BrowsePage,
@@ -60,6 +80,20 @@ function parseList(v: unknown): string[] {
     )
   }
   return []
+}
+
+function parseSlug(v: unknown): string | undefined {
+  return typeof v === "string" && v.trim() ? v.trim() : undefined
+}
+
+function parseRating(v: unknown): number | undefined {
+  const n = typeof v === "string" ? Number(v) : typeof v === "number" ? v : NaN
+  return Number.isInteger(n) && n >= 1 && n <= 5 ? n : undefined
+}
+
+function parseAmount(v: unknown): number | undefined {
+  const n = typeof v === "string" ? Number(v) : typeof v === "number" ? v : NaN
+  return Number.isFinite(n) && n >= 0 ? n : undefined
 }
 
 function parseSort(v: unknown): ListingSort | undefined {
@@ -100,8 +134,6 @@ function BrowsePage() {
   const navigate = useNavigate()
   const { slug } = Route.useParams()
   const search = Route.useSearch()
-  const sellerFilters = search.seller ?? []
-  const sort: ListingSort = search.sort ?? "featured"
   const isAll = slug === "all" || slug === ""
   const [limit, setLimit] = useState(PAGE)
   /** Collapsible PLP filters: open on desktop by default, closed on mobile; remember choice. */
@@ -116,22 +148,58 @@ function BrowsePage() {
     }
     return window.matchMedia("(min-width: 1024px)").matches
   })
+  /** View mode is a presentation preference, not a facet — stays local. */
   const [viewMode, setViewMode] = useState<ListingViewMode>("grid")
-  const [priceMin, setPriceMin] = useState<number | null>(null)
-  const [priceMax, setPriceMax] = useState<number | null>(null)
-  const [minRating, setMinRating] = useState(0)
-  const [subCategory, setSubCategory] = useState("all")
-  const [location, setLocation] = useState<{
-    province: string | null
-    city: string | null
-  }>({ province: null, city: null })
 
+  /** The one facet state. Sidebar and strip both read and write this. */
+  const facets: ListingFacetState = useMemo(
+    () => ({
+      sellerHandles: search.seller ?? [],
+      sort: search.sort ?? "featured",
+      priceMin: search.min ?? null,
+      priceMax: search.max ?? null,
+      minRating: search.rating ?? 0,
+      subCategory: search.sub ?? "all",
+      location: {
+        province: search.region ?? null,
+        city: search.city ?? null,
+      },
+    }),
+    [search],
+  )
+
+  const sellerFilters = facets.sellerHandles
+  const sort = facets.sort
+
+  const applyFacets = useCallback(
+    (next: ListingFacetState) => {
+      void navigate({
+        to: "/categories/$slug",
+        params: { slug },
+        search: {
+          ...(next.sellerHandles.length ? { seller: next.sellerHandles } : {}),
+          ...(next.sort !== "featured" ? { sort: next.sort } : {}),
+          ...(next.subCategory !== "all" ? { sub: next.subCategory } : {}),
+          ...(next.minRating > 0 ? { rating: next.minRating } : {}),
+          ...(next.priceMin != null ? { min: next.priceMin } : {}),
+          ...(next.priceMax != null ? { max: next.priceMax } : {}),
+          ...(next.location.province ? { region: next.location.province } : {}),
+          ...(next.location.city ? { city: next.location.city } : {}),
+        },
+      })
+    },
+    [navigate, slug],
+  )
+
+  const clearAllFacets = useCallback(
+    () => applyFacets(resetFacets()),
+    [applyFacets],
+  )
+
+  // Paging resets whenever the result set changes identity.
   useEffect(() => {
     setLimit(PAGE)
-    setSubCategory("all")
-    setMinRating(0)
-    setLocation({ province: null, city: null })
-  }, [slug, sellerFilters.join(","), sort])
+  }, [slug, search])
 
   const categoriesQ = useQuery({
     queryKey: ["store", "categories"],
@@ -152,7 +220,7 @@ function BrowsePage() {
 
   // Sub-category selects a real child category — refetch the catalog with its
   // exact id/handle (never a client-side text match on invented labels).
-  const selectedSub = subCats.find((s) => s.id === subCategory)
+  const selectedSub = subCats.find((c) => c.id === facets.subCategory)
   const effectiveCategoryId = selectedSub ? selectedSub.id : categoryId
   const effectiveCategoryHandle = selectedSub
     ? selectedSub.handle ?? selectedSub.id
@@ -224,22 +292,30 @@ function BrowsePage() {
     ? (discoveryQ.data?.products ?? [])
     : (productsQ.data?.products ?? [])
 
-  const products = useMemo(() => {
+  /** Everything except rating — the base the rating counts are computed from. */
+  const beforeRating = useMemo(() => {
     let list = rawProducts
-    if (!useMeili) list = filterListingBySellers(list, sellerFilters)
-    list = filterListingByPrice(list, priceMin, priceMax)
-    list = filterListingByRating(list, minRating)
-    return sortListingProducts(list, sort).slice(0, limit)
-  }, [
-    rawProducts,
-    sellerFilters,
-    sort,
-    useMeili,
-    limit,
-    priceMin,
-    priceMax,
-    minRating,
-  ])
+    if (!useMeili) list = filterListingBySellers(list, facets.sellerHandles)
+    return filterListingByPrice(list, facets.priceMin, facets.priceMax)
+  }, [rawProducts, useMeili, facets.sellerHandles, facets.priceMin, facets.priceMax])
+
+  /** Live per-bucket counts so the rating facet can hide dead ends. */
+  const ratingCounts = useMemo(() => {
+    const out: Record<number, number> = {}
+    for (const n of [1, 2, 3, 4, 5]) {
+      out[n] = filterListingByRating(beforeRating, n).length
+    }
+    return out
+  }, [beforeRating])
+
+  const products = useMemo(
+    () =>
+      sortListingProducts(
+        filterListingByRating(beforeRating, facets.minRating),
+        facets.sort,
+      ).slice(0, limit),
+    [beforeRating, facets.minRating, facets.sort, limit],
+  )
 
   const count = useMeili
     ? Math.max(discoveryQ.data?.estimatedTotalHits ?? 0, products.length)
@@ -269,59 +345,6 @@ function BrowsePage() {
     return [...map.values()].sort((a, b) => b.count - a.count)
   }, [rawProducts])
 
-  const filterState: ListingFilterState = {
-    sellerHandles: sellerFilters,
-    sort,
-    priceMin,
-    priceMax,
-  }
-
-  function applySidebarFilters(next: ListingFilterState) {
-    setPriceMin(next.priceMin ?? null)
-    setPriceMax(next.priceMax ?? null)
-    void navigate({
-      to: "/categories/$slug",
-      params: { slug },
-      search: {
-        ...(next.sellerHandles.length
-          ? { seller: next.sellerHandles }
-          : {}),
-        ...(next.sort !== "featured" ? { sort: next.sort } : {}),
-      },
-    })
-  }
-
-  const stripState: FilterStripState = {
-    subCategory,
-    minRating,
-    priceMin,
-    priceMax,
-    sort,
-    viewMode,
-    location,
-  }
-
-  function applyStrip(next: FilterStripState) {
-    setSubCategory(next.subCategory)
-    setMinRating(next.minRating)
-    setPriceMin(next.priceMin)
-    setPriceMax(next.priceMax)
-    setViewMode(next.viewMode)
-    setLocation(next.location)
-    // Location filters pass to Meili when engine supports them (P1+ index).
-    // Until then UI stays honest via locationEnabled=false.
-    if (next.sort !== sort) {
-      void navigate({
-        to: "/categories/$slug",
-        params: { slug },
-        search: {
-          ...(sellerFilters.length ? { seller: sellerFilters } : {}),
-          ...(next.sort !== "featured" ? { sort: next.sort } : {}),
-        },
-      })
-    }
-  }
-
   function toggleFilters() {
     setFiltersOpen((v) => {
       const next = !v
@@ -335,24 +358,24 @@ function BrowsePage() {
   }
 
   function applySort(next: ListingSort) {
-    void navigate({
-      to: "/categories/$slug",
-      params: { slug },
-      search: {
-        ...(sellerFilters.length ? { seller: sellerFilters } : {}),
-        ...(next !== "featured" ? { sort: next } : {}),
-      },
-    })
+    applyFacets({ ...facets, sort: next })
   }
 
-  const activeFilterCount =
-    sellerFilters.length +
-    (priceMin != null ? 1 : 0) +
-    (priceMax != null ? 1 : 0) +
-    (minRating > 0 ? 1 : 0) +
-    (subCategory !== "all" ? 1 : 0) +
-    (location.province || location.city ? 1 : 0) +
-    (sort !== "featured" ? 1 : 0)
+  /**
+   * Chips and the Filters badge read the same list, so the count can never
+   * disagree with what the shopper can actually see and remove.
+   */
+  const applied = useMemo(
+    () =>
+      appliedFacets(facets, {
+        sellerName: (handle) =>
+          sellerOpts.find((o) => o.handle === handle)?.name ?? handle,
+        subCategoryLabel: (id) =>
+          subCats.find((c) => c.id === id)?.label ?? id,
+      }),
+    [facets, sellerOpts, subCats],
+  )
+  const activeFilterCount = applied.length
 
   const categories = resolveRailCategories(categoriesQ.data ?? [])
   const showMissing = missingCategory && !category
@@ -402,14 +425,26 @@ function BrowsePage() {
             <ListingFilterStrip
               departmentLabel={isAll ? "Catalog" : title}
               subCategories={subCats}
-              state={stripState}
-              onChange={applyStrip}
+              className={deptThemeClass(isAll ? "All" : title, isAll ? null : slug)}
+              ratingCounts={ratingCounts}
+              state={facets}
+              onChange={applyFacets}
               locationEnabled={false}
             />
           }
           filtersOpen={filtersOpen}
           onToggleFilters={toggleFilters}
           activeFilterCount={activeFilterCount}
+          applied={
+            <ListingAppliedFacets
+              facets={applied}
+              state={facets}
+              onChange={applyFacets}
+              onClearAll={clearAllFacets}
+              count={count}
+              loadingCount={loading && products.length === 0}
+            />
+          }
           sort={sort}
           onSortChange={applySort}
           viewMode={viewMode}
@@ -447,8 +482,9 @@ function BrowsePage() {
               categories={categories}
               subCategories={subCats}
               sellers={sellerOpts}
-              state={filterState}
-              onChange={applySidebarFilters}
+              state={facets}
+              onChange={applyFacets}
+              onClearAll={activeFilterCount > 0 ? clearAllFacets : undefined}
             />
           }
         >

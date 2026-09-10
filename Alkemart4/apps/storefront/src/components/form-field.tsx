@@ -23,7 +23,8 @@ export function FormField(props: FormFieldProps) {
       {props.type === "password" ? (
         <PasswordInput
           id={id}
-          autoComplete={props.autoComplete}
+          name={id}
+          autoComplete={props.autoComplete ?? "current-password"}
           value={props.value}
           onChange={(e) => props.onChange(e.target.value)}
           required={props.required}
@@ -33,6 +34,7 @@ export function FormField(props: FormFieldProps) {
       ) : (
         <Input
           id={id}
+          name={id}
           type={props.type ?? "text"}
           inputMode={props.inputMode}
           autoComplete={props.autoComplete}
@@ -41,6 +43,7 @@ export function FormField(props: FormFieldProps) {
           required={props.required}
           aria-required={props.required || undefined}
           placeholder={props.placeholder}
+          className="min-h-11"
         />
       )}
     </div>

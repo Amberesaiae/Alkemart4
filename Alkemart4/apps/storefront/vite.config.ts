@@ -33,6 +33,11 @@ export default defineConfig({
       manifestFilename: "manifest.webmanifest",
       includeAssets: ["offline.html", "icons/*.png", "favicon.ico"],
       workbox: {
+        // Activate new SW immediately so palette/footer deploys aren't stuck
+        // behind a stale precache (autoUpdate alone still waits for a controller change).
+        skipWaiting: true,
+        clientsClaim: true,
+        cleanupOutdatedCaches: true,
         // SPA shell fallback: any non-precached client route serves the app,
         // not the offline page. offline.html is precached but only shown when
         // the network is genuinely unavailable (explicit app offline state).

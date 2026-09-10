@@ -1,14 +1,23 @@
 export {
   ListingFilters,
-  sortListingProducts,
-  filterListingBySellers,
-  filterListingByPrice,
-  filterListingByRating,
-  type ListingSort,
-  type ListingFilterState,
   type ListingCategory,
+  type ListingSubCategory,
   type ListingSellerOpt,
 } from "./ListingFilters"
+export {
+  EMPTY_FACETS,
+  activeFacetCount,
+  appliedFacets,
+  filterListingByPrice,
+  filterListingByRating,
+  filterListingBySellers,
+  resetFacets,
+  sortListingProducts,
+  type AppliedFacet,
+  type ListingFacetState,
+  type ListingSort,
+} from "./ListingFacets"
+export { ListingAppliedFacets } from "./ListingAppliedFacets"
 export { ListingLayout, type ListingViewMode } from "./ListingLayout"
 export {
   ListingHero,
@@ -17,10 +26,7 @@ export {
   listingHeroAccent,
   listingHeroBody,
 } from "./ListingHero"
-export {
-  ListingFilterStrip,
-  type FilterStripState,
-} from "./ListingFilterStrip"
+export { ListingFilterStrip } from "./ListingFilterStrip"
 export {
   ListingLocationFilter,
   type LocationFilterValue,

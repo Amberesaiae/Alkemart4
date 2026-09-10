@@ -1,5 +1,8 @@
 @import "tailwindcss";
 @source "../";
+/* Shared primitives live outside this app; without this their
+   Tailwind utilities are silently never generated. */
+@source "../../../../packages/ui/src";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -9,6 +12,35 @@
  */
 
 @theme inline {
+  --color-tone-neutral: var(--tone-neutral);
+  --color-tone-neutral-fg: var(--tone-neutral-fg);
+  --color-tone-neutral-soft: var(--tone-neutral-soft);
+  --color-tone-neutral-ink: var(--tone-neutral-ink);
+  --color-tone-brand: var(--tone-brand);
+  --color-tone-brand-fg: var(--tone-brand-fg);
+  --color-tone-brand-soft: var(--tone-brand-soft);
+  --color-tone-brand-ink: var(--tone-brand-ink);
+  --color-tone-success: var(--tone-success);
+  --color-tone-success-fg: var(--tone-success-fg);
+  --color-tone-success-soft: var(--tone-success-soft);
+  --color-tone-success-ink: var(--tone-success-ink);
+  --color-tone-warning: var(--tone-warning);
+  --color-tone-warning-fg: var(--tone-warning-fg);
+  --color-tone-warning-soft: var(--tone-warning-soft);
+  --color-tone-warning-ink: var(--tone-warning-ink);
+  --color-tone-danger: var(--tone-danger);
+  --color-tone-danger-fg: var(--tone-danger-fg);
+  --color-tone-danger-soft: var(--tone-danger-soft);
+  --color-tone-danger-ink: var(--tone-danger-ink);
+  --color-tone-info: var(--tone-info);
+  --color-tone-info-fg: var(--tone-info-fg);
+  --color-tone-info-soft: var(--tone-info-soft);
+  --color-tone-info-ink: var(--tone-info-ink);
+  --color-tone-scarce: var(--tone-scarce);
+  --color-tone-scarce-fg: var(--tone-scarce-fg);
+  --color-tone-scarce-soft: var(--tone-scarce-soft);
+  --color-tone-scarce-ink: var(--tone-scarce-ink);
+
   --font-sans: "Montserrat", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
     "Segoe UI", sans-serif;
   /* Soft, modern radii */
@@ -24,15 +56,17 @@
   --color-card-foreground: var(--card-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  --color-primary-strong: var(--primary-strong);
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
   --color-border: var(--border);
   --color-destructive: var(--destructive);
   --color-ring: var(--ring);
   --color-ink: var(--ink);
-  --color-success: #178a50;
+  --color-success: #0e7a45;
   --color-success-foreground: #ffffff;
   --color-warning: #e89b00;
+  --color-warning-fg: #8a5a00;
   --color-warning-foreground: #231a05;
   /* Warm-tinted shadow scale — depth with the ink's own hue, never gray-black */
   --shadow-xs: 0 1px 2px 0 rgb(43 35 26 / 0.05);
@@ -42,6 +76,45 @@
 }
 
 :root {
+  /* ─── Badge tone ramp — GENERATED, do not hand-edit ───
+   * Regenerate rather than nudging a value: src/lib/__tests__/tone-ramp.test.ts
+   * re-derives every pair from this CSS and fails below WCAG AA (4.5:1).
+   * Values are solved on the ROUNDED hex (not the float) and aimed at
+   * 4.6:1 so rounding can never drop a pair under the floor.
+   *
+   * Soft tints are OPAQUE mixes, never alpha: a bg-x/10 chip disappears
+   * over product photography and shifts with whatever sits behind it.
+   * Solid fills are the lightest shade of each hue that still holds its
+   * text colour, so a tone stays recognisable as its hue.
+   */
+  --tone-neutral: #817355;
+  --tone-neutral-fg: #ffffff;
+  --tone-neutral-soft: #e7e2d7;
+  --tone-neutral-ink: #6e6248;  /* solid 4.65 · soft 4.64 · card 5.99 */
+  --tone-brand: #febf31;
+  --tone-brand-fg: #231a05;
+  --tone-brand-soft: #fbefd4;
+  --tone-brand-ink: #8f6301;  /* solid 10.41 · soft 4.65 · card 5.31 */
+  --tone-success: #16864e;
+  --tone-success-fg: #ffffff;
+  --tone-success-soft: #dbe8d8;
+  --tone-success-ink: #137343;  /* solid 4.61 · soft 4.65 · card 5.90 */
+  --tone-warning: #e89b00;
+  --tone-warning-fg: #231a05;
+  --tone-warning-soft: #f8eacd;
+  --tone-warning-ink: #8f5f00;  /* solid 7.47 · soft 4.64 · card 5.52 */
+  --tone-danger: #d43e3e;
+  --tone-danger-fg: #ffffff;
+  --tone-danger-soft: #f6ded6;
+  --tone-danger-ink: #bd2a2a;  /* solid 4.61 · soft 4.63 · card 5.95 */
+  --tone-info: #297da4;
+  --tone-info-fg: #ffffff;
+  --tone-info-soft: #dee8e7;
+  --tone-info-ink: #246c8e;  /* solid 4.60 · soft 4.65 · card 5.82 */
+  --tone-scarce: #c2531e;
+  --tone-scarce-fg: #ffffff;
+  --tone-scarce-soft: #efded0;
+  --tone-scarce-ink: #a44619;  /* solid 4.62 · soft 4.62 · card 6.05 */
   /* ─── Alkemart premium palette ───
    * Warm espresso charcoal + cream paper + hero gold + warm stone.
    * Every dark surface shares the ink's warm undertone so gold sits in
@@ -259,55 +332,114 @@ html {
   --dept-bg: #2f8fbb;
   --dept-fg: #ffffff;
   --dept-soft: #eaf4f6;
+  --dept-ink: #287a9f;
 }
 .theme-dept-food {
   --dept-bg: #FEBF31;
   --dept-fg: #241d12;
   --dept-soft: #fffbeb;
+  --dept-ink: #936601;
 }
 .theme-dept-pet {
   --dept-bg: #d9567b;
   --dept-fg: #ffffff;
   --dept-soft: #fae8ec;
+  --dept-ink: #d13360;
 }
 .theme-dept-beverages {
   --dept-bg: #7ca63c;
   --dept-fg: #ffffff;
   --dept-soft: #f1f4e3;
+  --dept-ink: #5c7c2d;
 }
 .theme-dept-personal {
   --dept-bg: #a96a9e;
   --dept-fg: #ffffff;
   --dept-soft: #f7ecf4;
+  --dept-ink: #9b5a90;
 }
 .theme-dept-baby {
   --dept-bg: #5b8fd9;
   --dept-fg: #ffffff;
   --dept-soft: #eaf0f9;
+  --dept-ink: #2f6fcb;
 }
 .theme-dept-fashion {
   --dept-bg: #c4693b;
   --dept-fg: #ffffff;
   --dept-soft: #f8ece3;
+  --dept-ink: #ac5c34;
 }
 .theme-dept-home {
   --dept-bg: #c2574b;
   --dept-fg: #ffffff;
   --dept-soft: #f9e9e4;
+  --dept-ink: #be4d41;
 }
 .theme-dept-default {
   --dept-bg: #3e9ea0;
   --dept-fg: #ffffff;
   --dept-soft: #e8f2f0;
+  --dept-ink: #307b7d;
 }
 
 .dept-panel {
   background-color: var(--dept-bg);
   color: var(--dept-fg);
 }
+
+/* ─── Facet panels ───
+ * One container language for every filter surface: the neutral card.
+ * Department identity is carried by a top rule + active-state accent,
+ * never by a solid fill — wayfinding survives, the shouting doesn't.
+ * Text-safe hue is --dept-ink (AA on both cream and white).
+ */
+.facet-panel {
+  position: relative;
+  overflow: hidden;
+  background-color: var(--card);
+  color: var(--card-foreground);
+  border: 1px solid var(--border);
+}
+.facet-panel::before {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  height: 3px;
+  background-color: var(--dept-ink, var(--primary-strong));
+}
+.facet-panel-plain::before {
+  background-color: var(--border);
+}
+/* Active facet row — dept tint + ink text, readable on card */
+.facet-row-on {
+  background-color: color-mix(in srgb, var(--dept-ink, var(--primary-strong)) 12%, transparent);
+  color: var(--dept-ink, var(--foreground));
+}
+.facet-row-on .facet-dot {
+  border-color: var(--dept-ink, var(--primary-strong));
+  background-color: var(--dept-ink, var(--primary-strong));
+}
+.facet-dot {
+  border-color: color-mix(in srgb, var(--foreground) 35%, transparent);
+}
+.facet-accent-text {
+  color: var(--dept-ink, var(--foreground));
+}
 .dept-soft {
   background-color: var(--dept-soft);
   color: var(--foreground);
+}
+
+/* Eyebrow label above a title (category, kicker). Same 12px as badges so
+ * the card's small type has one size, not a drift of 10/11/12px one-offs. */
+.eyebrow {
+  font-size: 0.75rem; /* 12 */
+  line-height: 1.2;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 /* ─── Product-card no-photo tile ───
@@ -346,10 +478,6 @@ html {
 }
 
 /* Brands / Sellers panel */
-.brands-panel {
-  background-color: var(--ink);
-  color: #ffffff;
-}
 
 /* Delivery band glow */
 .delivery-glow {
@@ -456,7 +584,6 @@ html {
 .site-footer .footer-link:focus-visible {
   color: var(--primary);
 }
-
 
 /* PLP filter strip card */
 .listing-filter-strip {

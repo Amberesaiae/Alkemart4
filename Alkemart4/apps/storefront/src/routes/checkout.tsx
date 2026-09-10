@@ -36,6 +36,8 @@ import {
 } from "@/components/market-address-fields"
 import { cn } from "@/lib/utils"
 import { isCardEnabled, isMomoLabEnabled } from "@/lib/env"
+import { detectMomoProvider } from "@alkemart/shared/ghana"
+import { CheckCircle, DeviceMobile, Lightning } from "@phosphor-icons/react"
 
 function CheckoutErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   return (
@@ -175,6 +177,14 @@ function CheckoutPage() {
   useEffect(() => {
     if (!country && defaultCountry) setCountry(defaultCountry)
   }, [country, defaultCountry])
+
+  // Auto-detect MoMo provider from entered phone number
+  const autoDetectedProvider = phone ? detectMomoProvider(phone) : null
+  useEffect(() => {
+    if (autoDetectedProvider) {
+      setMomoProvider(autoDetectedProvider as MomoProvider)
+    }
+  }, [autoDetectedProvider])
 
   const effectiveEmail = email.trim() || sessionQ.data?.email?.trim() || ""
   const countryCode = country || defaultCountry
@@ -655,9 +665,14 @@ function CheckoutPage() {
                         onChange={() => setPayMethod("momo")}
                         className="mt-1"
                       />
-                      <span>
-                        <span className="font-semibold text-foreground">
-                          Mobile Money
+                      <span className="flex-1">
+                        <span className="flex items-center justify-between font-semibold text-foreground">
+                          <span>Mobile Money</span>
+                          <span className="inline-flex items-center gap-2">
+                            <img src="/momo/mtn.png" alt="MTN" className="h-7 w-7 object-contain rounded-md shadow-2xs" />
+                            <img src="/momo/telecel.png" alt="Telecel" className="h-7 w-auto max-h-7 object-contain rounded-md shadow-2xs" />
+                            <img src="/momo/airteltigo.png" alt="AT" className="h-7 w-auto max-h-7 object-contain rounded-md bg-white p-0.5 shadow-2xs" />
+                          </span>
                         </span>
                         <span className="mt-0.5 block text-sm text-muted-foreground">
                           Approve the phone prompt when it appears.
@@ -665,16 +680,73 @@ function CheckoutPage() {
                       </span>
                     </label>
                     {payMethod === "momo" ? (
-                      <FormSelect
-                        label="Network"
-                        value={momoProvider}
-                        onChange={(v) => setMomoProvider(v as MomoProvider)}
-                        required
-                      >
-                        <option value="mtn">MTN MoMo</option>
-                        <option value="vodafone">Telecel / Vodafone</option>
-                        <option value="airteltigo">AirtelTigo</option>
-                      </FormSelect>
+                      <div className="mt-3.5 space-y-3 rounded-2xl border border-primary/20 bg-background/80 p-4 shadow-sm backdrop-blur-xs">
+                        <div className="flex items-center justify-between">
+                          <span className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-foreground">
+                            <DeviceMobile className="h-4 w-4 text-primary" />
+                            Select MoMo Network
+                          </span>
+                          {autoDetectedProvider && (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-500/10 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                              <Lightning className="h-3.5 w-3.5" /> Auto-detected
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="grid grid-cols-3 gap-3">
+                          {[
+                            {
+                              id: "mtn",
+                              name: "MTN",
+                              logo: "/momo/mtn.png",
+                              prefixes: "024 · 054 · 055",
+                              activeClass: "border-[#FFCC00] bg-[#FFCC00]/10 text-amber-950 dark:text-amber-200 ring-2 ring-[#FFCC00]/40 shadow-md",
+                            },
+                            {
+                              id: "vodafone",
+                              name: "Telecel",
+                              logo: "/momo/telecel.png",
+                              prefixes: "020 · 050",
+                              activeClass: "border-[#E60000] bg-[#E60000]/10 text-red-950 dark:text-red-200 ring-2 ring-[#E60000]/40 shadow-md",
+                            },
+                            {
+                              id: "airteltigo",
+                              name: "AT",
+                              logo: "/momo/airteltigo.png",
+                              prefixes: "026 · 027 · 056",
+                              activeClass: "border-[#003399] bg-[#003399]/10 text-blue-950 dark:text-blue-200 ring-2 ring-[#003399]/40 shadow-md",
+                            },
+                          ].map((net) => {
+                            const active = momoProvider === net.id
+                            return (
+                              <button
+                                key={net.id}
+                                type="button"
+                                onClick={() => setMomoProvider(net.id as MomoProvider)}
+                                className={cn(
+                                  "group relative flex flex-col items-center justify-between p-3.5 rounded-xl border-2 transition-all duration-200 gap-2.5 cursor-pointer text-center",
+                                  active
+                                    ? net.activeClass
+                                    : "border-border bg-card hover:border-primary/40 hover:bg-muted/30"
+                                )}
+                              >
+                                {active && (
+                                  <span className="absolute top-2 right-2 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm z-10">
+                                    <CheckCircle className="h-5 w-5 fill-current" />
+                                  </span>
+                                )}
+                                <div className="h-16 w-full flex items-center justify-center rounded-xl bg-white dark:bg-zinc-900 p-2 shadow-2xs border border-black/5 group-hover:scale-105 transition-transform">
+                                  <img src={net.logo} alt={net.name} className="h-12 w-auto max-w-full object-contain" />
+                                </div>
+                                <div className="space-y-0.5">
+                                  <span className="font-extrabold text-xs block text-foreground">{net.name}</span>
+                                  <span className="text-[10px] text-muted-foreground block font-mono">{net.prefixes}</span>
+                                </div>
+                              </button>
+                            )
+                          })}
+                        </div>
+                      </div>
                     ) : null}
                   </>
                 ) : null}

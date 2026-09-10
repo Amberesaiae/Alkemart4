@@ -118,11 +118,13 @@ export type StoreVendorDetail = {
   badgeTopSeller?: boolean
   badgeFastShipper?: boolean
   status?: string
+  availability?: { state: "open" | "paused"; pausedUntil: string | null; note: string | null }
 }
 
 /** Shop hero for /shops/$slug — Workers seller shop or Medusa alkemart vendor. */
 export async function getStoreVendorBySlug(slug: string): Promise<{
   vendor: StoreVendorDetail
+  featuredProductIds: string[]
 }> {
   if (useWorkersVendors()) {
     ensureWorkersBaseUrl()
@@ -134,7 +136,9 @@ export async function getStoreVendorBySlug(slug: string): Promise<{
           name: shop.seller.name,
           slug: shop.seller.handle,
           bio: null,
+          availability: shop.seller.availability,
         },
+        featuredProductIds: shop.featuredProductIds ?? [],
       }
     } catch {
       throw new Error("Store not found")
@@ -164,5 +168,6 @@ export async function getStoreVendorBySlug(slug: string): Promise<{
       slug: data.vendor.slug ?? slug,
       bio: data.vendor.bio ?? null,
     },
+    featuredProductIds: [],
   }
 }

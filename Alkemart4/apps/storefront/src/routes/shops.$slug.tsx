@@ -38,6 +38,13 @@ function StorePage() {
   const vendor = vendorQ.data?.vendor
   const name = vendor?.name
   const products = productsQ.data?.products ?? []
+  const featuredIds = vendorQ.data?.featuredProductIds ?? []
+  const featuredProducts = featuredIds.flatMap((id) => {
+    const hit = products.find((item) => item.id === id)
+    return hit ? [hit] : []
+  })
+  const featuredSet = new Set(featuredProducts.map((item) => item.id))
+  const shelfProducts = products.filter((item) => !featuredSet.has(item.id))
 
   useEffect(() => {
     if (!vendorQ.isSuccess) return
@@ -53,7 +60,7 @@ function StorePage() {
    * Flat grid fallback when all unlabeled. Newest first within groups.
    */
   const sections = useMemo(() => {
-    const sorted = [...products].sort((a, b) => {
+    const sorted = [...shelfProducts].sort((a, b) => {
       const at = a.createdAt ? Date.parse(a.createdAt) : 0
       const bt = b.createdAt ? Date.parse(b.createdAt) : 0
       return bt - at || a.title.localeCompare(b.title)
@@ -73,7 +80,7 @@ function StorePage() {
     return entries
       .sort((a, b) => a[0].localeCompare(b[0]))
       .map(([title, products]) => ({ title, products }))
-  }, [products])
+  }, [shelfProducts])
 
   const storePath = `/shops/${slug}`
 
@@ -129,6 +136,22 @@ function StorePage() {
 
       {vendor && name ? (
         <div className="space-y-4">
+          {vendor.availability?.state === "paused" ? (
+            <div role="status" className="p-4 rounded-2xl bg-warning/10 border border-warning/20">
+              <p className="font-bold text-warning-fg">This shop is taking a break.</p>
+              {vendor.availability.note ? (
+                <p className="text-sm text-warning-fg/90 mt-1">{vendor.availability.note}</p>
+              ) : null}
+              {vendor.availability.pausedUntil ? (
+                <p className="text-sm text-warning-fg/80 mt-1 font-medium">
+                  Back {new Date(vendor.availability.pausedUntil).toLocaleDateString()}
+                </p>
+              ) : null}
+              <p className="text-xs text-warning-fg/70 mt-2 font-medium">
+                Listings stay visible, but checkout is disabled until the seller returns.
+              </p>
+            </div>
+          ) : null}
           {/* Cover art only when the seller supplied one — a big empty
               placeholder would read as unfinished. */}
           {vendor.coverImageUrl ? (
@@ -240,6 +263,17 @@ function StorePage() {
           actionLabel="Browse"
           actionTo="/"
         />
+      ) : null}
+
+      {featuredProducts.length > 0 ? (
+        <section className="space-y-3" aria-label="Featured by this shop">
+          <h2 className="type-section text-foreground">Featured</h2>
+          <ProductGridShell>
+            {featuredProducts.map((p) => (
+              <ProductCard key={p.id} product={p} size="tile" />
+            ))}
+          </ProductGridShell>
+        </section>
       ) : null}
 
       {products.length > 0

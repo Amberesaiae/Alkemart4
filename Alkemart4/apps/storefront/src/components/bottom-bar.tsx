@@ -8,7 +8,7 @@ type BottomBarProps = {
 
 function BottomBar({ children, className }: BottomBarProps) {
   return (
-    <div className={cn("fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card p-3 md:hidden", className)}>
+    <div className={cn("fixed inset-x-0 bottom-0 z-40 bg-card/95 backdrop-blur-md p-3 shadow-xl md:hidden", className)}>
       <div className="mx-auto flex max-w-6xl items-center gap-3">
         {children}
       </div>

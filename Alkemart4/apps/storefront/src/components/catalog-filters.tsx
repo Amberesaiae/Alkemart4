@@ -6,5 +6,5 @@ export {
   sortListingProducts as sortProducts,
   filterListingBySellers as filterBySellers,
   type ListingSort as CatalogSort,
-  type ListingFilterState as CatalogFilterState,
+  type ListingFacetState as CatalogFilterState,
 } from "@/components/listing"

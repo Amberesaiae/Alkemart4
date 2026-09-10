@@ -16,6 +16,8 @@ type Props = {
   onAdd: () => void
   sellerName?: string | null
   sellerHandle?: string | null
+  /** Shown instead of "Currently unavailable" (e.g. paused-shop reason). */
+  unavailableReason?: string | null
   className?: string
   sticky?: boolean
 }
@@ -36,6 +38,7 @@ export function ProductBuyPanel({
   onAdd,
   sellerName,
   sellerHandle,
+  unavailableReason,
   className,
   sticky,
 }: Props) {
@@ -65,7 +68,7 @@ export function ProductBuyPanel({
       ) : (
         <div className="flex items-center gap-2 text-xs font-semibold text-destructive">
           <span className="size-2 rounded-full bg-destructive" />
-          <span>Currently unavailable</span>
+          <span>{unavailableReason ?? "Currently unavailable"}</span>
         </div>
       )}
 

@@ -9,6 +9,7 @@ export default defineConfig({
   },
   test: {
     globals: true,
-    include: ["src/lib/__tests__/**/*.test.ts"],
+    // Co-located component tests count too, not just src/lib.
+    include: ["src/**/__tests__/**/*.test.ts"],
   },
 })

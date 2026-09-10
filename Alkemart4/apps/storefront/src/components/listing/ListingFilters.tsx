@@ -1,25 +1,22 @@
 /**
- * Mowafer PLP sidebar (imgi_11 / imgi_12):
- * - Accent Categories panel (CSS theme classes — no inline style)
- * - Dark Brands/Sellers panel (.brands-panel)
- * - Sort + price also available in ListingFilterStrip / chrome
+ * PLP sidebar.
  *
- * Sections use disclosure buttons so long facet lists can collapse.
+ * Container language: every facet surface is the same neutral card. The
+ * department hue is carried by a 3px top rule and the active-row accent
+ * (`--dept-ink`, AA on card and cream) instead of a solid panel fill —
+ * the wayfinding signal survives at a fraction of the visual cost, and
+ * stops competing with gold, which is the only colour allowed to mean
+ * "act".
+ *
+ * State: one `ListingFacetState`, owned by the route and serialised to the
+ * URL. Departments navigate; subcategories are facets.
  */
 import { Link } from "@tanstack/react-router"
 import { IconSafe } from "@/design/icons"
 import { deptThemeClass } from "@/lib/category-theme"
+import type { ListingFacetState } from "@/components/listing/ListingFacets"
 import { cn } from "@/lib/utils"
 import { useId, useState, type ReactNode } from "react"
-
-export type ListingSort = "featured" | "price_asc" | "price_desc" | "title"
-
-export type ListingFilterState = {
-  sellerHandles: string[]
-  sort: ListingSort
-  priceMin?: number | null
-  priceMax?: number | null
-}
 
 export type ListingCategory = {
   id: string
@@ -46,10 +43,14 @@ type Props = {
   /** Real child categories of the active department (empty when flat). */
   subCategories?: ListingSubCategory[]
   sellers: ListingSellerOpt[]
-  state: ListingFilterState
-  onChange: (next: ListingFilterState) => void
+  state: ListingFacetState
+  onChange: (next: ListingFacetState) => void
+  onClearAll?: () => void
   className?: string
 }
+
+/** Sellers past this fold stay hidden behind "Show all" — long lists read as noise. */
+const SELLER_FOLD = 6
 
 function toggle(list: string[], value: string): string[] {
   return list.includes(value)
@@ -60,15 +61,16 @@ function toggle(list: string[], value: string): string[] {
 function FilterSection({
   title,
   defaultOpen = true,
+  /** Shown next to the title when the section holds a selection. */
+  badge,
   children,
   className,
-  headingClassName,
 }: {
   title: string
   defaultOpen?: boolean
+  badge?: number
   children: ReactNode
   className?: string
-  headingClassName?: string
 }) {
   const [open, setOpen] = useState(defaultOpen)
   const panelId = useId()
@@ -80,21 +82,28 @@ function FilterSection({
         type="button"
         id={headingId}
         className={cn(
-          "mb-3 flex w-full min-h-11 items-center justify-between gap-2 text-left text-base font-bold",
+          "flex w-full min-h-11 items-center justify-between gap-2 text-left type-base font-semibold",
           "rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
-          headingClassName,
+          open && "mb-2",
         )}
         aria-expanded={open}
         aria-controls={panelId}
         onClick={() => setOpen((v) => !v)}
       >
-        <span>{title}</span>
+        <span className="inline-flex items-center gap-2">
+          {title}
+          {badge ? (
+            <span className="facet-accent-text type-sm font-bold">
+              {badge}
+            </span>
+          ) : null}
+        </span>
         <IconSafe
           name="chevron-right"
           size={16}
           preferAsset={false}
           className={cn(
-            "shrink-0 opacity-80 transition-transform duration-200",
+            "shrink-0 opacity-70 transition-transform duration-200",
             open ? "rotate-90" : "rotate-0",
           )}
         />
@@ -114,124 +123,118 @@ export function ListingFilters({
   sellers,
   state,
   onChange,
+  onClearAll,
   className,
 }: Props) {
   const themeClass = deptThemeClass(
     departmentName,
     activeCategorySlug === "all" ? null : activeCategorySlug,
   )
-  const dirty =
-    state.sellerHandles.length > 0 ||
-    state.sort !== "featured" ||
-    state.priceMin != null ||
-    state.priceMax != null
+  const [showAllSellers, setShowAllSellers] = useState(false)
+  const visibleSellers = showAllSellers ? sellers : sellers.slice(0, SELLER_FOLD)
 
   return (
-    <aside className={cn("space-y-4", className)} aria-label="Filters">
-      <div className="flex items-center justify-between rounded-xl border border-border bg-card px-4 py-3 shadow-sm">
-        <h2 className="text-base font-bold tracking-tight">Filters</h2>
-        {dirty ? (
-          <button
-            type="button"
-            className="min-h-11 type-sm font-semibold text-foreground underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
-            onClick={() =>
-              onChange({
-                sellerHandles: [],
-                sort: "featured",
-                priceMin: null,
-                priceMax: null,
-              })
-            }
-          >
-            Reset
-          </button>
-        ) : null}
-      </div>
-
-      {/* Categories — theme via CSS class, not style={} */}
+    <aside
+      className={cn("space-y-3", themeClass, className)}
+      aria-label="Filters"
+    >
+      {/* Categories — dept identity as rule + active accent, not a fill */}
       {categories.length > 0 ? (
-        <div className={cn(themeClass)}>
-          <div className="dept-panel rounded-xl p-4 shadow-sm">
-            <FilterSection title="Categories" defaultOpen>
-              <ul className="space-y-1 type-sm">
-                <li>
-                  <Link
-                    to="/categories/$slug"
-                    params={{ slug: "all" }}
-                    className={cn(
-                      "flex min-h-11 items-center gap-2.5 rounded-xl px-2.5 py-2 transition",
-                      activeCategorySlug === "all"
-                        ? "bg-black/15 font-bold"
-                        : "hover:bg-black/10",
-                    )}
-                  >
-                    <RadioDot on={activeCategorySlug === "all"} />
-                    All products
-                  </Link>
-                </li>
-                {categories.map((c) => {
-                  const slug = c.handle || c.id
-                  const on = activeCategorySlug === slug
-                  return (
-                    <li key={c.id}>
-                      <Link
-                        to="/categories/$slug"
-                        params={{ slug }}
-                        className={cn(
-                          "flex min-h-11 items-center gap-2.5 truncate rounded-xl px-2.5 py-2 transition",
-                          on ? "bg-black/15 font-bold" : "hover:bg-black/10",
-                        )}
+        <div className="facet-panel rounded-xl p-4 shadow-xs">
+          <FilterSection
+            title="Categories"
+            defaultOpen
+            badge={state.subCategory !== "all" ? 1 : undefined}
+          >
+            <ul className="space-y-0.5 type-sm">
+              <li>
+                <Link
+                  to="/categories/$slug"
+                  params={{ slug: "all" }}
+                  className={cn(
+                    "flex min-h-11 items-center gap-2.5 rounded-lg px-2.5 py-2 transition",
+                    activeCategorySlug === "all"
+                      ? "facet-row-on font-semibold"
+                      : "hover:bg-muted",
+                  )}
+                >
+                  <RadioDot on={activeCategorySlug === "all"} />
+                  All products
+                </Link>
+              </li>
+              {categories.map((c) => {
+                const slug = c.handle || c.id
+                const on = activeCategorySlug === slug
+                return (
+                  <li key={c.id}>
+                    <Link
+                      to="/categories/$slug"
+                      params={{ slug }}
+                      className={cn(
+                        "flex min-h-11 items-center gap-2.5 truncate rounded-lg px-2.5 py-2 transition",
+                        on ? "facet-row-on font-semibold" : "hover:bg-muted",
+                      )}
+                    >
+                      <RadioDot on={on} />
+                      {c.name}
+                    </Link>
+
+                    {/* Subcategory is a facet, not a route — one writer only. */}
+                    {on && subCategories.length > 0 ? (
+                      <ul
+                        className="ms-4 space-y-0.5 border-s border-border ps-2 type-sm"
+                        role="radiogroup"
+                        aria-label={`${c.name} subcategories`}
                       >
-                        <RadioDot on={on} />
-                        {c.name}
-                      </Link>
-                      {on && subCategories.length > 0 ? (
-                        <ul className="ml-4 space-y-1 border-l border-black/15 pl-2 type-sm">
-                          {subCategories.map((sub) => {
-                            const subSlug = sub.handle || sub.id
-                            const subOn = activeCategorySlug === subSlug
-                            return (
-                              <li key={sub.id}>
-                                <Link
-                                  to="/categories/$slug"
-                                  params={{ slug: subSlug }}
-                                  className={cn(
-                                    "flex min-h-10 items-center gap-2 rounded-lg px-2 py-1.5 transition",
-                                    subOn
-                                      ? "bg-black/15 font-bold"
-                                      : "hover:bg-black/10",
-                                  )}
-                                >
-                                  {sub.label}
-                                </Link>
-                              </li>
-                            )
-                          })}
-                        </ul>
-                      ) : null}
-                    </li>
-                  )
-                })}
-              </ul>
-            </FilterSection>
-          </div>
+                        <li>
+                          <SubOption
+                            on={state.subCategory === "all"}
+                            label={`All ${c.name}`}
+                            onSelect={() =>
+                              onChange({ ...state, subCategory: "all" })
+                            }
+                          />
+                        </li>
+                        {subCategories.map((sub) => (
+                          <li key={sub.id}>
+                            <SubOption
+                              on={state.subCategory === sub.id}
+                              label={sub.label}
+                              onSelect={() =>
+                                onChange({ ...state, subCategory: sub.id })
+                              }
+                            />
+                          </li>
+                        ))}
+                      </ul>
+                    ) : null}
+                  </li>
+                )
+              })}
+            </ul>
+          </FilterSection>
         </div>
       ) : null}
 
-      {/* Sellers — Mowafer dark brands panel */}
+      {/* Sellers — secondary facet, collapsed until asked for */}
       {sellers.length > 0 ? (
-        <div className="brands-panel rounded-xl p-4 shadow-sm">
+        <div className="facet-panel facet-panel-plain rounded-xl p-4 shadow-xs">
           <FilterSection
             title="Sellers"
-            defaultOpen
-            headingClassName="text-inherit"
+            defaultOpen={state.sellerHandles.length > 0}
+            badge={state.sellerHandles.length || undefined}
           >
-            <ul className="max-h-60 space-y-1 overflow-y-auto type-sm">
-              {sellers.map((s) => {
+            <ul className="space-y-0.5 type-sm">
+              {visibleSellers.map((s) => {
                 const selected = state.sellerHandles.includes(s.handle)
                 return (
                   <li key={s.handle}>
-                    <label className="flex min-h-11 cursor-pointer items-center gap-2.5 rounded-lg px-1 py-1 hover:bg-white/10">
+                    <label
+                      className={cn(
+                        "flex min-h-11 cursor-pointer items-center gap-2.5 rounded-lg px-2 py-1 transition",
+                        selected ? "facet-row-on" : "hover:bg-muted",
+                      )}
+                    >
                       <input
                         type="checkbox"
                         className="size-4 rounded accent-primary"
@@ -248,13 +251,29 @@ export function ListingFilters({
                       />
                       <span className="min-w-0 flex-1 truncate">{s.name}</span>
                       {typeof s.count === "number" ? (
-                        <span className="type-sm opacity-80">{s.count}</span>
+                        <span className="tabular-nums type-sm text-muted-foreground">
+                          {s.count}
+                        </span>
                       ) : null}
                     </label>
                   </li>
                 )
               })}
             </ul>
+            {sellers.length > SELLER_FOLD ? (
+              <button
+                type="button"
+                onClick={() => setShowAllSellers((v) => !v)}
+                className={cn(
+                  "mt-1.5 min-h-10 type-sm font-semibold underline underline-offset-2",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
+                )}
+              >
+                {showAllSellers
+                  ? "Show fewer"
+                  : `Show all ${sellers.length} sellers`}
+              </button>
+            ) : null}
           </FilterSection>
         </div>
       ) : (
@@ -262,7 +281,46 @@ export function ListingFilters({
           No sellers in this view.
         </p>
       )}
+
+      {onClearAll ? (
+        <button
+          type="button"
+          onClick={onClearAll}
+          className={cn(
+            "min-h-11 w-full rounded-xl border border-border bg-card px-4 type-sm font-semibold transition hover:bg-muted",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
+          )}
+        >
+          Clear all filters
+        </button>
+      ) : null}
     </aside>
+  )
+}
+
+function SubOption({
+  on,
+  label,
+  onSelect,
+}: {
+  on: boolean
+  label: string
+  onSelect: () => void
+}) {
+  return (
+    <button
+      type="button"
+      role="radio"
+      aria-checked={on}
+      onClick={onSelect}
+      className={cn(
+        "flex min-h-10 w-full items-center gap-2 truncate rounded-lg px-2 py-1.5 text-left transition",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
+        on ? "facet-row-on font-semibold" : "hover:bg-muted",
+      )}
+    >
+      {label}
+    </button>
   )
 }
 
@@ -270,66 +328,11 @@ function RadioDot({ on }: { on: boolean }) {
   return (
     <span
       className={cn(
-        "flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2",
-        on ? "border-current bg-current" : "border-current/50",
+        "facet-dot flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2",
       )}
       aria-hidden
     >
-      {on ? <span className="h-1.5 w-1.5 rounded-full bg-white" /> : null}
+      {on ? <span className="h-1.5 w-1.5 rounded-full bg-card" /> : null}
     </span>
   )
-}
-
-export function sortListingProducts<
-  T extends { title: string; amount?: number | null },
->(items: T[], sort: ListingSort): T[] {
-  const copy = [...items]
-  if (sort === "price_asc") {
-    return copy.sort(
-      (a, b) =>
-        (a.amount ?? Number.POSITIVE_INFINITY) -
-        (b.amount ?? Number.POSITIVE_INFINITY),
-    )
-  }
-  if (sort === "price_desc") {
-    return copy.sort(
-      (a, b) =>
-        (b.amount ?? Number.NEGATIVE_INFINITY) -
-        (a.amount ?? Number.NEGATIVE_INFINITY),
-    )
-  }
-  if (sort === "title") {
-    return copy.sort((a, b) => a.title.localeCompare(b.title))
-  }
-  return copy
-}
-
-export function filterListingBySellers<
-  T extends { seller?: { handle?: string | null } | null },
->(items: T[], sellerHandles: string[]): T[] {
-  if (!sellerHandles.length) return items
-  const set = new Set(sellerHandles)
-  return items.filter((p) => {
-    const h = p.seller?.handle?.trim()
-    return h ? set.has(h) : false
-  })
-}
-
-export function filterListingByPrice<
-  T extends { amount?: number | null },
->(items: T[], min?: number | null, max?: number | null): T[] {
-  if (min == null && max == null) return items
-  return items.filter((p) => {
-    if (p.amount == null || !Number.isFinite(p.amount)) return false
-    if (min != null && p.amount < min) return false
-    if (max != null && p.amount > max) return false
-    return true
-  })
-}
-
-export function filterListingByRating<
-  T extends { rating?: number | null },
->(items: T[], minRating: number): T[] {
-  if (!minRating || minRating <= 0) return items
-  return items.filter((p) => (p.rating ?? 5) >= minRating)
 }
