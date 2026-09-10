@@ -31,10 +31,12 @@ export default defineConfig({
     host: true,
     port: 3002,
     // Fallback for relative fetches. Prefer VITE_ALKEMART_API_URL=http://127.0.0.1:8787
+    // NOTE: '/store/' keeps the trailing slash so the vendor Store *page*
+    // (/store, exact) falls through to the SPA instead of the API proxy.
     proxy: {
       '/vendor': 'http://127.0.0.1:8787',
       '/admin': 'http://127.0.0.1:8787',
-      '/store': 'http://127.0.0.1:8787',
+      '/store/': 'http://127.0.0.1:8787',
       '/hooks': 'http://127.0.0.1:8787',
       '/health': 'http://127.0.0.1:8787',
     },
