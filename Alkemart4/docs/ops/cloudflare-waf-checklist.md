@@ -41,6 +41,8 @@ If Workers Free already has 5 cron triggers (deploy error 10072), schedule an ex
 ```bash
 curl -X POST "$API/admin/migrate/expire-payment-intents" \
   -H "Authorization: Bearer $ADMIN_JWT"
+curl -X POST "$API/admin/migrate/send-notifications" \
+  -H "Authorization: Bearer $ADMIN_JWT"
 ```
 
 Prefer restoring a native cron slot or Workers Paid so `[triggers]` in `apps/api/wrangler.toml` applies.
