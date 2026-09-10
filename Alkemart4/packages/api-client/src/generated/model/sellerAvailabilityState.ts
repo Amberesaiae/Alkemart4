@@ -12,11 +12,12 @@ Checkout charge/initialize is Plan 3 (not documented here).
 
  * OpenAPI spec version: 0.4.0
  */
-import type { SellerAvailability } from './sellerAvailability';
 
-export interface SellerSummary {
-  id: string;
-  handle: string;
-  name: string;
-  availability: SellerAvailability;
-}
+export type SellerAvailabilityState = typeof SellerAvailabilityState[keyof typeof SellerAvailabilityState];
+
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export const SellerAvailabilityState = {
+  open: 'open',
+  paused: 'paused',
+} as const;

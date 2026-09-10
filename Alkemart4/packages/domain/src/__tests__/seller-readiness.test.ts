@@ -19,11 +19,20 @@ describe("evaluateSellerReadiness", () => {
     expect(evaluateSellerReadiness({ ...ready, name: "  " }).missing).toContain("name")
   })
 
-  it("requires a Ghana pack address region id", () => {
-    expect(evaluateSellerReadiness({ ...ready, packRegion: "Greater Accra" }).missing).toContain(
+  it("accepts a region id or a region display name", () => {
+    expect(evaluateSellerReadiness({ ...ready, packRegion: "GH07" }).missing).not.toContain(
       "region",
     )
+    expect(
+      evaluateSellerReadiness({ ...ready, packRegion: "Greater Accra" }).missing,
+    ).not.toContain("region")
+    expect(
+      evaluateSellerReadiness({ ...ready, packRegion: "greater accra" }).missing,
+    ).not.toContain("region")
     expect(evaluateSellerReadiness({ ...ready, packRegion: "" }).missing).toContain("region")
+    expect(evaluateSellerReadiness({ ...ready, packRegion: "Narnia" }).missing).toContain(
+      "region",
+    )
   })
 
   it("requires Paystack recipient_code unless lab skip flag is set", () => {

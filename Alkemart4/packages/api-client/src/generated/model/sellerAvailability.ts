@@ -12,11 +12,12 @@ Checkout charge/initialize is Plan 3 (not documented here).
 
  * OpenAPI spec version: 0.4.0
  */
-import type { SellerAvailability } from './sellerAvailability';
+import type { SellerAvailabilityState } from './sellerAvailabilityState';
 
-export interface SellerSummary {
-  id: string;
-  handle: string;
-  name: string;
-  availability: SellerAvailability;
+export interface SellerAvailability {
+  state: SellerAvailabilityState;
+  /** @nullable */
+  pausedUntil: string | null;
+  /** @nullable */
+  note: string | null;
 }

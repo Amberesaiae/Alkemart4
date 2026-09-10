@@ -50,6 +50,8 @@ export * from './pesewasString';
 export * from './productCard';
 export * from './productDetail';
 export * from './productStatus';
+export * from './sellerAvailability';
+export * from './sellerAvailabilityState';
 export * from './sellerReadiness';
 export * from './sellerShopResponse';
 export * from './sellerStatus';

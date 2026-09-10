@@ -100,7 +100,9 @@ export async function paystackRequest<T = Record<string, unknown>>(
   const init: RequestInit = {
     method,
     headers,
-    signal: AbortSignal.timeout(10_000),
+    // Generous timeout: Ghana mobile-network egress is high-latency and
+    // slow TLS handshakes previously tripped a 10s abort on recipient create.
+    signal: AbortSignal.timeout(30_000),
   }
   if (options.body && method !== "GET") {
     init.body = JSON.stringify(options.body)

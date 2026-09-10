@@ -1461,6 +1461,7 @@ components:
         - id
         - handle
         - name
+        - availability
       properties:
         id:
           type: string
@@ -1468,16 +1469,42 @@ components:
           type: string
         name:
           type: string
+        availability:
+          $ref: "#/components/schemas/SellerAvailability"
+
+    SellerAvailability:
+      type: object
+      additionalProperties: false
+      required:
+        - state
+        - pausedUntil
+        - note
+      properties:
+        state:
+          type: string
+          enum: [open, paused]
+        pausedUntil:
+          type: string
+          nullable: true
+        note:
+          type: string
+          nullable: true
 
     SellerShopResponse:
       type: object
       additionalProperties: false
       required:
         - seller
+        - featuredProductIds
         - items
       properties:
         seller:
           $ref: "#/components/schemas/SellerSummary"
+        featuredProductIds:
+          type: array
+          items:
+            type: string
+          description: Vendor-curated shelf order (rank ≤ 8).
         items:
           type: array
           items:

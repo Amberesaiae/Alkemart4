@@ -1,4 +1,4 @@
-import { getRegionById } from "@alkemart/shared/ghana"
+import { resolveRegionId } from "@alkemart/shared/ghana"
 
 export type SellerReadinessInput = {
   name?: string | null
@@ -20,8 +20,10 @@ function present(value: string | null | undefined): boolean {
 export function evaluateSellerReadiness(seller: SellerReadinessInput): SellerReadiness {
   const missing: string[] = []
   if (!present(seller.name)) missing.push("name")
+  // Pack region may be stored as an ID ("GH07") or a display name
+  // ("Greater Accra") — the settings UI saves names.
   const region = seller.packRegion?.trim() ?? ""
-  if (!region || !getRegionById(region)) missing.push("region")
+  if (!region || !resolveRegionId(region)) missing.push("region")
   if (!seller.skipPaystackRecipient && !present(seller.recipientCode)) {
     missing.push("recipient_code")
   }

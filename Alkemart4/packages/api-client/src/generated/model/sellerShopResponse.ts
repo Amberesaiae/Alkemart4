@@ -17,6 +17,8 @@ import type { ProductCard } from './productCard';
 
 export interface SellerShopResponse {
   seller: SellerSummary;
+  /** Vendor-curated shelf order (rank ≤ 8). */
+  featuredProductIds: string[];
   /** Product cards built from this seller's sellable offers only. */
   items: ProductCard[];
 }
