@@ -53,7 +53,7 @@ describe("GET /store/sellers/:handle", () => {
       seller: { id: string; handle: string; name: string }
       items: Array<{ productId: string; offerCount: number; fromPricePesewas: string }>
     }
-    expect(aBody.seller).toEqual({ id: "seller-a", handle: "seller-a", name: "Accra Mart" })
+    expect(aBody.seller).toEqual({ id: "seller-a", handle: "seller-a", name: "Accra Mart", availability: { state: "open", pausedUntil: null, note: null } })
     const aIds = aBody.items.map((i) => i.productId).sort()
     expect(aIds).toEqual(["prod-royal-rice", "prod-tecno-spark"])
     const phone = aBody.items.find((i) => i.productId === "prod-tecno-spark")

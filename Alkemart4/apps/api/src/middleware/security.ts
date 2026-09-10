@@ -55,5 +55,5 @@ export const securityMiddleware: MiddlewareHandler<AppEnv> = async (c, next) => 
     "Permissions-Policy",
     "camera=(), microphone=(), geolocation=()",
   )
-  return undefined
+  return c.res
 }

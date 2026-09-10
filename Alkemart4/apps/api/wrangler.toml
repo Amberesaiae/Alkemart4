@@ -33,3 +33,14 @@ id = "a77fbb34c2374d1d9d6be0e65c92c177"
 [[kv_namespaces]]
 binding = "CATALOG_KV"
 id = "4acf1fff9ad24b848248042503b016a9"
+
+# Product/seller images. Local dev emulates R2 automatically.
+# Production: `wrangler r2 bucket create alkemart-media` (once, needs login).
+[[r2_buckets]]
+binding = "MEDIA_BUCKET"
+bucket_name = "alkemart-media"
+
+# Image conversion pipeline (WebP variants at upload). Optional at runtime:
+# uploads fall back to original-only when the binding is absent (local dev).
+[images]
+binding = "IMAGES"

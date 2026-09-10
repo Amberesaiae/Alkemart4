@@ -1,5 +1,10 @@
 import { createPaystackTransferRecipient } from "@alkemart/paystack"
 import { Hono, type MiddlewareHandler } from "hono"
+import { InMemoryAdminAuditLog, PostgresAdminAuditLog, type AdminAuditLog } from "./admin-audit"
+import { InMemoryAppealStore, PostgresAppealStore, type AppealStore } from "./appeals"
+import { InMemoryShopFeaturedStore, PostgresShopFeaturedStore, type ShopFeaturedStore } from "./shop-featured"
+import { InMemoryShopPolicyStore, PostgresShopPolicyStore, type ShopPolicyStore } from "./shop-policies"
+import { InMemoryTrafficStore, PostgresTrafficStore, type TrafficStore } from "./traffic"
 import { PostgresAuthRepository, type AuthRepository } from "./auth-repository"
 import {
   InMemoryCatalogRepository,
@@ -26,12 +31,15 @@ import { requireAdmin, requireSeller } from "./middleware/auth"
 import { corsMiddleware } from "./middleware/cors"
 import { errorHandler } from "./middleware/error"
 import { securityMiddleware } from "./middleware/security"
+import { adminActions } from "./routes/admin/actions"
+import { adminAppeals } from "./routes/admin/appeals"
 import { adminAuth } from "./routes/admin/auth"
 import { adminMigrate } from "./routes/admin/migrate"
 import { adminOrders } from "./routes/admin/orders"
 import { adminPayouts } from "./routes/admin/payouts"
 import { adminProducts } from "./routes/admin/products"
 import { adminSellers } from "./routes/admin/sellers"
+import { adminStats, adminTrafficStats } from "./routes/admin/stats"
 import { health } from "./routes/health"
 import { storeAuth } from "./routes/store/auth"
 import { storeCart } from "./routes/store/cart"
@@ -46,12 +54,26 @@ import { vendorAuth } from "./routes/vendor/auth"
 import { vendorOnboarding } from "./routes/vendor/onboarding"
 import { vendorOrders } from "./routes/vendor/orders"
 import { vendorProducts } from "./routes/vendor/products"
+import { vendorHealth } from "./routes/vendor/health"
+import { vendorSellers } from "./routes/vendor/sellers"
+import { vendorShopStats } from "./routes/vendor/stats"
+import { vendorTasks } from "./routes/vendor/tasks"
+import { serveMedia, vendorUploads } from "./routes/vendor/uploads"
+import { runPaymentIntentExpiry } from "./payment-intent-expiry"
+import { runNotificationDispatch } from "./notifications-dispatch"
+
+export { runNotificationDispatch, runPaymentIntentExpiry }
 
 export function createApp(
   options: {
     repo?: CatalogRepository
     authRepo?: AuthRepository
     checkoutRepo?: CheckoutRepository
+    auditLog?: AdminAuditLog
+    trafficStore?: TrafficStore
+    appealStore?: AppealStore
+    policyStore?: ShopPolicyStore
+    featuredStore?: ShopFeaturedStore
     jwtSecret?: string
     paystackSecretKey?: string
     createPaystackTransferRecipient?: CreatePaystackTransferRecipient
@@ -68,6 +90,14 @@ export function createApp(
   app.use("*", securityMiddleware)
   app.route("/health", health)
 
+  // Test-path stores are memoized per app so state survives across requests
+  // in a single test (production wrappers are stateless and safe to share).
+  const fallbackAuditLog = options.auditLog ?? (options.authRepo ? new InMemoryAdminAuditLog() : undefined)
+  const fallbackTraffic = options.trafficStore ?? (options.repo ? new InMemoryTrafficStore() : undefined)
+  const fallbackAppeals = options.appealStore ?? (options.repo ? new InMemoryAppealStore() : undefined)
+  const fallbackPolicies = options.policyStore ?? (options.repo ? new InMemoryShopPolicyStore() : undefined)
+  const fallbackFeatured = options.featuredStore ?? (options.repo ? new InMemoryShopFeaturedStore() : undefined)
+
   const bindCatalog: MiddlewareHandler<AppEnv> = async (c, next) => {
     if (options.repo) {
       c.set("repo", options.repo)
@@ -76,6 +106,38 @@ export function createApp(
       // Catalog mutations + read-after-write go through HYPERDRIVE_PRIMARY (writeDb);
       // pure catalog reads keep using the (cached) HYPERDRIVE binding. See ACID-DATAFLOW.md.
       c.set("repo", new PostgresCatalogRepository(catalogDb(env), primaryDb(env)))
+    }
+    if (options.trafficStore) {
+      c.set("traffic", options.trafficStore)
+    } else if (fallbackTraffic) {
+      c.set("traffic", fallbackTraffic)
+    } else {
+      const env = parseEnv(c.env as unknown as Record<string, unknown>)
+      c.set("traffic", new PostgresTrafficStore(primaryDb(env)))
+    }
+    if (options.appealStore) {
+      c.set("appeals", options.appealStore)
+    } else if (fallbackAppeals) {
+      c.set("appeals", fallbackAppeals)
+    } else {
+      const env = parseEnv(c.env as unknown as Record<string, unknown>)
+      c.set("appeals", new PostgresAppealStore(primaryDb(env)))
+    }
+    if (options.policyStore) {
+      c.set("policies", options.policyStore)
+    } else if (fallbackPolicies) {
+      c.set("policies", fallbackPolicies)
+    } else {
+      const env = parseEnv(c.env as unknown as Record<string, unknown>)
+      c.set("policies", new PostgresShopPolicyStore(primaryDb(env)))
+    }
+    if (options.featuredStore) {
+      c.set("featured", options.featuredStore)
+    } else if (fallbackFeatured) {
+      c.set("featured", fallbackFeatured)
+    } else {
+      const env = parseEnv(c.env as unknown as Record<string, unknown>)
+      c.set("featured", new PostgresShopFeaturedStore(primaryDb(env)))
     }
     await next()
   }
@@ -133,6 +195,14 @@ export function createApp(
       const env = parseEnv(c.env as unknown as Record<string, unknown>)
       c.set("authRepo", new PostgresAuthRepository(primaryDb(env)))
     }
+    if (options.auditLog) {
+      c.set("auditLog", options.auditLog)
+    } else if (fallbackAuditLog) {
+      c.set("auditLog", fallbackAuditLog)
+    } else {
+      const env = parseEnv(c.env as unknown as Record<string, unknown>)
+      c.set("auditLog", new PostgresAdminAuditLog(primaryDb(env)))
+    }
     if (options.jwtSecret) {
       c.set("jwtSecret", options.jwtSecret)
     } else {
@@ -166,7 +236,7 @@ export function createApp(
   store.route("/products", withBind(bindCatalog, products))
   store.route("/sellers", withBind(bindCatalog, sellers))
   store.route("/cart", withBind(bindCheckout, storeCart))
-  store.route("/checkout", withBind(bindCheckout, storeCheckout))
+  store.route("/checkout", withBind(bindAuth, withBind(bindCheckout, storeCheckout)))
   store.route(
     "/orders",
     withBind(bindAuth, withBind(bindCheckout, storeOrders)),
@@ -179,6 +249,11 @@ export function createApp(
   vendor.route("/onboarding", vendorOnboarding)
   vendor.route("/products", withBind(bindCatalog, vendorProducts))
   vendor.route("/orders", withBind(bindCheckout, vendorOrders))
+  vendor.route("/uploads", vendorUploads)
+  vendor.route("/sellers", withBind(bindCatalog, vendorSellers))
+  vendor.route("/health", withBind(bindCatalog, withBind(bindCheckout, vendorHealth)))
+  vendor.route("/tasks", withBind(bindCatalog, withBind(bindCheckout, vendorTasks)))
+  vendor.route("/stats/shop", withBind(bindCatalog, withBind(bindCheckout, vendorShopStats)))
   vendor.get("/me", requireSeller, (c) => c.json(c.get("auth")))
   app.route("/vendor", vendor)
 
@@ -186,10 +261,14 @@ export function createApp(
   admin.use("*", bindAuth)
   admin.route("/auth", adminAuth)
   admin.get("/me", requireAdmin, (c) => c.json(c.get("auth")))
-  admin.route("/sellers", adminSellers)
+  admin.route("/sellers", withBind(bindCatalog, withBind(bindCheckout, adminSellers)))
+  admin.route("/stats", withBind(bindCatalog, withBind(bindCheckout, adminStats)))
+  admin.route("/stats/traffic", withBind(bindCatalog, adminTrafficStats))
   admin.route("/products", withBind(bindCatalog, adminProducts))
   admin.route("/orders", withBind(bindCheckout, adminOrders))
   admin.route("/migrate", adminMigrate)
+  admin.route("/actions", adminActions)
+  admin.route("/appeals", withBind(bindCatalog, adminAppeals))
   admin.route(
     "/payouts",
     withBind(bindAuth, withBind(bindCheckout, adminPayouts)),
@@ -198,36 +277,9 @@ export function createApp(
 
   app.route("/hooks/paystack", withBind(bindCheckout, paystackHooks))
 
+  app.get("/media/*", (c) => serveMedia(c))
+
   return app
-}
-
-/**
- * Abandoned momo/card checkouts hold reserved stock with no buyer attached.
- * The cron flips stale non-terminal intents to `expired` and releases their
- * reservations (QA report 2026-09-05, recommendation #2). Idempotent: the CAS
- * in updatePaymentIntentStatus makes double-fires harmless.
- */
-const PAYMENT_INTENT_STALE_AFTER_MS = 60 * 60 * 1000
-
-export async function runPaymentIntentExpiry(event: unknown, env: unknown, ctx: unknown) {
-  const parsed = parseEnv(env as Record<string, unknown>)
-  const checkout = new PostgresCheckoutRepository(primaryDb(parsed))
-  const cutoff = new Date(Date.now() - PAYMENT_INTENT_STALE_AFTER_MS)
-  const stale = await checkout.listStalePendingIntents(cutoff)
-  let expired = 0
-  for (const intent of stale) {
-    try {
-      await checkout.updatePaymentIntentStatus(intent.id, "expired")
-      await checkout.releaseReservations(intent.id)
-      expired += 1
-    } catch {
-      /* already transitioned elsewhere — leave it be */
-    }
-  }
-  console.log(JSON.stringify({ job: "payment-intent-expiry", expired, scanned: stale.length }))
-  void event
-  void ctx
-  return expired
 }
 
 const app = createApp()
@@ -236,5 +288,6 @@ export default {
   fetch: app.fetch,
   async scheduled(event: ScheduledController, env: unknown, ctx: ExecutionContext) {
     await runPaymentIntentExpiry(event, env, ctx)
+    await runNotificationDispatch(event, env, ctx)
   },
 }

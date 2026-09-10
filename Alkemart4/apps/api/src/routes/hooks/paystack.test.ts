@@ -1,5 +1,6 @@
 import { createHmac } from "node:crypto"
 import { describe, expect, it } from "vitest"
+import { InMemoryAuthRepository } from "../../auth-repository"
 import { InMemoryCatalogRepository } from "../../catalog-repository"
 import { InMemoryCheckoutRepository } from "../../checkout-repository"
 import { demoCatalog } from "../../demo-seed"
@@ -18,6 +19,7 @@ describe("POST /hooks/paystack", () => {
     const checkoutRepo = new InMemoryCheckoutRepository(snapshot)
     const dedupStore = new Map<string, string>()
     const app = createApp({
+      authRepo: new InMemoryAuthRepository(),
       repo: catalog,
       checkoutRepo,
       jwtSecret: "x".repeat(32),
@@ -68,6 +70,7 @@ describe("POST /hooks/paystack", () => {
     const quote = await checkoutRepo.quote(cartId)
     // Fix verify amount to match intent
     const app2 = createApp({
+      authRepo: new InMemoryAuthRepository(),
       repo: catalog,
       checkoutRepo,
       jwtSecret: "x".repeat(32),

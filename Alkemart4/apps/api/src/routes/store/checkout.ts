@@ -139,6 +139,18 @@ export const storeCheckout = new Hono<AppEnv>()
     const items = await checkout.listCartItems(cart.id)
     if (items.length === 0) throw new HTTPException(400, { message: "cart empty" })
 
+    // Server-enforced pause guard: a paused seller's offers can sit in carts,
+    // but no order may be created for them. Never button-only.
+    const sellerIds = [...new Set(items.map((i) => i.sellerId))]
+    for (const sellerId of sellerIds) {
+      const seller = await c.get("authRepo").findSellerById(sellerId).catch(() => null)
+      if (seller?.availability === "paused") {
+        throw new HTTPException(409, {
+          message: `Seller ${seller.handle} is paused and not taking orders${seller.pauseNote ? `: ${seller.pauseNote}` : ""}`,
+        })
+      }
+    }
+
     const quote = await checkout.quote(cart.id)
     const intentId = crypto.randomUUID()
     const reference = `alk_${intentId.replace(/-/g, "").slice(0, 24)}`
@@ -205,7 +217,27 @@ export const storeCheckout = new Hono<AppEnv>()
       return new HTTPException(httpStatus, { message })
     }
 
+    const lineHolds = items.map((i) => ({ offerId: i.offerId, qty: i.qty }))
+
+    /** Hold stock before any Paystack call so we never debit/redirect without inventory. */
+    async function holdStock(): Promise<void> {
+      try {
+        await checkout.reserveStock(intentId, lineHolds)
+      } catch (err) {
+        await checkout.releaseReservations(intentId)
+        throw await failIntent(
+          err instanceof Error && err.message.includes("insufficient stock")
+            ? "Some items in your cart just sold out. Remove or adjust them and try again."
+            : "Could not hold stock for this order",
+          409,
+        )
+      }
+    }
+
     if (parsed.data.method === "momo") {
+      await holdStock()
+      await checkout.updatePaymentIntentStatus(intentId, "pending")
+
       const charge =
         c.get("chargePaystackMobileMoney") ?? chargePaystackMobileMoney
       let charged: { status: string; reference: string }
@@ -221,38 +253,25 @@ export const storeCheckout = new Hono<AppEnv>()
           },
         )
       } catch (err) {
+        await checkout.releaseReservations(intentId)
         throw await failIntent(
           err instanceof Error ? err.message : "Paystack charge failed",
           502,
         )
       }
 
-      const paystackReference = charged.reference || reference
-      await checkout.updatePaymentIntentStatus(intentId, "pending")
-      try {
-        await checkout.reserveStock(
-          intentId,
-          items.map((i) => ({ offerId: i.offerId, qty: i.qty })),
-        )
-      } catch (err) {
-        await checkout.releaseReservations(intentId)
-        throw await failIntent(
-          err instanceof Error && err.message.includes("insufficient stock")
-            ? "Some items in your cart just sold out. Remove or adjust them and try again."
-            : "Could not hold stock for this order",
-          409,
-        )
-      }
-
       return c.json({
         paymentIntentId: intentId,
         status: "pending",
-        paystackReference,
+        paystackReference: charged.reference || reference,
         paystackStatus: charged.status,
       })
     }
 
-    // card
+    // card — reserve before initialize so orphaned Paystack sessions can't outrun stock
+    await holdStock()
+    await checkout.updatePaymentIntentStatus(intentId, "pending")
+
     const initialize =
       c.get("initializePaystackTransaction") ?? initializePaystackTransaction
     let initResult: { authorizationUrl: string; reference: string; accessCode: string }
@@ -267,26 +286,10 @@ export const storeCheckout = new Hono<AppEnv>()
         },
       )
     } catch (err) {
+      await checkout.releaseReservations(intentId)
       throw await failIntent(
         err instanceof Error ? err.message : "Paystack initialize failed",
         502,
-      )
-    }
-
-    const paystackReference = initResult.reference || reference
-    await checkout.updatePaymentIntentStatus(intentId, "pending")
-    try {
-      await checkout.reserveStock(
-        intentId,
-        items.map((i) => ({ offerId: i.offerId, qty: i.qty })),
-      )
-    } catch (err) {
-      await checkout.releaseReservations(intentId)
-      throw await failIntent(
-        err instanceof Error && err.message.includes("insufficient stock")
-          ? "Some items in your cart just sold out. Remove or adjust them and try again."
-          : "Could not hold stock for this order",
-        409,
       )
     }
 
@@ -294,6 +297,6 @@ export const storeCheckout = new Hono<AppEnv>()
       paymentIntentId: intentId,
       status: "pending",
       authorizationUrl: initResult.authorizationUrl,
-      paystackReference,
+      paystackReference: initResult.reference || reference,
     })
   })

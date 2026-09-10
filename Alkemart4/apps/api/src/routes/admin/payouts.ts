@@ -13,6 +13,31 @@ const CreatePayoutBody = z.object({
 
 export const adminPayouts = new Hono<AppEnv>()
   .use("*", requireAdmin)
+  .get("/", async (c) => {
+    const limit = Math.max(1, Math.min(Number(c.req.query("limit") ?? 50) || 50, 200))
+    const offset = Math.max(0, Number(c.req.query("offset") ?? 0) || 0)
+    const [all, sellers] = await Promise.all([
+      c.get("checkoutRepo").listRecentPayouts(200).catch(() => []),
+      c.get("authRepo").listSellers().catch(() => []),
+    ])
+    const sellerById = new Map(sellers.map((s) => [s.id, s]))
+    const count = all.length
+    const page = all.slice(offset, offset + limit)
+    return c.json({
+      payouts: page.map((p) => ({
+        id: p.id,
+        sellerId: p.sellerId,
+        sellerHandle: sellerById.get(p.sellerId)?.handle ?? null,
+        sellerName: sellerById.get(p.sellerId)?.name ?? null,
+        status: p.status,
+        grossPesewas: p.grossPesewas.toString(),
+        commissionPesewas: p.commissionPesewas.toString(),
+        netPesewas: p.netPesewas.toString(),
+        createdAt: p.createdAt ? p.createdAt.toISOString() : null,
+      })),
+      count,
+    })
+  })
   .post("/", async (c) => {
     const parsed = CreatePayoutBody.safeParse(await readJsonBody(c))
     if (!parsed.success) throw new HTTPException(400, { message: "invalid body" })
@@ -72,6 +97,18 @@ export const adminPayouts = new Hono<AppEnv>()
         commissionBps: seller.commissionBps,
         paystackTransferCode: transfer.transferCode,
         paystackReference: transfer.reference,
+      })
+
+      await c.get("auditLog").log({
+        adminUserId: c.get("auth").userId,
+        action: "payout.trigger",
+        targetType: "seller",
+        targetId: seller.id,
+        detail: {
+          payoutId: payout.id,
+          netPesewas: payout.netPesewas.toString(),
+          paystackReference: payout.paystackReference,
+        },
       })
 
       return c.json({

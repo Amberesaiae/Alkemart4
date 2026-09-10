@@ -59,5 +59,5 @@ export const corsMiddleware: MiddlewareHandler<AppEnv> = async (c, next) => {
     c.header("Access-Control-Allow-Credentials", "true")
     c.header("Vary", "Origin")
   }
-  return undefined
+  return c.res
 }

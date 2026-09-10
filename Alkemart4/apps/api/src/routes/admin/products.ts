@@ -32,18 +32,54 @@ export const adminProducts = new Hono<AppEnv>()
       statusRaw && PRODUCT_STATUSES.has(statusRaw)
         ? (statusRaw as "draft" | "proposed" | "published" | "rejected")
         : undefined
-    const items = await c.get("repo").listAdminProducts(status)
-    return c.json({ items })
+    const [items, sellers] = await Promise.all([
+      c.get("repo").listAdminProductsWithFlags(status),
+      c.get("authRepo").listSellers(),
+    ])
+    const sellerById = new Map(sellers.map((s) => [s.id, s]))
+    return c.json({
+      items: items.map((p) => {
+        const seller = (p as { sellerId?: string | null }).sellerId
+          ? sellerById.get((p as { sellerId?: string | null }).sellerId as string)
+          : undefined
+        return {
+          ...p,
+          sellerName: seller?.name ?? null,
+          sellerHandle: seller?.handle ?? null,
+        }
+      }),
+    })
   })
   .post("/:id/approve", async (c) => {
     const product = await moderateProduct(c.get("repo"), c.req.param("id"), "approve")
+    await c.get("auditLog").log({
+      adminUserId: c.get("auth").userId,
+      action: "product.approve",
+      targetType: "product",
+      targetId: c.req.param("id"),
+      detail: { status: product.status },
+    })
     return c.json({ product })
   })
   .post("/:id/reject", async (c) => {
     const product = await moderateProduct(c.get("repo"), c.req.param("id"), "reject")
+    await c.get("auditLog").log({
+      adminUserId: c.get("auth").userId,
+      action: "product.reject",
+      targetType: "product",
+      targetId: c.req.param("id"),
+      detail: { status: product.status },
+    })
     return c.json({ product })
   })
   .post("/:id/request-changes", async (c) => {
     const product = await moderateProduct(c.get("repo"), c.req.param("id"), "request_changes")
+    await c.get("auditLog").log({
+      adminUserId: c.get("auth").userId,
+      action: "product.request-changes",
+      targetType: "product",
+      targetId: c.req.param("id"),
+      detail: { status: product.status },
+    })
     return c.json({ product })
   })

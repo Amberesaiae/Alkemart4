@@ -115,6 +115,7 @@ describe("store buyer orders", () => {
     const catalog = new InMemoryCatalogRepository(snapshot)
     const checkoutRepo = new InMemoryCheckoutRepository(snapshot)
     const app = createApp({
+      authRepo: new InMemoryAuthRepository(),
       repo: catalog,
       checkoutRepo,
       jwtSecret: JWT,

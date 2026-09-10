@@ -1,5 +1,10 @@
 import type { PaystackConfig } from "@alkemart/paystack"
+import type { AdminAuditLog } from "./admin-audit"
+import type { AppealStore } from "./appeals"
+import type { ShopFeaturedStore } from "./shop-featured"
+import type { ShopPolicyStore } from "./shop-policies"
 import type { AuthRepository } from "./auth-repository"
+import type { TrafficStore } from "./traffic"
 import type { CatalogRepository } from "./catalog-repository"
 import type { CheckoutRepository } from "./checkout-repository"
 import type { ApiEnv } from "./env"
@@ -62,6 +67,11 @@ export type AppEnv = {
     repo: CatalogRepository
     authRepo: AuthRepository
     checkoutRepo: CheckoutRepository
+    auditLog: AdminAuditLog
+    traffic: TrafficStore
+    appeals: AppealStore
+    policies: ShopPolicyStore
+    featured: ShopFeaturedStore
     jwtSecret: string
     auth: SessionClaims
     paystackSecretKey?: string

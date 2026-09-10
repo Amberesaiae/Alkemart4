@@ -1,6 +1,7 @@
 import {
   carts,
   cartItems,
+  notifications,
   offers,
   orders,
   orderGroups,
@@ -612,6 +613,54 @@ export class PostgresCheckoutRepository implements CheckoutRepository {
     }))
   }
 
+  async orderTotalsBySeller(): Promise<Map<string, { orders: number; gmvPesewas: bigint }>> {
+    const rows = await this.db
+      .select({
+        sellerId: orders.sellerId,
+        orders: sql<number>`count(*)`,
+        gmv: sql<string | number | bigint>`sum(${orders.subtotalPesewas})`,
+      })
+      .from(orders)
+      .groupBy(orders.sellerId)
+    const totals = new Map<string, { orders: number; gmvPesewas: bigint }>()
+    for (const r of rows) {
+      totals.set(r.sellerId, {
+        orders: Number(r.orders),
+        gmvPesewas: typeof r.gmv === "bigint" ? r.gmv : BigInt(r.gmv ?? 0),
+      })
+    }
+    return totals
+  }
+
+  async platformOrderStats() {
+    const toBig = (v: bigint | string | number): bigint =>
+      typeof v === "bigint" ? v : BigInt(v)
+    const groupRows = await this.db
+      .select({ totalPesewas: orderGroups.totalPesewas, createdAt: orderGroups.createdAt })
+      .from(orderGroups)
+      .orderBy(desc(orderGroups.createdAt))
+    const itemRows = await this.db
+      .select({
+        productId: orderItems.productId,
+        title: orderItems.title,
+        units: sql<number>`sum(${orderItems.qty})`,
+        gmv: sql<string | number | bigint>`sum(${orderItems.qty} * ${orderItems.unitPricePesewas})`,
+      })
+      .from(orderItems)
+      .groupBy(orderItems.productId, orderItems.title)
+      .orderBy(sql`sum(${orderItems.qty} * ${orderItems.unitPricePesewas}) desc`)
+      .limit(10)
+    return {
+      groups: groupRows.map((g) => ({ totalPesewas: toBig(g.totalPesewas), createdAt: g.createdAt })),
+      topItems: itemRows.map((r) => ({
+        productId: r.productId,
+        title: r.title,
+        units: Number(r.units),
+        gmvPesewas: toBig(r.gmv),
+      })),
+    }
+  }
+
   async updateOrderStatus(orderId: string, sellerId: string, status: OrderFulfillmentStatus) {
     const [row] = await this.db
       .select()
@@ -729,5 +778,86 @@ export class PostgresCheckoutRepository implements CheckoutRepository {
       paystackTransferCode: row.paystackTransferCode,
       paystackReference: row.paystackReference,
     }
+  }
+
+  async listRecentPayouts(limit = 50) {
+    const take = Math.max(1, Math.min(limit, 200))
+    const rows = await this.db
+      .select()
+      .from(payouts)
+      .orderBy(desc(payouts.createdAt))
+      .limit(take)
+    return rows.map((row) => ({
+      id: row.id,
+      sellerId: row.sellerId,
+      status: row.status,
+      grossPesewas: row.grossPesewas,
+      commissionPesewas: row.commissionPesewas,
+      netPesewas: row.netPesewas,
+      commissionBps: row.commissionBps,
+      paystackTransferCode: row.paystackTransferCode,
+      paystackReference: row.paystackReference,
+      createdAt: row.createdAt,
+    }))
+  }
+
+  async enqueueNotification(input: { key: string; recipient: string; body: string }) {
+    const inserted = await this.db
+      .insert(notifications)
+      .values({ id: crypto.randomUUID(), key: input.key, recipient: input.recipient, body: input.body })
+      .onConflictDoNothing({ target: notifications.key })
+      .returning({ id: notifications.id })
+    return { inserted: inserted.length > 0 }
+  }
+
+  async claimPendingNotifications(limit = 50, maxAttempts = 5) {
+    const take = Math.max(1, Math.min(limit, 200))
+    const rows = await this.db.execute(sql`
+      UPDATE notifications SET attempts = attempts + 1
+      WHERE id IN (
+        SELECT id FROM notifications
+        WHERE status = 'pending' OR (status = 'failed' AND attempts < ${maxAttempts})
+        ORDER BY created_at ASC LIMIT ${take}
+        FOR UPDATE SKIP LOCKED
+      )
+      RETURNING id, key, channel, recipient, body, status, attempts, last_error, created_at, sent_at
+    `)
+    return (rows as unknown as Array<{
+      id: string
+      key: string
+      channel: string
+      recipient: string
+      body: string
+      status: "pending" | "sent" | "failed"
+      attempts: number
+      last_error: string | null
+      created_at: Date
+      sent_at: Date | null
+    }>).map((r) => ({
+      id: r.id,
+      key: r.key,
+      channel: r.channel,
+      recipient: r.recipient,
+      body: r.body,
+      status: r.status,
+      attempts: r.attempts,
+      lastError: r.last_error,
+      createdAt: r.created_at,
+      sentAt: r.sent_at,
+    }))
+  }
+
+  async markNotificationSent(id: string) {
+    await this.db
+      .update(notifications)
+      .set({ status: "sent", lastError: null, sentAt: new Date() })
+      .where(eq(notifications.id, id))
+  }
+
+  async markNotificationFailed(id: string, error: string) {
+    await this.db
+      .update(notifications)
+      .set({ status: "failed", lastError: error.slice(0, 500) })
+      .where(eq(notifications.id, id))
   }
 }

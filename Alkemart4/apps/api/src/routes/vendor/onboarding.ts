@@ -1,6 +1,6 @@
 import { evaluateSellerReadiness } from "@alkemart/domain"
-import { createPaystackTransferRecipient } from "@alkemart/paystack"
-import { getRegionById, type PaystackMomoProvider } from "@alkemart/shared/ghana"
+import { createPaystackTransferRecipient, mapMomoProviderToPaystackSlug } from "@alkemart/paystack"
+import { resolveRegionId, toLocalMsisdn, type PaystackMomoProvider } from "@alkemart/shared/ghana"
 import { Hono } from "hono"
 import { HTTPException } from "hono/http-exception"
 import { z } from "zod"
@@ -8,10 +8,9 @@ import type { AppEnv } from "../../context"
 import { readJsonBody } from "../../lib/session"
 import { requireSeller } from "../../middleware/auth"
 
-const PAYSTACK_MOMO_BANK_CODES: Record<PaystackMomoProvider, string> = {
-  mtn: "MTN",
-  vodafone: "VODAFONE",
-  airteltigo: "AIRTELTIGO",
+/** Paystack transferrecipient bank codes for Ghana MoMo (GET /bank). */
+function momoBankCode(provider: PaystackMomoProvider): string {
+  return mapMomoProviderToPaystackSlug(provider).toUpperCase()
 }
 
 const GhanaSetupBody = z.object({
@@ -38,7 +37,11 @@ export const vendorOnboarding = new Hono<AppEnv>()
   .post("/ghana-setup", async (c) => {
     const parsed = GhanaSetupBody.safeParse(await readJsonBody(c))
     if (!parsed.success) throw new HTTPException(400, { message: "invalid body" })
-    if (!getRegionById(parsed.data.region)) {
+    // Region may arrive as an ID ("GH07") or a display name ("Greater Accra").
+    // Canonicalize to the ID for storage.
+    const regionName = parsed.data.region.trim()
+    const regionId = resolveRegionId(regionName)
+    if (!regionId) {
       throw new HTTPException(400, { message: "invalid region" })
     }
 
@@ -55,14 +58,17 @@ export const vendorOnboarding = new Hono<AppEnv>()
 
     const createRecipient =
       c.get("createPaystackTransferRecipient") ?? createPaystackTransferRecipient
+    // Paystack mobile_money only accepts 0-prefixed local MSISDN — never E.164.
+    const localPhone = toLocalMsisdn(parsed.data.momo.phone)
+    if (!localPhone) throw new HTTPException(400, { message: "invalid MoMo number" })
     let recipient: { recipientCode: string }
     try {
       recipient = await createRecipient(
         { secretKey },
         {
           name: parsed.data.momo.accountName,
-          accountNumber: parsed.data.momo.phone,
-          bankCode: PAYSTACK_MOMO_BANK_CODES[parsed.data.momo.provider],
+          accountNumber: localPhone,
+          bankCode: momoBankCode(parsed.data.momo.provider),
           currency: "GHS",
         },
       )
@@ -76,11 +82,11 @@ export const vendorOnboarding = new Hono<AppEnv>()
 
     const updated = await c.get("authRepo").updateSellerGhanaSetup(sellerId, {
       name: parsed.data.displayName,
-      packRegion: parsed.data.region,
+      packRegion: regionId,
       digitalAddress: parsed.data.digitalAddress ?? null,
       deliveryFeePesewas: BigInt(parsed.data.deliveryFeePesewas),
       momoProvider: parsed.data.momo.provider,
-      momoPhone: parsed.data.momo.phone,
+      momoPhone: localPhone,
       recipientCode: recipient.recipientCode,
     })
     return c.json(evaluateSellerReadiness(updated))

@@ -10,6 +10,9 @@ export type CatalogSeller = {
   status: SellerStatus
   commissionBps: number
   deliveryFeePesewas: bigint
+  availability: "open" | "paused"
+  pausedUntil: string | null
+  pauseNote: string | null
 }
 
 export type CatalogProduct = {
@@ -71,6 +74,9 @@ export function demoCatalog(): CatalogSnapshot {
         status: "open",
         commissionBps: 700,
         deliveryFeePesewas: 500n,
+        availability: "open",
+        pausedUntil: null,
+        pauseNote: null,
       },
       {
         id: "seller-b",
@@ -79,6 +85,9 @@ export function demoCatalog(): CatalogSnapshot {
         status: "open",
         commissionBps: 700,
         deliveryFeePesewas: 800n,
+        availability: "open",
+        pausedUntil: null,
+        pauseNote: null,
       },
     ],
     products: [

@@ -66,6 +66,11 @@ export type OrderGroupRow = {
   currency: string
 }
 
+export type PlatformOrderStats = {
+  groups: { totalPesewas: bigint; createdAt: Date }[]
+  topItems: { productId: string; title: string; units: number; gmvPesewas: bigint }[]
+}
+
 export type OrderRow = {
   id: string
   orderGroupId: string
@@ -138,6 +143,9 @@ export interface CheckoutRepository {
   listStalePendingIntents(cutoff: Date): Promise<PaymentIntentRow[]>
   listOrdersForSeller(sellerId: string): Promise<OrderRow[]>
   listRecentOrderGroups(limit?: number): Promise<Array<OrderGroupRow & { createdAt?: Date }>>
+  platformOrderStats(): Promise<PlatformOrderStats>
+  /** Per-seller order counts + subtotal GMV (admin lists). */
+  orderTotalsBySeller(): Promise<Map<string, { orders: number; gmvPesewas: bigint }>>
   updateOrderStatus(
     orderId: string,
     sellerId: string,
@@ -151,6 +159,29 @@ export interface CheckoutRepository {
     paystackReference: string
   }): Promise<PayoutRow>
   getPayout(id: string): Promise<PayoutRow | null>
+  /** Recent payouts for the admin ledger (newest first). */
+  listRecentPayouts(limit?: number): Promise<(PayoutRow & { createdAt: Date | null })[]>
+  /**
+   * SMS outbox. Idempotency key (`${orderId}:${status}`) is unique:
+   * double-enqueues are no-ops so retries never text twice.
+   */
+  enqueueNotification(input: { key: string; recipient: string; body: string }): Promise<{ inserted: boolean }>
+  claimPendingNotifications(limit?: number, maxAttempts?: number): Promise<NotificationRow[]>
+  markNotificationSent(id: string): Promise<void>
+  markNotificationFailed(id: string, error: string): Promise<void>
+}
+
+export type NotificationRow = {
+  id: string
+  key: string
+  channel: string
+  recipient: string
+  body: string
+  status: "pending" | "sent" | "failed"
+  attempts: number
+  lastError: string | null
+  createdAt: Date
+  sentAt: Date | null
 }
 
 export class InMemoryCheckoutRepository implements CheckoutRepository {
@@ -472,6 +503,39 @@ export class InMemoryCheckoutRepository implements CheckoutRepository {
       .map((g) => ({ ...g }))
   }
 
+  async orderTotalsBySeller(): Promise<Map<string, { orders: number; gmvPesewas: bigint }>> {
+    const totals = new Map<string, { orders: number; gmvPesewas: bigint }>()
+    for (const o of this.orderIndex.values()) {
+      const slot = totals.get(o.sellerId) ?? { orders: 0, gmvPesewas: 0n }
+      slot.orders += 1
+      slot.gmvPesewas += typeof o.subtotalPesewas === "bigint" ? o.subtotalPesewas : BigInt(o.subtotalPesewas)
+      totals.set(o.sellerId, slot)
+    }
+    return totals
+  }
+
+  async platformOrderStats(): Promise<PlatformOrderStats> {
+    const groups = [...this.orderGroups.values()].map((g) => ({
+      totalPesewas: g.totalPesewas,
+      createdAt: g.createdAt,
+    }))
+    const byProduct = new Map<string, { title: string; units: number; gmvPesewas: bigint }>()
+    for (const items of this.orderItems.values()) {
+      for (const item of items) {
+        const slot = byProduct.get(item.productId) ?? { title: item.title, units: 0, gmvPesewas: 0n }
+        slot.units += item.qty
+        const unit = typeof item.unitPricePesewas === "bigint" ? item.unitPricePesewas : BigInt(item.unitPricePesewas)
+        slot.gmvPesewas += BigInt(item.qty) * unit
+        byProduct.set(item.productId, slot)
+      }
+    }
+    const topItems = [...byProduct]
+      .map(([productId, v]) => ({ productId, ...v }))
+      .sort((a, b) => (b.gmvPesewas > a.gmvPesewas ? 1 : b.gmvPesewas < a.gmvPesewas ? -1 : 0))
+      .slice(0, 10)
+    return { groups, topItems }
+  }
+
   async updateOrderStatus(
     orderId: string,
     sellerId: string,
@@ -529,5 +593,67 @@ export class InMemoryCheckoutRepository implements CheckoutRepository {
   async getPayout(id: string) {
     const row = this.payouts.get(id)
     return row ? { ...row } : null
+  }
+
+  async listRecentPayouts(limit = 50) {
+    return [...this.payouts.values()]
+      .reverse()
+      .slice(0, Math.max(1, Math.min(limit, 200)))
+      .map((row) => ({ ...row, createdAt: null as Date | null }))
+  }
+
+  private notifications = new Map<string, NotificationRow>()
+
+  async enqueueNotification(input: { key: string; recipient: string; body: string }) {
+    if (this.notifications.has(input.key)) return { inserted: false }
+    this.notifications.set(input.key, {
+      id: crypto.randomUUID(),
+      key: input.key,
+      channel: "sms",
+      recipient: input.recipient,
+      body: input.body,
+      status: "pending",
+      attempts: 0,
+      lastError: null,
+      createdAt: new Date(),
+      sentAt: null,
+    })
+    return { inserted: true }
+  }
+
+  async claimPendingNotifications(limit = 50, maxAttempts = 5) {
+    const take = Math.max(1, Math.min(limit, 200))
+    const claimed: NotificationRow[] = []
+    for (const row of [...this.notifications.values()].sort(
+      (a, b) => a.createdAt.getTime() - b.createdAt.getTime(),
+    )) {
+      if (claimed.length >= take) break
+      if (row.status === "pending" || (row.status === "failed" && row.attempts < maxAttempts)) {
+        row.attempts += 1
+        claimed.push(row)
+      }
+    }
+    return claimed
+  }
+
+  async markNotificationSent(id: string) {
+    for (const row of this.notifications.values()) {
+      if (row.id === id) {
+        row.status = "sent"
+        row.lastError = null
+        row.sentAt = new Date()
+        return
+      }
+    }
+  }
+
+  async markNotificationFailed(id: string, error: string) {
+    for (const row of this.notifications.values()) {
+      if (row.id === id) {
+        row.status = "failed"
+        row.lastError = error.slice(0, 500)
+        return
+      }
+    }
   }
 }

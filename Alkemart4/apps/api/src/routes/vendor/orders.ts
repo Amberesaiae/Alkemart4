@@ -3,6 +3,7 @@ import { Hono } from "hono"
 import { HTTPException } from "hono/http-exception"
 import type { AppEnv } from "../../context"
 import { requireSeller } from "../../middleware/auth"
+import { toE164Ghana } from "../../sms"
 
 function publicOrder(order: {
   id: string
@@ -19,6 +20,38 @@ function publicOrder(order: {
     subtotalPesewas: order.subtotalPesewas.toString(),
     deliveryFeePesewas: order.deliveryFeePesewas.toString(),
     status: order.status,
+  }
+}
+
+/**
+ * Queue the buyer SMS for a fulfillment flip. Fire-and-forget by design:
+ * enqueue failures never roll back the status write — the order already
+ * flipped, and the dispatch job retries. No phone → no message, no error.
+ */
+async function enqueueFulfillmentSms(
+  c: {
+    get: (k: "checkoutRepo") => {
+      getOrderGroup(id: string): Promise<{ paymentIntentId: string } | null>
+      getPaymentIntent(id: string): Promise<{ shippingAddress: { phone?: string } | null } | null>
+      enqueueNotification(input: { key: string; recipient: string; body: string }): Promise<unknown>
+    }
+  },
+  order: { id: string; orderGroupId: string },
+  status: "shipped" | "delivered",
+) {
+  try {
+    const group = await c.get("checkoutRepo").getOrderGroup(order.orderGroupId)
+    const intent = group ? await c.get("checkoutRepo").getPaymentIntent(group.paymentIntentId) : null
+    const rawPhone = intent?.shippingAddress?.phone
+    const to = typeof rawPhone === "string" ? toE164Ghana(rawPhone) : null
+    if (!to) return
+    const body =
+      status === "shipped"
+        ? `Alkemart: your order ${order.id.slice(0, 8)} is on its way. Track it in your orders.`
+        : `Alkemart: your order ${order.id.slice(0, 8)} was delivered. Enjoy — reply here if anything is wrong.`
+    await c.get("checkoutRepo").enqueueNotification({ key: `${order.id}:${status}`, recipient: to, body })
+  } catch {
+    /* outbox write failed; status already flipped — dispatch retries nothing, ops sees no row */
   }
 }
 
@@ -69,6 +102,7 @@ export const vendorOrders = new Hono<AppEnv>()
         "shipped",
       )
       if (!order) throw new HTTPException(404, { message: "order not found" })
+      void enqueueFulfillmentSms(c, order, "shipped")
       return c.json({ order: publicOrder(order) })
     } catch (err) {
       if (err instanceof InvalidFulfillmentTransitionError) {
@@ -87,6 +121,7 @@ export const vendorOrders = new Hono<AppEnv>()
         "delivered",
       )
       if (!order) throw new HTTPException(404, { message: "order not found" })
+      void enqueueFulfillmentSms(c, order, "delivered")
       return c.json({ order: publicOrder(order) })
     } catch (err) {
       if (err instanceof InvalidFulfillmentTransitionError) {

@@ -11,7 +11,7 @@ import { requireSeller } from "../../middleware/auth"
 
 const PesewasString = z.string().regex(/^\d+$/)
 
-/** Honest media for now: a vendor-pasted image URL. Uploads land on Workers later. */
+/** Product images: vendor uploads via POST /vendor/uploads (R2), served from /media/*. */
 const ImageUrl = z
   .string()
   .trim()
@@ -114,4 +114,28 @@ export const vendorProducts = new Hono<AppEnv>()
     const updated = await c.get("repo").proposeVendorProduct(sellerId, c.req.param("id"))
     if (!updated) throw new HTTPException(404, { message: "product not found" })
     return c.json(updated)
+  })
+  .post("/:id/appeal", async (c) => {
+    const parsed = z.object({ message: z.string().trim().min(1).max(1000) }).safeParse(await readJsonBody(c))
+    if (!parsed.success) throw new HTTPException(400, { message: "invalid body" })
+    const sellerId = sellerIdOrThrow(c)
+    const owned = await c.get("repo").listVendorProducts(sellerId)
+    const product = owned.find((p) => p.product.id === c.req.param("id"))?.product
+    if (!product) throw new HTTPException(404, { message: "product not found" })
+    if (product.status !== "rejected") {
+      throw new HTTPException(400, { message: "only rejected products can be appealed" })
+    }
+    const existing = await c.get("appeals").openAppealForProduct(product.id)
+    if (existing) throw new HTTPException(409, { message: "an appeal is already open" })
+    const appeal = await c.get("appeals").openAppeal({
+      productId: product.id,
+      sellerId,
+      message: parsed.data.message,
+    })
+    return c.json({ appeal }, 201)
+  })
+  .get("/appeals/mine", async (c) => {
+    const sellerId = sellerIdOrThrow(c)
+    const appeals = await c.get("appeals").listBySeller(sellerId)
+    return c.json({ appeals })
   })

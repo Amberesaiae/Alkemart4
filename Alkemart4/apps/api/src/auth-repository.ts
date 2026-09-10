@@ -15,14 +15,24 @@ export type AuthUser = {
   createdAt: Date
 }
 
+export type SellerAvailability = "open" | "paused"
+
 export type AuthSeller = {
   id: string
   handle: string
   name: string
+  description: string | null
+  logo: string | null
+  banner: string | null
+  metadata: Record<string, unknown> | null
   status: SellerStatus
   commissionBps: number
   deliveryFeePesewas: bigint
   recipientCode: string | null
+  createdAt: Date
+  availability: SellerAvailability
+  pausedUntil: Date | null
+  pauseNote: string | null
   momoProvider: PaystackMomoProvider | null
   momoPhone: string | null
   packRegion: string | null
@@ -67,13 +77,31 @@ export interface AuthRepository {
   findSellerByHandle(handle: string): Promise<AuthSeller | null>
   listSellers(): Promise<AuthSeller[]>
   findSellerMemberByUserId(userId: string): Promise<AuthSellerMember | null>
+  listSellerMembers(sellerId: string): Promise<(AuthSellerMember & { email: string })[]>
   registerVendor(input: {
     user: { id: string; email: string; passwordHash: string }
     seller: { id: string; handle: string; name: string }
   }): Promise<{ user: AuthUser; seller: AuthSeller; member: AuthSellerMember }>
   updateSellerGhanaSetup(id: string, patch: SellerGhanaSetupPatch): Promise<AuthSeller>
+  updateSellerProfile(
+    id: string,
+    patch: { name?: string; handle?: string; description?: string | null; logo?: string | null; banner?: string | null },
+  ): Promise<AuthSeller>
+  updateSellerAddress(
+    id: string,
+    patch: { packRegion?: string | null; digitalAddress?: string | null; deliveryFeePesewas?: bigint; metadata?: Record<string, unknown> | null },
+  ): Promise<AuthSeller>
+  updateSellerPayment(
+    id: string,
+    patch: { momoProvider: PaystackMomoProvider; momoPhone: string; recipientCode: string },
+  ): Promise<AuthSeller>
+  patchSellerMetadata(id: string, merge: Record<string, unknown>): Promise<AuthSeller>
   updateSellerStatus(id: string, status: SellerStatus): Promise<AuthSeller | null>
   updateSellerCommission(id: string, commissionBps: number): Promise<AuthSeller | null>
+  updateSellerAvailability(
+    id: string,
+    patch: { availability: SellerAvailability; pausedUntil: Date | null; pauseNote: string | null },
+  ): Promise<AuthSeller | null>
 }
 
 function toUser(row: {
@@ -101,6 +129,10 @@ function toSeller(row: {
   id: string
   handle: string
   name: string
+  description: string | null
+  logo: string | null
+  banner: string | null
+  metadata: Record<string, unknown> | null
   status: SellerStatus
   commissionBps: number
   deliveryFeePesewas: bigint | string | number
@@ -109,11 +141,19 @@ function toSeller(row: {
   momoPhone: string | null
   packRegion: string | null
   digitalAddress: string | null
+  createdAt: Date
+  availability: SellerAvailability
+  pausedUntil: Date | null
+  pauseNote: string | null
 }): AuthSeller {
   return {
     id: row.id,
     handle: row.handle,
     name: row.name,
+    description: row.description,
+    logo: row.logo,
+    banner: row.banner,
+    metadata: (row.metadata ?? null) as Record<string, unknown> | null,
     status: row.status,
     commissionBps: row.commissionBps,
     deliveryFeePesewas:
@@ -125,6 +165,10 @@ function toSeller(row: {
     momoPhone: row.momoPhone,
     packRegion: row.packRegion,
     digitalAddress: row.digitalAddress,
+    createdAt: row.createdAt,
+    availability: row.availability === "paused" ? "paused" : "open",
+    pausedUntil: row.pausedUntil ?? null,
+    pauseNote: row.pauseNote ?? null,
   }
 }
 
@@ -210,6 +254,16 @@ export class InMemoryAuthRepository implements AuthRepository {
     return this.membersByUserId.get(userId) ?? null
   }
 
+  async listSellerMembers(sellerId: string) {
+    const out: (AuthSellerMember & { email: string })[] = []
+    for (const member of this.membersByUserId.values()) {
+      if (member.sellerId !== sellerId) continue
+      const user = this.usersById.get(member.userId)
+      out.push({ ...member, email: user?.email ?? "" })
+    }
+    return out
+  }
+
   async registerVendor(input: {
     user: { id: string; email: string; passwordHash: string }
     seller: { id: string; handle: string; name: string }
@@ -219,8 +273,16 @@ export class InMemoryAuthRepository implements AuthRepository {
     const user = await this.createUser({ ...input.user, role: "seller_member" })
     const seller: AuthSeller = {
       ...input.seller,
+      description: null,
+      logo: null,
+      banner: null,
+      metadata: null,
       status: "pending_approval",
       commissionBps: 700,
+      createdAt: new Date(),
+      availability: "open",
+      pausedUntil: null,
+      pauseNote: null,
       ...unsetOnboarding(),
     }
     this.sellersById.set(seller.id, seller)
@@ -239,6 +301,52 @@ export class InMemoryAuthRepository implements AuthRepository {
     return next
   }
 
+  private saveSeller(next: AuthSeller) {
+    // Drop the stale handle key when the handle changed.
+    for (const [handle, seller] of this.sellersByHandle) {
+      if (seller.id === next.id && handle !== next.handle) this.sellersByHandle.delete(handle)
+    }
+    this.sellersById.set(next.id, next)
+    this.sellersByHandle.set(next.handle, next)
+    return next
+  }
+
+  async updateSellerProfile(
+    id: string,
+    patch: { name?: string; handle?: string; description?: string | null; logo?: string | null; banner?: string | null },
+  ) {
+    const seller = this.sellersById.get(id)
+    if (!seller) throw new Error("seller not found")
+    if (patch.handle && patch.handle !== seller.handle && this.sellersByHandle.has(patch.handle)) {
+      throw new AuthConflictError("handle")
+    }
+    return this.saveSeller({ ...seller, ...patch })
+  }
+
+  async updateSellerAddress(
+    id: string,
+    patch: { packRegion?: string | null; digitalAddress?: string | null; deliveryFeePesewas?: bigint; metadata?: Record<string, unknown> | null },
+  ) {
+    const seller = this.sellersById.get(id)
+    if (!seller) throw new Error("seller not found")
+    return this.saveSeller({ ...seller, ...patch })
+  }
+
+  async updateSellerPayment(
+    id: string,
+    patch: { momoProvider: PaystackMomoProvider; momoPhone: string; recipientCode: string },
+  ) {
+    const seller = this.sellersById.get(id)
+    if (!seller) throw new Error("seller not found")
+    return this.saveSeller({ ...seller, ...patch })
+  }
+
+  async patchSellerMetadata(id: string, merge: Record<string, unknown>) {
+    const seller = this.sellersById.get(id)
+    if (!seller) throw new Error("seller not found")
+    return this.saveSeller({ ...seller, metadata: { ...(seller.metadata ?? {}), ...merge } })
+  }
+
   async updateSellerStatus(id: string, status: SellerStatus) {
     const seller = this.sellersById.get(id)
     if (!seller) return null
@@ -252,6 +360,18 @@ export class InMemoryAuthRepository implements AuthRepository {
     const seller = this.sellersById.get(id)
     if (!seller) return null
     const next: AuthSeller = { ...seller, commissionBps }
+    this.sellersById.set(id, next)
+    this.sellersByHandle.set(next.handle, next)
+    return next
+  }
+
+  async updateSellerAvailability(
+    id: string,
+    patch: { availability: SellerAvailability; pausedUntil: Date | null; pauseNote: string | null },
+  ) {
+    const seller = this.sellersById.get(id)
+    if (!seller) return null
+    const next: AuthSeller = { ...seller, ...patch }
     this.sellersById.set(id, next)
     this.sellersByHandle.set(next.handle, next)
     return next
@@ -320,6 +440,15 @@ export class PostgresAuthRepository implements AuthRepository {
     return row
       ? { userId: row.userId, sellerId: row.sellerId, role: row.role }
       : null
+  }
+
+  async listSellerMembers(sellerId: string) {
+    const rows = await this.db
+      .select({ userId: sellerMembers.userId, role: sellerMembers.role, email: users.email })
+      .from(sellerMembers)
+      .innerJoin(users, eq(sellerMembers.userId, users.id))
+      .where(eq(sellerMembers.sellerId, sellerId))
+    return rows.map((row) => ({ userId: row.userId, sellerId, role: row.role, email: row.email }))
   }
 
   async registerVendor(input: {
@@ -393,6 +522,50 @@ export class PostgresAuthRepository implements AuthRepository {
     return toSeller(row)
   }
 
+  private async patchSeller(id: string, patch: Partial<typeof sellers.$inferInsert>) {
+    try {
+      const [row] = await this.db
+        .update(sellers)
+        .set(patch)
+        .where(eq(sellers.id, id))
+        .returning()
+      if (!row) throw new Error("seller not found")
+      return toSeller(row)
+    } catch (err) {
+      if (err instanceof Error && err.message === "seller not found") throw err
+      const field = uniqueField(err)
+      if (field) throw new AuthConflictError(field)
+      throw err
+    }
+  }
+
+  async updateSellerProfile(
+    id: string,
+    patch: { name?: string; handle?: string; description?: string | null; logo?: string | null; banner?: string | null },
+  ) {
+    return this.patchSeller(id, patch)
+  }
+
+  async updateSellerAddress(
+    id: string,
+    patch: { packRegion?: string | null; digitalAddress?: string | null; deliveryFeePesewas?: bigint; metadata?: Record<string, unknown> | null },
+  ) {
+    return this.patchSeller(id, patch)
+  }
+
+  async updateSellerPayment(
+    id: string,
+    patch: { momoProvider: PaystackMomoProvider; momoPhone: string; recipientCode: string },
+  ) {
+    return this.patchSeller(id, patch)
+  }
+
+  async patchSellerMetadata(id: string, merge: Record<string, unknown>) {
+    const current = await this.findSellerById(id)
+    if (!current) throw new Error("seller not found")
+    return this.patchSeller(id, { metadata: { ...(current.metadata ?? {}), ...merge } })
+  }
+
   async updateSellerStatus(id: string, status: SellerStatus) {
     const [row] = await this.db
       .update(sellers)
@@ -406,6 +579,18 @@ export class PostgresAuthRepository implements AuthRepository {
     const [row] = await this.db
       .update(sellers)
       .set({ commissionBps })
+      .where(eq(sellers.id, id))
+      .returning()
+    return row ? toSeller(row) : null
+  }
+
+  async updateSellerAvailability(
+    id: string,
+    patch: { availability: SellerAvailability; pausedUntil: Date | null; pauseNote: string | null },
+  ) {
+    const [row] = await this.db
+      .update(sellers)
+      .set({ availability: patch.availability, pausedUntil: patch.pausedUntil, pauseNote: patch.pauseNote })
       .where(eq(sellers.id, id))
       .returning()
     return row ? toSeller(row) : null

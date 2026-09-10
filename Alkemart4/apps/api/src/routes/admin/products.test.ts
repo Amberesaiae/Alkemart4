@@ -73,6 +73,23 @@ async function adminProductApp() {
   return { app, adminToken, productId: createdBody.product.id }
 }
 
+describe("GET /admin/products", () => {
+  it("enriches items with the seller name and handle", async () => {
+    const { app, adminToken } = await adminProductApp()
+    const res = await app.request("/admin/products?status=proposed", {
+      headers: { Authorization: `Bearer ${adminToken}` },
+    })
+    expect(res.status).toBe(200)
+    const body = (await res.json()) as {
+      items: { title: string; sellerName: string | null; sellerHandle: string | null }[]
+    }
+    expect(body.items).toHaveLength(1)
+    expect(body.items[0].title).toBe("Tecno Spark 20")
+    expect(body.items[0].sellerName).toBe("Ama Shop")
+    expect(body.items[0].sellerHandle).toBe("ama-shop")
+  })
+})
+
 describe("POST /admin/products/:id/approve", () => {
   it("sets product status to published", async () => {
     const { app, adminToken, productId } = await adminProductApp()

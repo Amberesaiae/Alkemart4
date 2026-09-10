@@ -8,6 +8,8 @@ import type { AppEnv } from "../../context"
 import { primaryDb } from "../../db"
 import { parseEnv } from "../../env"
 import { requireAdmin } from "../../middleware/auth"
+import { runPaymentIntentExpiry } from "../../payment-intent-expiry"
+import { runNotificationDispatch } from "../../notifications-dispatch"
 
 const RotateDemoPasswordsSchema = z.object({
   adminPassword: z.string().min(10).optional(),
@@ -37,12 +39,49 @@ export const adminMigrate = new Hono<AppEnv>()
     await db.execute(
       sql`ALTER TABLE products ADD COLUMN IF NOT EXISTS created_at timestamptz NOT NULL DEFAULT now()`,
     )
+    await db.execute(sql`ALTER TABLE sellers ADD COLUMN IF NOT EXISTS description text`)
+    await db.execute(sql`ALTER TABLE sellers ADD COLUMN IF NOT EXISTS logo text`)
+    await db.execute(sql`ALTER TABLE sellers ADD COLUMN IF NOT EXISTS banner text`)
+    await db.execute(sql`ALTER TABLE sellers ADD COLUMN IF NOT EXISTS metadata jsonb`)
+    await db.execute(sql`ALTER TABLE sellers ADD COLUMN IF NOT EXISTS created_at timestamptz NOT NULL DEFAULT now()`)
+    await db.execute(sql`CREATE TABLE IF NOT EXISTS admin_actions (id text PRIMARY KEY, admin_user_id text NOT NULL REFERENCES users(id), action text NOT NULL, target_type text NOT NULL, target_id text NOT NULL, detail jsonb, created_at timestamptz NOT NULL DEFAULT now())`)
+    await db.execute(sql`CREATE TABLE IF NOT EXISTS shop_views (seller_id text NOT NULL REFERENCES sellers(id), product_id text REFERENCES products(id), day date NOT NULL, views integer NOT NULL DEFAULT 0)`)
+    await db.execute(sql`CREATE UNIQUE INDEX IF NOT EXISTS shop_views_product_day_uidx ON shop_views (seller_id, product_id, day)`)
+    await db.execute(sql`CREATE UNIQUE INDEX IF NOT EXISTS shop_views_shop_day_uidx ON shop_views (seller_id, day) WHERE product_id IS NULL`)
+    await db.execute(sql`DO $$ BEGIN CREATE TYPE appeal_status AS ENUM('open', 'closed'); EXCEPTION WHEN duplicate_object THEN NULL; END $$`)
+    await db.execute(sql`DO $$ BEGIN CREATE TYPE appeal_decision AS ENUM('reopened', 'upheld'); EXCEPTION WHEN duplicate_object THEN NULL; END $$`)
+    await db.execute(sql`CREATE TABLE IF NOT EXISTS moderation_appeals (id text PRIMARY KEY, product_id text NOT NULL REFERENCES products(id), seller_id text NOT NULL REFERENCES sellers(id), message text NOT NULL, status appeal_status NOT NULL DEFAULT 'open', decision appeal_decision, response text, created_at timestamptz NOT NULL DEFAULT now(), responded_at timestamptz)`)
+    await db.execute(sql`DO $$ BEGIN CREATE TYPE seller_availability AS ENUM('open', 'paused'); EXCEPTION WHEN duplicate_object THEN NULL; END $$`)
+    await db.execute(sql`ALTER TABLE sellers ADD COLUMN IF NOT EXISTS availability seller_availability NOT NULL DEFAULT 'open'`)
+    await db.execute(sql`ALTER TABLE sellers ADD COLUMN IF NOT EXISTS paused_until timestamptz`)
+    await db.execute(sql`ALTER TABLE sellers ADD COLUMN IF NOT EXISTS pause_note text`)
+    await db.execute(sql`CREATE TABLE IF NOT EXISTS shop_policy_versions (id text PRIMARY KEY, seller_id text NOT NULL REFERENCES sellers(id), version integer NOT NULL, body jsonb NOT NULL, effective_from timestamptz NOT NULL DEFAULT now())`)
+    await db.execute(sql`CREATE UNIQUE INDEX IF NOT EXISTS shop_policy_versions_seller_version_uidx ON shop_policy_versions (seller_id, version)`)
+    await db.execute(sql`CREATE TABLE IF NOT EXISTS shop_featured (seller_id text NOT NULL REFERENCES sellers(id), product_id text NOT NULL REFERENCES products(id), rank integer NOT NULL, created_at timestamptz NOT NULL DEFAULT now())`)
+    await db.execute(sql`CREATE UNIQUE INDEX IF NOT EXISTS shop_featured_seller_product_uidx ON shop_featured (seller_id, product_id)`)
+    await db.execute(sql`CREATE UNIQUE INDEX IF NOT EXISTS shop_featured_seller_rank_uidx ON shop_featured (seller_id, rank)`)
+    await db.execute(sql`DO $$ BEGIN CREATE TYPE notification_status AS ENUM('pending', 'sent', 'failed'); EXCEPTION WHEN duplicate_object THEN NULL; END $$`)
+    await db.execute(sql`CREATE TABLE IF NOT EXISTS notifications (id text PRIMARY KEY, key text NOT NULL UNIQUE, channel text NOT NULL DEFAULT 'sms', recipient text NOT NULL, body text NOT NULL, status notification_status NOT NULL DEFAULT 'pending', attempts integer NOT NULL DEFAULT 0, last_error text, created_at timestamptz NOT NULL DEFAULT now(), sent_at timestamptz)`)
     return c.json({
       ok: true,
       applied: [
         "payment_intents.shipping_address",
         "products.image_url",
         "products.created_at",
+        "sellers.description",
+        "sellers.logo",
+        "sellers.banner",
+        "sellers.metadata",
+        "sellers.created_at",
+        "admin_actions",
+        "shop_views",
+        "moderation_appeals",
+        "sellers.availability",
+        "sellers.paused_until",
+        "sellers.pause_note",
+        "shop_policy_versions",
+        "shop_featured",
+        "notifications",
       ],
       note: "Use packages/db drizzle migrate when direct DATABASE_URL is available",
     })
@@ -113,4 +152,21 @@ export const adminMigrate = new Hono<AppEnv>()
       applied,
       note: "Update docs/DEMO-ACCOUNTS.md and any CI secrets. Old sessions remain until JWT expiry.",
     })
+  })
+  /**
+   * Free-tier workaround when Workers cron slots are exhausted (API 10072).
+   * Same job as the hourly `[triggers]` cron — call from an external scheduler
+   * with an admin JWT until Workers Paid or a cron slot is freed.
+   */
+  .post("/expire-payment-intents", async (c) => {
+    const expired = await runPaymentIntentExpiry(null, c.env, null)
+    return c.json({ ok: true, expired })
+  })
+  /**
+   * Same job as the cron sender — external scheduler with an admin JWT
+   * when Workers cron slots are exhausted. Sends due fulfillment SMS.
+   */
+  .post("/send-notifications", async (c) => {
+    const result = await runNotificationDispatch(null, c.env, null)
+    return c.json({ ok: true, ...result })
   })

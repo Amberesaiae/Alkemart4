@@ -23,6 +23,7 @@ import {
 } from "@alkemart/domain"
 import { eq } from "drizzle-orm"
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js"
+import { flagCatalogProduct, flaggingContext, type ProductFlag } from "./moderation-flags"
 import type {
   CatalogOffer,
   CatalogProduct,
@@ -48,7 +49,13 @@ export type CatalogListDto = {
 }
 
 export type SellerShopDto = {
-  seller: { id: string; handle: string; name: string }
+  seller: {
+    id: string
+    handle: string
+    name: string
+    availability: { state: "open" | "paused"; pausedUntil: string | null; note: string | null }
+  }
+  featuredProductIds: string[]
   items: ProductCardDto[]
 }
 
@@ -72,6 +79,7 @@ export type VendorProductDto = {
     status: ProductStatus
     primaryCategoryId: string
     sellerId: string | null
+    imageUrl: string | null
   }
   variant: {
     id: string
@@ -162,6 +170,7 @@ export interface CatalogRepository {
   proposeVendorProduct(sellerId: string, productId: string): Promise<VendorProductDto | null>
   listVendorProducts(sellerId: string): Promise<VendorProductDto[]>
   listAdminProducts(status?: ProductStatus): Promise<AdminProductDto[]>
+  listAdminProductsWithFlags(status?: ProductStatus): Promise<(AdminProductDto & { flags: ProductFlag[] })[]>
   moderateProduct(
     productId: string,
     action: AdminProductModerationAction,
@@ -207,6 +216,7 @@ function toVendorProductDto(
       status: product.status,
       primaryCategoryId: product.primaryCategoryId,
       sellerId: product.sellerId,
+      imageUrl: product.imageUrl ?? null,
     },
     variant: {
       id: variant.id,
@@ -442,7 +452,17 @@ export function getSellerShopFrom(data: CatalogSnapshot, handle: string): Seller
   const offersForSeller = sellablePeerOffers(data, (o) => o.sellerId === seller.id)
   const productIds = new Set(offersForSeller.keys())
   return {
-    seller: { id: seller.id, handle: seller.handle, name: seller.name },
+    seller: {
+      id: seller.id,
+      handle: seller.handle,
+      name: seller.name,
+      availability: {
+        state: seller.availability === "paused" ? "paused" : "open",
+        pausedUntil: seller.pausedUntil,
+        note: seller.pauseNote,
+      },
+    },
+    featuredProductIds: [],
     items: cardsFor(
       data.products.filter((p) => productIds.has(p.id)),
       data,
@@ -544,11 +564,22 @@ export class InMemoryCatalogRepository implements CatalogRepository {
     }
     if (patch.title !== undefined) owned.product.title = patch.title
     if (patch.description !== undefined) owned.product.description = patch.description
+    if (patch.imageUrl !== undefined) owned.product.imageUrl = patch.imageUrl
     if (patch.sku !== undefined) owned.variant.sku = patch.sku
     if (patch.variantTitle !== undefined) owned.variant.title = patch.variantTitle
     if (patch.pricePesewas !== undefined) owned.offer.pricePesewas = patch.pricePesewas
     if (patch.onHand !== undefined) owned.offer.onHand = patch.onHand
     if (patch.active !== undefined) owned.offer.active = patch.active
+    // Content edits on a live listing send it back for re-review.
+    if (
+      owned.product.status === "published" &&
+      (patch.title !== undefined ||
+        patch.description !== undefined ||
+        patch.primaryCategoryId !== undefined ||
+        patch.imageUrl !== undefined)
+    ) {
+      owned.product.status = "proposed"
+    }
     return toVendorProductDto(owned.product, owned.variant, owned.offer)
   }
 
@@ -582,6 +613,41 @@ export class InMemoryCatalogRepository implements CatalogRepository {
       .sort((a, b) => a.title.localeCompare(b.title))
   }
 
+  async listAdminProductsWithFlags(status?: ProductStatus) {
+    const ctx = flaggingContext(
+      this.data.products.map((p) => ({
+        id: p.id,
+        title: p.title,
+        status: p.status,
+        primaryCategoryId: p.primaryCategoryId,
+        sellerId: p.sellerId,
+      })),
+      this.data.offers.map((o) => ({
+        productId: o.productId,
+        pricePesewas: o.pricePesewas,
+        onHand: o.onHand,
+        active: o.active,
+      })),
+    )
+    return this.data.products
+      .filter((p) => (status ? p.status === status : true))
+      .map((p) => ({
+        ...toAdminProductDto(p),
+        flags: flagCatalogProduct(
+          {
+            id: p.id,
+            title: p.title,
+            description: p.description,
+            imageUrl: p.imageUrl,
+            primaryCategoryId: p.primaryCategoryId,
+            sellerId: p.sellerId,
+          },
+          ctx,
+        ),
+      }))
+      .sort((a, b) => b.flags.length - a.flags.length || a.title.localeCompare(b.title))
+  }
+
   async moderateProduct(
     productId: string,
     action: AdminProductModerationAction,
@@ -595,19 +661,19 @@ export class InMemoryCatalogRepository implements CatalogRepository {
 
 export class PostgresCatalogRepository implements CatalogRepository {
   /**
-   * `db` is the (possibly cached) catalog read binding; `writeDb` is the primary
-   * binding used for mutations and their read-after-write reads. Hyperdrive query
-   * caching on the catalog binding can serve a pre-write snapshot, which previously
-   * made createVendorProduct's read-back observe stale rows (live 500s).
+   * `db` is the (possibly cached) catalog read binding; `writeDb` is required —
+   * the primary binding for mutations and their read-after-write reads. Hyperdrive
+   * query caching on the catalog binding can serve a pre-write snapshot, which
+   * previously made createVendorProduct's read-back observe stale rows (live 500s).
    * See ACID-DATAFLOW.md: money/stock/RYW ops must use HYPERDRIVE_PRIMARY.
    */
   constructor(
     private readonly db: PostgresJsDatabase,
-    private readonly writeDb?: PostgresJsDatabase,
+    private readonly writeDb: PostgresJsDatabase,
   ) {}
 
   private get wdb(): PostgresJsDatabase {
-    return this.writeDb ?? this.db
+    return this.writeDb
   }
 
   private async load(db: PostgresJsDatabase = this.db): Promise<CatalogSnapshot> {
@@ -647,6 +713,9 @@ export class PostgresCatalogRepository implements CatalogRepository {
         status: r.status,
         commissionBps: r.commissionBps,
         deliveryFeePesewas: toBigInt(r.deliveryFeePesewas),
+        availability: r.availability === "paused" ? ("paused" as const) : ("open" as const),
+        pausedUntil: r.pausedUntil ? r.pausedUntil.toISOString() : null,
+        pauseNote: r.pauseNote ?? null,
       })),
       products: productRows.map((r) => ({
         id: r.id,
@@ -820,6 +889,18 @@ export class PostgresCatalogRepository implements CatalogRepository {
       if (Object.keys(offerPatch).length > 0) {
         await tx.update(offers).set(offerPatch).where(eq(offers.id, owned.offer.id))
       }
+
+      // Content edits on a live listing send it back for re-review.
+      // Price/stock-only edits stay live.
+      if (
+        owned.product.status === "published" &&
+        (patch.title !== undefined ||
+          patch.description !== undefined ||
+          patch.primaryCategoryId !== undefined ||
+          patch.imageUrl !== undefined)
+      ) {
+        await tx.update(products).set({ status: "proposed" }).where(eq(products.id, productId))
+      }
     })
     invalidateSnapshot(this.wdb, this.db)
     return this.loadOwnedVendorProduct(sellerId, productId, this.wdb)
@@ -857,6 +938,42 @@ export class PostgresCatalogRepository implements CatalogRepository {
       .filter((p) => (status ? p.status === status : true))
       .map(toAdminProductDto)
       .sort((a, b) => a.title.localeCompare(b.title))
+  }
+
+  async listAdminProductsWithFlags(status?: ProductStatus) {
+    const data = await this.load()
+    const ctx = flaggingContext(
+      data.products.map((p) => ({
+        id: p.id,
+        title: p.title,
+        status: p.status,
+        primaryCategoryId: p.primaryCategoryId,
+        sellerId: p.sellerId,
+      })),
+      data.offers.map((o) => ({
+        productId: o.productId,
+        pricePesewas: toBigInt(o.pricePesewas),
+        onHand: o.onHand,
+        active: o.active,
+      })),
+    )
+    return data.products
+      .filter((p) => (status ? p.status === status : true))
+      .map((p) => ({
+        ...toAdminProductDto(p),
+        flags: flagCatalogProduct(
+          {
+            id: p.id,
+            title: p.title,
+            description: p.description,
+            imageUrl: p.imageUrl,
+            primaryCategoryId: p.primaryCategoryId,
+            sellerId: p.sellerId,
+          },
+          ctx,
+        ),
+      }))
+      .sort((a, b) => b.flags.length - a.flags.length || a.title.localeCompare(b.title))
   }
 
   async moderateProduct(
