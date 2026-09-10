@@ -80,6 +80,16 @@ Omit Pages checks by exporting `SKIP_PAGES=1` if the acid script supports it (or
 
 See `docs/DEMO-ACCOUNTS.md` (`buyer@` / `vendor@` / `admin@alkemart.test`). Same DB as live Hyperdrive unless you point Hyperdrive elsewhere.
 
+## Media uploads (R2 + Images)
+
+`POST /vendor/uploads` (seller JWT, multipart `files`, optional `kind`) and
+public `GET /media/*` work locally with zero setup: `wrangler dev` emulates
+the `MEDIA_BUCKET` R2 bucket from `wrangler.toml`, and the `IMAGES` binding
+is a local stub — so local uploads store the original file only. WebP
+variants (≤1600px + 400px thumb) are derived automatically once deployed with
+Images enabled. Production needs the bucket created once:
+`wrangler r2 bucket create alkemart-media` (see `DEPLOYMENT.md`).
+
 ## Common failures
 
 | Symptom | Fix |

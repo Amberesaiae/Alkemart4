@@ -21,6 +21,15 @@ Payouts are **admin-triggered**, not vendor self-serve.
 | GET | `/vendor/orders` / `/:id` | Seller-scoped |
 | POST | `/vendor/orders/:id/ship` | `placed` → `shipped` |
 | POST | `/vendor/orders/:id/deliver` | `shipped` → `delivered` |
+| GET | `/vendor/sellers/me` | Profile + `storefront` block (tagline/announcement/SEO, `announcementActive`) |
+| PATCH | `/vendor/sellers/me/storefront` | `{ tagline?, bio?, announcement?|null, seoDescription? }` → merged into `sellers.metadata.storefront`; URL-free + scam-phrase + `endsAt > startsAt` validation; `bio` writes seller description |
+| POST | `/vendor/sellers/me/pause` | `{ note?, until? }` → `availability=paused`; future `until` only |
+| POST | `/vendor/sellers/me/unpause` | Back to `availability=open`, clears note/until |
+| GET/POST | `/vendor/sellers/me/policies` | `{ shipping?, returnsDays?, warranty? }` append-only versions; current + history |
+| PATCH | `/vendor/sellers/me/display` | `{ categoryOrder?, featuredCategoryId?, stockMode? }` — category ids validated against shared taxonomy |
+| PATCH | `/vendor/sellers/me/contact` | `{ phone? (E.164), hours? ({days, open, close}), social? }` — social URLs domain-allowlisted (instagram/facebook/tiktok/wa.me) |
+| GET/PUT | `/vendor/sellers/me/featured` | Ranked shelf, ≤ 8 own products; replace-wholesale, order = rank |
+| POST | `/vendor/orders/:id/ship` · `/deliver` | Status flip + fire-and-forget buyer SMS enqueue (never blocks) |
 
 ## UI routes (`apps/backend/apps/ghana-vendor`)
 
@@ -31,6 +40,25 @@ Payouts are **admin-triggered**, not vendor self-serve.
 | `/products`, `/products/$id`, `/quick-sell` | Yes |
 | `/orders`, `/orders/$id` | Yes |
 | `/settings` | Ghana setup |
+| `/store` | Branding/announcement/SEO + availability + policies + display + featured + contact editors + live `/shops/:handle` preview; explicit Publish |
+| `/reviews` | Reserved skeleton (buyer reviews ship separately) |
+
+## Fulfillment SMS
+
+Ship/deliver flips enqueue one outbox row (`notifications`, unique key
+`${orderId}:${status}`) with the buyer's E.164 phone from the payment
+intent. The cron + `POST /admin/migrate/send-notifications` sender claims
+due rows (`FOR UPDATE SKIP LOCKED`), sends via Africa's Talking, and marks
+sent/failed with retry to 5 attempts. No phone → no row. Provider outage
+never blocks the status write; re-runs never double-text.
+
+## Pause mode
+
+`POST /store/checkout` rejects carts containing a paused seller's offers with
+409 (server-enforced, never button-only). Paused shops keep listings visible:
+`/shops/:handle` shows the vendor note + return date, and the PDP disables
+add-to-cart with the pause reason. Policies are append-only
+(`shop_policy_versions`); the highest version is in force.
 | `/returns` | **Hidden** when Workers API |
 
 ## ACID checks

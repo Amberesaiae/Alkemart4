@@ -35,12 +35,30 @@ Bindings in `apps/api/wrangler.toml`:
 - `HYPERDRIVE` — catalog / cached reads  
 - `HYPERDRIVE_PRIMARY` — auth, checkout, stock, payouts  
 - `CATALOG_KV` — catalog cache + webhook dedup  
+- `MEDIA_BUCKET` (R2 `alkemart-media`) — product / logo / banner uploads  
+- `IMAGES` — upload conversion pipeline (≤1600px WebP + 400px thumb)
+
+One-time media setup (needs `wrangler login`):
+
+```bash
+cd apps/api
+npx wrangler r2 bucket create alkemart-media
+# Images binding needs no setup beyond wrangler.toml — enable Images on the
+# account if the dashboard prompts. Without it uploads still work but store
+# the original file only (no WebP variants).
+npx wrangler deploy
+```
+
+Media endpoints: `POST /vendor/uploads` (seller auth, multipart `files`,
+optional `kind` in products|logos|banners) → `{ files: [{ url, variants }] }`;
+public `GET /media/*` with immutable caching.
 
 Secrets (Wrangler):
 
 - `JWT_SECRET` (≥32 chars)  
 - `PAYSTACK_SECRET_KEY`  
 - Optional vars: `ALLOWED_ORIGINS` (comma-separated extra CORS origins), `ENVIRONMENT`
+- Optional SMS (fulfillment notifications): `AT_USERNAME` + `AT_API_KEY` (Africa's Talking; sender ID via `AT_SENDER_ID`, NCA-registered before prod). Absent → log-only stub; dispatch via cron or `POST /admin/migrate/send-notifications`
 
 Webhook URL: `https://<worker>/hooks/paystack`
 

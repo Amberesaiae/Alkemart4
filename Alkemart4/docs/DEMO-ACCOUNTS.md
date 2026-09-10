@@ -20,7 +20,7 @@ API: `https://alkemart-api.glean-circular-passport.workers.dev`
 
 All three bake `VITE_ALKEMART_API_URL=https://alkemart-api.glean-circular-passport.workers.dev`.
 
-Production storefront builds **do not require** `VITE_MEDUSA_*`. Medusa SDK remains in the bundle for lab dual-path only; with Workers URL set and no Medusa env, Medusa clients throw if accidentally called.
+Production storefront builds **do not require** `VITE_MEDUSA_*`. Medusa is **quarantined**: `getMedusaClient()` throws unless `VITE_ALLOW_MEDUSA_LAB=1` and a Medusa backend URL are both set. Production Vite aliases `@medusajs/js-sdk` to `medusa-stub.ts`.
 
 ### Workers checkout note
 
@@ -34,7 +34,7 @@ Do **not** use `archive/workers-shell-*-sludge` — those were mistaken generic 
 - **Vendor:** `POST /vendor/auth/register` `{ email, password, sellerName, sellerHandle }` (pending until admin approves).
 - **Admin:** provisioned only. Login via `POST /admin/auth/login`.
 
-Rotate these passwords before any public launch:
+Rotate these passwords before any public launch (and after enabling edge WAF — see `docs/ops/cloudflare-waf-checklist.md`):
 
 ```bash
 # Admin JWT required. Supply only the passwords you want to change (min 10 chars).
@@ -45,3 +45,14 @@ curl -X POST "$API/admin/migrate/rotate-demo-passwords" \
 ```
 
 Then update this file and any CI secrets. Do not commit real production passwords.
+
+### Free-tier payment-intent expiry
+
+When Workers cron slots are full, run the same job via admin:
+
+```bash
+curl -X POST "$API/admin/migrate/expire-payment-intents" \
+  -H "Authorization: Bearer $ADMIN_JWT"
+```
+
+Schedule hourly until native `[triggers]` cron is active.

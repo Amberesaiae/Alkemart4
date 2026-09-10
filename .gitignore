@@ -55,3 +55,6 @@ Alkemart4/supabase/.temp/
 
 # Local agent/session scratch
 .freebuff/
+
+# Agent session transcripts (may contain live-testing credentials)
+session-ses_*.md

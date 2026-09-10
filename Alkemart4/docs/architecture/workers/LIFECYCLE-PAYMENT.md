@@ -15,19 +15,19 @@ Terminals also include `failed | expired | refunded` (refund API not exposed yet
 
 ### MoMo
 
-1. Create intent `initiated` → `pending`  
-2. **`reserveStock`**  
-3. Paystack charge  
+1. Create intent `initiated` (Paystack reference set **before** any Paystack HTTP)  
+2. **`reserveStock`** (before charge — never debit without a hold)  
+3. Mark `pending` → Paystack charge  
 4. Confirm via **webhook** (`POST /hooks/paystack`) and/or **status poll** (`GET /store/checkout/status` → verify)  
-5. Fail path: mark failed + **`releaseReservations`**
+5. Charge fail / abandon: **`releaseReservations`** + mark `failed` / `expired`
 
 ### Card
 
-1. Create intent `initiated` → `pending`  
-2. **Must `reserveStock`** (parity with MoMo)  
-3. Paystack initialize → authorization URL  
+1. Create intent `initiated`  
+2. **`reserveStock`** (before initialize — same ordering as MoMo)  
+3. Mark `pending` → Paystack initialize → authorization URL  
 4. Callback / webhook / status verify → `confirmPaidOrder`  
-5. Fail / abandon → release
+5. Init fail / abandon: **`releaseReservations`** + mark `failed` / `expired`
 
 ## Confirm rules
 

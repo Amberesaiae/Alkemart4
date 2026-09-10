@@ -26,7 +26,8 @@ Doctrine: [`AGNOSTIC-APPROACH.md`](./AGNOSTIC-APPROACH.md). This file is the **d
 | Double confirm (webhook + poll) | `confirmPaidOrder` pre-checks, then the `order_groups.payment_intent_id` unique constraint arbitrates; the loser re-fetches and returns the winner's group (200, not 500) |
 | Double payout | eligibility re-validated inside the `createPayout` tx; `payout_lines.order_id` unique is the final arbiter; a ledger failure after a successful transfer returns 502 with the transfer reference for reconciliation |
 | Charge without ledger row | checkout creates the intent row (`initiated`, Paystack reference) **before** calling Paystack; Paystack errors mark it `failed` |
-| Abandoned reservations | hourly cron (`[triggers]` in wrangler.toml → `runPaymentIntentExpiry`) flips stale pending momo/card intents (>60 min) to `expired` and releases stock |
+| Charge/redirect without stock | MoMo and card **`reserveStock` before** Paystack charge/initialize; charge/init failure releases the hold and marks the intent `failed` |
+| Abandoned reservations | hourly cron (`[triggers]` in wrangler.toml → `runPaymentIntentExpiry`) flips stale pending momo/card intents (>60 min) to `expired` and releases stock. Free-tier fallback: `POST /admin/migrate/expire-payment-intents` (admin JWT) when cron slots are exhausted (API 10072) |
 | Connection lifecycle | postgres clients are created **per request** — Workers forbids reusing request-context sockets across requests; over Hyperdrive the per-request cost is a local handshake, not a new Postgres connection |
 | Read amplification | full-catalog snapshot cache (5 s TTL, per request instance) for public reads; invalidation on catalog mutations; `quote`/cart views use one batched join instead of per-item queries |
 
@@ -73,11 +74,11 @@ Buyer UI ──► POST /store/checkout
                │
                ├─ COD ──► confirmPaidOrder (tx)
                ├─ MoMo ──► create intent → reserveStock → Paystack charge
-               │              │
+               │              │              (release + fail if charge errors)
                │              ├─ POST /hooks/paystack ──► confirm or release
                │              └─ GET /store/checkout/status ──► verify + confirm
-               └─ Card ──► create intent → (must reserve) → Paystack initialize
-                              │
+               └─ Card ──► create intent → reserveStock → Paystack initialize
+                              │              (release + fail if init errors)
                               └─ callback / webhook / status poll → confirm
 ```
 
@@ -94,6 +95,7 @@ Buyer UI ──► POST /store/checkout
 
 - Returns table unused; no Workers return API  
 - Address book not persisted (shipping on intent only)  
-- Wishlist Medusa-era paths  
-- Card and MoMo both `reserveStock` while pending  
-- No automatic expiry job for abandoned pending intents yet  
+- Wishlist / return UI still imports Medusa helpers — fail closed unless `VITE_ALLOW_MEDUSA_LAB=1` (quarantined; not Workers SoR)  
+- Card and MoMo both `reserveStock` before Paystack while pending  
+- Expiry handler ships; Workers Free may need admin-triggered `expire-payment-intents` until a cron slot or Paid plan is available  
+
