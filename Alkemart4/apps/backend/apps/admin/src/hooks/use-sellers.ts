@@ -25,10 +25,10 @@ export function useSellers() {
     mutationFn: ({ id, reason }: { id: string; reason: string }) => sellerQueue.suspend(id, reason),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["sellers-queue"] })
-      toast.success("Seller suspended")
+      toast.success("Application rejected")
     },
     onError: (err) => {
-      toast.error(err instanceof Error ? err.message : "Failed to suspend seller")
+      toast.error(err instanceof Error ? err.message : "Failed to reject application")
     },
   })
 

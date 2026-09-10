@@ -6,6 +6,6 @@ export const isWorkersApi = Boolean(
 )
 
 /** Default landing route after login / root redirect. */
-export const homePath = isWorkersApi ? "/sellers" : "/analytics"
+export const homePath = "/analytics"
 
 export { currencySymbol }

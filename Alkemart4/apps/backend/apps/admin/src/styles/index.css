@@ -1,9 +1,41 @@
 @import "tailwindcss";
 @source "../";
+/* Shared primitives live outside this app; without this their
+   Tailwind utilities are silently never generated. */
+@source "../../../../../../packages/ui/src";
 
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
+  --color-tone-neutral: var(--tone-neutral);
+  --color-tone-neutral-fg: var(--tone-neutral-fg);
+  --color-tone-neutral-soft: var(--tone-neutral-soft);
+  --color-tone-neutral-ink: var(--tone-neutral-ink);
+  --color-tone-brand: var(--tone-brand);
+  --color-tone-brand-fg: var(--tone-brand-fg);
+  --color-tone-brand-soft: var(--tone-brand-soft);
+  --color-tone-brand-ink: var(--tone-brand-ink);
+  --color-tone-success: var(--tone-success);
+  --color-tone-success-fg: var(--tone-success-fg);
+  --color-tone-success-soft: var(--tone-success-soft);
+  --color-tone-success-ink: var(--tone-success-ink);
+  --color-tone-warning: var(--tone-warning);
+  --color-tone-warning-fg: var(--tone-warning-fg);
+  --color-tone-warning-soft: var(--tone-warning-soft);
+  --color-tone-warning-ink: var(--tone-warning-ink);
+  --color-tone-danger: var(--tone-danger);
+  --color-tone-danger-fg: var(--tone-danger-fg);
+  --color-tone-danger-soft: var(--tone-danger-soft);
+  --color-tone-danger-ink: var(--tone-danger-ink);
+  --color-tone-info: var(--tone-info);
+  --color-tone-info-fg: var(--tone-info-fg);
+  --color-tone-info-soft: var(--tone-info-soft);
+  --color-tone-info-ink: var(--tone-info-ink);
+  --color-tone-scarce: var(--tone-scarce);
+  --color-tone-scarce-fg: var(--tone-scarce-fg);
+  --color-tone-scarce-soft: var(--tone-scarce-soft);
+  --color-tone-scarce-ink: var(--tone-scarce-ink);
+
   --font-sans: "Montserrat", ui-sans-serif, system-ui, sans-serif;
   --radius-sm: 8px; --radius-md: 12px; --radius-lg: 16px; --radius-xl: 20px;
   --color-background: var(--background);
@@ -19,9 +51,11 @@
   --color-ring: var(--ring);
   --color-ink: var(--ink);
   --color-ink-foreground: #ffffff;
-  --color-success: #178a50;
+  --color-surface-cream: var(--surface-cream);
+  --color-success: #0e7a45;
   --color-success-foreground: #ffffff;
   --color-warning: #e89b00;
+  --color-warning-fg: #8a5a00;
   --color-warning-foreground: #231a05;
   --radius-2xl: 24px;
   --radius-3xl: 32px;
@@ -32,6 +66,45 @@
 }
 
 :root {
+  /* ─── Badge tone ramp — GENERATED, do not hand-edit ───
+   * Regenerate rather than nudging a value: src/lib/__tests__/tone-ramp.test.ts
+   * re-derives every pair from this CSS and fails below WCAG AA (4.5:1).
+   * Values are solved on the ROUNDED hex (not the float) and aimed at
+   * 4.6:1 so rounding can never drop a pair under the floor.
+   *
+   * Soft tints are OPAQUE mixes, never alpha: a bg-x/10 chip disappears
+   * over product photography and shifts with whatever sits behind it.
+   * Solid fills are the lightest shade of each hue that still holds its
+   * text colour, so a tone stays recognisable as its hue.
+   */
+  --tone-neutral: #817355;
+  --tone-neutral-fg: #ffffff;
+  --tone-neutral-soft: #e7e2d7;
+  --tone-neutral-ink: #6e6248;  /* solid 4.65 · soft 4.64 · card 5.99 */
+  --tone-brand: #febf31;
+  --tone-brand-fg: #231a05;
+  --tone-brand-soft: #fbefd4;
+  --tone-brand-ink: #8f6301;  /* solid 10.41 · soft 4.65 · card 5.31 */
+  --tone-success: #16864e;
+  --tone-success-fg: #ffffff;
+  --tone-success-soft: #dbe8d8;
+  --tone-success-ink: #137343;  /* solid 4.61 · soft 4.65 · card 5.90 */
+  --tone-warning: #e89b00;
+  --tone-warning-fg: #231a05;
+  --tone-warning-soft: #f8eacd;
+  --tone-warning-ink: #8f5f00;  /* solid 7.47 · soft 4.64 · card 5.52 */
+  --tone-danger: #d43e3e;
+  --tone-danger-fg: #ffffff;
+  --tone-danger-soft: #f6ded6;
+  --tone-danger-ink: #bd2a2a;  /* solid 4.61 · soft 4.63 · card 5.95 */
+  --tone-info: #297da4;
+  --tone-info-fg: #ffffff;
+  --tone-info-soft: #dee8e7;
+  --tone-info-ink: #246c8e;  /* solid 4.60 · soft 4.65 · card 5.82 */
+  --tone-scarce: #c2531e;
+  --tone-scarce-fg: #ffffff;
+  --tone-scarce-soft: #efded0;
+  --tone-scarce-ink: #a44619;  /* solid 4.62 · soft 4.62 · card 6.05 */
   color-scheme: light;
   --primary: #FEBF31;
   --primary-foreground: #231a05;
@@ -60,3 +133,7 @@ body {
 #root { min-height: 100vh; }
 :focus { outline: none; }
 :focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; border-radius: 4px; }
+
+.surface-cream {
+  background-color: var(--surface-cream);
+}

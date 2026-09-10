@@ -1,10 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router"
 import { useState } from "react"
+import { useQueryClient } from "@tanstack/react-query"
 import { useProducts } from "../../hooks/use-products"
-import type { ProposedProduct } from "../../lib/api"
-import { Button, Badge, Modal, Textarea, Skeleton, EmptyState } from "@workspace/ui"
+import { moderation, type ProposedProduct } from "../../lib/api"
+import { Button, Badge, Modal, Textarea, Skeleton, EmptyState, Checkbox } from "@workspace/ui"
 import { PageShell } from "../../components/page-shell"
 import { PageHeader } from "../../components/page-header"
+import { toast } from "sonner"
 
 export const Route = createFileRoute("/_authenticated/product-moderation")({
   component: ProductModerationPage,
@@ -19,21 +21,26 @@ function ConfirmDialog({ open, onOpenChange, title, onConfirm, confirmLabel = "C
   disabled?: boolean
 }) {
   return (
-    <Modal isOpen={open} onClose={() => onOpenChange(false)}>
-      <div className="p-6">
-        <h3 className="text-lg font-semibold">{title}</h3>
-        <p className="text-sm text-muted-foreground mt-2">This action cannot be undone.</p>
-        <div className="flex justify-end gap-3 mt-6">
+    <Modal
+      isOpen={open}
+      onClose={() => onOpenChange(false)}
+      title={title}
+      className="max-w-md"
+      footer={
+        <>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={disabled}>Cancel</Button>
           <Button onClick={onConfirm} disabled={disabled}>{confirmLabel}</Button>
-        </div>
-      </div>
+        </>
+      }
+    >
+      <p className="text-sm text-muted-foreground">The listing will go live on the storefront immediately.</p>
     </Modal>
   )
 }
 
 function ProductModerationPage() {
   const { products, isLoading, isError, refetch, confirm, reject, requestChanges, isConfirming, isRejecting, isRequestingChanges } = useProducts()
+  const queryClient = useQueryClient()
 
   const [modalState, setModalState] = useState<{
     isOpen: boolean;
@@ -48,6 +55,42 @@ function ProductModerationPage() {
 
   const [error, setError] = useState<string | null>(null)
   const [reason, setReason] = useState("")
+
+  // Bulk selection + execution (raw moderation fns: single summary toast, not per-item)
+  const [selected, setSelected] = useState<string[]>([])
+  const [bulkConfirmOpen, setBulkConfirmOpen] = useState(false)
+  const [bulkRejectOpen, setBulkRejectOpen] = useState(false)
+  const [bulkReason, setBulkReason] = useState("")
+  const [bulkWorking, setBulkWorking] = useState(false)
+  const allSelected = products.length > 0 && selected.length === products.length
+  const toggleOne = (id: string) =>
+    setSelected(s => (s.includes(id) ? s.filter(x => x !== id) : [...s, id]))
+  const toggleAll = () => setSelected(s => (s.length === products.length ? [] : products.map(p => p.id)))
+
+  const runBulk = async (type: "approve" | "reject", ids: string[], bulkReasonText: string) => {
+    setBulkWorking(true)
+    const byId = new Map(products.map(p => [p.id, p.title || "Untitled"]))
+    const failures: string[] = []
+    for (const id of ids) {
+      try {
+        if (type === "approve") await moderation.confirmProduct(id)
+        else await moderation.rejectProduct(id, bulkReasonText)
+      } catch {
+        failures.push(byId.get(id) ?? id)
+      }
+    }
+    setBulkWorking(false)
+    setSelected([])
+    setBulkConfirmOpen(false)
+    setBulkRejectOpen(false)
+    setBulkReason("")
+    queryClient.invalidateQueries({ queryKey: ["products-queue"] })
+    if (failures.length === 0) {
+      toast.success(type === "approve" ? `Approved ${ids.length} products` : `Rejected ${ids.length} products`)
+    } else {
+      setError(`Some items did not ${type === "approve" ? "approve" : "reject"}: ${failures.join("; ")}`)
+    }
+  }
 
   const handleConfirm = async () => {
     if (!confirmModal.productId) return
@@ -126,9 +169,33 @@ function ProductModerationPage() {
       {products.length === 0 ? (
         <EmptyState title="All caught up" description="No products awaiting review." />
       ) : (
-        <div className="grid grid-cols-1 gap-4">
-          {products.map((p: ProposedProduct) => (
-            <div key={p.id} className="flex flex-col sm:flex-row gap-6 p-6 border rounded-xl bg-card shadow-sm">
+        <>
+          <div className="flex items-center gap-3 mb-4">
+            <Checkbox
+              checked={allSelected}
+              onCheckedChange={() => toggleAll()}
+              aria-label={allSelected ? "Deselect all products" : "Select all products"}
+            />
+            <span className="text-sm text-muted-foreground" aria-live="polite">
+              {selected.length === 0
+                ? `${products.length} awaiting review`
+                : `${selected.length} of ${products.length} selected`}
+            </span>
+            {selected.length > 0 && (
+              <Button variant="ghost" size="sm" onClick={() => setSelected([])}>
+                Clear
+              </Button>
+            )}
+          </div>
+          <div className="grid grid-cols-1 gap-4">
+            {products.map((p: ProposedProduct) => (
+              <div key={p.id} className="flex flex-col sm:flex-row gap-6 p-6 border rounded-xl bg-card shadow-sm">
+                <Checkbox
+                  checked={selected.includes(p.id)}
+                  onCheckedChange={() => toggleOne(p.id)}
+                  aria-label={`Select ${p.title || "product"} for bulk action`}
+                  className="mt-1 shrink-0"
+                />
               <div className="h-32 w-32 shrink-0 rounded-lg overflow-hidden bg-muted border flex items-center justify-center">
                 {p.thumbnail ? (
                   <img src={p.thumbnail} alt={p.title} className="h-full w-full object-cover" />
@@ -166,6 +233,15 @@ function ProductModerationPage() {
                     Submitted: {new Date(p.created_at).toLocaleDateString()}
                   </p>
                 ) : null}
+                {p.flags && p.flags.length > 0 ? (
+                  <div className="flex flex-wrap gap-1.5 pt-1" aria-label="Auto-check flags">
+                    {p.flags.map(f => (
+                      <Badge key={f.rule} variant="warning" className="text-xs font-semibold">
+                        ⚑ {f.message}
+                      </Badge>
+                    ))}
+                  </div>
+                ) : null}
               </div>
 
               <div className="flex sm:flex-col gap-2 justify-end shrink-0 sm:w-40">
@@ -179,9 +255,36 @@ function ProductModerationPage() {
                   Reject
                 </Button>
               </div>
+              </div>
+            ))}
+          </div>
+
+          {selected.length > 0 && (
+            <div
+              role="toolbar"
+              aria-label="Bulk moderation actions"
+              className="sticky bottom-4 mt-4 flex items-center gap-3 rounded-xl border bg-card p-4 shadow-md"
+            >
+              <span className="text-sm font-semibold" aria-live="polite">
+                {selected.length} selected
+              </span>
+              <div className="flex-1" />
+              <Button variant="outline" size="sm" onClick={() => setSelected([])}>
+                Clear
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => { setBulkReason(""); setBulkRejectOpen(true) }}
+              >
+                Reject selected
+              </Button>
+              <Button size="sm" onClick={() => setBulkConfirmOpen(true)}>
+                Approve selected
+              </Button>
             </div>
-          ))}
-        </div>
+          )}
+        </>
       )}
 
       <ConfirmDialog
@@ -192,6 +295,57 @@ function ProductModerationPage() {
         confirmLabel="Approve"
         disabled={isConfirming}
       />
+
+      <Modal
+        isOpen={bulkConfirmOpen}
+        onClose={() => setBulkConfirmOpen(false)}
+        title={`Approve ${selected.length} products`}
+        className="max-w-md"
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setBulkConfirmOpen(false)} disabled={bulkWorking}>Cancel</Button>
+            <Button onClick={() => runBulk("approve", selected, "")} disabled={bulkWorking}>
+              Approve all
+            </Button>
+          </>
+        }
+      >
+        <p className="text-sm text-muted-foreground">
+          These listings will go live on the storefront immediately.
+        </p>
+      </Modal>
+
+      <Modal
+        isOpen={bulkRejectOpen}
+        onClose={() => { setBulkRejectOpen(false); setBulkReason("") }}
+        title={`Reject ${selected.length} products`}
+        className="max-w-md"
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => { setBulkRejectOpen(false); setBulkReason("") }}>Cancel</Button>
+            <Button
+              variant="destructive"
+              onClick={() => runBulk("reject", selected, bulkReason)}
+              disabled={!bulkReason.trim() || bulkWorking}
+            >
+              Reject all
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            One reason is sent to all selected sellers.
+          </p>
+          <Textarea
+            placeholder="Reason for rejection…"
+            value={bulkReason}
+            onChange={e => setBulkReason(e.target.value)}
+            className="h-32"
+            autoFocus
+          />
+        </div>
+      </Modal>
 
       <Modal isOpen={modalState.isOpen} onClose={() => { setModalState({ isOpen: false, type: null, productId: null }); setError(null) }}
         title={modalState.type === "reject" ? "Reject Product" : "Request Changes"}

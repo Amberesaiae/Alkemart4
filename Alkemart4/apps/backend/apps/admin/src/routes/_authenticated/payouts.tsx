@@ -6,7 +6,7 @@ import { isWorkersApi } from "../../lib/config"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Badge, Button, Skeleton, EmptyState, Modal, Input, Select } from "@workspace/ui"
 import { PageShell } from "../../components/page-shell"
 import { PageHeader } from "../../components/page-header"
-import { Send } from "lucide-react"
+import { PaperPlaneTilt } from "@phosphor-icons/react"
 import { toast } from "sonner"
 
 export const Route = createFileRoute("/_authenticated/payouts")({
@@ -64,8 +64,15 @@ function TriggerPayoutDialog({ isOpen, onClose }: { isOpen: boolean; onClose: ()
 
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
-      <div className="p-6 space-y-5">
-        <h3 className="text-lg font-semibold">Trigger Payout</h3>
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold">Trigger Payout</h3>
+          <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-muted/60 border text-xs">
+            <img src="/momo/mtn.png" alt="MTN" className="h-6 w-6 object-contain rounded-md shadow-2xs" />
+            <img src="/momo/telecel.png" alt="Telecel" className="h-6 w-auto object-contain rounded-md shadow-2xs" />
+            <img src="/momo/airteltigo.png" alt="AT" className="h-6 w-auto object-contain rounded-md bg-white p-0.5 shadow-2xs" />
+          </span>
+        </div>
         <p className="text-sm text-muted-foreground">
           {isWorkersApi
             ? "Pays out all delivered unpaid orders for this seller via Paystack (net of commission)."
@@ -123,11 +130,24 @@ function TriggerPayoutDialog({ isOpen, onClose }: { isOpen: boolean; onClose: ()
         </div>
 
         {selectedSeller && isValid && (
-          <div className="bg-muted/30 rounded-xl p-4 text-sm space-y-1 border">
-            <p className="font-bold">Confirmation</p>
-            <p>Seller: <strong>{selectedSeller.name}</strong></p>
-            {!isWorkersApi && <p>Amount: <strong>GH₵ {amount.toFixed(2)}</strong></p>}
-            {!isWorkersApi && note && <p>Note: {note}</p>}
+          <div className="bg-muted/30 rounded-xl p-4 text-sm space-y-2 border">
+            <p className="font-bold text-foreground">Confirmation</p>
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-muted-foreground">Seller:</span>
+              <span className="font-bold text-foreground">{selectedSeller.name} (@{selectedSeller.handle})</span>
+            </div>
+            {!isWorkersApi && (
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-muted-foreground">Amount:</span>
+                <span className="font-bold text-primary">GH₵ {amount.toFixed(2)}</span>
+              </div>
+            )}
+            {!isWorkersApi && note && (
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-muted-foreground">Note:</span>
+                <span className="text-foreground">{note}</span>
+              </div>
+            )}
           </div>
         )}
 
@@ -139,8 +159,8 @@ function TriggerPayoutDialog({ isOpen, onClose }: { isOpen: boolean; onClose: ()
             onClick={() => trigger.mutate()}
             className="gap-2"
           >
-            <Send className="h-4 w-4" />
-            Send Payout
+            <PaperPlaneTilt className="h-4 w-4" />
+            PaperPlaneTilt Payout
           </Button>
         </div>
       </div>
@@ -159,9 +179,12 @@ function PayoutsPage() {
   })
 
   const payouts = data?.payouts || []
+  const isWorkersLedger = isWorkersApi && payouts.some((p: AdminPayout) => p.netPesewas !== undefined)
 
   const formatAmount = (amount: number, currency: string) =>
     new Intl.NumberFormat("en-US", { style: "currency", currency: currency.toUpperCase() }).format(amount)
+
+  const formatPesewas = (v?: string) => `GH₵ ${((Number(v ?? "0") || 0) / 100).toFixed(2)}`
 
   if (isError) {
     return (
@@ -176,28 +199,37 @@ function PayoutsPage() {
 
   return (
     <PageShell>
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <PageHeader
           title="Payouts"
           description={
             isWorkersApi
-              ? "Trigger seller payouts. History list is not available on Workers yet."
+              ? "Seller payouts ledger — gross, commission, and net per Paystack transfer."
               : "Platform payouts to sellers."
           }
         />
         <Button className="gap-2" onClick={() => setShowTrigger(true)}>
-          <Send className="h-4 w-4" />
+          <PaperPlaneTilt className="h-4 w-4" />
           Trigger Payout
         </Button>
       </div>
 
       <div className="border rounded-xl bg-card">
-        <Table>
+        <Table label="Payouts">
           <caption className="sr-only">Payouts list</caption>
           <TableHeader>
             <TableRow>
               <TableHead>Payout</TableHead>
-              <TableHead>Amount</TableHead>
+              {isWorkersLedger && <TableHead>Seller</TableHead>}
+              {isWorkersLedger ? (
+                <>
+                  <TableHead className="text-right">Gross</TableHead>
+                  <TableHead className="text-right">Commission</TableHead>
+                  <TableHead className="text-right">Net</TableHead>
+                </>
+              ) : (
+                <TableHead className="text-right">Amount</TableHead>
+              )}
               <TableHead>Status</TableHead>
               <TableHead>Date</TableHead>
             </TableRow>
@@ -207,14 +239,21 @@ function PayoutsPage() {
               Array.from({ length: 5 }).map((_, i) => (
                 <TableRow key={i}>
                   <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                  {isWorkersLedger && <TableCell><Skeleton className="h-4 w-28" /></TableCell>}
                   <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                  {isWorkersLedger && (
+                    <>
+                      <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                      <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                    </>
+                  )}
                   <TableCell><Skeleton className="h-4 w-20" /></TableCell>
                   <TableCell><Skeleton className="h-4 w-28" /></TableCell>
                 </TableRow>
               ))
             ) : payouts.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={4}>
+                <TableCell colSpan={isWorkersLedger ? 6 : 4}>
                   <EmptyState
                     title="No payouts yet"
                     description={
@@ -229,7 +268,23 @@ function PayoutsPage() {
               payouts.map((p: AdminPayout) => (
                 <TableRow key={p.id}>
                   <TableCell className="font-medium">#{p.display_id}</TableCell>
-                  <TableCell className="font-medium">{formatAmount(Number(p.amount), p.currency_code)}</TableCell>
+                  {isWorkersLedger && (
+                    <TableCell className="font-medium">
+                      {p.sellerName ?? p.sellerHandle ?? p.sellerId ?? p.account_id}
+                      {p.sellerHandle && (
+                        <span className="block text-xs text-muted-foreground font-mono">@{p.sellerHandle}</span>
+                      )}
+                    </TableCell>
+                  )}
+                  {isWorkersLedger ? (
+                    <>
+                      <TableCell className="text-right tabular-nums">{formatPesewas(p.grossPesewas)}</TableCell>
+                      <TableCell className="text-right tabular-nums">{formatPesewas(p.commissionPesewas)}</TableCell>
+                      <TableCell className="text-right font-bold tabular-nums">{formatPesewas(p.netPesewas)}</TableCell>
+                    </>
+                  ) : (
+                    <TableCell className="text-right font-medium tabular-nums">{formatAmount(Number(p.amount), p.currency_code)}</TableCell>
+                  )}
                   <TableCell><StatusBadge status={p.status} /></TableCell>
                   <TableCell className="text-muted-foreground">{new Date(p.created_at).toLocaleDateString()}</TableCell>
                 </TableRow>
@@ -240,7 +295,7 @@ function PayoutsPage() {
       </div>
 
       <div className="flex justify-between items-center">
-        <span className="text-sm text-muted-foreground">
+        <span className="text-sm text-muted-foreground" aria-live="polite">
           {payouts.length ? `${offset + 1}–${offset + payouts.length}` : "0"} of {data?.count ?? "…"}
         </span>
         <div className="flex gap-2">

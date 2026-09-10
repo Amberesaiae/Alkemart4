@@ -1,4 +1,5 @@
-import { createFileRoute } from "@tanstack/react-router"
+import { createFileRoute, redirect } from "@tanstack/react-router"
+import { isWorkersApi } from "../../lib/config"
 import { useState } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { commissionRates } from "../../lib/api"
@@ -6,10 +7,15 @@ import type { CommissionRate } from "../../lib/api"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Badge, Button, Modal, Skeleton, EmptyState, Input, Switch, Select } from "@workspace/ui"
 import { PageShell } from "../../components/page-shell"
 import { PageHeader } from "../../components/page-header"
-import { Plus, Trash2, Pencil } from "lucide-react"
+import { Plus, Trash, PencilSimple } from "@phosphor-icons/react"
 import { toast } from "sonner"
 
 export const Route = createFileRoute("/_authenticated/commission-rates")({
+  beforeLoad: () => {
+    if (isWorkersApi) {
+      throw redirect({ to: "/unavailable", search: { title: "Commission Rates" } })
+    }
+  },
   component: CommissionRatesPage,
 })
 
@@ -81,16 +87,17 @@ function CommissionRatesPage() {
       </div>
 
       <div className="border rounded-xl bg-card">
-        <Table>
+        <Table label="Commission rates">
+          <caption className="sr-only">Commission rates list</caption>
           <TableHeader>
             <TableRow>
               <TableHead>Name</TableHead>
               <TableHead>Code</TableHead>
               <TableHead>Type</TableHead>
-              <TableHead>Value</TableHead>
+              <TableHead className="text-right">Value</TableHead>
               <TableHead>Default</TableHead>
               <TableHead>Enabled</TableHead>
-              <TableHead className="w-20" />
+              <TableHead className="w-20"><span className="sr-only">Actions</span></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -118,7 +125,7 @@ function CommissionRatesPage() {
                   <TableCell className="font-medium">{rate.name}</TableCell>
                   <TableCell className="font-mono text-xs">{rate.code}</TableCell>
                   <TableCell><TypeBadge type={rate.type} /></TableCell>
-                  <TableCell>
+                  <TableCell className="text-right tabular-nums">
                     {rate.type === "percentage" ? `${rate.value}%` : `${rate.value} ${rate.currency_code || "GHS"}`}
                   </TableCell>
                   <TableCell>{rate.is_default ? <Badge variant="success">Default</Badge> : <span className="text-muted-foreground">—</span>}</TableCell>
@@ -135,16 +142,18 @@ function CommissionRatesPage() {
                         size="sm"
                         onClick={() => setEditRate(rate)}
                         className="text-muted-foreground hover:text-foreground"
+                        aria-label={`Edit ${rate.name}`}
                       >
-                        <Pencil className="h-4 w-4" />
+                        <PencilSimple className="h-4 w-4" />
                       </Button>
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => deleteMutation.mutate(rate.id)}
                         className="text-destructive hover:text-destructive"
+                        aria-label={`Delete ${rate.name}`}
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <Trash className="h-4 w-4" />
                       </Button>
                     </div>
                   </TableCell>
@@ -161,7 +170,7 @@ function CommissionRatesPage() {
       )}
 
       <div className="flex justify-between items-center mt-4">
-        <span className="text-sm text-muted-foreground">
+        <span className="text-sm text-muted-foreground" aria-live="polite">
           {rates.length ? `${offset + 1}–${offset + rates.length}` : "0"} of {data?.count ?? "…"}
         </span>
         <div className="flex gap-2">
@@ -209,9 +218,21 @@ function CreateRateModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => 
   })
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose}>
-      <div className="space-y-4 p-6">
-        <h2 className="text-lg font-semibold">Create Commission Rate</h2>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Create Commission Rate"
+      className="max-w-md"
+      footer={
+        <>
+          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button onClick={() => createMutation.mutate()} disabled={!name || !code || !value}>
+            Create
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-4">
         <div className="space-y-3">
           <div>
             <label className="text-sm font-medium">Name</label>
@@ -242,12 +263,6 @@ function CreateRateModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => 
             <label className="text-sm">Set as default rate</label>
           </div>
         </div>
-        <div className="flex justify-end gap-2 pt-2">
-          <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button onClick={() => createMutation.mutate()} disabled={!name || !code || !value}>
-            Create
-          </Button>
-        </div>
       </div>
     </Modal>
   )
@@ -277,9 +292,25 @@ function EditRateModal({ rate, onClose }: { rate: CommissionRate; onClose: () =>
   })
 
   return (
-    <Modal isOpen onClose={onClose}>
-      <div className="space-y-4 p-6">
-        <h2 className="text-lg font-semibold">Edit Commission Rate</h2>
+    <Modal
+      isOpen
+      onClose={onClose}
+      title="Edit Commission Rate"
+      className="max-w-md"
+      footer={
+        <>
+          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button
+            onClick={() => editMutation.mutate()}
+            disabled={!name || !value}
+            isLoading={editMutation.isPending}
+          >
+            Save Changes
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-4">
         <div className="space-y-3">
           <div>
             <label className="text-sm font-medium">Name</label>
@@ -309,16 +340,6 @@ function EditRateModal({ rate, onClose }: { rate: CommissionRate; onClose: () =>
             <Switch checked={isDefault} onCheckedChange={setIsDefault} />
             <label className="text-sm">Set as default rate</label>
           </div>
-        </div>
-        <div className="flex justify-end gap-2 pt-2">
-          <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button
-            onClick={() => editMutation.mutate()}
-            disabled={!name || !value}
-            isLoading={editMutation.isPending}
-          >
-            Save Changes
-          </Button>
         </div>
       </div>
     </Modal>

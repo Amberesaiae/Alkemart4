@@ -1,4 +1,5 @@
-import { createFileRoute } from "@tanstack/react-router"
+import { createFileRoute, redirect } from "@tanstack/react-router"
+import { isWorkersApi } from "../../lib/config"
 import { useMemo, useState } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { adminCategories } from "../../lib/api"
@@ -6,10 +7,15 @@ import type { AdminCategory } from "../../lib/api"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Badge, Button, Modal, Skeleton, EmptyState, Input, Switch, Select, Textarea, Checkbox } from "@workspace/ui"
 import { PageShell } from "../../components/page-shell"
 import { PageHeader } from "../../components/page-header"
-import { Plus, Trash2, Pencil, Link2 } from "lucide-react"
+import { Plus, Trash, PencilSimple, Link } from "@phosphor-icons/react"
 import { toast } from "sonner"
 
 export const Route = createFileRoute("/_authenticated/categories")({
+  beforeLoad: () => {
+    if (isWorkersApi) {
+      throw redirect({ to: "/unavailable", search: { title: "Categories" } })
+    }
+  },
   component: CategoriesPage,
 })
 
@@ -102,17 +108,18 @@ function CategoriesPage() {
       </div>
 
       <div className="border rounded-xl bg-card">
-        <Table>
+        <Table label="Product categories">
+          <caption className="sr-only">Product categories list</caption>
           <TableHeader>
             <TableRow>
               <TableHead>Name</TableHead>
               <TableHead>Handle</TableHead>
               <TableHead>Type</TableHead>
-              <TableHead>Rank</TableHead>
+              <TableHead className="text-right">Rank</TableHead>
               <TableHead>Parent</TableHead>
-              <TableHead>Products</TableHead>
+              <TableHead className="text-right">Products</TableHead>
               <TableHead>Active</TableHead>
-              <TableHead className="w-24" />
+              <TableHead className="w-24"><span className="sr-only">Actions</span></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -214,22 +221,22 @@ function CategoryRow({ cat, depth, parentLabel, counts, onEdit, onDelete, onMana
       </TableCell>
       <TableCell className="font-mono text-xs">{cat.handle ?? "—"}</TableCell>
       <TableCell>{internalBadge(cat)}</TableCell>
-      <TableCell>{cat.rank ?? "—"}</TableCell>
+      <TableCell className="text-right tabular-nums">{cat.rank ?? "—"}</TableCell>
       <TableCell className="text-muted-foreground">{parentLabel ?? "—"}</TableCell>
-      <TableCell>{count}</TableCell>
+      <TableCell className="text-right tabular-nums">{count}</TableCell>
       <TableCell>
         <Switch checked={cat.is_active} onCheckedChange={() => onToggleActive(cat)} />
       </TableCell>
       <TableCell>
         <div className="flex items-center gap-1">
-          <Button variant="ghost" size="sm" onClick={() => onManage(cat)} className="text-muted-foreground hover:text-foreground" title="Manage products">
-            <Link2 className="h-4 w-4" />
+          <Button variant="ghost" size="sm" onClick={() => onManage(cat)} className="text-muted-foreground hover:text-foreground" title="Manage products" aria-label={`Manage products in ${cat.name}`}>
+            <Link className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="sm" onClick={() => onEdit(cat)} className="text-muted-foreground hover:text-foreground" title="Edit category">
-            <Pencil className="h-4 w-4" />
+          <Button variant="ghost" size="sm" onClick={() => onEdit(cat)} className="text-muted-foreground hover:text-foreground" title="Edit category" aria-label={`Edit ${cat.name}`}>
+            <PencilSimple className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="sm" onClick={() => onDelete(cat)} className="text-destructive hover:text-destructive" title="Delete category">
-            <Trash2 className="h-4 w-4" />
+          <Button variant="ghost" size="sm" onClick={() => onDelete(cat)} className="text-destructive hover:text-destructive" title="Delete category" aria-label={`Delete ${cat.name}`}>
+            <Trash className="h-4 w-4" />
           </Button>
         </div>
       </TableCell>

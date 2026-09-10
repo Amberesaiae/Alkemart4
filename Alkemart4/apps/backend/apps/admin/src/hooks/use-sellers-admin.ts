@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { adminSellers } from "../lib/api"
+import { adminCatalogProducts, adminCategories, adminSellers } from "../lib/api"
 import { toast } from "sonner"
 
 export function useAdminSellersList(params?: { limit?: number; offset?: number; q?: string }) {
@@ -15,6 +15,34 @@ export function useAdminSellerDetail(id: string) {
     queryFn: () => adminSellers.retrieve(id),
     enabled: !!id,
   })
+}
+
+/** Seller's catalog products + specialisations (top categories by product count). */
+export function useAdminSellerProducts(sellerId: string) {
+  const productsQ = useQuery({
+    queryKey: ["admin-catalog-products"],
+    queryFn: () => adminCatalogProducts.listAll(),
+    staleTime: 60_000,
+  })
+  const catsQ = useQuery({
+    queryKey: ["admin-categories"],
+    queryFn: () => adminCategories.list(),
+    staleTime: 300_000,
+  })
+  const all = productsQ.data?.items ?? []
+  const mine = sellerId ? all.filter((p) => p.sellerId === sellerId) : []
+  const catName = new Map((catsQ.data?.product_categories ?? []).map((c) => [c.id, c.name]))
+  const byCat = new Map<string, number>()
+  for (const p of mine) byCat.set(p.primaryCategoryId, (byCat.get(p.primaryCategoryId) ?? 0) + 1)
+  const specialisations = [...byCat]
+    .map(([id, count]) => ({ id, name: catName.get(id) ?? id, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 6)
+  return {
+    products: mine,
+    specialisations,
+    isLoading: productsQ.isLoading || catsQ.isLoading,
+  }
 }
 
 export function useSellerActions(sellerId: string) {

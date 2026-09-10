@@ -1,15 +1,21 @@
-import { createFileRoute } from "@tanstack/react-router"
+import { createFileRoute, redirect } from "@tanstack/react-router"
+import { isWorkersApi } from "../../lib/config"
 import { useState } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { adminDisputes, type AdminDispute } from "../../lib/api"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Badge, Button, Skeleton, EmptyState, Modal, Textarea, Input } from "@workspace/ui"
 import { PageShell } from "../../components/page-shell"
 import { PageHeader } from "../../components/page-header"
-import { Scale, ArrowLeft } from "lucide-react"
+import { Scales, ArrowLeft } from "@phosphor-icons/react"
 import { toast } from "sonner"
 import { format } from "date-fns"
 
 export const Route = createFileRoute("/_authenticated/disputes")({
+  beforeLoad: () => {
+    if (isWorkersApi) {
+      throw redirect({ to: "/unavailable", search: { title: "Disputes" } })
+    }
+  },
   component: DisputesPage,
 })
 
@@ -79,7 +85,7 @@ function DisputeDetail({ id, onBack }: { id: string; onBack: () => void }) {
         </div>
         {isOpen && (
           <Button className="gap-2" onClick={() => setResolveModal(true)}>
-            <Scale className="h-4 w-4" />
+            <Scales className="h-4 w-4" />
             Resolve Dispute
           </Button>
         )}
@@ -113,12 +119,25 @@ function DisputeDetail({ id, onBack }: { id: string; onBack: () => void }) {
         ) : null}
       </div>
 
-      <Modal isOpen={resolveModal} onClose={() => setResolveModal(false)}>
-        <div className="p-6 space-y-5">
-          <h3 className="text-lg font-semibold flex items-center gap-2">
-            <Scale className="h-5 w-5" />
-            Resolve Dispute
-          </h3>
+      <Modal
+        isOpen={resolveModal}
+        onClose={() => setResolveModal(false)}
+        title="Resolve Dispute"
+        className="max-w-md"
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setResolveModal(false)}>Cancel</Button>
+            <Button
+              isLoading={resolve.isPending}
+              onClick={() => resolve.mutate()}
+              disabled={decision === "partial" && (!partialAmount || isNaN(parseFloat(partialAmount)))}
+            >
+              Submit Resolution
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-5">
 
           <div className="space-y-2">
             <label className="text-sm font-medium">Decision</label>
@@ -167,17 +186,6 @@ function DisputeDetail({ id, onBack }: { id: string; onBack: () => void }) {
               onChange={e => setNote(e.target.value)}
             />
           </div>
-
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setResolveModal(false)}>Cancel</Button>
-            <Button
-              isLoading={resolve.isPending}
-              onClick={() => resolve.mutate()}
-              disabled={decision === "partial" && (!partialAmount || isNaN(parseFloat(partialAmount)))}
-            >
-              Submit Resolution
-            </Button>
-          </div>
         </div>
       </Modal>
     </div>
@@ -220,14 +228,15 @@ function DisputesPage() {
       <PageHeader title="Disputes" description="Escalated return disputes requiring admin resolution." />
 
       <div className="border rounded-xl bg-card">
-        <Table>
+        <Table label="Return disputes">
+          <caption className="sr-only">Return disputes list</caption>
           <TableHeader>
             <TableRow>
               <TableHead>Return</TableHead>
               <TableHead>Order</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Opened</TableHead>
-              <TableHead className="w-20" />
+              <TableHead className="w-20"><span className="sr-only">Actions</span></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -245,7 +254,7 @@ function DisputesPage() {
               <TableRow>
                 <TableCell colSpan={5}>
                   <EmptyState
-                    icon={<Scale className="h-8 w-8 opacity-40" />}
+                    icon={<Scales className="h-8 w-8 opacity-40" />}
                     title="No open disputes"
                     description="All return escalations have been resolved."
                   />
@@ -255,7 +264,7 @@ function DisputesPage() {
               disputes.map((d: AdminDispute) => {
                 const meta = d.metadata as Record<string, unknown> | undefined
                 return (
-                  <TableRow key={d.id} className="cursor-pointer hover:bg-muted/50">
+                  <TableRow key={d.id} className="hover:bg-muted/50">
                     <TableCell className="font-bold">
                       {d.display_id ? `#${d.display_id}` : d.id.slice(-8)}
                     </TableCell>
@@ -271,7 +280,7 @@ function DisputesPage() {
                       {d.created_at ? format(new Date(d.created_at), "MMM d, yyyy") : "-"}
                     </TableCell>
                     <TableCell>
-                      <Button size="sm" variant="outline" onClick={() => setSelectedId(d.id)}>
+                      <Button size="sm" onClick={() => setSelectedId(d.id)}>
                         Review
                       </Button>
                     </TableCell>
@@ -284,7 +293,7 @@ function DisputesPage() {
       </div>
 
       <div className="flex justify-between items-center">
-        <span className="text-sm text-muted-foreground">
+        <span className="text-sm text-muted-foreground" aria-live="polite">
           {disputes.length ? `${offset + 1}–${offset + disputes.length}` : "0"} of {data?.count ?? "…"}
         </span>
         <div className="flex gap-2">

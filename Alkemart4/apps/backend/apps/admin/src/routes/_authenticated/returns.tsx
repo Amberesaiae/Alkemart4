@@ -1,14 +1,20 @@
-import { createFileRoute } from "@tanstack/react-router"
+import { createFileRoute, redirect } from "@tanstack/react-router"
+import { isWorkersApi } from "../../lib/config"
 import { useState } from "react"
 import { useAdminReturns, useAdminReturnDetail, useReturnActions } from "../../hooks/use-returns-admin"
 import type { AdminReturn } from "../../lib/api"
 import { EmptyState, Badge, Skeleton, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Card, Button, Textarea, Modal } from "@workspace/ui"
 import { PageShell } from "../../components/page-shell"
 import { PageHeader } from "../../components/page-header"
-import { RefreshCw, AlertCircle, CheckCircle2, XCircle, Banknote, ArrowLeft } from "lucide-react"
+import { ArrowsClockwise, WarningCircle, CheckCircle, XCircle, Money, ArrowLeft } from "@phosphor-icons/react"
 import { format } from "date-fns"
 
 export const Route = createFileRoute("/_authenticated/returns")({
+  beforeLoad: () => {
+    if (isWorkersApi) {
+      throw redirect({ to: "/unavailable", search: { title: "Returns" } })
+    }
+  },
   component: ReturnsOverviewPage,
 })
 
@@ -105,7 +111,7 @@ function ReturnDetailPane({ id, onBack }: { id: string; onBack: () => void }) {
           {isOpen && (
             <>
               <Button size="sm" className="gap-1" onClick={() => setApproveModal(true)}>
-                <CheckCircle2 className="h-4 w-4" />
+                <CheckCircle className="h-4 w-4" />
                 Approve Return
               </Button>
               <Button
@@ -121,7 +127,7 @@ function ReturnDetailPane({ id, onBack }: { id: string; onBack: () => void }) {
           )}
           {canRefund && (
             <Button size="sm" variant="outline" className="gap-1" onClick={() => setRefundModal(true)}>
-              <Banknote className="h-4 w-4" />
+              <Money className="h-4 w-4" />
               Refund {formatGhs((ret.refund_amount || 0) / 100)}
             </Button>
           )}
@@ -130,7 +136,7 @@ function ReturnDetailPane({ id, onBack }: { id: string; onBack: () => void }) {
 
       {/* Approve modal */}
       <Modal isOpen={approveModal} onClose={() => setApproveModal(false)}>
-        <div className="p-6 space-y-4">
+        <div className="space-y-4">
           <h3 className="text-lg font-semibold">Approve Return</h3>
           <p className="text-sm text-muted-foreground">Mark this return as received. The buyer will be notified.</p>
           <Textarea placeholder="Optional note…" value={approveNote} onChange={e => setApproveNote(e.target.value)} className="h-20" />
@@ -151,7 +157,7 @@ function ReturnDetailPane({ id, onBack }: { id: string; onBack: () => void }) {
 
       {/* Reject modal */}
       <Modal isOpen={rejectModal} onClose={() => setRejectModal(false)}>
-        <div className="p-6 space-y-4">
+        <div className="space-y-4">
           <h3 className="text-lg font-semibold">Reject Return</h3>
           <p className="text-sm text-muted-foreground">Provide a reason. The buyer will be notified via SMS.</p>
           <Textarea
@@ -181,7 +187,7 @@ function ReturnDetailPane({ id, onBack }: { id: string; onBack: () => void }) {
 
       {/* Refund modal */}
       <Modal isOpen={refundModal} onClose={() => setRefundModal(false)}>
-        <div className="p-6 space-y-4">
+        <div className="space-y-4">
           <h3 className="text-lg font-semibold">Process Refund</h3>
           <p className="text-sm text-muted-foreground">
             This will trigger a Paystack refund of <strong>{formatGhs((ret.refund_amount || 0) / 100)}</strong> to the buyer's original payment method.
@@ -230,10 +236,10 @@ function ReturnsOverviewPage() {
           <button
             key={tab.value || "all"}
             onClick={() => setFilter(tab.value)}
-            className={`px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-colors border-2 ${
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all border ${
               filter === tab.value
-                ? "bg-primary text-primary-foreground border-primary shadow-sm"
-                : "bg-card text-muted-foreground border-transparent hover:border-border hover:bg-muted"
+                ? "bg-primary text-primary-foreground border-primary shadow-2xs"
+                : "bg-card text-muted-foreground border-border/60 hover:border-primary/40 hover:bg-accent hover:text-accent-foreground"
             }`}
           >
             {tab.label}
@@ -251,35 +257,36 @@ function ReturnsOverviewPage() {
         </Card>
       ) : isError ? (
         <Card className="p-8 text-center border-2 border-destructive/20">
-          <AlertCircle className="h-10 w-10 mx-auto mb-3 text-destructive" />
+          <WarningCircle className="h-10 w-10 mx-auto mb-3 text-destructive" />
           <h2 className="text-lg font-bold mb-1">Failed to load returns</h2>
           <p className="text-muted-foreground text-sm mb-4">Something went wrong.</p>
           <Button variant="outline" onClick={() => refetch()}>Retry</Button>
         </Card>
       ) : !data?.returns || data.returns.length === 0 ? (
         <EmptyState
-          icon={<RefreshCw className="h-8 w-8 opacity-40" />}
+          icon={<ArrowsClockwise className="h-8 w-8 opacity-40" />}
           title="No returns found"
           description="There are no return requests matching your filter."
         />
       ) : (
         <Card className="border-2 overflow-hidden">
           <div className="overflow-x-auto">
-            <Table>
+            <Table label="Return requests">
+              <caption className="sr-only">Return requests list</caption>
               <TableHeader>
                 <TableRow>
                   <TableHead>Return</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Seller</TableHead>
-                  <TableHead>Items</TableHead>
-                  <TableHead>Refund</TableHead>
+                  <TableHead className="text-right">Items</TableHead>
+                  <TableHead className="text-right">Refund</TableHead>
                   <TableHead>Date</TableHead>
-                  <TableHead className="w-20" />
+                  <TableHead className="w-20"><span className="sr-only">Actions</span></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {data.returns.map((ret: AdminReturn) => (
-                  <TableRow key={ret.id} className="cursor-pointer hover:bg-muted/50">
+                  <TableRow key={ret.id} className="hover:bg-muted/50">
                     <TableCell className="font-black">#{ret.display_id}</TableCell>
                     <TableCell>
                       <Badge variant={
@@ -292,15 +299,15 @@ function ReturnsOverviewPage() {
                       </Badge>
                     </TableCell>
                     <TableCell className="font-medium">{ret.seller?.name || "-"}</TableCell>
-                    <TableCell className="tabular-nums">{ret.items_count ?? "-"}</TableCell>
-                    <TableCell className="font-medium">
+                    <TableCell className="text-right tabular-nums">{ret.items_count ?? "-"}</TableCell>
+                    <TableCell className="text-right font-medium tabular-nums">
                       {ret.refund_amount != null ? formatGhs(ret.refund_amount / 100) : "-"}
                     </TableCell>
                     <TableCell className="text-muted-foreground text-sm">
                       {ret.created_at ? format(new Date(ret.created_at), "MMM d, yyyy") : "-"}
                     </TableCell>
                     <TableCell>
-                      <Button size="sm" variant="outline" onClick={() => setSelectedId(ret.id)}>
+                      <Button size="sm" onClick={() => setSelectedId(ret.id)}>
                         Review
                       </Button>
                     </TableCell>

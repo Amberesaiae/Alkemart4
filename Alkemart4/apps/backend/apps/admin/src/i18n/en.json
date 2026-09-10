@@ -1,11 +1,17 @@
 {
   "login": {
-    "title": "Admin sign in",
-    "hint": "Ops accounts only — invitation or CLI. Not for sellers or shoppers.",
-    "email": "Email",
+    "title": "Sign in to Ops Console",
+    "hint": "Operations team only — sellers and shoppers can't sign in here.",
+    "email": "Work email",
+    "emailPlaceholder": "admin@alkemart.test",
     "password": "Password",
+    "passwordPlaceholder": "Enter your password",
+    "signIn": "Sign in",
+    "emptyError": "Enter your email and password to continue.",
+    "failedError": "Couldn't sign you in. Check your details and try again.",
+    "restrictedNote": "Restricted console — every sign-in attempt is logged.",
 
-    "sessionExpired": "Your session expired — sign in again."
+    "sessionExpired": "Session expired — sign in again to continue."
   },
   "invite": {
     "title": "Join the ops team",

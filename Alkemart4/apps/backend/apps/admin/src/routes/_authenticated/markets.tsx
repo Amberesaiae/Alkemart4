@@ -1,11 +1,17 @@
-import { createFileRoute } from "@tanstack/react-router"
+import { createFileRoute, redirect } from "@tanstack/react-router"
+import { isWorkersApi } from "../../lib/config"
 import { useMarkets } from "../../hooks/use-markets"
 import type { Market } from "../../lib/api"
 import { Card, CardContent, CardHeader, CardTitle, Badge, Skeleton, EmptyState } from "@workspace/ui"
 import { PageShell } from "../../components/page-shell"
 import { PageHeader } from "../../components/page-header"
-import { Globe2 } from "lucide-react"
+import { Globe } from "@phosphor-icons/react"
 export const Route = createFileRoute("/_authenticated/markets")({
+  beforeLoad: () => {
+    if (isWorkersApi) {
+      throw redirect({ to: "/unavailable", search: { title: "Markets" } })
+    }
+  },
   component: MarketsPage,
 })
 
@@ -48,7 +54,7 @@ function MarketsPage() {
       <PageHeader title="Operating Markets" description="Countries currently in operation. Used for localized routing, currency, and address rules." />
 
       {markets.length === 0 ? (
-        <EmptyState icon={<Globe2 className="h-12 w-12 text-muted-foreground/50" />}
+        <EmptyState icon={<Globe className="h-12 w-12 text-muted-foreground/50" />}
           title="No active markets"
           description="Configure regions via backend to see markets here." />
       ) : (

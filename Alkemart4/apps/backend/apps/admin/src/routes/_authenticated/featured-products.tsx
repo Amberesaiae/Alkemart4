@@ -1,14 +1,20 @@
-import { createFileRoute } from "@tanstack/react-router"
+import { createFileRoute, redirect } from "@tanstack/react-router"
+import { isWorkersApi } from "../../lib/config"
 import { useState } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { adminProducts, featuredProducts } from "../../lib/api"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Button, Skeleton, EmptyState, Switch, Input } from "@workspace/ui"
 import { PageShell } from "../../components/page-shell"
 import { PageHeader } from "../../components/page-header"
-import { Search } from "lucide-react"
+import { MagnifyingGlass } from "@phosphor-icons/react"
 import { toast } from "sonner"
 
 export const Route = createFileRoute("/_authenticated/featured-products")({
+  beforeLoad: () => {
+    if (isWorkersApi) {
+      throw redirect({ to: "/unavailable", search: { title: "Featured Products" } })
+    }
+  },
   component: FeaturedProductsPage,
 })
 
@@ -66,7 +72,7 @@ function FeaturedProductsPage() {
           description="Select products to feature on the storefront homepage."
         />
         <div className="relative w-full sm:w-64">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <MagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search products..."
             value={search}
@@ -77,7 +83,8 @@ function FeaturedProductsPage() {
       </div>
 
       <div className="border rounded-xl bg-card">
-        <Table>
+        <Table label="Featured products">
+          <caption className="sr-only">Featured products list</caption>
           <TableHeader>
             <TableRow>
               <TableHead>Product</TableHead>
@@ -123,7 +130,7 @@ function FeaturedProductsPage() {
       </div>
 
       <div className="flex justify-between items-center mt-4">
-        <span className="text-sm text-muted-foreground">
+        <span className="text-sm text-muted-foreground" aria-live="polite">
           {products.length ? `${offset + 1}–${offset + products.length}` : "0"} of {allProductsQuery.data?.count ?? "…"}
         </span>
         <div className="flex gap-2">

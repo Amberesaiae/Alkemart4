@@ -1,10 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router"
 import { useId } from "react"
-import { useStats } from "../../hooks/use-stats"
+import { useStats, useTrafficStats } from "../../hooks/use-stats"
 import { Card, CardContent, CardHeader, CardTitle, Skeleton, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@workspace/ui"
 import { PageShell } from "../../components/page-shell"
 import { PageHeader } from "../../components/page-header"
-import { ShoppingCart, DollarSign, Store, Package, TrendingUp } from "lucide-react"
+import { ShoppingCart, CurrencyDollar, Storefront, Package, TrendUp, Eye } from "@phosphor-icons/react"
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
 import { currencySymbol } from "../../lib/config"
 
@@ -28,7 +28,9 @@ function StatCard({ title, value, icon: Icon }: { title: string; value: string; 
 
 function AnalyticsPage() {
   const { data: stats, isLoading, isFetching, error, dataUpdatedAt } = useStats()
+  const { data: traffic } = useTrafficStats()
   const gradientId = useId()
+  const trafficGradientId = `${gradientId}-traffic`
 
   if (isLoading) {
     return (
@@ -72,9 +74,10 @@ function AnalyticsPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard title="Total Orders" value={(stats.total_orders ?? 0).toLocaleString()} icon={ShoppingCart} />
-        <StatCard title="Total GMV" value={`${currencySymbol}${(stats.total_gmv_ghs ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`} icon={DollarSign} />
-        <StatCard title="Active Sellers" value={(stats.active_sellers ?? 0).toLocaleString()} icon={Store} />
+        <StatCard title="Total GMV" value={`${currencySymbol}${(stats.total_gmv_ghs ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`} icon={CurrencyDollar} />
+        <StatCard title="Active Sellers" value={(stats.active_sellers ?? 0).toLocaleString()} icon={Storefront} />
         <StatCard title="Catalog Size" value={(stats.catalog_size ?? 0).toLocaleString()} icon={Package} />
+        <StatCard title="Shop Views (30d)" value={(traffic?.views30d ?? 0).toLocaleString()} icon={Eye} />
       </div>
 
       <Card className="overflow-hidden">
@@ -128,7 +131,7 @@ function AnalyticsPage() {
       <Card className="overflow-hidden">
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Top Products</CardTitle>
-          <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          <TrendUp className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
           {!stats.top_products || stats.top_products.length === 0 ? (
@@ -136,7 +139,8 @@ function AnalyticsPage() {
               No completed orders yet — top products will appear here.
             </div>
           ) : (
-            <Table>
+            <Table label="Top products">
+              <caption className="sr-only">Top products by revenue</caption>
               <TableHeader>
                 <TableRow>
                   <TableHead>Product</TableHead>
@@ -157,8 +161,92 @@ function AnalyticsPage() {
                         <span className="font-medium">{p.title}</span>
                       </div>
                     </TableCell>
-                    <TableCell className="text-right">{p.units.toLocaleString()}</TableCell>
-                    <TableCell className="text-right">{currencySymbol}{p.gmv.toLocaleString(undefined, { minimumFractionDigits: 2 })}</TableCell>
+                    <TableCell className="text-right tabular-nums">{p.units.toLocaleString()}</TableCell>
+                    <TableCell className="text-right tabular-nums">{currencySymbol}{p.gmv.toLocaleString(undefined, { minimumFractionDigits: 2 })}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card className="overflow-hidden">
+        <CardHeader>
+          <CardTitle>Shop Views (Last 30 Days)</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {traffic?.series && traffic.series.length > 0 ? (
+            <div className="h-[300px] w-full mt-4">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={traffic.series}>
+                  <defs>
+                    <linearGradient id={trafficGradientId} x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="var(--primary)" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="var(--primary)" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
+                  <XAxis
+                    dataKey="date"
+                    tickFormatter={(val) => new Date(val).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                    tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }}
+                    tickLine={false}
+                    axisLine={false}
+                    dy={10}
+                  />
+                  <YAxis
+                    tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }}
+                    tickLine={false}
+                    axisLine={false}
+                    dx={-10}
+                  />
+                  <Tooltip
+                    contentStyle={{ backgroundColor: 'var(--card)', borderRadius: '8px', border: '1px solid var(--border)' }}
+                    labelFormatter={(val) => new Date(String(val)).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                    formatter={(val) => [Number(val).toLocaleString(), 'Views']}
+                  />
+                  <Area type="monotone" dataKey="views" stroke="var(--primary)" strokeWidth={3} fillOpacity={1} fill={`url(#${trafficGradientId})`} />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          ) : (
+            <div className="h-[120px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-md border border-dashed mt-4">
+              No shop views recorded yet.
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card className="overflow-hidden">
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle>Top Shops by Views</CardTitle>
+          <Eye className="h-4 w-4 text-muted-foreground" />
+        </CardHeader>
+        <CardContent>
+          {!traffic?.top_shops || traffic.top_shops.length === 0 ? (
+            <div className="h-40 flex items-center justify-center text-muted-foreground bg-muted/20 rounded-md border border-dashed">
+              Shop traffic will appear here once buyers browse.
+            </div>
+          ) : (
+            <Table label="Top shops by views">
+              <caption className="sr-only">Top shops by views</caption>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Shop</TableHead>
+                  <TableHead className="text-right">Views</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {traffic.top_shops.map((shop) => (
+                  <TableRow key={shop.sellerId}>
+                    <TableCell>
+                      <span className="font-medium">{shop.name}</span>
+                      {shop.handle ? (
+                        <span className="block text-xs text-muted-foreground font-mono">@{shop.handle}</span>
+                      ) : null}
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">{shop.views.toLocaleString()}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>

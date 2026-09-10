@@ -1,14 +1,20 @@
-import { createFileRoute } from "@tanstack/react-router"
+import { createFileRoute, redirect } from "@tanstack/react-router"
+import { isWorkersApi } from "../../lib/config"
 import { useState } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { adminPromotions } from "../../lib/api"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Badge, Button, Modal, Skeleton, EmptyState, Input, Select } from "@workspace/ui"
 import { PageShell } from "../../components/page-shell"
 import { PageHeader } from "../../components/page-header"
-import { Plus, Percent, Coins, Truck } from "lucide-react"
+import { Plus, Percent, Coins, Truck } from "@phosphor-icons/react"
 import { toast } from "sonner"
 
 export const Route = createFileRoute("/_authenticated/promotions")({
+  beforeLoad: () => {
+    if (isWorkersApi) {
+      throw redirect({ to: "/unavailable", search: { title: "Promotions" } })
+    }
+  },
   component: PromotionsPage,
 })
 
@@ -54,7 +60,8 @@ function PromotionsPage() {
       </div>
 
       <div className="border rounded-xl bg-card">
-        <Table>
+        <Table label="Promotions">
+          <caption className="sr-only">Promotions list</caption>
           <TableHeader>
             <TableRow>
               <TableHead>Code</TableHead>
@@ -94,7 +101,7 @@ function PromotionsPage() {
                       <span className="capitalize">{promo.type.replace("_", " ")}</span>
                     </div>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="tabular-nums">
                     {promo.application_method ? (
                       <span>
                         {promo.application_method.type === "percentage"
@@ -121,7 +128,7 @@ function PromotionsPage() {
       <CreatePromotionModal isOpen={showCreate} onClose={() => setShowCreate(false)} />
 
       <div className="flex justify-between items-center mt-4">
-        <span className="text-sm text-muted-foreground">
+        <span className="text-sm text-muted-foreground" aria-live="polite">
           {promotions.length ? `${offset + 1}–${offset + promotions.length}` : "0"} of {data?.count ?? "…"}
         </span>
         <div className="flex gap-2">

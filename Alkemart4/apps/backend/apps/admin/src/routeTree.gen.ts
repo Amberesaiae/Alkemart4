@@ -12,8 +12,8 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedUnavailableRouteImport } from './routes/_authenticated/unavailable'
 import { Route as AuthenticatedSellersQueueRouteImport } from './routes/_authenticated/sellers-queue'
-import { Route as AuthenticatedSellersRouteImport } from './routes/_authenticated/sellers'
 import { Route as AuthenticatedReturnsRouteImport } from './routes/_authenticated/returns'
 import { Route as AuthenticatedPromotionsRouteImport } from './routes/_authenticated/promotions'
 import { Route as AuthenticatedProductModerationRouteImport } from './routes/_authenticated/product-moderation'
@@ -24,7 +24,9 @@ import { Route as AuthenticatedFeaturedProductsRouteImport } from './routes/_aut
 import { Route as AuthenticatedDisputesRouteImport } from './routes/_authenticated/disputes'
 import { Route as AuthenticatedCommissionRatesRouteImport } from './routes/_authenticated/commission-rates'
 import { Route as AuthenticatedCategoriesRouteImport } from './routes/_authenticated/categories'
+import { Route as AuthenticatedAppealsRouteImport } from './routes/_authenticated/appeals'
 import { Route as AuthenticatedAnalyticsRouteImport } from './routes/_authenticated/analytics'
+import { Route as AuthenticatedSellersIndexRouteImport } from './routes/_authenticated/sellers.index'
 import { Route as AuthenticatedSellersIdRouteImport } from './routes/_authenticated/sellers.$id'
 import { Route as AuthenticatedOrdersIdRouteImport } from './routes/_authenticated/orders.$id'
 
@@ -42,17 +44,18 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedUnavailableRoute =
+  AuthenticatedUnavailableRouteImport.update({
+    id: '/unavailable',
+    path: '/unavailable',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedSellersQueueRoute =
   AuthenticatedSellersQueueRouteImport.update({
     id: '/sellers-queue',
     path: '/sellers-queue',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
-const AuthenticatedSellersRoute = AuthenticatedSellersRouteImport.update({
-  id: '/sellers',
-  path: '/sellers',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
 const AuthenticatedReturnsRoute = AuthenticatedReturnsRouteImport.update({
   id: '/returns',
   path: '/returns',
@@ -106,15 +109,26 @@ const AuthenticatedCategoriesRoute = AuthenticatedCategoriesRouteImport.update({
   path: '/categories',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedAppealsRoute = AuthenticatedAppealsRouteImport.update({
+  id: '/appeals',
+  path: '/appeals',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedAnalyticsRoute = AuthenticatedAnalyticsRouteImport.update({
   id: '/analytics',
   path: '/analytics',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedSellersIndexRoute =
+  AuthenticatedSellersIndexRouteImport.update({
+    id: '/sellers/',
+    path: '/sellers/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedSellersIdRoute = AuthenticatedSellersIdRouteImport.update({
-  id: '/$id',
-  path: '/$id',
-  getParentRoute: () => AuthenticatedSellersRoute,
+  id: '/sellers/$id',
+  path: '/sellers/$id',
+  getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedOrdersIdRoute = AuthenticatedOrdersIdRouteImport.update({
   id: '/$id',
@@ -126,6 +140,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/analytics': typeof AuthenticatedAnalyticsRoute
+  '/appeals': typeof AuthenticatedAppealsRoute
   '/categories': typeof AuthenticatedCategoriesRoute
   '/commission-rates': typeof AuthenticatedCommissionRatesRoute
   '/disputes': typeof AuthenticatedDisputesRoute
@@ -136,15 +151,17 @@ export interface FileRoutesByFullPath {
   '/product-moderation': typeof AuthenticatedProductModerationRoute
   '/promotions': typeof AuthenticatedPromotionsRoute
   '/returns': typeof AuthenticatedReturnsRoute
-  '/sellers': typeof AuthenticatedSellersRouteWithChildren
   '/sellers-queue': typeof AuthenticatedSellersQueueRoute
+  '/unavailable': typeof AuthenticatedUnavailableRoute
   '/orders/$id': typeof AuthenticatedOrdersIdRoute
   '/sellers/$id': typeof AuthenticatedSellersIdRoute
+  '/sellers/': typeof AuthenticatedSellersIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/analytics': typeof AuthenticatedAnalyticsRoute
+  '/appeals': typeof AuthenticatedAppealsRoute
   '/categories': typeof AuthenticatedCategoriesRoute
   '/commission-rates': typeof AuthenticatedCommissionRatesRoute
   '/disputes': typeof AuthenticatedDisputesRoute
@@ -155,10 +172,11 @@ export interface FileRoutesByTo {
   '/product-moderation': typeof AuthenticatedProductModerationRoute
   '/promotions': typeof AuthenticatedPromotionsRoute
   '/returns': typeof AuthenticatedReturnsRoute
-  '/sellers': typeof AuthenticatedSellersRouteWithChildren
   '/sellers-queue': typeof AuthenticatedSellersQueueRoute
+  '/unavailable': typeof AuthenticatedUnavailableRoute
   '/orders/$id': typeof AuthenticatedOrdersIdRoute
   '/sellers/$id': typeof AuthenticatedSellersIdRoute
+  '/sellers': typeof AuthenticatedSellersIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -166,6 +184,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/login': typeof LoginRoute
   '/_authenticated/analytics': typeof AuthenticatedAnalyticsRoute
+  '/_authenticated/appeals': typeof AuthenticatedAppealsRoute
   '/_authenticated/categories': typeof AuthenticatedCategoriesRoute
   '/_authenticated/commission-rates': typeof AuthenticatedCommissionRatesRoute
   '/_authenticated/disputes': typeof AuthenticatedDisputesRoute
@@ -176,10 +195,11 @@ export interface FileRoutesById {
   '/_authenticated/product-moderation': typeof AuthenticatedProductModerationRoute
   '/_authenticated/promotions': typeof AuthenticatedPromotionsRoute
   '/_authenticated/returns': typeof AuthenticatedReturnsRoute
-  '/_authenticated/sellers': typeof AuthenticatedSellersRouteWithChildren
   '/_authenticated/sellers-queue': typeof AuthenticatedSellersQueueRoute
+  '/_authenticated/unavailable': typeof AuthenticatedUnavailableRoute
   '/_authenticated/orders/$id': typeof AuthenticatedOrdersIdRoute
   '/_authenticated/sellers/$id': typeof AuthenticatedSellersIdRoute
+  '/_authenticated/sellers/': typeof AuthenticatedSellersIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -187,6 +207,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/analytics'
+    | '/appeals'
     | '/categories'
     | '/commission-rates'
     | '/disputes'
@@ -197,15 +218,17 @@ export interface FileRouteTypes {
     | '/product-moderation'
     | '/promotions'
     | '/returns'
-    | '/sellers'
     | '/sellers-queue'
+    | '/unavailable'
     | '/orders/$id'
     | '/sellers/$id'
+    | '/sellers/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/login'
     | '/analytics'
+    | '/appeals'
     | '/categories'
     | '/commission-rates'
     | '/disputes'
@@ -216,16 +239,18 @@ export interface FileRouteTypes {
     | '/product-moderation'
     | '/promotions'
     | '/returns'
-    | '/sellers'
     | '/sellers-queue'
+    | '/unavailable'
     | '/orders/$id'
     | '/sellers/$id'
+    | '/sellers'
   id:
     | '__root__'
     | '/'
     | '/_authenticated'
     | '/login'
     | '/_authenticated/analytics'
+    | '/_authenticated/appeals'
     | '/_authenticated/categories'
     | '/_authenticated/commission-rates'
     | '/_authenticated/disputes'
@@ -236,10 +261,11 @@ export interface FileRouteTypes {
     | '/_authenticated/product-moderation'
     | '/_authenticated/promotions'
     | '/_authenticated/returns'
-    | '/_authenticated/sellers'
     | '/_authenticated/sellers-queue'
+    | '/_authenticated/unavailable'
     | '/_authenticated/orders/$id'
     | '/_authenticated/sellers/$id'
+    | '/_authenticated/sellers/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -271,18 +297,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/unavailable': {
+      id: '/_authenticated/unavailable'
+      path: '/unavailable'
+      fullPath: '/unavailable'
+      preLoaderRoute: typeof AuthenticatedUnavailableRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/sellers-queue': {
       id: '/_authenticated/sellers-queue'
       path: '/sellers-queue'
       fullPath: '/sellers-queue'
       preLoaderRoute: typeof AuthenticatedSellersQueueRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/sellers': {
-      id: '/_authenticated/sellers'
-      path: '/sellers'
-      fullPath: '/sellers'
-      preLoaderRoute: typeof AuthenticatedSellersRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/returns': {
@@ -355,6 +381,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedCategoriesRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/appeals': {
+      id: '/_authenticated/appeals'
+      path: '/appeals'
+      fullPath: '/appeals'
+      preLoaderRoute: typeof AuthenticatedAppealsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/analytics': {
       id: '/_authenticated/analytics'
       path: '/analytics'
@@ -362,12 +395,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAnalyticsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/sellers/': {
+      id: '/_authenticated/sellers/'
+      path: '/sellers'
+      fullPath: '/sellers/'
+      preLoaderRoute: typeof AuthenticatedSellersIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/sellers/$id': {
       id: '/_authenticated/sellers/$id'
-      path: '/$id'
+      path: '/sellers/$id'
       fullPath: '/sellers/$id'
       preLoaderRoute: typeof AuthenticatedSellersIdRouteImport
-      parentRoute: typeof AuthenticatedSellersRoute
+      parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/orders/$id': {
       id: '/_authenticated/orders/$id'
@@ -390,19 +430,9 @@ const AuthenticatedOrdersRouteChildren: AuthenticatedOrdersRouteChildren = {
 const AuthenticatedOrdersRouteWithChildren =
   AuthenticatedOrdersRoute._addFileChildren(AuthenticatedOrdersRouteChildren)
 
-interface AuthenticatedSellersRouteChildren {
-  AuthenticatedSellersIdRoute: typeof AuthenticatedSellersIdRoute
-}
-
-const AuthenticatedSellersRouteChildren: AuthenticatedSellersRouteChildren = {
-  AuthenticatedSellersIdRoute: AuthenticatedSellersIdRoute,
-}
-
-const AuthenticatedSellersRouteWithChildren =
-  AuthenticatedSellersRoute._addFileChildren(AuthenticatedSellersRouteChildren)
-
 interface AuthenticatedRouteChildren {
   AuthenticatedAnalyticsRoute: typeof AuthenticatedAnalyticsRoute
+  AuthenticatedAppealsRoute: typeof AuthenticatedAppealsRoute
   AuthenticatedCategoriesRoute: typeof AuthenticatedCategoriesRoute
   AuthenticatedCommissionRatesRoute: typeof AuthenticatedCommissionRatesRoute
   AuthenticatedDisputesRoute: typeof AuthenticatedDisputesRoute
@@ -413,12 +443,15 @@ interface AuthenticatedRouteChildren {
   AuthenticatedProductModerationRoute: typeof AuthenticatedProductModerationRoute
   AuthenticatedPromotionsRoute: typeof AuthenticatedPromotionsRoute
   AuthenticatedReturnsRoute: typeof AuthenticatedReturnsRoute
-  AuthenticatedSellersRoute: typeof AuthenticatedSellersRouteWithChildren
   AuthenticatedSellersQueueRoute: typeof AuthenticatedSellersQueueRoute
+  AuthenticatedUnavailableRoute: typeof AuthenticatedUnavailableRoute
+  AuthenticatedSellersIdRoute: typeof AuthenticatedSellersIdRoute
+  AuthenticatedSellersIndexRoute: typeof AuthenticatedSellersIndexRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedAnalyticsRoute: AuthenticatedAnalyticsRoute,
+  AuthenticatedAppealsRoute: AuthenticatedAppealsRoute,
   AuthenticatedCategoriesRoute: AuthenticatedCategoriesRoute,
   AuthenticatedCommissionRatesRoute: AuthenticatedCommissionRatesRoute,
   AuthenticatedDisputesRoute: AuthenticatedDisputesRoute,
@@ -429,8 +462,10 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedProductModerationRoute: AuthenticatedProductModerationRoute,
   AuthenticatedPromotionsRoute: AuthenticatedPromotionsRoute,
   AuthenticatedReturnsRoute: AuthenticatedReturnsRoute,
-  AuthenticatedSellersRoute: AuthenticatedSellersRouteWithChildren,
   AuthenticatedSellersQueueRoute: AuthenticatedSellersQueueRoute,
+  AuthenticatedUnavailableRoute: AuthenticatedUnavailableRoute,
+  AuthenticatedSellersIdRoute: AuthenticatedSellersIdRoute,
+  AuthenticatedSellersIndexRoute: AuthenticatedSellersIndexRoute,
 }
 
 const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(

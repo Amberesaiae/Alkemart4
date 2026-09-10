@@ -34,6 +34,7 @@ export type ProposedProduct = {
   quality_score?: number
   seller: { id: string; name: string; handle: string } | null
   created_at: string
+  flags?: { rule: string; message: string }[]
 }
 
 // Seller Application
@@ -147,6 +148,8 @@ export type AdminSeller = {
   }>
   /** Workers-only field from GET /admin/sellers */
   commissionBps?: number
+  orderCount?: number
+  gmvPesewas?: string
 }
 
 type WorkersSeller = {
@@ -155,6 +158,9 @@ type WorkersSeller = {
   name: string
   status: string
   commissionBps?: number
+  createdAt?: string
+  orderCount?: number
+  gmvPesewas?: string
 }
 
 type WorkersProduct = {
@@ -164,7 +170,10 @@ type WorkersProduct = {
   status: string
   primaryCategoryId?: string
   sellerId?: string | null
+  sellerName?: string | null
+  sellerHandle?: string | null
   imageUrl?: string | null
+  flags?: { rule: string; message: string }[]
 }
 
 function mapWorkersSeller(s: WorkersSeller): AdminSeller {
@@ -180,11 +189,13 @@ function mapWorkersSeller(s: WorkersSeller): AdminSeller {
     status: s.status,
     status_reason: null,
     approved_at: null,
-    created_at: "",
+    created_at: s.createdAt ?? "",
     updated_at: "",
     address: null,
     members: [],
     commissionBps: s.commissionBps,
+    orderCount: s.orderCount ?? 0,
+    gmvPesewas: s.gmvPesewas ?? "0",
   }
 }
 
@@ -195,9 +206,10 @@ function mapWorkersProduct(p: WorkersProduct): ProposedProduct {
     thumbnail: p.imageUrl ?? undefined,
     status: "proposed",
     seller: p.sellerId
-      ? { id: p.sellerId, name: "", handle: "" }
+      ? { id: p.sellerId, name: p.sellerName || "Unknown", handle: p.sellerHandle || p.sellerId }
       : null,
     created_at: "",
+    flags: p.flags ?? [],
   }
 }
 
@@ -287,8 +299,28 @@ export const auth = {
 }
 
 // Stats
+export type PlatformTraffic = {
+  views30d: number
+  series: Array<{ date: string; views: number }>
+  top_shops: Array<{ sellerId: string; name: string; handle: string | null; views: number }>
+}
+
+export const platformTraffic = {
+  get: async (): Promise<PlatformTraffic> => {
+    if (isWorkersApi) {
+      return apiFetch<PlatformTraffic>("/admin/stats/traffic")
+    }
+    return { views30d: 0, series: [], top_shops: [] }
+  },
+}
+
 export const platformStats = {
-  get: () => apiFetch<PlatformStats>("/admin/alkemart/stats"),
+  get: async () => {
+    if (isWorkersApi) {
+      return apiFetch<PlatformStats>("/admin/stats")
+    }
+    return apiFetch<PlatformStats>("/admin/alkemart/stats")
+  },
 }
 
 // Product moderation
@@ -360,8 +392,11 @@ export const sellerQueue = {
     )
   },
   approve: (id: string) => apiFetch(`/admin/sellers/${id}/approve`, { method: "POST" }),
-  suspend: (id: string, _reason?: string) =>
-    apiFetch(`/admin/sellers/${id}/suspend`, { method: "POST" }),
+  suspend: (id: string, reason?: string) =>
+    apiFetch(`/admin/sellers/${id}/suspend`, {
+      method: "POST",
+      body: JSON.stringify({ reason: reason ?? "" }),
+    }),
 }
 
 // Orders
@@ -449,6 +484,22 @@ export const adminProducts = {
     apiFetch(`/admin/products/${id}`, { method: "POST", body: JSON.stringify(data) }),
 }
 
+// Workers catalog products (full rows incl. seller + image, for seller detail)
+export type AdminCatalogProduct = {
+  id: string
+  title: string
+  description: string | null
+  status: string
+  primaryCategoryId: string
+  sellerId: string | null
+  imageUrl: string | null
+}
+
+export const adminCatalogProducts = {
+  listAll: () =>
+    apiFetch<{ items: AdminCatalogProduct[] }>("/admin/products"),
+}
+
 // Returns (admin overview)
 export type AdminReturn = {
   id: string
@@ -521,13 +572,60 @@ export type AdminPayout = {
   data: Record<string, unknown> | null
   created_at: string
   updated_at: string
+  /** Workers-only ledger fields from GET /admin/payouts */
+  sellerId?: string
+  sellerHandle?: string | null
+  sellerName?: string | null
+  grossPesewas?: string
+  commissionPesewas?: string
+  netPesewas?: string
+}
+
+type WorkersPayout = {
+  id: string
+  sellerId: string
+  sellerHandle: string | null
+  sellerName: string | null
+  status: string
+  grossPesewas: string
+  commissionPesewas: string
+  netPesewas: string
+  createdAt: string | null
+}
+
+function mapWorkersPayout(p: WorkersPayout, index: number): AdminPayout {
+  const netGhs = Number(p.netPesewas ?? "0") / 100
+  return {
+    id: p.id,
+    display_id: index + 1,
+    account_id: p.sellerId,
+    amount: Number.isFinite(netGhs) ? netGhs : 0,
+    currency_code: "ghs",
+    status: p.status as PayoutStatus,
+    data: null,
+    created_at: p.createdAt ?? new Date().toISOString(),
+    updated_at: p.createdAt ?? new Date().toISOString(),
+    sellerId: p.sellerId,
+    sellerHandle: p.sellerHandle,
+    sellerName: p.sellerName,
+    grossPesewas: p.grossPesewas,
+    commissionPesewas: p.commissionPesewas,
+    netPesewas: p.netPesewas,
+  }
 }
 
 export const adminPayouts = {
   list: async (params?: { limit?: number; offset?: number }) => {
     if (isWorkersApi) {
-      // Workers currently only exposes POST /admin/payouts (trigger). Soft-empty list.
-      return { payouts: [] as AdminPayout[], count: 0 }
+      const sp = new URLSearchParams()
+      if (params?.limit) sp.set("limit", String(params.limit))
+      if (params?.offset) sp.set("offset", String(params.offset))
+      const data = await apiFetch<{ payouts: WorkersPayout[]; count: number }>(`/admin/payouts?${sp}`)
+      const offset = params?.offset ?? 0
+      return {
+        payouts: (data.payouts ?? []).map((p, i) => mapWorkersPayout(p, offset + i)),
+        count: data.count ?? 0,
+      }
     }
     const sp = new URLSearchParams()
     if (params?.limit) sp.set("limit", String(params.limit))
@@ -581,12 +679,21 @@ export const adminDisputes = {
 export const adminSellers = {
   retrieve: async (id: string) => {
     if (isWorkersApi) {
-      const data = await apiFetch<{ items: WorkersSeller[] }>("/admin/sellers")
-      const hit = (data.items ?? []).find((s) => s.id === id)
-      if (!hit) throw new ApiError(404, "seller not found")
-      return { seller: mapWorkersSeller(hit) }
+      const data = await apiFetch<{
+        seller: AdminSeller & {
+          momo: { provider: string | null; phone: string | null; recipient: boolean } | null
+        }
+        counts: { products: Record<string, number>; orders: Record<string, number>; members: number }
+        recentOrders: { id: string; status: string; subtotalPesewas: string }[]
+      }>(`/admin/sellers/${id}`)
+      return {
+        seller: data.seller,
+        counts: data.counts,
+        recentOrders: data.recentOrders,
+      }
     }
-    return apiFetch<{ seller: AdminSeller }>(`/admin/sellers/${id}`)
+    const data = await apiFetch<{ seller: AdminSeller }>(`/admin/sellers/${id}`)
+    return { seller: data.seller }
   },
 
   list: async (params?: { limit?: number; offset?: number; q?: string }) => {
@@ -816,4 +923,27 @@ export const adminOrderDetail = {
       body: JSON.stringify({ reason }),
     })
   },
+}
+
+// Moderation appeals
+export type AdminAppeal = {
+  id: string
+  productId: string
+  sellerId: string
+  message: string
+  status: "open" | "closed"
+  decision: "reopened" | "upheld" | null
+  response: string | null
+  createdAt?: string
+  product: { id: string; title: string; status: string; imageUrl: string | null } | null
+  seller: { id: string; name: string; handle: string } | null
+}
+
+export const adminAppeals = {
+  list: () => apiFetch<{ appeals: AdminAppeal[] }>("/admin/appeals"),
+  resolve: (id: string, input: { decision: "reopen" | "uphold"; note?: string }) =>
+    apiFetch(`/admin/appeals/${id}/resolve`, {
+      method: "POST",
+      body: JSON.stringify(input),
+    }),
 }

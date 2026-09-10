@@ -1,5 +1,23 @@
 import { Link, useRouterState } from "@tanstack/react-router"
-import { ChartColumn, Package, Store, ShoppingCart, Globe, Percent, Star, Tag, RefreshCw, Wallet, LogOut, PanelLeftClose, PanelLeftOpen, Loader2, Users, Scale, Layers } from "lucide-react"
+import {
+  ChartBar,
+  Package,
+  Storefront,
+  ShoppingCart,
+  Globe,
+  Percent,
+  Star,
+  Tag,
+  ArrowsClockwise,
+  Wallet,
+  SignOut,
+  SidebarSimple as CollapseIcon,
+  Sidebar as ExpandIcon,
+  CircleNotch,
+  Users,
+  Scales,
+  Stack,
+} from "@phosphor-icons/react"
 import { useState } from "react"
 import { useAuth } from "../../hooks/use-auth"
 import { cn } from "@workspace/ui"
@@ -9,9 +27,9 @@ const ALL_NAV_GROUPS: { label: string; items: { href: string; label: string; ico
   {
     label: "Catalogue",
     items: [
-      { href: "/analytics", label: "Analytics", icon: ChartColumn },
+      { href: "/analytics", label: "Analytics", icon: ChartBar, workers: true },
       { href: "/markets", label: "Markets", icon: Globe },
-      { href: "/categories", label: "Categories", icon: Layers },
+      { href: "/categories", label: "Categories", icon: Stack },
       { href: "/featured-products", label: "Featured", icon: Star },
       { href: "/promotions", label: "Promotions", icon: Tag },
     ],
@@ -20,17 +38,18 @@ const ALL_NAV_GROUPS: { label: string; items: { href: string; label: string; ico
     label: "Commerce",
     items: [
       { href: "/orders", label: "Orders", icon: ShoppingCart, workers: true },
-      { href: "/returns", label: "Returns", icon: RefreshCw },
-      { href: "/disputes", label: "Disputes", icon: Scale },
+      { href: "/returns", label: "Returns", icon: ArrowsClockwise },
+      { href: "/disputes", label: "Disputes", icon: Scales },
       { href: "/payouts", label: "Payouts", icon: Wallet, workers: true },
     ],
   },
   {
     label: "Sellers",
     items: [
-      { href: "/sellers-queue", label: "Seller Queue", icon: Store, workers: true },
+      { href: "/sellers-queue", label: "Seller Queue", icon: Storefront, workers: true },
       { href: "/sellers", label: "All Sellers", icon: Users, workers: true },
       { href: "/product-moderation", label: "Product Review", icon: Package, workers: true },
+      { href: "/appeals", label: "Appeals", icon: Scales, workers: true },
       { href: "/commission-rates", label: "Commission", icon: Percent },
     ],
   },
@@ -78,11 +97,11 @@ export function Sidebar() {
 
   return (
     <aside aria-label="Sidebar" className={cn(
-      "bg-ink text-white flex flex-col min-h-screen sticky top-0 border-r border-white/10 shrink-0 transition-all duration-200",
+      "bg-ink text-white flex flex-col h-screen sticky top-0 border-r border-white/10 shrink-0 transition-all duration-200",
       collapsed ? "w-16" : "w-64"
     )}>
       <div className={cn(
-        "h-16 flex items-center border-b border-white/10 shrink-0",
+        "h-16 flex items-center shrink-0",
         collapsed ? "justify-center px-2" : "px-6"
       )}>
         {collapsed ? (
@@ -98,7 +117,11 @@ export function Sidebar() {
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           aria-expanded={!collapsed}
         >
-          {collapsed ? <PanelLeftOpen className="h-5 w-5" aria-hidden="true" /> : <PanelLeftClose className="h-5 w-5" aria-hidden="true" />}
+          {collapsed ? (
+            <ExpandIcon className="h-5 w-5" aria-hidden="true" />
+          ) : (
+            <CollapseIcon className="h-5 w-5" aria-hidden="true" />
+          )}
         </button>
       </div>
 
@@ -116,15 +139,16 @@ export function Sidebar() {
                   key={item.href}
                   {...item}
                   collapsed={collapsed}
-                  isActive={router.location.pathname.startsWith(item.href)}
+                  isActive={
+                    router.location.pathname === item.href ||
+                    (item.href !== "/" && router.location.pathname.startsWith(item.href + "/"))
+                  }
                 />
               ))}
             </div>
           </div>
         ))}
       </nav>
-
-      <hr className="border-white/10 mx-4" />
 
       <div className="p-4 pt-3 shrink-0">
         <button
@@ -139,7 +163,7 @@ export function Sidebar() {
           title={collapsed ? "Sign out" : undefined}
           aria-label="Sign out"
         >
-          {isLoggingOut ? <Loader2 className="h-5 w-5 shrink-0 animate-spin" aria-hidden="true" /> : <LogOut className="h-5 w-5 shrink-0" aria-hidden="true" />}
+          {isLoggingOut ? <CircleNotch className="h-5 w-5 shrink-0 animate-spin" aria-hidden="true" /> : <SignOut className="h-5 w-5 shrink-0" aria-hidden="true" />}
           {!collapsed && (isLoggingOut ? "Signing out…" : "Sign out")}
         </button>
       </div>

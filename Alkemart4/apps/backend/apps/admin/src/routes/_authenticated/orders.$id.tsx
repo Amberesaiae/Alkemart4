@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { adminOrderDetail } from "../../lib/api"
 import { Card, CardContent, CardHeader, CardTitle, Badge, Button, Skeleton, Price, Modal, Textarea } from "@workspace/ui"
 import { PageShell } from "../../components/page-shell"
-import { ArrowLeft, Package, CreditCard, Truck, User, Mail, XCircle } from "lucide-react"
+import { ArrowLeft, Package, CreditCard, Truck, User, Envelope, XCircle } from "@phosphor-icons/react"
 import { toast } from "sonner"
 
 export const Route = createFileRoute("/_authenticated/orders/$id")({
@@ -88,7 +88,7 @@ function OrderDetailPage() {
       </div>
 
       <Modal isOpen={cancelModal} onClose={() => setCancelModal(false)}>
-        <div className="p-6 space-y-4">
+        <div className="space-y-4">
           <h3 className="text-lg font-semibold">Cancel Order #{order.display_id}</h3>
           <p className="text-sm text-muted-foreground">
             This will cancel the order. Provide a reason for the record.
@@ -175,13 +175,13 @@ function OrderDetailPage() {
                     <p className="font-medium">{order.customer.first_name} {order.customer.last_name}</p>
                   </div>
                   <div className="flex items-center gap-2 text-sm">
-                    <Mail className="h-4 w-4 text-muted-foreground" />
+                    <Envelope className="h-4 w-4 text-muted-foreground" />
                     <span>{order.customer.email}</span>
                   </div>
                 </>
               ) : order.email ? (
                 <div className="flex items-center gap-2 text-sm">
-                  <Mail className="h-4 w-4 text-muted-foreground" />
+                  <Envelope className="h-4 w-4 text-muted-foreground" />
                   <span>{order.email}</span>
                 </div>
               ) : (
