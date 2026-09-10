@@ -40,6 +40,7 @@ const ALL_NAV_GROUPS: { label: string; items: { href: string; label: string; ico
       { href: "/orders", label: "Orders", icon: ShoppingCart, workers: true },
       { href: "/returns", label: "Returns", icon: ArrowsClockwise },
       { href: "/disputes", label: "Disputes", icon: Scales },
+      { href: "/reviews", label: "Reviews", icon: Star, workers: true },
       { href: "/payouts", label: "Payouts", icon: Wallet, workers: true },
     ],
   },

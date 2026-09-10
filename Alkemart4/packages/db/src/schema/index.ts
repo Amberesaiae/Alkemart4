@@ -25,3 +25,4 @@ export { appealStatusEnum, appealDecisionEnum, moderationAppeals } from "./moder
 export { shopPolicyVersions } from "./shop-policies"
 export { shopFeatured } from "./shop-featured"
 export { notificationStatusEnum, notifications } from "./notifications"
+export { reviewStatusEnum, reviews } from "./reviews"

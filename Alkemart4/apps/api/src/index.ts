@@ -33,6 +33,7 @@ import { errorHandler } from "./middleware/error"
 import { securityMiddleware } from "./middleware/security"
 import { adminActions } from "./routes/admin/actions"
 import { adminAppeals } from "./routes/admin/appeals"
+import { adminReviews } from "./routes/admin/reviews"
 import { adminAuth } from "./routes/admin/auth"
 import { adminMigrate } from "./routes/admin/migrate"
 import { adminOrders } from "./routes/admin/orders"
@@ -47,6 +48,7 @@ import { catalog } from "./routes/store/catalog"
 import { categories } from "./routes/store/categories"
 import { storeCheckout } from "./routes/store/checkout"
 import { storeOrders } from "./routes/store/orders"
+import { storeReviews } from "./routes/store/reviews"
 import { products } from "./routes/store/products"
 import { sellers } from "./routes/store/sellers"
 import { paystackHooks } from "./routes/hooks/paystack"
@@ -57,6 +59,7 @@ import { vendorProducts } from "./routes/vendor/products"
 import { vendorHealth } from "./routes/vendor/health"
 import { vendorSellers } from "./routes/vendor/sellers"
 import { vendorShopStats } from "./routes/vendor/stats"
+import { vendorReviews } from "./routes/vendor/reviews"
 import { vendorTasks } from "./routes/vendor/tasks"
 import { serveMedia, vendorUploads } from "./routes/vendor/uploads"
 import { runPaymentIntentExpiry } from "./payment-intent-expiry"
@@ -237,6 +240,7 @@ export function createApp(
   store.route("/sellers", withBind(bindCatalog, sellers))
   store.route("/cart", withBind(bindCheckout, storeCart))
   store.route("/checkout", withBind(bindAuth, withBind(bindCheckout, storeCheckout)))
+  store.route("/reviews", withBind(bindCheckout, storeReviews))
   store.route(
     "/orders",
     withBind(bindAuth, withBind(bindCheckout, storeOrders)),
@@ -249,6 +253,7 @@ export function createApp(
   vendor.route("/onboarding", vendorOnboarding)
   vendor.route("/products", withBind(bindCatalog, vendorProducts))
   vendor.route("/orders", withBind(bindCheckout, vendorOrders))
+  vendor.route("/reviews", withBind(bindCheckout, vendorReviews))
   vendor.route("/uploads", vendorUploads)
   vendor.route("/sellers", withBind(bindCatalog, vendorSellers))
   vendor.route("/health", withBind(bindCatalog, withBind(bindCheckout, vendorHealth)))
@@ -269,6 +274,7 @@ export function createApp(
   admin.route("/migrate", adminMigrate)
   admin.route("/actions", adminActions)
   admin.route("/appeals", withBind(bindCatalog, adminAppeals))
+  admin.route("/reviews", withBind(bindAuth, withBind(bindCheckout, adminReviews)))
   admin.route(
     "/payouts",
     withBind(bindAuth, withBind(bindCheckout, adminPayouts)),

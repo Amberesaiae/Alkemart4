@@ -14,6 +14,7 @@ import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedUnavailableRouteImport } from './routes/_authenticated/unavailable'
 import { Route as AuthenticatedSellersQueueRouteImport } from './routes/_authenticated/sellers-queue'
+import { Route as AuthenticatedReviewsRouteImport } from './routes/_authenticated/reviews'
 import { Route as AuthenticatedReturnsRouteImport } from './routes/_authenticated/returns'
 import { Route as AuthenticatedPromotionsRouteImport } from './routes/_authenticated/promotions'
 import { Route as AuthenticatedProductModerationRouteImport } from './routes/_authenticated/product-moderation'
@@ -56,6 +57,11 @@ const AuthenticatedSellersQueueRoute =
     path: '/sellers-queue',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedReviewsRoute = AuthenticatedReviewsRouteImport.update({
+  id: '/reviews',
+  path: '/reviews',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedReturnsRoute = AuthenticatedReturnsRouteImport.update({
   id: '/returns',
   path: '/returns',
@@ -151,6 +157,7 @@ export interface FileRoutesByFullPath {
   '/product-moderation': typeof AuthenticatedProductModerationRoute
   '/promotions': typeof AuthenticatedPromotionsRoute
   '/returns': typeof AuthenticatedReturnsRoute
+  '/reviews': typeof AuthenticatedReviewsRoute
   '/sellers-queue': typeof AuthenticatedSellersQueueRoute
   '/unavailable': typeof AuthenticatedUnavailableRoute
   '/orders/$id': typeof AuthenticatedOrdersIdRoute
@@ -172,6 +179,7 @@ export interface FileRoutesByTo {
   '/product-moderation': typeof AuthenticatedProductModerationRoute
   '/promotions': typeof AuthenticatedPromotionsRoute
   '/returns': typeof AuthenticatedReturnsRoute
+  '/reviews': typeof AuthenticatedReviewsRoute
   '/sellers-queue': typeof AuthenticatedSellersQueueRoute
   '/unavailable': typeof AuthenticatedUnavailableRoute
   '/orders/$id': typeof AuthenticatedOrdersIdRoute
@@ -195,6 +203,7 @@ export interface FileRoutesById {
   '/_authenticated/product-moderation': typeof AuthenticatedProductModerationRoute
   '/_authenticated/promotions': typeof AuthenticatedPromotionsRoute
   '/_authenticated/returns': typeof AuthenticatedReturnsRoute
+  '/_authenticated/reviews': typeof AuthenticatedReviewsRoute
   '/_authenticated/sellers-queue': typeof AuthenticatedSellersQueueRoute
   '/_authenticated/unavailable': typeof AuthenticatedUnavailableRoute
   '/_authenticated/orders/$id': typeof AuthenticatedOrdersIdRoute
@@ -218,6 +227,7 @@ export interface FileRouteTypes {
     | '/product-moderation'
     | '/promotions'
     | '/returns'
+    | '/reviews'
     | '/sellers-queue'
     | '/unavailable'
     | '/orders/$id'
@@ -239,6 +249,7 @@ export interface FileRouteTypes {
     | '/product-moderation'
     | '/promotions'
     | '/returns'
+    | '/reviews'
     | '/sellers-queue'
     | '/unavailable'
     | '/orders/$id'
@@ -261,6 +272,7 @@ export interface FileRouteTypes {
     | '/_authenticated/product-moderation'
     | '/_authenticated/promotions'
     | '/_authenticated/returns'
+    | '/_authenticated/reviews'
     | '/_authenticated/sellers-queue'
     | '/_authenticated/unavailable'
     | '/_authenticated/orders/$id'
@@ -309,6 +321,13 @@ declare module '@tanstack/react-router' {
       path: '/sellers-queue'
       fullPath: '/sellers-queue'
       preLoaderRoute: typeof AuthenticatedSellersQueueRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/reviews': {
+      id: '/_authenticated/reviews'
+      path: '/reviews'
+      fullPath: '/reviews'
+      preLoaderRoute: typeof AuthenticatedReviewsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/returns': {
@@ -443,6 +462,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedProductModerationRoute: typeof AuthenticatedProductModerationRoute
   AuthenticatedPromotionsRoute: typeof AuthenticatedPromotionsRoute
   AuthenticatedReturnsRoute: typeof AuthenticatedReturnsRoute
+  AuthenticatedReviewsRoute: typeof AuthenticatedReviewsRoute
   AuthenticatedSellersQueueRoute: typeof AuthenticatedSellersQueueRoute
   AuthenticatedUnavailableRoute: typeof AuthenticatedUnavailableRoute
   AuthenticatedSellersIdRoute: typeof AuthenticatedSellersIdRoute
@@ -462,6 +482,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedProductModerationRoute: AuthenticatedProductModerationRoute,
   AuthenticatedPromotionsRoute: AuthenticatedPromotionsRoute,
   AuthenticatedReturnsRoute: AuthenticatedReturnsRoute,
+  AuthenticatedReviewsRoute: AuthenticatedReviewsRoute,
   AuthenticatedSellersQueueRoute: AuthenticatedSellersQueueRoute,
   AuthenticatedUnavailableRoute: AuthenticatedUnavailableRoute,
   AuthenticatedSellersIdRoute: AuthenticatedSellersIdRoute,

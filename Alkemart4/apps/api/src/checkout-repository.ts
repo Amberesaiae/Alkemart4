@@ -169,6 +169,40 @@ export interface CheckoutRepository {
   claimPendingNotifications(limit?: number, maxAttempts?: number): Promise<NotificationRow[]>
   markNotificationSent(id: string): Promise<void>
   markNotificationFailed(id: string, error: string): Promise<void>
+  /**
+   * Verified-purchase reviews. One row per order (unique order_id);
+   * duplicate writes return null so routes answer 409.
+   */
+  createReview(input: {
+    orderId: string
+    productId: string
+    sellerId: string
+    buyerEmail: string
+    rating: number
+    title: string | null
+    body: string
+  }): Promise<ReviewRow | null>
+  getReview(id: string): Promise<ReviewRow | null>
+  listReviewsBySeller(sellerId: string): Promise<ReviewRow[]>
+  listPublishedReviewsByProduct(productId: string): Promise<ReviewRow[]>
+  listPendingReviews(): Promise<ReviewRow[]>
+  updateReviewStatus(id: string, status: "published" | "hidden"): Promise<ReviewRow | null>
+  respondToReview(id: string, sellerId: string, message: string): Promise<ReviewRow | null>
+}
+
+export type ReviewRow = {
+  id: string
+  orderId: string
+  productId: string
+  sellerId: string
+  buyerEmail: string
+  rating: number
+  title: string | null
+  body: string
+  status: "pending" | "published" | "hidden"
+  vendorResponse: string | null
+  respondedAt: Date | null
+  createdAt: Date
 }
 
 export type NotificationRow = {
@@ -655,5 +689,68 @@ export class InMemoryCheckoutRepository implements CheckoutRepository {
         return
       }
     }
+  }
+
+  private reviewsById = new Map<string, ReviewRow>()
+  private reviewIdByOrder = new Map<string, string>()
+
+  async createReview(input: {
+    orderId: string
+    productId: string
+    sellerId: string
+    buyerEmail: string
+    rating: number
+    title: string | null
+    body: string
+  }) {
+    if (this.reviewIdByOrder.has(input.orderId)) return null
+    const row: ReviewRow = {
+      id: crypto.randomUUID(),
+      ...input,
+      status: "pending",
+      vendorResponse: null,
+      respondedAt: null,
+      createdAt: new Date(),
+    }
+    this.reviewsById.set(row.id, row)
+    this.reviewIdByOrder.set(row.orderId, row.id)
+    return row
+  }
+
+  async getReview(id: string) {
+    return this.reviewsById.get(id) ?? null
+  }
+
+  async listReviewsBySeller(sellerId: string) {
+    return [...this.reviewsById.values()]
+      .filter((r) => r.sellerId === sellerId)
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+  }
+
+  async listPublishedReviewsByProduct(productId: string) {
+    return [...this.reviewsById.values()]
+      .filter((r) => r.productId === productId && r.status === "published")
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+  }
+
+  async listPendingReviews() {
+    return [...this.reviewsById.values()]
+      .filter((r) => r.status === "pending")
+      .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())
+  }
+
+  async updateReviewStatus(id: string, status: "published" | "hidden") {
+    const row = this.reviewsById.get(id)
+    if (!row) return null
+    row.status = status
+    return row
+  }
+
+  async respondToReview(id: string, sellerId: string, message: string) {
+    const row = this.reviewsById.get(id)
+    if (!row || row.sellerId !== sellerId) return null
+    row.vendorResponse = message
+    row.respondedAt = new Date()
+    return row
   }
 }

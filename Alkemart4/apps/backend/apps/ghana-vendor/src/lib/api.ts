@@ -773,6 +773,27 @@ export const seller = {
   },
 }
 
+export type VendorReview = {
+  id: string
+  orderId: string
+  productId: string
+  rating: number
+  title: string | null
+  body: string
+  status: "pending" | "published" | "hidden"
+  vendorResponse: string | null
+  respondedAt: string | null
+  createdAt: string
+}
+
+export const vendorReviews = {
+  /** GET /vendor/reviews/mine — your shop's reviews with responses. */
+  mine: () => get<{ reviews: VendorReview[] }>("/vendor/reviews/mine"),
+  /** POST /vendor/reviews/:id/respond — one reply per review. */
+  respond: (id: string, message: string) =>
+    post<{ review: VendorReview }>(`/vendor/reviews/${id}/respond`, { message }),
+}
+
 // ---------------------------------------------------------------------------
 // Vendor — Products
 // ---------------------------------------------------------------------------

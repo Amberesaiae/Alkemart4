@@ -12,6 +12,7 @@ import {
   onboarding,
   offers,
   inventoryItems,
+  vendorReviews,
 } from "./api"
 
 // --- Account health ---
@@ -471,5 +472,21 @@ export function useUpdateOffer() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["vendor", "offers"] })
     },
+  })
+}
+
+export function useVendorReviews() {
+  return useQuery({
+    queryKey: ["vendor", "reviews"],
+    queryFn: () => vendorReviews.mine(),
+    staleTime: 30_000,
+  })
+}
+
+export function useRespondReview() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, message }: { id: string; message: string }) => vendorReviews.respond(id, message),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["vendor", "reviews"] }),
   })
 }

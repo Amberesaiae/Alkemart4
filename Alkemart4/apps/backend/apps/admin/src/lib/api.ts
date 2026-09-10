@@ -947,3 +947,26 @@ export const adminAppeals = {
       body: JSON.stringify(input),
     }),
 }
+
+// Buyer reviews moderation
+export type AdminReview = {
+  id: string
+  orderId: string
+  productId: string
+  buyerEmail: string
+  rating: number
+  title: string | null
+  body: string
+  status: "pending" | "published" | "hidden"
+  createdAt: string
+  seller: { id: string; name: string; handle: string } | null
+}
+
+export const adminReviews = {
+  list: () => apiFetch<{ reviews: AdminReview[] }>("/admin/reviews"),
+  moderate: (id: string, action: "publish" | "hide") =>
+    apiFetch(`/admin/reviews/${id}/moderate`, {
+      method: "POST",
+      body: JSON.stringify({ action }),
+    }),
+}

@@ -10,6 +10,7 @@ import {
   payoutLines,
   payouts,
   products,
+  reviews,
   sellers,
   stockReservations,
 } from "@alkemart/db"
@@ -859,5 +860,93 @@ export class PostgresCheckoutRepository implements CheckoutRepository {
       .update(notifications)
       .set({ status: "failed", lastError: error.slice(0, 500) })
       .where(eq(notifications.id, id))
+  }
+
+  private toReviewRow(r: typeof reviews.$inferSelect) {
+    return {
+      id: r.id,
+      orderId: r.orderId,
+      productId: r.productId,
+      sellerId: r.sellerId,
+      buyerEmail: r.buyerEmail,
+      rating: r.rating,
+      title: r.title,
+      body: r.body,
+      status: r.status as "pending" | "published" | "hidden",
+      vendorResponse: r.vendorResponse,
+      respondedAt: r.respondedAt,
+      createdAt: r.createdAt,
+    }
+  }
+
+  async createReview(input: {
+    orderId: string
+    productId: string
+    sellerId: string
+    buyerEmail: string
+    rating: number
+    title: string | null
+    body: string
+  }) {
+    try {
+      const [row] = await this.db
+        .insert(reviews)
+        .values({ id: crypto.randomUUID(), ...input })
+        .returning()
+      return row ? this.toReviewRow(row) : null
+    } catch {
+      // Unique order_id (or FK) violation → duplicate review attempt.
+      return null
+    }
+  }
+
+  async getReview(id: string) {
+    const [row] = await this.db.select().from(reviews).where(eq(reviews.id, id)).limit(1)
+    return row ? this.toReviewRow(row) : null
+  }
+
+  async listReviewsBySeller(sellerId: string) {
+    const rows = await this.db
+      .select()
+      .from(reviews)
+      .where(eq(reviews.sellerId, sellerId))
+      .orderBy(desc(reviews.createdAt))
+    return rows.map((r) => this.toReviewRow(r))
+  }
+
+  async listPublishedReviewsByProduct(productId: string) {
+    const rows = await this.db
+      .select()
+      .from(reviews)
+      .where(and(eq(reviews.productId, productId), eq(reviews.status, "published")))
+      .orderBy(desc(reviews.createdAt))
+    return rows.map((r) => this.toReviewRow(r))
+  }
+
+  async listPendingReviews() {
+    const rows = await this.db
+      .select()
+      .from(reviews)
+      .where(eq(reviews.status, "pending"))
+      .orderBy(reviews.createdAt)
+    return rows.map((r) => this.toReviewRow(r))
+  }
+
+  async updateReviewStatus(id: string, status: "published" | "hidden") {
+    const [row] = await this.db
+      .update(reviews)
+      .set({ status })
+      .where(eq(reviews.id, id))
+      .returning()
+    return row ? this.toReviewRow(row) : null
+  }
+
+  async respondToReview(id: string, sellerId: string, message: string) {
+    const [row] = await this.db
+      .update(reviews)
+      .set({ vendorResponse: message, respondedAt: new Date() })
+      .where(and(eq(reviews.id, id), eq(reviews.sellerId, sellerId)))
+      .returning()
+    return row ? this.toReviewRow(row) : null
   }
 }
