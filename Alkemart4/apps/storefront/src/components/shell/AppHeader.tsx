@@ -19,11 +19,6 @@ export type AppHeaderProps = {
 /** Secondary / info links — not mixed into the cart cluster */
 const UTILITY_NAV = [
   { label: "About Us", to: "/about", match: (p: string) => p === "/about" },
-  {
-    label: "Contact Us",
-    to: "/contact",
-    match: (p: string) => p === "/contact",
-  },
 ] as const
 
 /**
@@ -32,7 +27,7 @@ const UTILITY_NAV = [
  *   [Logo]  [======== Search ========]  [Account] [Cart]
  *
  * Mobile: logo + account/cart on row 1; full-width search row 2.
- * About / Last Offers / Contact live in a slim utility strip (desktop)
+ * About / Last Offers live in a slim utility strip (desktop)
  * and the menu drawer (mobile) — never between search and cart.
  */
 export function AppHeader({
@@ -158,7 +153,7 @@ export function AppHeader({
             role="group"
             aria-label="Account and cart"
           >
-            {/* Mobile: utility menu (About / Contact) — left of account */}
+            {/* Mobile: utility menu (About) — left of account */}
             <details ref={menuDetailsRef} className="relative lg:hidden">
               <summary
                 className={cn(
