@@ -237,7 +237,7 @@ export function createApp(
   store.route("/categories", withBind(bindCatalog, categories))
   store.route("/catalog", withBind(bindCatalog, catalog))
   store.route("/products", withBind(bindCatalog, products))
-  store.route("/sellers", withBind(bindCatalog, sellers))
+  store.route("/sellers", withBind(bindAuth, withBind(bindCatalog, sellers)))
   store.route("/cart", withBind(bindCheckout, storeCart))
   store.route("/checkout", withBind(bindAuth, withBind(bindCheckout, storeCheckout)))
   store.route("/reviews", withBind(bindCheckout, storeReviews))

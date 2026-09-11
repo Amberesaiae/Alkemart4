@@ -1,8 +1,20 @@
 import { describe, expect, it } from "vitest"
 import type { ProductStatus } from "@alkemart/domain"
 import { createApp } from "../../index"
+import { InMemoryAuthRepository } from "../../auth-repository"
 import { InMemoryCatalogRepository } from "../../catalog-repository"
 import { demoCatalog, type CatalogSnapshot } from "../../demo-seed"
+import type { ApiEnv } from "../../env"
+
+function testEnv(): ApiEnv {
+  return {
+    ENVIRONMENT: "development",
+    JWT_SECRET: "x".repeat(32),
+    HYPERDRIVE: { connectionString: "postgres://x" },
+    HYPERDRIVE_PRIMARY: { connectionString: "postgres://x" },
+    CATALOG_KV: {} as KVNamespace,
+  }
+}
 
 function withSellerAOnlyProduct(data: CatalogSnapshot): CatalogSnapshot {
   return {
@@ -40,27 +52,30 @@ function withSellerAOnlyProduct(data: CatalogSnapshot): CatalogSnapshot {
 }
 
 function shopApp() {
-  return createApp({ repo: new InMemoryCatalogRepository(withSellerAOnlyProduct(demoCatalog())) })
+  return createApp({
+    authRepo: new InMemoryAuthRepository(),
+    repo: new InMemoryCatalogRepository(withSellerAOnlyProduct(demoCatalog())),
+  })
 }
 
 describe("GET /store/sellers/:handle", () => {
   it("returns only that seller's sellable offers as product cards", async () => {
     const app = shopApp()
 
-    const a = await app.request("/store/sellers/seller-a")
+    const a = await app.request("/store/sellers/seller-a", {}, testEnv())
     expect(a.status).toBe(200)
     const aBody = (await a.json()) as {
-      seller: { id: string; handle: string; name: string }
+      seller: { id: string; handle: string; name: string; description: null; logo: null; banner: null }
       items: Array<{ productId: string; offerCount: number; fromPricePesewas: string }>
     }
-    expect(aBody.seller).toEqual({ id: "seller-a", handle: "seller-a", name: "Accra Mart", availability: { state: "open", pausedUntil: null, note: null } })
+    expect(aBody.seller).toEqual({ id: "seller-a", handle: "seller-a", name: "Accra Mart", availability: { state: "open", pausedUntil: null, note: null }, description: null, logo: null, banner: null })
     const aIds = aBody.items.map((i) => i.productId).sort()
     expect(aIds).toEqual(["prod-royal-rice", "prod-tecno-spark"])
     const phone = aBody.items.find((i) => i.productId === "prod-tecno-spark")
     expect(phone?.offerCount).toBe(1)
     expect(phone?.fromPricePesewas).toBe("1500")
 
-    const b = await app.request("/store/sellers/seller-b")
+    const b = await app.request("/store/sellers/seller-b", {}, testEnv())
     expect(b.status).toBe(200)
     const bBody = (await b.json()) as {
       items: Array<{ productId: string; offerCount: number }>
@@ -71,7 +86,7 @@ describe("GET /store/sellers/:handle", () => {
   })
 
   it("404s for an unknown seller handle", async () => {
-    const res = await shopApp().request("/store/sellers/no-such-seller")
+    const res = await shopApp().request("/store/sellers/no-such-seller", {}, testEnv())
     expect(res.status).toBe(404)
   })
 })

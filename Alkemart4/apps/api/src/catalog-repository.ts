@@ -54,6 +54,9 @@ export type SellerShopDto = {
     handle: string
     name: string
     availability: { state: "open" | "paused"; pausedUntil: string | null; note: string | null }
+    description: string | null
+    logo: string | null
+    banner: string | null
   }
   featuredProductIds: string[]
   items: ProductCardDto[]
@@ -461,6 +464,9 @@ export function getSellerShopFrom(data: CatalogSnapshot, handle: string): Seller
         pausedUntil: seller.pausedUntil,
         note: seller.pauseNote,
       },
+      description: null,
+      logo: null,
+      banner: null,
     },
     featuredProductIds: [],
     items: cardsFor(

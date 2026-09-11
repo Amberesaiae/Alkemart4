@@ -3,10 +3,33 @@ import { useEffect, useMemo, useState } from "react"
 import { useBlocker } from "@tanstack/react-router"
 import { useSellerProfile, useUpdateStorefront, usePauseShop, useUnpauseShop, useShopPolicies, useSavePolicy, useCategories, useProducts, useUpdateDisplay, useUpdateContact, useFeatured, useSetFeatured } from "../lib/hooks"
 import type { StorefrontPatch } from "../lib/api"
-import { Card, Button, Input, Label, Select, Textarea, Skeleton } from "@workspace/ui"
+import { Card, Button, Input, Label, Select, Textarea, Skeleton, DatePicker } from "@workspace/ui"
+import { format } from "date-fns"
 import { PageShell } from "../components/page-shell"
 import { PageHeader } from "../components/page-header"
-import { Storefront, DeviceMobile, DeviceTablet, ArrowSquareOut, CheckCircle, WarningCircle, Pause, Play, ClipboardText } from "@phosphor-icons/react"
+import {
+  Storefront,
+  DeviceMobile,
+  DeviceTablet,
+  ArrowSquareOut,
+  CheckCircle,
+  WarningCircle,
+  Pause,
+  Play,
+  ClipboardText,
+  Eye,
+  Megaphone,
+  Tag,
+  ShieldCheck,
+  X,
+  PhoneCall,
+  CalendarBlank,
+  Clock,
+  InstagramLogo,
+  TiktokLogo,
+  FacebookLogo,
+  WhatsappLogo,
+} from "@phosphor-icons/react"
 import { toast } from "sonner"
 
 export const Route = createFileRoute('/store')({
@@ -58,6 +81,8 @@ function StorePage() {
   const [form, setForm] = useState(saved)
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(null)
   const [previewMode, setPreviewMode] = useState<"desktop" | "mobile">("desktop")
+  const [activeCategory, setActiveCategory] = useState<"branding" | "catalog" | "operations">("branding")
+  const [showPreview, setShowPreview] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [savedFlash, setSavedFlash] = useState(false)
 
@@ -209,22 +234,130 @@ function StorePage() {
   }
 
   return (
-    <PageShell>
-      <PageHeader
-        title="Store"
-        description="Branding, announcement, and SEO for your live shop page. Nothing goes public until you publish."
-      />
-      <nav aria-label="Store sections" className="flex flex-wrap gap-x-4 gap-y-1 text-sm font-bold xl:hidden">
-        <a href="#store-branding" className="underline">Branding</a>
-        <a href="#store-announcement" className="underline">Announcement</a>
-        <a href="#store-seo" className="underline">SEO</a>
-        <a href="#store-availability" className="underline">Availability</a>
-        <a href="#store-policies" className="underline">Policies</a>
-        <a href="#store-display" className="underline">Display</a>
-        <a href="#store-featured" className="underline">Featured</a>
-        <a href="#store-contact" className="underline">Contact</a>
-        <a href="#store-preview" className="underline">Preview</a>
-      </nav>
+    <PageShell className="space-y-6">
+      {/* Top Page Header with Preview Toggle */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <PageHeader
+          title="Store"
+          description="Branding, catalog merchandising, announcements, and policies for your live shop."
+        />
+        <div className="flex items-center gap-2 shrink-0">
+          <Button
+            variant={showPreview ? "default" : "outline"}
+            size="sm"
+            onClick={() => setShowPreview((p) => !p)}
+            className="gap-1.5 font-bold shadow-xs cursor-pointer"
+          >
+            <Eye className="h-4 w-4" />
+            <span>{showPreview ? "Hide Preview" : "Live Preview"}</span>
+          </Button>
+          {shopUrl && (
+            <a
+              href={shopUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-border bg-card hover:bg-muted text-foreground transition shadow-xs"
+            >
+              <ArrowSquareOut className="h-3.5 w-3.5 text-primary" />
+              Open Live Shop
+            </a>
+          )}
+        </div>
+      </div>
+
+      {/* Category Navigation Bar */}
+      <div
+        role="tablist"
+        aria-label="Store sections"
+        className="grid grid-cols-1 sm:grid-cols-3 gap-2 p-1.5 bg-muted/50 dark:bg-muted/20 border border-border/80 rounded-2xl"
+      >
+        <button
+          role="tab"
+          id="tab-branding"
+          aria-selected={activeCategory === "branding"}
+          onClick={() => setActiveCategory("branding")}
+          className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-left cursor-pointer ${
+            activeCategory === "branding"
+              ? "bg-card text-foreground shadow-sm ring-1 ring-border"
+              : "text-muted-foreground hover:text-foreground hover:bg-card/40"
+          }`}
+        >
+          <div
+            className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-colors ${
+              activeCategory === "branding"
+                ? "bg-primary text-primary-foreground shadow-xs"
+                : "bg-muted text-muted-foreground"
+            }`}
+          >
+            <Megaphone className="h-5 w-5" weight={activeCategory === "branding" ? "bold" : "regular"} />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-bold truncate">Brand & Marketing</span>
+              {anyDirty && (
+                <span className="flex h-2 w-2 rounded-full bg-warning ring-2 ring-background" title="Unsaved edits" />
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground truncate font-medium">Tagline, announcement & SEO</p>
+          </div>
+        </button>
+
+        <button
+          role="tab"
+          id="tab-catalog"
+          aria-selected={activeCategory === "catalog"}
+          onClick={() => setActiveCategory("catalog")}
+          className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-left cursor-pointer ${
+            activeCategory === "catalog"
+              ? "bg-card text-foreground shadow-sm ring-1 ring-border"
+              : "text-muted-foreground hover:text-foreground hover:bg-card/40"
+          }`}
+        >
+          <div
+            className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-colors ${
+              activeCategory === "catalog"
+                ? "bg-primary text-primary-foreground shadow-xs"
+                : "bg-muted text-muted-foreground"
+            }`}
+          >
+            <Tag className="h-5 w-5" weight={activeCategory === "catalog" ? "bold" : "regular"} />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-bold truncate">Catalog & Display</span>
+            </div>
+            <p className="text-xs text-muted-foreground truncate font-medium">Stock mode, order & shelf</p>
+          </div>
+        </button>
+
+        <button
+          role="tab"
+          id="tab-operations"
+          aria-selected={activeCategory === "operations"}
+          onClick={() => setActiveCategory("operations")}
+          className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-left cursor-pointer ${
+            activeCategory === "operations"
+              ? "bg-card text-foreground shadow-sm ring-1 ring-border"
+              : "text-muted-foreground hover:text-foreground hover:bg-card/40"
+          }`}
+        >
+          <div
+            className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-colors ${
+              activeCategory === "operations"
+                ? "bg-primary text-primary-foreground shadow-xs"
+                : "bg-muted text-muted-foreground"
+            }`}
+          >
+            <ShieldCheck className="h-5 w-5" weight={activeCategory === "operations" ? "bold" : "regular"} />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-bold truncate">Policies & Operations</span>
+            </div>
+            <p className="text-xs text-muted-foreground truncate font-medium">Vacation mode, returns & contact</p>
+          </div>
+        </button>
+      </div>
 
       {errorEntries.length > 0 && (
         <div
@@ -252,225 +385,267 @@ function StorePage() {
         </p>
       )}
 
-      {/* Sticky publish bar */}
-      <div className="sticky top-0 z-10 -mx-1 px-1 py-2 bg-background/95 backdrop-blur flex flex-wrap items-center gap-3 border-b">
-        <div className="flex items-center gap-2 text-xs font-bold text-muted-foreground" aria-live="polite">
-          <span>Branding: {cardStatus("branding")}</span>
-          <span aria-hidden="true">·</span>
-          <span>Announcement: {cardStatus("announcement")}</span>
-          <span aria-hidden="true">·</span>
-          <span>SEO: {cardStatus("seo")}</span>
-        </div>
-        {lastSavedAt && (
-          <span className="text-xs text-muted-foreground font-medium">Last published {lastSavedAt}</span>
-        )}
-        <Button
-          className="ml-auto gap-2"
-          disabled={!anyDirty || update.isPending}
-          isLoading={update.isPending}
-          onClick={() => { void handlePublish() }}
-        >
-          <Storefront className="h-4 w-4" /> Publish changes
-        </Button>
-      </div>
-
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_420px] items-start">
-        <div className="space-y-6 min-w-0">
-          {/* Branding */}
-          <Card id="store-branding" className="p-6 space-y-4 scroll-mt-24">
-            <h2 className="font-black flex items-center gap-2">
-              <Storefront className="h-5 w-5 text-primary" /> Branding {statusPill("branding")}
-            </h2>
-            <div className="space-y-2">
-              <Label htmlFor="store-field-tagline">Tagline <span className="text-muted-foreground font-medium">({form.tagline.length}/120)</span></Label>
-              <Input
-                id="store-field-tagline"
-                value={form.tagline}
-                maxLength={121}
-                placeholder="e.g. Accra's freshest market"
-                onChange={(e) => set("tagline", e.target.value)}
-                aria-invalid={Boolean(errors.tagline)}
-                aria-describedby={errors.tagline ? "store-field-tagline-error" : undefined}
-              />
-              {errors.tagline && <p id="store-field-tagline-error" className="text-sm font-medium text-destructive">{errors.tagline}</p>}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="store-field-bio">Shop bio <span className="text-muted-foreground font-medium">({form.bio.length}/2000)</span></Label>
-              <Textarea
-                id="store-field-bio"
-                value={form.bio}
-                rows={4}
-                placeholder="Tell buyers who you are…"
-                onChange={(e) => set("bio", e.target.value)}
-                aria-invalid={Boolean(errors.bio)}
-                aria-describedby={errors.bio ? "store-field-bio-error" : undefined}
-              />
-              {errors.bio && <p id="store-field-bio-error" className="text-sm font-medium text-destructive">{errors.bio}</p>}
-            </div>
-          </Card>
-
-          {/* Announcement */}
-          <Card id="store-announcement" className="p-6 space-y-4 scroll-mt-24">
-            <h2 className="font-black flex items-center gap-2">
-              <Storefront className="h-5 w-5 text-primary" /> Announcement {statusPill("announcement")}
-            </h2>
-            <label className="flex items-center gap-2 text-sm font-bold">
-              <input
-                type="checkbox"
-                checked={form.announcementEnabled}
-                onChange={(e) => set("announcementEnabled", e.target.checked)}
-                className="h-4 w-4 accent-primary"
-              />
-              Show a banner on my shop
-              {seller.storefront?.announcementActive && (
-                <span className="text-xs font-bold uppercase tracking-wide text-success">Live now</span>
-              )}
-            </label>
-            {form.announcementEnabled && (
-              <>
-                <div className="space-y-2">
-                  <Label htmlFor="store-field-announcementText">Banner text <span className="text-muted-foreground font-medium">({form.announcementText.length}/140)</span></Label>
-                  <Textarea
-                    id="store-field-announcementText"
-                    value={form.announcementText}
-                    rows={2}
-                    maxLength={141}
-                    placeholder="e.g. Harvest sale this weekend — 10% off yams"
-                    onChange={(e) => set("announcementText", e.target.value)}
-                    aria-invalid={Boolean(errors.announcementText)}
-                    aria-describedby={errors.announcementText ? "store-field-announcementText-error" : undefined}
-                  />
-                  {errors.announcementText && <p id="store-field-announcementText-error" className="text-sm font-medium text-destructive">{errors.announcementText}</p>}
-                </div>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="store-field-startsAt">Starts</Label>
-                    <Input
-                      id="store-field-startsAt"
-                      type="datetime-local"
-                      value={form.startsAt}
-                      onChange={(e) => set("startsAt", e.target.value)}
-                      aria-invalid={Boolean(errors.startsAt)}
-                      aria-describedby={errors.startsAt ? "store-field-startsAt-error" : undefined}
-                    />
-                    {errors.startsAt && <p id="store-field-startsAt-error" className="text-sm font-medium text-destructive">{errors.startsAt}</p>}
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="store-field-endsAt">Ends</Label>
-                    <Input
-                      id="store-field-endsAt"
-                      type="datetime-local"
-                      value={form.endsAt}
-                      onChange={(e) => set("endsAt", e.target.value)}
-                      aria-invalid={Boolean(errors.endsAt)}
-                      aria-describedby={errors.endsAt ? "store-field-endsAt-error" : undefined}
-                    />
-                    {errors.endsAt && <p id="store-field-endsAt-error" className="text-sm font-medium text-destructive">{errors.endsAt}</p>}
-                  </div>
-                </div>
-              </>
-            )}
-          </Card>
-
-          {/* SEO */}
-          <Card id="store-seo" className="p-6 space-y-4 scroll-mt-24">
-            <h2 className="font-black flex items-center gap-2">
-              <Storefront className="h-5 w-5 text-primary" /> Search (SEO) {statusPill("seo")}
-            </h2>
-            <div className="space-y-2">
-              <Label htmlFor="store-field-seoDescription">Shop description <span className="text-muted-foreground font-medium">({form.seoDescription.length}/160)</span></Label>
-              <Textarea
-                id="store-field-seoDescription"
-                value={form.seoDescription}
-                rows={3}
-                maxLength={161}
-                placeholder="One or two sentences for search results…"
-                onChange={(e) => set("seoDescription", e.target.value)}
-                aria-invalid={Boolean(errors.seoDescription)}
-                aria-describedby={errors.seoDescription ? "store-field-seoDescription-error" : undefined}
-              />
-              {errors.seoDescription && <p id="store-field-seoDescription-error" className="text-sm font-medium text-destructive">{errors.seoDescription}</p>}
-            </div>
-            <div className="rounded-xl border p-4 bg-muted/30" aria-label="Search result preview">
-              <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground mb-1">How search sees you</p>
-              <p className="font-bold text-base text-primary leading-snug">
-                {seller.name}{form.tagline.trim() ? ` — ${form.tagline.trim()}` : ""}
-              </p>
-              <p className="text-xs text-muted-foreground font-mono truncate">
-                alkemart.com/shops/{seller.handle}
-              </p>
-              <p className="text-sm text-muted-foreground mt-1">
-                {form.seoDescription.trim() || "Add a shop description above to control this snippet."}
-              </p>
-            </div>
-          </Card>
-
-          <AvailabilityCard />
-          <PoliciesCard />
-          <DisplayCard />
-          <FeaturedCard />
-          <ContactCard />
-        </div>
-
-        {/* Live preview */}
-        <div id="store-preview" className="xl:sticky xl:top-16 space-y-3 scroll-mt-24">
-          <a href="#main-content" className="sr-only focus:not-sr-only focus:block focus:mb-2 focus:font-bold focus:underline">
-            Skip live preview
-          </a>
-          <div className="flex items-center gap-2">
-            <div className="inline-flex rounded-xl border p-1" role="group" aria-label="Preview device size">
-              <Button
-                size="sm"
-                variant={previewMode === "desktop" ? "default" : "ghost"}
-                onClick={() => setPreviewMode("desktop")}
-                aria-pressed={previewMode === "desktop"}
-                className="gap-1"
-              >
-                <DeviceTablet className="h-4 w-4" /> Desktop
-              </Button>
-              <Button
-                size="sm"
-                variant={previewMode === "mobile" ? "default" : "ghost"}
-                onClick={() => setPreviewMode("mobile")}
-                aria-pressed={previewMode === "mobile"}
-                className="gap-1"
-              >
-                <DeviceMobile className="h-4 w-4" /> Mobile
-              </Button>
-            </div>
-            {shopUrl && (
-              <a
-                href={shopUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="ml-auto inline-flex items-center gap-1 text-sm font-bold underline"
-              >
-                Open live shop <ArrowSquareOut className="h-4 w-4" />
-              </a>
-            )}
+      {/* Sticky publish bar for Brand & Marketing edits */}
+      {activeCategory === "branding" && (
+        <div className="sticky top-0 z-10 -mx-1 px-3 py-2.5 bg-background/95 backdrop-blur flex flex-wrap items-center gap-3 border rounded-xl shadow-xs">
+          <div className="flex items-center gap-2 text-xs font-bold text-muted-foreground" aria-live="polite">
+            <span>Branding: {cardStatus("branding")}</span>
+            <span aria-hidden="true">·</span>
+            <span>Announcement: {cardStatus("announcement")}</span>
+            <span aria-hidden="true">·</span>
+            <span>SEO: {cardStatus("seo")}</span>
           </div>
-          <div
-            className="mx-auto rounded-2xl border-2 overflow-hidden bg-card transition-[max-width] motion-reduce:transition-none"
-            style={{ maxWidth: previewMode === "mobile" ? 390 : "100%" }}
+          {lastSavedAt && (
+            <span className="text-xs text-muted-foreground font-medium">Last published {lastSavedAt}</span>
+          )}
+          <Button
+            size="sm"
+            className="ml-auto gap-2 font-bold px-5"
+            disabled={!anyDirty || update.isPending}
+            isLoading={update.isPending}
+            onClick={() => { void handlePublish() }}
           >
-            {shopUrl ? (
-              <iframe
-                key={shopUrl}
-                title="Live preview of your shop"
-                src={shopUrl}
-                className="w-full h-[560px] bg-background"
-                loading="lazy"
-              />
-            ) : (
-              <p className="p-8 text-sm text-muted-foreground font-medium">
-                Set a shop handle in Settings to preview your live page.
-              </p>
-            )}
-          </div>
-          <p className="text-xs text-muted-foreground font-medium">
-            Preview renders your real shop page — publish to update what buyers see.
-          </p>
+            <Storefront className="h-4 w-4" /> Publish changes
+          </Button>
         </div>
+      )}
+
+      {/* Main Content Area: Left Cards, Right Toggleable Live Preview */}
+      <div className={showPreview ? "grid gap-6 xl:grid-cols-[minmax(0,1fr)_420px] items-start" : "space-y-6 max-w-4xl"}>
+        <div className="space-y-6 min-w-0">
+          {/* ── Category 1: Brand & Marketing ── */}
+          {activeCategory === "branding" && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+              <div className="space-y-6">
+                {/* Branding */}
+                <Card id="store-branding" className="p-6 space-y-4 scroll-mt-24 shadow-xs">
+                  <h2 className="font-bold flex items-center gap-2 text-base text-foreground">
+                    <Storefront className="h-5 w-5 text-primary" /> Shop Branding {statusPill("branding")}
+                  </h2>
+                  <div className="space-y-2">
+                    <Label htmlFor="store-field-tagline">Tagline <span className="text-xs text-muted-foreground font-normal">({form.tagline.length}/120)</span></Label>
+                    <Input
+                      id="store-field-tagline"
+                      value={form.tagline}
+                      maxLength={121}
+                      placeholder="e.g. Accra's freshest market"
+                      onChange={(e) => set("tagline", e.target.value)}
+                      aria-invalid={Boolean(errors.tagline)}
+                      aria-describedby={errors.tagline ? "store-field-tagline-error" : undefined}
+                    />
+                    {errors.tagline && <p id="store-field-tagline-error" className="text-xs font-medium text-destructive">{errors.tagline}</p>}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="store-field-bio">Shop bio <span className="text-xs text-muted-foreground font-normal">({form.bio.length}/2000)</span></Label>
+                    <Textarea
+                      id="store-field-bio"
+                      value={form.bio}
+                      rows={4}
+                      placeholder="Tell buyers who you are…"
+                      onChange={(e) => set("bio", e.target.value)}
+                      aria-invalid={Boolean(errors.bio)}
+                      aria-describedby={errors.bio ? "store-field-bio-error" : undefined}
+                    />
+                    {errors.bio && <p id="store-field-bio-error" className="text-xs font-medium text-destructive">{errors.bio}</p>}
+                  </div>
+                </Card>
+
+                {/* SEO */}
+                <Card id="store-seo" className="p-6 space-y-4 scroll-mt-24 shadow-xs">
+                  <h2 className="font-bold flex items-center gap-2 text-base text-foreground">
+                    <Storefront className="h-5 w-5 text-primary" /> Search (SEO) {statusPill("seo")}
+                  </h2>
+                  <div className="space-y-2">
+                    <Label htmlFor="store-field-seoDescription">Shop description <span className="text-xs text-muted-foreground font-normal">({form.seoDescription.length}/160)</span></Label>
+                    <Textarea
+                      id="store-field-seoDescription"
+                      value={form.seoDescription}
+                      rows={3}
+                      maxLength={161}
+                      placeholder="One or two sentences for search results…"
+                      onChange={(e) => set("seoDescription", e.target.value)}
+                      aria-invalid={Boolean(errors.seoDescription)}
+                      aria-describedby={errors.seoDescription ? "store-field-seoDescription-error" : undefined}
+                    />
+                    {errors.seoDescription && <p id="store-field-seoDescription-error" className="text-xs font-medium text-destructive">{errors.seoDescription}</p>}
+                  </div>
+                  <div className="rounded-xl border p-3.5 bg-muted/30" aria-label="Search result preview">
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1">Search Preview</p>
+                    <p className="font-semibold text-sm text-primary leading-snug truncate">
+                      {seller.name}{form.tagline.trim() ? ` — ${form.tagline.trim()}` : ""}
+                    </p>
+                    <p className="text-xs text-muted-foreground font-mono truncate">
+                      alkemart.com/shops/{seller.handle}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                      {form.seoDescription.trim() || "Add a shop description above to control this snippet."}
+                    </p>
+                  </div>
+                </Card>
+              </div>
+
+              {/* Announcement */}
+              <div className="space-y-6">
+                <Card id="store-announcement" className="p-6 space-y-4 scroll-mt-24 shadow-xs">
+                  <h2 className="font-bold flex items-center gap-2 text-base text-foreground">
+                    <Megaphone className="h-5 w-5 text-primary" /> Announcement Banner {statusPill("announcement")}
+                  </h2>
+                  <label className="flex items-center gap-2.5 text-sm font-semibold cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={form.announcementEnabled}
+                      onChange={(e) => set("announcementEnabled", e.target.checked)}
+                      className="h-4 w-4 accent-primary rounded cursor-pointer"
+                    />
+                    Display an announcement banner on my shop
+                    {seller.storefront?.announcementActive && (
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-success ml-auto">Live now</span>
+                    )}
+                  </label>
+                  {form.announcementEnabled && (
+                    <div className="space-y-4 pt-2 border-t border-border/60">
+                      <div className="space-y-2">
+                        <Label htmlFor="store-field-announcementText">Banner message <span className="text-xs text-muted-foreground font-normal">({form.announcementText.length}/140)</span></Label>
+                        <Textarea
+                          id="store-field-announcementText"
+                          value={form.announcementText}
+                          rows={2}
+                          maxLength={141}
+                          placeholder="e.g. Harvest sale this weekend — 10% off yams"
+                          onChange={(e) => set("announcementText", e.target.value)}
+                          aria-invalid={Boolean(errors.announcementText)}
+                          aria-describedby={errors.announcementText ? "store-field-announcementText-error" : undefined}
+                        />
+                        {errors.announcementText && <p id="store-field-announcementText-error" className="text-xs font-medium text-destructive">{errors.announcementText}</p>}
+                      </div>
+
+                      {/* Proper shadcn DatePicker components */}
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <div className="space-y-1.5">
+                          <Label htmlFor="store-field-startsAt" className="text-xs font-semibold">
+                            Start Date
+                          </Label>
+                          <DatePicker
+                            id="store-field-startsAt"
+                            value={form.startsAt}
+                            onChange={(d) => set("startsAt", d ? format(d, "yyyy-MM-dd") : "")}
+                            placeholder="Select start date"
+                            aria-invalid={Boolean(errors.startsAt)}
+                            aria-describedby={errors.startsAt ? "store-field-startsAt-error" : undefined}
+                          />
+                          {errors.startsAt && <p id="store-field-startsAt-error" className="text-xs font-medium text-destructive">{errors.startsAt}</p>}
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label htmlFor="store-field-endsAt" className="text-xs font-semibold">
+                            End Date
+                          </Label>
+                          <DatePicker
+                            id="store-field-endsAt"
+                            value={form.endsAt}
+                            onChange={(d) => set("endsAt", d ? format(d, "yyyy-MM-dd") : "")}
+                            placeholder="Select end date"
+                            minDate={form.startsAt ? new Date(form.startsAt) : undefined}
+                            aria-invalid={Boolean(errors.endsAt)}
+                            aria-describedby={errors.endsAt ? "store-field-endsAt-error" : undefined}
+                          />
+                          {errors.endsAt && <p id="store-field-endsAt-error" className="text-xs font-medium text-destructive">{errors.endsAt}</p>}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </Card>
+              </div>
+            </div>
+          )}
+
+          {/* ── Category 2: Catalog & Display ── */}
+          {activeCategory === "catalog" && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+              <DisplayCard />
+              <FeaturedCard />
+            </div>
+          )}
+
+          {/* ── Category 3: Policies & Operations ── */}
+          {activeCategory === "operations" && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
+                <AvailabilityCard />
+                <PoliciesCard />
+              </div>
+              <ContactCard />
+            </div>
+          )}
+        </div>
+
+        {/* ── Live Preview Side Panel (Toggleable) ── */}
+        {showPreview && (
+          <div id="store-preview" className="xl:sticky xl:top-16 space-y-3 animate-in fade-in slide-in-from-right-3 duration-200">
+            <div className="flex items-center justify-between gap-2 p-2 bg-muted/40 rounded-xl border border-border">
+              <div className="inline-flex rounded-lg border p-0.5 bg-background shadow-2xs" role="group" aria-label="Preview device size">
+                <Button
+                  size="sm"
+                  variant={previewMode === "desktop" ? "default" : "ghost"}
+                  onClick={() => setPreviewMode("desktop")}
+                  aria-pressed={previewMode === "desktop"}
+                  className="gap-1 text-xs h-7 px-2.5 cursor-pointer"
+                >
+                  <DeviceTablet className="h-3.5 w-3.5" /> Desktop
+                </Button>
+                <Button
+                  size="sm"
+                  variant={previewMode === "mobile" ? "default" : "ghost"}
+                  onClick={() => setPreviewMode("mobile")}
+                  aria-pressed={previewMode === "mobile"}
+                  className="gap-1 text-xs h-7 px-2.5 cursor-pointer"
+                >
+                  <DeviceMobile className="h-3.5 w-3.5" /> Mobile
+                </Button>
+              </div>
+              <div className="flex items-center gap-1.5">
+                {shopUrl && (
+                  <a
+                    href={shopUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-md hover:bg-muted text-foreground transition"
+                  >
+                    Open <ArrowSquareOut className="h-3 w-3" />
+                  </a>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setShowPreview(false)}
+                  className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition cursor-pointer"
+                  title="Close preview"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            </div>
+            <div
+              className="mx-auto rounded-2xl border-2 overflow-hidden bg-card transition-[max-width] motion-reduce:transition-none shadow-md"
+              style={{ maxWidth: previewMode === "mobile" ? 390 : "100%" }}
+            >
+              {shopUrl ? (
+                <iframe
+                  key={shopUrl}
+                  title="Live preview of your shop"
+                  src={shopUrl}
+                  className="w-full h-[580px] bg-background"
+                  loading="lazy"
+                />
+              ) : (
+                <p className="p-8 text-sm text-muted-foreground font-medium text-center">
+                  Set a shop handle in Settings to preview your live page.
+                </p>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground font-medium text-center">
+              Preview renders your real shop page — publish to update what buyers see.
+            </p>
+          </div>
+        )}
       </div>
     </PageShell>
   )
@@ -500,7 +675,7 @@ function AvailabilityCard() {
         note: note.trim() === "" ? null : note.trim(),
         until: until === "" ? null : new Date(until).toISOString(),
       })
-      toast.success("Shop paused — buyers can't check out until you resume.")
+      toast.success("Shop paused — orders are paused until you resume.")
       setNote("")
       setUntil("")
       void refetch()
@@ -512,7 +687,7 @@ function AvailabilityCard() {
   const handleResume = async () => {
     try {
       await unpause.mutateAsync()
-      toast.success("Welcome back — your shop is taking orders.")
+      toast.success("Welcome back — your shop is open for orders.")
       void refetch()
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to resume.")
@@ -520,69 +695,73 @@ function AvailabilityCard() {
   }
 
   return (
-    <Card id="store-availability" className="p-6 space-y-4 scroll-mt-24">
-      <h2 className="font-black flex items-center gap-2">
-        <Pause className="h-5 w-5 text-primary" /> Availability
-        <span
-          className={
-            paused
-              ? "ml-auto text-xs font-bold uppercase tracking-wide text-warning-fg"
-              : "ml-auto text-xs font-bold uppercase tracking-wide text-success"
-          }
-        >
-          {paused ? "Paused" : "Open"}
-        </span>
-      </h2>
-      {paused ? (
-        <div className="space-y-3">
-          <div className="p-4 rounded-xl bg-warning/10 border border-warning/20 text-sm">
-            <p className="font-bold text-warning-fg">Order intake is paused.</p>
-            {availability?.note && <p className="text-warning-fg/90 mt-1">{availability.note}</p>}
-            {availability?.pausedUntil && (
-              <p className="text-warning-fg/80 mt-1 font-medium">
-                Back {new Date(availability.pausedUntil).toLocaleString()}
-              </p>
-            )}
-            {!availability?.pausedUntil && (
-              <p className="text-warning-fg/80 mt-1 font-medium">No return date set.</p>
-            )}
-          </div>
-          <p className="text-sm text-muted-foreground font-medium">
-            Buyers see this note on your shop and can&apos;t check out. Your listings stay visible.
-          </p>
-          <Button onClick={() => { void handleResume() }} isLoading={unpause.isPending} className="gap-2">
-            <Play className="h-4 w-4" /> Resume orders
-          </Button>
+    <Card id="store-availability" className="p-6 space-y-4 shadow-xs flex flex-col justify-between">
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="font-bold flex items-center gap-2 text-base text-foreground">
+            <Pause className="h-5 w-5 text-primary" /> Availability & Vacation
+          </h2>
+          <span
+            className={`text-xs font-bold uppercase tracking-wider px-2 py-0.5 rounded-md ${
+              paused ? "bg-warning/20 text-warning-fg" : "bg-success/20 text-success"
+            }`}
+          >
+            {paused ? "Paused" : "Open"}
+          </span>
         </div>
-      ) : (
-        <div className="space-y-3">
-          <p className="text-sm text-muted-foreground font-medium">
-            Pause order intake for holidays or stock-taking. Checkout is blocked server-side while paused.
-          </p>
-          <div className="space-y-2">
-            <Label htmlFor="store-pause-note">Note for buyers (optional)</Label>
-            <Input
-              id="store-pause-note"
-              value={note}
-              maxLength={501}
-              placeholder="e.g. Closed for stock-taking, back Monday"
-              onChange={(e) => setNote(e.target.value)}
-            />
+
+        {paused ? (
+          <div className="space-y-3">
+            <div className="p-3 rounded-xl bg-warning/10 border border-warning/20 text-xs space-y-1">
+              <p className="font-bold text-warning-fg">Order intake is currently paused.</p>
+              {availability?.note && <p className="text-warning-fg/90">{availability.note}</p>}
+              {availability?.pausedUntil && (
+                <p className="text-warning-fg/80 font-medium">
+                  Reopening: {new Date(availability.pausedUntil).toLocaleDateString()}
+                </p>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground">Listings stay visible to buyers, but checkout is paused.</p>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="store-pause-until">Back on (optional)</Label>
-            <Input
-              id="store-pause-until"
-              type="datetime-local"
-              value={until}
-              onChange={(e) => setUntil(e.target.value)}
-            />
+        ) : (
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="store-pause-note">Pause Notice (optional)</Label>
+              <Input
+                id="store-pause-note"
+                value={note}
+                maxLength={500}
+                placeholder="e.g. Taking stock, back Monday"
+                onChange={(e) => setNote(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="store-pause-until" className="text-xs font-semibold">
+                Reopen Date (optional)
+              </Label>
+              <DatePicker
+                id="store-pause-until"
+                value={until}
+                onChange={(d) => setUntil(d ? format(d, "yyyy-MM-dd") : "")}
+                placeholder="Select reopen date"
+                minDate={new Date()}
+              />
+            </div>
           </div>
-          <Button variant="outline" onClick={() => { void handlePause() }} isLoading={pause.isPending} className="gap-2">
-            <Pause className="h-4 w-4" /> Pause orders
+        )}
+      </div>
+
+      <div className="pt-2 border-t border-border/60">
+        {paused ? (
+          <Button onClick={() => { void handleResume() }} isLoading={unpause.isPending} className="w-full gap-2">
+            <Play className="h-4 w-4" /> Resume Orders
           </Button>
-        </div>
-      )}
+        ) : (
+          <Button variant="outline" onClick={() => { void handlePause() }} isLoading={pause.isPending} className="w-full gap-2">
+            <Pause className="h-4 w-4" /> Pause Orders
+          </Button>
+        )}
+      </div>
     </Card>
   )
 }
@@ -591,7 +770,6 @@ function PoliciesCard() {
   const { data: policyData } = useShopPolicies()
   const save = useSavePolicy()
   const current = policyData?.current
-  const history = policyData?.history ?? []
 
   const [shipping, setShipping] = useState<string | null>(null)
   const [returnsDays, setReturnsDays] = useState<string | null>(null)
@@ -606,7 +784,7 @@ function PoliciesCard() {
   const handleSave = async () => {
     const parsed = returnsValue.trim() === "" ? undefined : Number(returnsValue)
     if (parsed !== undefined && (!Number.isInteger(parsed) || parsed < 0 || parsed > 365)) {
-      toast.error("Returns days must be a whole number from 0 to 365 (0 = final sale).")
+      toast.error("Returns window must be 0 to 365 days (0 = final sale).")
       return
     }
     try {
@@ -619,76 +797,75 @@ function PoliciesCard() {
       setReturnsDays(null)
       setWarranty(null)
       setSavedFlash(true)
-      toast.success("Policies published — new version in force.")
+      toast.success("Policies published.")
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to save policies.")
     }
   }
 
   return (
-    <Card id="store-policies" className="p-6 space-y-4 scroll-mt-24">
-      <h2 className="font-black flex items-center gap-2">
-        <ClipboardText className="h-5 w-5 text-primary" /> Shop policies
-        {current && (
-          <span className="ml-auto text-xs font-bold text-muted-foreground">
-            v{current.version} in force since {new Date(current.effectiveFrom).toLocaleDateString()}
-          </span>
-        )}
-      </h2>
-      {savedFlash && (
-        <p role="status" className="text-sm font-bold text-success flex items-center gap-2">
-          <CheckCircle className="h-4 w-4" /> New policy version published.
-        </p>
-      )}
-      <div className="space-y-2">
-        <Label htmlFor="store-policy-shipping">Shipping note</Label>
-        <Textarea
-          id="store-policy-shipping"
-          value={shippingValue}
-          rows={2}
-          placeholder="e.g. Dispatch within 2 working days from Accra"
-          onChange={(e) => { setShipping(e.target.value); setSavedFlash(false) }}
-        />
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="store-policy-returns">Returns window (days, 0 = final sale)</Label>
-        <Input
-          id="store-policy-returns"
-          type="number"
-          min={0}
-          max={365}
-          step={1}
-          value={returnsValue}
-          placeholder="e.g. 7"
-          onChange={(e) => { setReturnsDays(e.target.value); setSavedFlash(false) }}
-        />
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="store-policy-warranty">Warranty</Label>
-        <Textarea
-          id="store-policy-warranty"
-          value={warrantyValue}
-          rows={2}
-          placeholder="e.g. 6-month replacement for manufacturing faults"
-          onChange={(e) => { setWarranty(e.target.value); setSavedFlash(false) }}
-        />
-      </div>
-      <Button onClick={() => { void handleSave() }} disabled={!dirty || save.isPending} isLoading={save.isPending}>
-        Publish policy version
-      </Button>
-      {history.length > 1 && (
-        <div className="pt-2">
-          <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground mb-2">Version history</p>
-          <ul className="space-y-1 text-sm">
-            {history.slice(1, 4).map((h) => (
-              <li key={h.id} className="flex items-center gap-2 text-muted-foreground font-medium">
-                <span className="font-bold">v{h.version}</span>
-                <span>{new Date(h.effectiveFrom).toLocaleDateString()}</span>
-              </li>
-            ))}
-          </ul>
+    <Card id="store-policies" className="p-6 space-y-4 shadow-xs flex flex-col justify-between">
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="font-bold flex items-center gap-2 text-base text-foreground">
+            <ClipboardText className="h-5 w-5 text-primary" /> Shop Policies
+          </h2>
+          {current && (
+            <span className="text-[11px] text-muted-foreground font-mono">v{current.version} active</span>
+          )}
         </div>
-      )}
+
+        {savedFlash && (
+          <p role="status" className="text-xs font-bold text-success flex items-center gap-1.5">
+            <CheckCircle className="h-3.5 w-3.5" /> Policies updated successfully.
+          </p>
+        )}
+
+        <div className="space-y-1.5">
+          <Label htmlFor="store-policy-shipping">Shipping Dispatch Note</Label>
+          <Input
+            id="store-policy-shipping"
+            value={shippingValue}
+            placeholder="e.g. Dispatched within 24 hours"
+            onChange={(e) => { setShipping(e.target.value); setSavedFlash(false) }}
+          />
+        </div>
+
+        <div className="space-y-1.5">
+          <Label htmlFor="store-policy-returns">Returns Window (Days)</Label>
+          <Input
+            id="store-policy-returns"
+            type="number"
+            min={0}
+            max={365}
+            step={1}
+            value={returnsValue}
+            placeholder="7 (0 for final sale)"
+            onChange={(e) => { setReturnsDays(e.target.value); setSavedFlash(false) }}
+          />
+        </div>
+
+        <div className="space-y-1.5">
+          <Label htmlFor="store-policy-warranty">Warranty Note</Label>
+          <Input
+            id="store-policy-warranty"
+            value={warrantyValue}
+            placeholder="e.g. 6-month replacement guarantee"
+            onChange={(e) => { setWarranty(e.target.value); setSavedFlash(false) }}
+          />
+        </div>
+      </div>
+
+      <div className="pt-2 border-t border-border/60">
+        <Button
+          onClick={() => { void handleSave() }}
+          disabled={!dirty || save.isPending}
+          isLoading={save.isPending}
+          className="w-full"
+        >
+          Publish Policies
+        </Button>
+      </div>
     </Card>
   )
 }
@@ -987,59 +1164,158 @@ function ContactCard() {
   }
 
   return (
-    <Card id="store-contact" className="p-6 space-y-4 scroll-mt-24">
-      <h2 className="font-black flex items-center gap-2">
-        <Storefront className="h-5 w-5 text-primary" /> Contact & hours
+    <Card id="store-contact" className="p-6 space-y-6 scroll-mt-24 shadow-xs">
+      <div className="flex items-center justify-between">
+        <h2 className="font-bold flex items-center gap-2 text-base text-foreground">
+          <PhoneCall className="h-5 w-5 text-primary" /> Contact & Operating Hours
+        </h2>
         {dirty ? (
-          <span className="ml-auto text-xs font-bold uppercase tracking-wide text-warning-fg">Unsaved</span>
+          <span className="text-xs font-bold uppercase tracking-wider text-warning">Unsaved</span>
         ) : (
-          <span className="ml-auto text-xs font-bold uppercase tracking-wide text-success">Saved</span>
+          <span className="text-xs font-bold uppercase tracking-wider text-success">Saved</span>
         )}
-      </h2>
+      </div>
+
       {savedFlash && (
-        <p role="status" className="text-sm font-bold text-success flex items-center gap-2">
-          <CheckCircle className="h-4 w-4" /> Contact details saved.
+        <p role="status" className="text-xs font-bold text-success flex items-center gap-1.5">
+          <CheckCircle className="h-4 w-4" /> Contact details saved successfully.
         </p>
       )}
-      <div className="space-y-2">
-        <Label htmlFor="store-contact-phone">Phone (E.164, e.g. +233241234567)</Label>
-        <Input id="store-contact-phone" value={phoneValue} placeholder="+233…" onChange={(e) => { setPhone(e.target.value); setSavedFlash(false) }} />
-      </div>
-      <div className="grid gap-3 sm:grid-cols-3">
-        <div className="space-y-2">
-          <Label htmlFor="store-contact-days">Days</Label>
-          <Input id="store-contact-days" value={daysValue} placeholder="Mon-Fri" onChange={(e) => { setDays(e.target.value); setSavedFlash(false) }} />
+
+      {/* Direct Contact & Hours */}
+      <div className="space-y-4">
+        <div className="space-y-1.5">
+          <Label htmlFor="store-contact-phone" className="flex items-center gap-1.5 text-sm font-semibold">
+            <PhoneCall className="h-4 w-4 text-muted-foreground" />
+            Direct Phone <span className="text-xs font-normal text-muted-foreground">(E.164 format, e.g. +233241234567)</span>
+          </Label>
+          <Input
+            id="store-contact-phone"
+            value={phoneValue}
+            placeholder="+233241234567"
+            onChange={(e) => { setPhone(e.target.value); setSavedFlash(false) }}
+          />
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="store-contact-open">Opens</Label>
-          <Input id="store-contact-open" type="time" value={openValue} onChange={(e) => { setOpen(e.target.value); setSavedFlash(false) }} />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="store-contact-close">Closes</Label>
-          <Input id="store-contact-close" type="time" value={closeValue} onChange={(e) => { setClose(e.target.value); setSavedFlash(false) }} />
-        </div>
-      </div>
-      <div className="grid gap-3 sm:grid-cols-2">
-        {([
-          ["Instagram", instagramValue, setInstagram, "https://instagram.com/yourshop"],
-          ["Facebook", facebookValue, setFacebook, "https://facebook.com/yourshop"],
-          ["TikTok", tiktokValue, setTiktok, "https://tiktok.com/@yourshop"],
-          ["WhatsApp", whatsappValue, setWhatsapp, "https://wa.me/233241234567"],
-        ] as const).map(([label, val, setter, ph]) => (
-          <div key={label} className="space-y-2">
-            <Label htmlFor={`store-contact-${label}`}>{label}</Label>
+
+        <div className="grid gap-3 sm:grid-cols-3">
+          <div className="space-y-1.5">
+            <Label htmlFor="store-contact-days" className="flex items-center gap-1.5 text-sm font-semibold">
+              <CalendarBlank className="h-4 w-4 text-muted-foreground" />
+              Operating Days
+            </Label>
             <Input
-              id={`store-contact-${label}`}
-              value={val}
-              placeholder={ph}
-              onChange={(e) => { setter(e.target.value); setSavedFlash(false) }}
+              id="store-contact-days"
+              value={daysValue}
+              placeholder="e.g. Mon - Fri"
+              onChange={(e) => { setDays(e.target.value); setSavedFlash(false) }}
             />
           </div>
-        ))}
+          <div className="space-y-1.5">
+            <Label htmlFor="store-contact-open" className="flex items-center gap-1.5 text-sm font-semibold">
+              <Clock className="h-4 w-4 text-muted-foreground" />
+              Opens
+            </Label>
+            <Input
+              id="store-contact-open"
+              type="time"
+              value={openValue}
+              onChange={(e) => { setOpen(e.target.value); setSavedFlash(false) }}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="store-contact-close" className="flex items-center gap-1.5 text-sm font-semibold">
+              <Clock className="h-4 w-4 text-muted-foreground" />
+              Closes
+            </Label>
+            <Input
+              id="store-contact-close"
+              type="time"
+              value={closeValue}
+              onChange={(e) => { setClose(e.target.value); setSavedFlash(false) }}
+            />
+          </div>
+        </div>
       </div>
-      <Button onClick={() => { void handleSave() }} disabled={!dirty || update.isPending} isLoading={update.isPending}>
-        Save contact
-      </Button>
+
+      {/* Social Media Channels */}
+      <div className="space-y-3 pt-4 border-t border-border/60">
+        <h3 className="text-sm font-bold text-foreground">Social Channels</h3>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {/* Instagram */}
+          <div className="space-y-1.5">
+            <Label htmlFor="store-contact-instagram" className="flex items-center gap-2 text-sm font-semibold">
+              <span className="flex h-5 w-5 items-center justify-center rounded-md bg-[#E4405F]/10">
+                <InstagramLogo weight="fill" className="h-3.5 w-3.5 text-[#E4405F]" />
+              </span>
+              Instagram
+            </Label>
+            <Input
+              id="store-contact-instagram"
+              value={instagramValue}
+              placeholder="https://instagram.com/yourshop"
+              onChange={(e) => { setInstagram(e.target.value); setSavedFlash(false) }}
+            />
+          </div>
+
+          {/* WhatsApp */}
+          <div className="space-y-1.5">
+            <Label htmlFor="store-contact-whatsapp" className="flex items-center gap-2 text-sm font-semibold">
+              <span className="flex h-5 w-5 items-center justify-center rounded-md bg-[#25D366]/10">
+                <WhatsappLogo weight="fill" className="h-3.5 w-3.5 text-[#25D366]" />
+              </span>
+              WhatsApp Link
+            </Label>
+            <Input
+              id="store-contact-whatsapp"
+              value={whatsappValue}
+              placeholder="https://wa.me/233241234567"
+              onChange={(e) => { setWhatsapp(e.target.value); setSavedFlash(false) }}
+            />
+          </div>
+
+          {/* Facebook */}
+          <div className="space-y-1.5">
+            <Label htmlFor="store-contact-facebook" className="flex items-center gap-2 text-sm font-semibold">
+              <span className="flex h-5 w-5 items-center justify-center rounded-md bg-[#1877F2]/10">
+                <FacebookLogo weight="fill" className="h-3.5 w-3.5 text-[#1877F2]" />
+              </span>
+              Facebook
+            </Label>
+            <Input
+              id="store-contact-facebook"
+              value={facebookValue}
+              placeholder="https://facebook.com/yourshop"
+              onChange={(e) => { setFacebook(e.target.value); setSavedFlash(false) }}
+            />
+          </div>
+
+          {/* TikTok */}
+          <div className="space-y-1.5">
+            <Label htmlFor="store-contact-tiktok" className="flex items-center gap-2 text-sm font-semibold">
+              <span className="flex h-5 w-5 items-center justify-center rounded-md bg-foreground/10">
+                <TiktokLogo weight="fill" className="h-3.5 w-3.5 text-foreground" />
+              </span>
+              TikTok
+            </Label>
+            <Input
+              id="store-contact-tiktok"
+              value={tiktokValue}
+              placeholder="https://tiktok.com/@yourshop"
+              onChange={(e) => { setTiktok(e.target.value); setSavedFlash(false) }}
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="pt-2 border-t border-border/60">
+        <Button
+          onClick={() => { void handleSave() }}
+          disabled={!dirty || update.isPending}
+          isLoading={update.isPending}
+        >
+          Save Contact Details
+        </Button>
+      </div>
     </Card>
   )
 }

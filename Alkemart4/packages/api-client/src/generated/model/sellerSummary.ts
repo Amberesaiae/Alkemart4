@@ -19,4 +19,10 @@ export interface SellerSummary {
   handle: string;
   name: string;
   availability: SellerAvailability;
+  /** @nullable */
+  description?: string | null;
+  /** @nullable */
+  logo?: string | null;
+  /** @nullable */
+  banner?: string | null;
 }

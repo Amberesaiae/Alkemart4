@@ -1,7 +1,8 @@
 import { Link, useRouterState } from "@tanstack/react-router"
 import { SquaresFour, Package, ShoppingBag, Gear, SignOut, Storefront, Star } from "@phosphor-icons/react"
 import { useCurrentUser, useLogout } from "../lib/auth"
-import { cn, Button, Avatar, AvatarFallback } from "@workspace/ui"
+import { useSellerProfile } from "../lib/hooks"
+import { cn, Button, Avatar, AvatarImage, AvatarFallback } from "@workspace/ui"
 
 function avatarInitials(name: string | null | undefined): string {
   if (!name) return "S"
@@ -14,7 +15,13 @@ function avatarInitials(name: string | null | undefined): string {
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const { data: user } = useCurrentUser()
+  const { data: profile } = useSellerProfile()
   const logout = useLogout()
+  // Shop identity comes from the seller profile (name + logo); the session
+  // user only carries ids, so fall back to it while the profile loads.
+  const shopName = profile?.seller?.name || user?.seller_name || "My Shop"
+  const shopLogo = profile?.seller?.logo || null
+  const shopEmail = profile?.seller?.email || user?.email || null
   const router = useRouterState()
   const pathname = router.location.pathname
 
@@ -42,13 +49,18 @@ export function Layout({ children }: { children: React.ReactNode }) {
       <aside aria-label="Sidebar" className="hidden md:flex w-64 h-screen sticky top-0 flex-col border-r border-border bg-ink text-ink-foreground shrink-0">
         <div className="p-6 flex flex-col items-center text-center gap-3">
           <Avatar className="h-16 w-16">
+            {shopLogo ? (
+              <AvatarImage src={shopLogo} alt={`${shopName} logo`} className="object-cover" />
+            ) : null}
             <AvatarFallback className="text-2xl font-bold text-primary-foreground bg-primary">
-              {avatarInitials(user?.seller_name)}
+              {avatarInitials(shopName)}
             </AvatarFallback>
           </Avatar>
           <div>
-            <h2 className="font-bold text-lg text-ink-foreground">{user?.seller_name || "My Shop"}</h2>
-            <p className="text-xs text-ink-foreground/60 font-medium">{user?.email}</p>
+            <h2 className="font-bold text-lg text-ink-foreground">{shopName}</h2>
+            {shopEmail ? (
+              <p className="text-xs text-ink-foreground/60 font-medium">{shopEmail}</p>
+            ) : null}
           </div>
         </div>
         <nav aria-label="Main navigation" className="flex-1 p-4 space-y-1">
@@ -92,7 +104,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground">
               <Storefront className="h-4 w-4" />
             </div>
-            <span className="font-bold text-sm">{user?.seller_name || "My Shop"}</span>
+            <span className="font-bold text-sm">{shopName}</span>
           </div>
         </div>
         <div className="flex-1 p-4 md:p-8 max-w-5xl mx-auto w-full">

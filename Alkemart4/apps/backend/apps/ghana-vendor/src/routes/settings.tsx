@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useSellerProfile, useUpdateProfile, useUpdateAddress, useUpdatePayment, useUploadImage } from "../lib/hooks"
-import { Card, Button, Input, Label, Select, Skeleton } from "@workspace/ui"
+import { Card, CardHeader, CardTitle, CardContent, CardFooter, Button, Input, Label, Select, Skeleton } from "@workspace/ui"
 import { PageShell } from "../components/page-shell"
 import { PageHeader } from "../components/page-header"
 import {
@@ -14,10 +14,24 @@ import {
   validatePhone,
   formatPhoneDisplay,
   normalizePhone,
-  prefixHint,
 } from "../lib/ghana"
 import { detectLiveLocality } from "../lib/live-location"
-import { Storefront, MapPin, CreditCard, FloppyDisk, CheckCircle, WarningCircle, DeviceMobile, UploadSimple, X, ArrowLeft, ArrowRight } from "@phosphor-icons/react"
+import {
+  Storefront,
+  MapPin,
+  CreditCard,
+  FloppyDisk,
+  CheckCircle,
+  WarningCircle,
+  DeviceMobile,
+  X,
+  ArrowLeft,
+  ArrowRight,
+  Camera,
+  Check,
+  ArrowSquareOut,
+  NavigationArrow,
+} from "@phosphor-icons/react"
 
 export const Route = createFileRoute('/settings')({
   validateSearch: (search: Record<string, unknown>) => {
@@ -29,6 +43,14 @@ export const Route = createFileRoute('/settings')({
   component: SettingsPage,
 })
 
+type StepTab = "profile" | "dispatch" | "momo"
+
+const STEPS: { id: StepTab; label: string; number: number }[] = [
+  { id: "profile", label: "Shop Profile", number: 1 },
+  { id: "dispatch", label: "Dispatch Address", number: 2 },
+  { id: "momo", label: "MoMo Payout", number: 3 },
+]
+
 function SettingsPage() {
   const navigate = useNavigate()
   const { data, isLoading, isError } = useSellerProfile()
@@ -39,7 +61,7 @@ function SettingsPage() {
   const upload        = useUploadImage()
   const { tab: searchTab } = Route.useSearch()
 
-  const [activeTab, setActiveTab] = useState<"profile" | "dispatch" | "momo">("profile")
+  const [activeTab, setActiveTab] = useState<StepTab>("profile")
 
   useEffect(() => {
     if (searchTab) setActiveTab(searchTab)
@@ -69,10 +91,10 @@ function SettingsPage() {
     latitude: null,
     longitude: null,
   })
-  const [phoneRaw,  setPhoneRaw]  = useState("")
-  const [provider,  setProvider]  = useState<MomoProvider>("mtn")
+  const [phoneRaw, setPhoneRaw]       = useState("")
+  const [provider, setProvider]       = useState<MomoProvider>("mtn")
   const [phoneTouched, setPhoneTouched] = useState(false)
-  const [locating, setLocating] = useState(false)
+  const [locating, setLocating]       = useState(false)
   const [locateError, setLocateError] = useState<string | null>(null)
 
   const handleLiveLocation = async () => {
@@ -89,7 +111,7 @@ function SettingsPage() {
         longitude: loc.longitude,
       }))
     } catch (err) {
-      setLocateError(err instanceof Error ? err.message : "Could not read your location")
+      setLocateError(err instanceof Error ? err.message : "Could not read location")
     } finally {
       setLocating(false)
     }
@@ -157,76 +179,229 @@ function SettingsPage() {
       id: seller.id,
       data: {
         type: "momo",
-        phone: normalizePhone(phoneRaw), // E.164 — matches backend normalizePhoneForCountry
+        phone: normalizePhone(phoneRaw),
         provider,
       },
     })
   }
 
-  if (isLoading) return (
-    <PageShell className="max-w-4xl">
-      <PageHeader title="Settings" description="Configure your store details and payouts." />
-      <div className="space-y-4">
-        <Skeleton className="h-8 w-48" />
-        <Skeleton className="h-96 w-full rounded-xl" />
-      </div>
-    </PageShell>
-  )
+  if (isLoading) {
+    return (
+      <PageShell className="max-w-3xl">
+        <PageHeader title="Settings" description="Configure your store details and payouts." />
+        <div className="space-y-4 mt-6">
+          <Skeleton className="h-12 w-full rounded-xl" />
+          <Skeleton className="h-80 w-full rounded-xl" />
+        </div>
+      </PageShell>
+    )
+  }
+
   if (isError) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center">
-        <h2 className="text-lg font-semibold text-destructive mb-2">Failed to load profile</h2>
-        <p className="text-sm text-muted-foreground mb-4">Could not load your profile data. Please try again.</p>
-        <button onClick={() => navigate({ to: "/settings", replace: true })} className="text-sm text-primary hover:underline">Try again</button>
+        <WarningCircle className="h-10 w-10 text-destructive mb-2" />
+        <h2 className="text-lg font-bold text-foreground mb-1">Failed to load settings</h2>
+        <p className="text-sm text-muted-foreground mb-4">Could not retrieve your store profile data.</p>
+        <Button onClick={() => navigate({ to: "/settings", replace: true })} variant="outline" size="sm">
+          Retry
+        </Button>
       </div>
     )
   }
 
-  const tabs = [
-    { id: "profile"  as const, label: "Shop Profile",    icon: Storefront },
-    { id: "dispatch" as const, label: "Dispatch Address", icon: MapPin },
-    { id: "momo"     as const, label: "MoMo Payout",     icon: CreditCard },
-  ]
+  const activeIndex = STEPS.findIndex(s => s.id === activeTab)
 
   return (
-    <PageShell className="max-w-4xl">
-      <PageHeader title="Settings" description="Configure your store details and payouts." />
+    <PageShell className="max-w-3xl space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <PageHeader title="Settings" description="Configure your store details and payouts." />
+        {profileForm.handle && (
+          <a
+            href={`https://alkemart.com/${profileForm.handle}`}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-border bg-card hover:bg-muted text-foreground transition shadow-xs"
+          >
+            <ArrowSquareOut className="h-3.5 w-3.5 text-primary" />
+            View Store
+          </a>
+        )}
+      </div>
 
-      <div className="flex flex-col md:flex-row gap-8 items-start">
+      {/* Stepper Navigation */}
+      <nav aria-label="Settings progress" className="py-2">
+        <ol className="flex items-center justify-between w-full">
+          {STEPS.map((step, idx) => {
+            const isActive = activeTab === step.id
+            const isPast = idx < activeIndex
 
-        {/* Tab nav */}
-        <div className="w-full md:w-56 shrink-0 flex flex-row md:flex-col gap-1 overflow-x-auto pb-2 scrollbar-none" role="tablist" aria-label="Settings sections">
-          {tabs.map(tab => (
-            <button
-              key={tab.id}
-              role="tab"
-              id={`tab-${tab.id}`}
-              aria-selected={activeTab === tab.id}
-              aria-controls={`panel-${tab.id}`}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all w-full text-left whitespace-nowrap ${
-                activeTab === tab.id
-                  ? "bg-primary text-primary-foreground shadow-sm"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
-              }`}
-            >
-              <tab.icon className="h-4 w-4 shrink-0" aria-hidden="true" />
-              {tab.label}
-            </button>
-          ))}
-        </div>
+            return (
+              <li key={step.id} className="relative flex-1 flex items-center">
+                {/* Connecting line before step (except first) */}
+                {idx > 0 && (
+                  <div
+                    className={`h-0.5 flex-1 transition-colors ${
+                      isPast ? "bg-primary" : "bg-border"
+                    }`}
+                  />
+                )}
 
-        <div className="flex-1 w-full min-w-0">
+                {/* Step button */}
+                <button
+                  type="button"
+                  onClick={() => setActiveTab(step.id)}
+                  className="group flex flex-col sm:flex-row items-center gap-2 mx-2 cursor-pointer focus:outline-none"
+                >
+                  <span
+                    className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold transition-all ${
+                      isActive
+                        ? "bg-primary text-primary-foreground ring-4 ring-primary/20 shadow-xs"
+                        : isPast
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted text-muted-foreground border border-border"
+                    }`}
+                  >
+                    {isPast ? <Check className="h-4 w-4 stroke-[3]" /> : step.number}
+                  </span>
+                  <span
+                    className={`text-xs sm:text-sm font-semibold whitespace-nowrap transition-colors ${
+                      isActive
+                        ? "text-foreground font-bold"
+                        : isPast
+                        ? "text-foreground font-medium"
+                        : "text-muted-foreground group-hover:text-foreground"
+                    }`}
+                  >
+                    {step.label}
+                  </span>
+                </button>
 
-          {/* ── Shop Profile ── */}
-          {activeTab === "profile" && (
-            <Card className="p-6 shadow-sm" role="tabpanel" id="panel-profile" aria-labelledby="tab-profile">
-              <form onSubmit={handleProfileSubmit} className="space-y-5">
-                <h2 className="text-lg font-black tracking-tight">Shop Profile</h2>
+                {/* Connecting line after step (except last) */}
+                {idx < STEPS.length - 1 && (
+                  <div
+                    className={`h-0.5 flex-1 transition-colors ${
+                      idx < activeIndex ? "bg-primary" : "bg-border"
+                    }`}
+                  />
+                )}
+              </li>
+            )
+          })}
+        </ol>
+      </nav>
 
-                <div className="space-y-2">
-                  <Label>Shop Name</Label>
+      {/* ── Step 1: Shop Profile ── */}
+      {activeTab === "profile" && (
+        <Card className="border-border/80 shadow-xs">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-base font-bold">Shop Profile</CardTitle>
+          </CardHeader>
+
+          <form onSubmit={handleProfileSubmit}>
+            <CardContent className="space-y-5">
+              {/* Store Branding: Tall Hero Cover with Extra Large Centered Overlapping Logo */}
+              <div className="relative mb-24 sm:mb-28">
+                {/* Cover Banner */}
+                <div className="relative h-60 sm:h-72 w-full rounded-2xl overflow-hidden border border-border bg-muted/30 group shadow-xs">
+                  {seller?.banner ? (
+                    <img
+                      src={seller.banner}
+                      alt={`${seller.name || "Shop"} Cover`}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex flex-col items-center justify-center bg-muted/20 text-muted-foreground">
+                      <Camera className="h-10 w-10 text-muted-foreground/50 mb-2" />
+                      <CompactUploader
+                        isUploading={upload.isPending}
+                        onUpload={async (file) => {
+                          const url = await upload.mutateAsync(file)
+                          updateProfile.mutate({ banner: url })
+                        }}
+                        triggerClassName="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-border bg-card hover:bg-muted text-foreground text-xs font-semibold transition cursor-pointer shadow-xs"
+                        triggerText="Add Cover Photo"
+                      />
+                    </div>
+                  )}
+
+                  {/* Banner action overlay when image exists */}
+                  {seller?.banner && (
+                    <div className="absolute top-3 right-3 flex items-center gap-2">
+                      <CompactUploader
+                        isUploading={upload.isPending}
+                        onUpload={async (file) => {
+                          const url = await upload.mutateAsync(file)
+                          updateProfile.mutate({ banner: url })
+                        }}
+                        triggerClassName="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-black/70 hover:bg-black/85 text-white backdrop-blur-xs text-xs font-semibold transition cursor-pointer shadow-xs"
+                        triggerText="Change Cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => updateProfile.mutate({ banner: null })}
+                        disabled={upload.isPending}
+                        className="p-1.5 rounded-lg bg-black/70 hover:bg-destructive text-white backdrop-blur-xs transition cursor-pointer shadow-xs"
+                        title="Remove cover"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Extra Large Centered Overlapping Logo Avatar */}
+                <div className="absolute left-1/2 -translate-x-1/2 -bottom-22 sm:-bottom-24 z-10">
+                  <div className="relative group">
+                    <div className="h-44 w-44 sm:h-48 sm:w-48 rounded-full border-4 border-card bg-card shadow-2xl overflow-hidden flex items-center justify-center ring-2 ring-border/80">
+                      {seller?.logo ? (
+                        <img
+                          src={seller.logo}
+                          alt={`${seller.name || "Shop"} Logo`}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex flex-col items-center justify-center bg-muted/40 text-muted-foreground p-3">
+                          <Camera className="h-12 w-12 text-muted-foreground/60 mb-1" />
+                          <span className="text-xs font-semibold">Add Logo</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Logo edit overlay */}
+                    <CompactUploader
+                      isUploading={upload.isPending}
+                      onUpload={async (file) => {
+                        const url = await upload.mutateAsync(file)
+                        updateProfile.mutate({ logo: url })
+                      }}
+                      triggerClassName="absolute inset-0 rounded-full bg-black/55 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white text-xs font-bold cursor-pointer backdrop-blur-2xs"
+                      triggerText={seller?.logo ? "Change" : "Upload"}
+                    />
+
+                    {/* Logo remove button */}
+                    {seller?.logo && (
+                      <button
+                        type="button"
+                        onClick={() => updateProfile.mutate({ logo: null })}
+                        disabled={upload.isPending}
+                        className="absolute top-1.5 right-1.5 h-8 w-8 rounded-full bg-destructive text-white flex items-center justify-center shadow-lg hover:scale-110 transition cursor-pointer ring-2 ring-card"
+                        title="Remove logo"
+                      >
+                        <X className="h-4.5 w-4.5" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Form Fields */}
+              <div className="space-y-4 pt-2">
+                <div className="space-y-1.5">
+                  <Label htmlFor="shop-name">Shop Name</Label>
                   <Input
+                    id="shop-name"
                     value={profileForm.name}
                     onChange={e => setProfileForm({ ...profileForm, name: e.target.value })}
                     placeholder="e.g. Ama's Fresh Groceries"
@@ -234,13 +409,14 @@ function SettingsPage() {
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <Label>Shop Handle (URL slug)</Label>
-                  <div className="flex">
-                    <span className="inline-flex items-center px-3 rounded-l-lg border border-r-0 border-border bg-muted text-muted-foreground text-sm font-medium shrink-0">
+                <div className="space-y-1.5">
+                  <Label htmlFor="shop-handle">Shop Handle (URL slug)</Label>
+                  <div className="flex rounded-md shadow-xs">
+                    <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-border bg-muted/60 text-muted-foreground text-xs font-mono select-none">
                       alkemart.com/
                     </span>
                     <Input
+                      id="shop-handle"
                       className="rounded-l-none"
                       value={profileForm.handle}
                       onChange={e => setProfileForm({
@@ -248,464 +424,377 @@ function SettingsPage() {
                         handle: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-"),
                       })}
                       placeholder="amas-groceries"
+                      required
                     />
                   </div>
-                   <p className="text-xs text-muted-foreground">Lowercase letters, numbers, and hyphens only</p>
-                 </div>
-
-                 <ImageUploader
-                   label="Shop Logo"
-                   alt={`${seller?.name ?? "Shop"} logo`}
-                   current={seller?.logo ?? null}
-                   onUpload={async (file) =>
-                     upload.mutateAsync(file).then((url) =>
-                       updateProfile.mutate({ logo: url }),
-                     )
-                   }
-                   onRemove={() => updateProfile.mutate({ logo: null })}
-                   isUploading={upload.isPending}
-                 />
-
-                 <ImageUploader
-                   label="Cover Image"
-                   alt={`${seller?.name ?? "Shop"} cover`}
-                   current={seller?.banner ?? null}
-                   onUpload={async (file) =>
-                     upload.mutateAsync(file).then((url) =>
-                       updateProfile.mutate({ banner: url }),
-                     )
-                   }
-                   onRemove={() => updateProfile.mutate({ banner: null })}
-                   isUploading={upload.isPending}
-                 />
-
-                  <StatusRow mutation={updateProfile} successText="Profile saved" />
-
-                <div className="flex justify-between items-center pt-2">
-                  <span />
-                  <div className="flex gap-2">
-                    <Button type="submit" isLoading={updateProfile.isPending} className="gap-2 px-8">
-                      <FloppyDisk className="h-4 w-4" /> Save Profile
-                    </Button>
-                    <Button type="button" variant="outline" className="gap-2 px-6" onClick={() => setActiveTab("dispatch")}>
-                      Next <ArrowRight className="h-4 w-4" />
-                    </Button>
-                  </div>
                 </div>
-              </form>
-            </Card>
-          )}
+              </div>
 
-          {/* ── Dispatch Address ── */}
-          {activeTab === "dispatch" && (
-            <Card className="p-6 shadow-sm" role="tabpanel" id="panel-dispatch" aria-labelledby="tab-dispatch">
-              <form onSubmit={handleAddressSubmit} className="space-y-5">
-                <div>
-                  <h2 className="text-lg font-black tracking-tight">Dispatch Address</h2>
-                  <p className="text-muted-foreground text-sm font-medium mt-1">
-                    Where should delivery riders pick up your orders?
-                  </p>
-                </div>
+              <StatusRow mutation={updateProfile} successText="Profile saved" />
+            </CardContent>
 
-                {/* address_1 — mirrors operating-markets field */}
-                <div className="space-y-2">
-                  <Label>{/* operating-markets: "Street / house / area" */}Street / House / Area</Label>
+            <CardFooter className="flex items-center justify-between border-t border-border/60 pt-4">
+              <span />
+              <div className="flex items-center gap-2">
+                <Button type="submit" isLoading={updateProfile.isPending} className="gap-2 px-5">
+                  <FloppyDisk className="h-4 w-4" /> Save Profile
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="gap-2"
+                  onClick={() => setActiveTab("dispatch")}
+                >
+                  Next <ArrowRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </CardFooter>
+          </form>
+        </Card>
+      )}
+
+      {/* ── Step 2: Dispatch Address ── */}
+      {activeTab === "dispatch" && (
+        <Card className="border-border/80 shadow-xs">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-base font-bold">Dispatch Address</CardTitle>
+            <p className="text-xs text-muted-foreground">Where should delivery couriers pick up your orders?</p>
+          </CardHeader>
+
+          <form onSubmit={handleAddressSubmit}>
+            <CardContent className="space-y-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="address-1">Street / House / Area</Label>
+                <Input
+                  id="address-1"
+                  value={addressForm.address_1}
+                  onChange={e => setAddressForm({ ...addressForm, address_1: e.target.value })}
+                  placeholder={GHANA_UI.addressPlaceholder}
+                  required
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="address-2">Landmark <span className="text-muted-foreground font-normal">(optional)</span></Label>
+                <Input
+                  id="address-2"
+                  value={addressForm.address_2}
+                  onChange={e => setAddressForm({ ...addressForm, address_2: e.target.value })}
+                  placeholder={GHANA_UI.landmarkPlaceholder}
+                />
+                <p className="text-[11px] text-muted-foreground">Riders navigate by landmarks — include one whenever possible.</p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="city">City / Town</Label>
                   <Input
-                    value={addressForm.address_1}
-                    onChange={e => setAddressForm({ ...addressForm, address_1: e.target.value })}
-                    placeholder={GHANA_UI.addressPlaceholder}
+                    id="city"
+                    value={addressForm.city}
+                    onChange={e => setAddressForm({ ...addressForm, city: e.target.value })}
+                    placeholder={GHANA_UI.cityPlaceholder}
                     required
                   />
                 </div>
 
-                {/* address_2 — landmark (operating-markets: "Landmark (optional)") */}
-                <div className="space-y-2">
-                  <Label>Landmark <span className="text-muted-foreground font-normal">(optional)</span></Label>
+                <div className="space-y-1.5">
+                  <Label htmlFor="region">Region</Label>
+                  <Select
+                    id="region"
+                    value={addressForm.province}
+                    onChange={e => setAddressForm({ ...addressForm, province: e.target.value, district: "" })}
+                  >
+                    <option value="" disabled>Select region</option>
+                    {GHANA_REGIONS.map(r => (
+                      <option key={r} value={r}>{r}</option>
+                    ))}
+                  </Select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="district">Municipal / District</Label>
+                  <Select
+                    id="district"
+                    value={addressForm.district}
+                    onChange={e => setAddressForm({ ...addressForm, district: e.target.value })}
+                    disabled={!addressForm.province}
+                  >
+                    <option value="" disabled>{addressForm.province ? "Select district" : "Pick region first"}</option>
+                    {districtsOf(addressForm.province).map(d => (
+                      <option key={d} value={d}>{d}</option>
+                    ))}
+                  </Select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="postal-code">{GHANA_UI.postalLabel}</Label>
                   <Input
-                    value={addressForm.address_2}
-                    onChange={e => setAddressForm({ ...addressForm, address_2: e.target.value })}
-                    placeholder={GHANA_UI.landmarkPlaceholder}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Riders navigate by landmarks — include one whenever possible
-                  </p>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  {/* city */}
-                  <div className="space-y-2">
-                    <Label>City / Town</Label>
-                    <Input
-                      value={addressForm.city}
-                      onChange={e => setAddressForm({ ...addressForm, city: e.target.value })}
-                      placeholder={GHANA_UI.cityPlaceholder}
-                      required
-                    />
-                  </div>
-
-                  {/* province — region dropdown, mirrors operating-markets province field */}
-                  <div className="space-y-2">
-                    <Label>Region</Label>
-                    <Select
-                      value={addressForm.province}
-                      onChange={e => setAddressForm({ ...addressForm, province: e.target.value, district: "" })}
-                    >
-                      <option value="" disabled>Select region</option>
-                      {GHANA_REGIONS.map(r => (
-                        <option key={r} value={r}>{r}</option>
-                      ))}
-                    </Select>
-                  </div>
-                </div>
-
-                {/* district — municipal dropdown, options follow the region */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Municipal / District</Label>
-                    <Select
-                      value={addressForm.district}
-                      onChange={e => setAddressForm({ ...addressForm, district: e.target.value })}
-                      disabled={!addressForm.province}
-                    >
-                      <option value="" disabled>{addressForm.province ? "Select municipal" : "Pick a region first"}</option>
-                      {districtsOf(addressForm.province).map(d => (
-                        <option key={d} value={d}>{d}</option>
-                      ))}
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Live location</Label>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="w-full gap-2"
-                      disabled={locating}
-                      onClick={() => { void handleLiveLocation() }}
-                    >
-                      <MapPin className="h-4 w-4" />
-                      {locating ? "Locating…" : "Use my location"}
-                    </Button>
-                  </div>
-                </div>
-                {locateError ? (
-                  <p className="text-sm font-semibold text-destructive" role="alert">{locateError}</p>
-                ) : null}
-                {addressForm.latitude != null && addressForm.longitude != null ? (
-                  <p className="text-xs text-muted-foreground">
-                    Pinned at {addressForm.latitude.toFixed(5)}, {addressForm.longitude.toFixed(5)} — riders navigate here.
-                  </p>
-                ) : null}
-
-                {/* postal_code — GhanaPostGPS (optional) */}
-                <div className="space-y-2">
-                  <Label>{GHANA_UI.postalLabel}</Label>
-                  <Input
+                    id="postal-code"
                     value={addressForm.postal_code}
                     onChange={e => setAddressForm({ ...addressForm, postal_code: e.target.value })}
                     placeholder={GHANA_UI.postalExample}
                     maxLength={12}
                   />
-                  <p className="text-xs text-muted-foreground">
-                    Your GhanaPost digital address — helps riders find you precisely
-                  </p>
+                </div>
+              </div>
+
+              {/* GPS & Delivery fee row */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                <div className="space-y-1.5">
+                  <Label>Live Location</Label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full gap-2 text-xs"
+                    disabled={locating}
+                    onClick={() => { void handleLiveLocation() }}
+                  >
+                    <NavigationArrow className={`h-3.5 w-3.5 ${locating ? "animate-spin" : ""}`} />
+                    {locating ? "Locating…" : "Use My Location"}
+                  </Button>
+                  {addressForm.latitude != null && addressForm.longitude != null ? (
+                    <p className="text-[11px] text-success font-medium">
+                      Pinned at {addressForm.latitude.toFixed(4)}, {addressForm.longitude.toFixed(4)}
+                    </p>
+                  ) : locateError ? (
+                    <p className="text-[11px] text-destructive font-medium">{locateError}</p>
+                  ) : null}
                 </div>
 
-                {/* delivery_fee_ghs */}
-                <div className="space-y-2">
-                  <Label>Delivery Fee <span className="text-muted-foreground font-normal">(optional)</span></Label>
+                <div className="space-y-1.5">
+                  <Label htmlFor="delivery-fee">Delivery Fee <span className="text-muted-foreground font-normal">(optional)</span></Label>
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-muted-foreground select-none">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-muted-foreground select-none">
                       GH₵
                     </span>
                     <Input
+                      id="delivery-fee"
                       type="number"
-                      className="pl-14"
+                      className="pl-12 text-sm"
                       value={addressForm.delivery_fee_ghs}
                       onChange={e => setAddressForm({ ...addressForm, delivery_fee_ghs: e.target.value })}
-                      placeholder="e.g. 15.00"
+                      placeholder="15.00"
                       min="0"
                       step="0.01"
                     />
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    Your standard dispatch fee shown to buyers at checkout. Leave blank to use the platform default.
-                  </p>
                 </div>
+              </div>
 
-                <StatusRow mutation={updateAddress} successText="Delivery setup saved" />
+              <StatusRow mutation={updateAddress} successText="Delivery setup saved" />
+            </CardContent>
 
-                <div className="flex justify-between items-center pt-2">
-                  <Button type="button" variant="ghost" className="gap-2" onClick={() => setActiveTab("profile")}>
-                    <ArrowLeft className="h-4 w-4" /> Back
-                  </Button>
-                  <div className="flex gap-2">
-                    <Button type="submit" isLoading={updateAddress.isPending} className="gap-2 px-8">
-                      <FloppyDisk className="h-4 w-4" /> Save Delivery Setup
-                    </Button>
-                    <Button type="button" variant="outline" className="gap-2 px-6" onClick={() => setActiveTab("momo")}>
-                      Next <ArrowRight className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              </form>
-            </Card>
-          )}
+            <CardFooter className="flex items-center justify-between border-t border-border/60 pt-4">
+              <Button type="button" variant="ghost" className="gap-2" onClick={() => setActiveTab("profile")}>
+                <ArrowLeft className="h-4 w-4" /> Back
+              </Button>
+              <div className="flex items-center gap-2">
+                <Button type="submit" isLoading={updateAddress.isPending} className="gap-2 px-5">
+                  <FloppyDisk className="h-4 w-4" /> Save Setup
+                </Button>
+                <Button type="button" variant="outline" className="gap-2" onClick={() => setActiveTab("momo")}>
+                  Next <ArrowRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </CardFooter>
+          </form>
+        </Card>
+      )}
 
-          {/* ── MoMo Payout ── */}
-          {activeTab === "momo" && (
-            <Card className="p-6 shadow-sm" role="tabpanel" id="panel-momo" aria-labelledby="tab-momo">
-              <form onSubmit={handlePaymentSubmit} className="space-y-5">
-                <div>
-                  <h2 className="text-lg font-black tracking-tight">Mobile Money Payout</h2>
-                  <p className="text-muted-foreground text-sm font-medium mt-1">
-                    Where should Alkemart send your earnings?
-                  </p>
-                </div>
+      {/* ── Step 3: MoMo Payout ── */}
+      {activeTab === "momo" && (
+        <Card className="border-border/80 shadow-xs">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-base font-bold">Mobile Money Payout</CardTitle>
+            <p className="text-xs text-muted-foreground">Where should Alkemart send your earnings?</p>
+          </CardHeader>
 
-                {/* Phone — primary field; drives provider auto-detection */}
-                <div className="space-y-2">
-                  <Label>MoMo Number</Label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-muted-foreground select-none pointer-events-none">
-                      +233
+          <form onSubmit={handlePaymentSubmit}>
+            <CardContent className="space-y-5">
+              <div className="space-y-1.5">
+                <Label htmlFor="momo-phone">MoMo Number</Label>
+                <div className="relative max-w-sm">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-muted-foreground select-none pointer-events-none">
+                    +233
+                  </span>
+                  <Input
+                    id="momo-phone"
+                    type="tel"
+                    className="pl-12 pr-10"
+                    value={phoneRaw}
+                    onChange={e => setPhoneRaw(e.target.value)}
+                    onBlur={() => setPhoneTouched(true)}
+                    placeholder={GHANA_UI.phoneExample}
+                    required
+                    maxLength={17}
+                    inputMode="tel"
+                  />
+                  {phoneTouched && phoneRaw && (
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                      {phoneValid ? (
+                        <CheckCircle className="h-4 w-4 text-success" />
+                      ) : (
+                        <WarningCircle className="h-4 w-4 text-destructive" />
+                      )}
                     </span>
-                    <Input
-                      type="tel"
-                      className="pl-14 pr-10"
-                      value={phoneRaw}
-                      onChange={e => setPhoneRaw(e.target.value)}
-                      onBlur={() => setPhoneTouched(true)}
-                      placeholder={GHANA_UI.phoneExample}
-                      required
-                      maxLength={17}
-                      inputMode="tel"
-                    />
-                    {phoneTouched && phoneRaw && (
-                      <span className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                        {phoneValid
-                          ? <CheckCircle className="h-5 w-5 text-success" />
-                          : <WarningCircle className="h-5 w-5 text-destructive" />
-                        }
-                      </span>
-                    )}
-                  </div>
-
-                  {phoneError && (
-                    <p className="text-xs text-destructive font-semibold flex items-center gap-1">
-                      <WarningCircle className="h-3 w-3 shrink-0" /> {phoneError}
-                    </p>
-                  )}
-
-                  {phoneValid && (
-                    <p className="text-xs text-success font-semibold flex items-center gap-1">
-                      <CheckCircle className="h-3 w-3 shrink-0" />
-                      {formatPhoneDisplay(phoneRaw)}
-                      {detectedProvider && ` — ${MOMO_NETWORKS[detectedProvider].label}`}
-                    </p>
                   )}
                 </div>
 
-                {/* Network selector — auto-set from prefix, overrideable */}
-                <div className="space-y-3">
-                  <Label className="flex items-center gap-2">
-                    <DeviceMobile className="h-4 w-4" />
-                    Network
-                    {detectedProvider && (
-                      <span className="ml-auto text-xs font-normal text-muted-foreground">
-                        Auto-detected from your number
-                      </span>
-                    )}
-                  </Label>
+                {phoneError && (
+                  <p className="text-xs text-destructive font-semibold flex items-center gap-1">
+                    <WarningCircle className="h-3.5 w-3.5 shrink-0" /> {phoneError}
+                  </p>
+                )}
 
-                  <div className="grid grid-cols-3 gap-3">
-                    {(Object.entries(MOMO_NETWORKS) as [MomoProvider, (typeof MOMO_NETWORKS)[MomoProvider]][]).map(([key, net]) => {
-                      const active = provider === key
-                      const brandClasses = {
-                        mtn: "border-[#FFCC00] bg-[#FFCC00]/10 text-amber-950 dark:text-amber-200 ring-2 ring-[#FFCC00]/40 shadow-sm",
-                        vodafone: "border-[#E60000] bg-[#E60000]/10 text-red-950 dark:text-red-200 ring-2 ring-[#E60000]/40 shadow-sm",
-                        airteltigo: "border-[#003399] bg-[#003399]/10 text-blue-950 dark:text-blue-200 ring-2 ring-[#003399]/40 shadow-sm",
-                      }
-                      return (
-                        <button
-                          key={key}
-                          type="button"
-                          onClick={() => setProvider(key)}
-                          aria-pressed={active}
-                          className={`group relative flex flex-col items-center justify-between p-3.5 rounded-xl border-2 text-center transition-all duration-200 gap-2 cursor-pointer ${
-                            active
-                              ? brandClasses[key]
-                              : "border-border bg-card hover:border-primary/40 hover:bg-muted/30"
-                          }`}
-                        >
-                          {active && (
-                            <span className="absolute top-2 right-2 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm z-10">
-                              <CheckCircle className="h-5 w-5 fill-current" />
-                            </span>
-                          )}
-                          <div className="h-16 w-full flex items-center justify-center rounded-xl bg-white dark:bg-zinc-900 p-2 shadow-2xs border border-black/5 group-hover:scale-105 transition-transform">
-                            <img src={net.logo} alt={net.short} className="h-12 w-auto max-w-full object-contain" />
-                          </div>
-                          <div className="space-y-0.5">
-                            <span className="font-extrabold text-xs block text-foreground">{net.short}</span>
-                            <span className="text-[10px] text-muted-foreground block font-mono font-medium">
-                              {prefixHint(key)}
-                            </span>
-                          </div>
-                        </button>
-                      )
-                    })}
-                  </div>
+                {phoneValid && (
+                  <p className="text-xs text-success font-semibold flex items-center gap-1">
+                    <CheckCircle className="h-3.5 w-3.5 shrink-0" />
+                    {formatPhoneDisplay(phoneRaw)}
+                    {detectedProvider && ` — ${MOMO_NETWORKS[detectedProvider].label}`}
+                  </p>
+                )}
+              </div>
 
-                  {/* Mismatch warning */}
-                  {detectedProvider && detectedProvider !== provider && (
-                    <div className="flex items-start gap-2 p-3 rounded-lg bg-warning/10 text-warning-fg text-xs font-semibold border border-warning/20">
-                      <WarningCircle className="h-4 w-4 shrink-0 mt-0.5 text-warning-fg" />
-                      <span>
-                        Your number prefix suggests <strong>{MOMO_NETWORKS[detectedProvider].label}</strong>,
-                        but you selected <strong>{MOMO_NETWORKS[provider].label}</strong>.
-                        Double-check before saving.
-                      </span>
-                    </div>
+              {/* Compact Network Selection */}
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  <DeviceMobile className="h-4 w-4" />
+                  Network
+                  {detectedProvider && (
+                    <span className="ml-auto text-[11px] font-normal text-muted-foreground">
+                      Auto-detected
+                    </span>
                   )}
-                </div>
+                </Label>
 
-                <StatusRow mutation={updatePayment} successText="Payout details saved" />
-
-                <div className="flex justify-between items-center pt-2">
-                  <Button type="button" variant="ghost" className="gap-2" onClick={() => setActiveTab("dispatch")}>
-                    <ArrowLeft className="h-4 w-4" /> Back
-                  </Button>
-                  <Button
-                    type="submit"
-                    isLoading={updatePayment.isPending}
-                    disabled={phoneTouched && !!phoneError}
-                    className="gap-2 px-8"
-                  >
-                    <FloppyDisk className="h-4 w-4" /> Save Payout Details
-                  </Button>
+                <div className="grid grid-cols-3 gap-3">
+                  {(Object.entries(MOMO_NETWORKS) as [MomoProvider, (typeof MOMO_NETWORKS)[MomoProvider]][]).map(([key, net]) => {
+                    const active = provider === key
+                    return (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={() => setProvider(key)}
+                        aria-pressed={active}
+                        aria-label={net.label}
+                        className={`group relative h-20 sm:h-24 w-full rounded-xl border-2 p-3 flex items-center justify-center bg-white dark:bg-zinc-900 transition-all cursor-pointer shadow-xs ${
+                          active
+                            ? "border-emerald-600 ring-2 ring-emerald-600/30"
+                            : "border-border hover:border-muted-foreground/40 hover:bg-muted/10"
+                        }`}
+                      >
+                        {active && (
+                          <span className="absolute top-2 right-2 flex h-5 w-5 items-center justify-center rounded-full bg-emerald-600 text-white shadow-xs z-10">
+                            <Check className="h-3.5 w-3.5 stroke-[3]" />
+                          </span>
+                        )}
+                        <img
+                          src={net.logo}
+                          alt={net.short}
+                          className="h-12 sm:h-14 w-auto max-w-full object-contain transition-transform group-hover:scale-105"
+                        />
+                      </button>
+                    )
+                  })}
                 </div>
-              </form>
-            </Card>
-          )}
-        </div>
-      </div>
+              </div>
+
+              <StatusRow mutation={updatePayment} successText="Payout details saved" />
+            </CardContent>
+
+            <CardFooter className="flex items-center justify-between border-t border-border/60 pt-4">
+              <Button type="button" variant="ghost" className="gap-2" onClick={() => setActiveTab("dispatch")}>
+                <ArrowLeft className="h-4 w-4" /> Back
+              </Button>
+              <Button
+                type="submit"
+                isLoading={updatePayment.isPending}
+                disabled={phoneTouched && !phoneValid}
+                className="gap-2 px-6"
+              >
+                <FloppyDisk className="h-4 w-4" /> Save Payout Details
+              </Button>
+            </CardFooter>
+          </form>
+        </Card>
+      )}
     </PageShell>
   )
 }
 
 // ---------------------------------------------------------------------------
-// Image upload control — reuses /vendor/uploads (R2-backed file service)
-// and persists the returned URL via POST /vendor/sellers/me { logo | banner }.
+// Compact Uploader Trigger
 // ---------------------------------------------------------------------------
-
-type ImageUploaderProps = {
-  label: string
-  alt: string
-  current: string | null | undefined
-  onUpload: (file: File) => Promise<void> | void
-  onRemove: () => void
-  isUploading: boolean
-}
-
-function ImageUploader({
-  label,
-  alt,
-  current,
-  onUpload,
-  onRemove,
+function CompactUploader({
   isUploading,
-}: ImageUploaderProps) {
-  const [prev, setPrev] = useState<string | null>(current ?? null)
+  onUpload,
+  triggerText,
+  triggerClassName,
+}: {
+  isUploading: boolean
+  onUpload: (file: File) => Promise<void>
+  triggerText: string
+  triggerClassName?: string
+}) {
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const [error, setError] = useState<string | null>(null)
 
-  // Reflect server-saved value (e.g. after a successful save or a refetch).
-  useEffect(() => {
-    setPrev(current ?? null)
-  }, [current])
-
-  const onChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
     setError(null)
     const okTypes = ["image/png", "image/jpeg", "image/webp", "image/gif"]
     if (!okTypes.includes(file.type)) {
-      setError("Only PNG, JPG, WebP, or GIF images are accepted.")
+      setError("PNG, JPG, WebP only")
       return
     }
     if (file.size > 5 * 1024 * 1024) {
-      setError("Image must be smaller than 5 MB.")
+      setError("< 5MB only")
       return
     }
-    const objectUrl = URL.createObjectURL(file)
-    setPrev(objectUrl)
     try {
       await onUpload(file)
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "UploadSimple failed.")
+    } catch (err) {
+      setError("Upload failed")
     } finally {
-      URL.revokeObjectURL(objectUrl)
+      if (fileInputRef.current) fileInputRef.current.value = ""
     }
-  }
-
-  const clear = () => {
-    setPrev(null)
-    onRemove()
   }
 
   return (
-    <div className="space-y-2">
-      <Label>{label}</Label>
-
-      {prev ? (
-        <div className="relative inline-block">
-          <img
-            src={prev}
-            alt={alt}
-            className={`rounded-xl object-cover ring-1 ring-border ${
-              label.toLowerCase().includes("cover")
-                ? "h-28 w-64"
-                : "h-20 w-20"
-            }`}
-          />
-          <button
-            type="button"
-            onClick={clear}
-            disabled={isUploading}
-            className="absolute -top-1 -right-1 rounded-full bg-destructive p-0.5 text-white/90 hover:bg-destructive/90"
-            aria-label={`Remove ${label.toLowerCase()}`}
-            title={`Remove ${label.toLowerCase()}`}
-          >
-            <X className="h-3 w-3" />
-          </button>
-        </div>
-      ) : (
-        <label className="flex h-20 w-20 cursor-pointer items-center justify-center rounded-xl border-2 border-dashed border-border bg-muted/30 text-muted-foreground transition hover:border-primary hover:text-primary">
-          <UploadSimple className="h-5 w-5" />
-          <input
-            type="file"
-            accept="image/*"
-            onChange={onChange}
-            disabled={isUploading}
-            className="sr-only"
-            aria-label={label}
-          />
-        </label>
+    <>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleFileChange}
+        disabled={isUploading}
+        className="sr-only"
+      />
+      <button
+        type="button"
+        onClick={() => fileInputRef.current?.click()}
+        disabled={isUploading}
+        className={
+          triggerClassName ||
+          "inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-black/60 hover:bg-black/80 text-white backdrop-blur-xs text-[11px] font-semibold transition cursor-pointer shadow-xs"
+        }
+      >
+        <Camera className="h-3 w-3" />
+        {isUploading ? "Uploading…" : triggerText}
+      </button>
+      {error && (
+        <span className="text-[10px] text-destructive font-semibold ml-1">{error}</span>
       )}
-
-      {error ? (
-        <p className="text-xs text-destructive font-semibold">{error}</p>
-      ) : null}
-      {isUploading ? (
-        <p className="text-xs text-muted-foreground">Uploading…</p>
-      ) : null}
-    </div>
+    </>
   )
 }
 
 // ---------------------------------------------------------------------------
-// Shared status row
+// Shared Status Row
 // ---------------------------------------------------------------------------
-
 function StatusRow({
   mutation,
   successText,
@@ -726,25 +815,25 @@ function StatusRow({
 
   useEffect(() => {
     if (!visible) return
-    const t = setTimeout(() => setVisible(null), 6000)
+    const t = setTimeout(() => setVisible(null), 5000)
     return () => clearTimeout(t)
   }, [visible])
 
   if (!visible) return null
   if (visible === "success") {
     return (
-      <div className="flex items-center gap-2 p-3 rounded-lg bg-success/10 text-success text-sm font-semibold border border-success/20" role="status">
-        <CheckCircle className="h-4 w-4 shrink-0" /> {successText}
+      <div className="flex items-center gap-2 p-2.5 rounded-lg bg-success/10 text-success text-xs font-semibold border border-success/20" role="status">
+        <CheckCircle className="h-3.5 w-3.5 shrink-0" /> {successText}
       </div>
     )
   }
   const detail = mutation.error instanceof Error && mutation.error.message ? mutation.error.message : null
   return (
-    <div className="flex items-start gap-2 p-3 rounded-lg bg-destructive/10 text-destructive text-sm border border-destructive/20" role="alert">
-      <WarningCircle className="h-4 w-4 shrink-0 mt-0.5" />
+    <div className="flex items-start gap-2 p-2.5 rounded-lg bg-destructive/10 text-destructive text-xs border border-destructive/20" role="alert">
+      <WarningCircle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
       <div>
-        <p className="font-semibold">Could not save — try again</p>
-        {detail ? <p className="mt-0.5 text-xs text-destructive/80">{detail}</p> : null}
+        <p className="font-semibold">Could not save — please try again</p>
+        {detail ? <p className="mt-0.5 text-destructive/80">{detail}</p> : null}
       </div>
     </div>
   )

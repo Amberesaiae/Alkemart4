@@ -17,5 +17,17 @@ export const sellers = new Hono<AppEnv>()
     // Fire-and-forget traffic counter; reads never wait on it.
     trackView(c, shop.seller.id, null)
     const featuredProductIds = await c.get("featured").listFeatured(shop.seller.id).catch(() => [])
-    return c.json({ ...shop, featuredProductIds })
+    // Branding lives on the seller profile (logo/banner/bio), not the
+    // catalog snapshot — attach it so shop heroes render real art.
+    const profile = await c.get("authRepo").findSellerById(shop.seller.id).catch(() => null)
+    return c.json({
+      ...shop,
+      seller: {
+        ...shop.seller,
+        description: profile?.description ?? null,
+        logo: profile?.logo ?? null,
+        banner: profile?.banner ?? null,
+      },
+      featuredProductIds,
+    })
   })
