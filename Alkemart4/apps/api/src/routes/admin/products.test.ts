@@ -15,6 +15,9 @@ function emptyCatalog(): CatalogSnapshot {
     products: [],
     variants: [],
     offers: [],
+    productOptions: [],
+    productOptionValues: [],
+    variantOptionValues: [],
   }
 }
 

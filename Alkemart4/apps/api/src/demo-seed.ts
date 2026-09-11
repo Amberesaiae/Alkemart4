@@ -34,6 +34,25 @@ export type CatalogVariant = {
   title: string | null
 }
 
+export type CatalogProductOption = {
+  id: string
+  productId: string
+  name: string
+  position: number
+}
+
+export type CatalogProductOptionValue = {
+  id: string
+  optionId: string
+  value: string
+  position: number
+}
+
+export type CatalogVariantOptionValue = {
+  variantId: string
+  valueId: string
+}
+
 export type CatalogOffer = {
   id: string
   sellerId: string
@@ -52,10 +71,16 @@ export type CatalogSnapshot = {
   products: CatalogProduct[]
   variants: CatalogVariant[]
   offers: CatalogOffer[]
+  productOptions: CatalogProductOption[]
+  productOptionValues: CatalogProductOptionValue[]
+  variantOptionValues: CatalogVariantOptionValue[]
 }
 
 export type JsonCatalogSnapshot = {
   categories: CatalogCategory[]
+  productOptions?: CatalogProductOption[]
+  productOptionValues?: CatalogProductOptionValue[]
+  variantOptionValues?: CatalogVariantOptionValue[]
   sellers: Array<Omit<CatalogSeller, "deliveryFeePesewas"> & { deliveryFeePesewas: string }>
   products: CatalogProduct[]
   variants: CatalogVariant[]
@@ -66,6 +91,9 @@ export type JsonCatalogSnapshot = {
 export function demoCatalog(): CatalogSnapshot {
   return {
     categories: GHANA_CATEGORY_SEED.map((c) => ({ ...c })),
+    productOptions: [],
+    productOptionValues: [],
+    variantOptionValues: [],
     sellers: [
       {
         id: "seller-a",
@@ -138,6 +166,9 @@ export function demoCatalog(): CatalogSnapshot {
 export function snapshotToJson(data: CatalogSnapshot): JsonCatalogSnapshot {
   return {
     categories: data.categories,
+    productOptions: data.productOptions,
+    productOptionValues: data.productOptionValues,
+    variantOptionValues: data.variantOptionValues,
     sellers: data.sellers.map((s) => ({
       ...s,
       deliveryFeePesewas: s.deliveryFeePesewas.toString(),
@@ -154,6 +185,9 @@ export function snapshotToJson(data: CatalogSnapshot): JsonCatalogSnapshot {
 export function snapshotFromJson(json: JsonCatalogSnapshot): CatalogSnapshot {
   return {
     categories: json.categories,
+    productOptions: json.productOptions ?? [],
+    productOptionValues: json.productOptionValues ?? [],
+    variantOptionValues: json.variantOptionValues ?? [],
     sellers: json.sellers.map((s) => ({
       ...s,
       status: s.status,

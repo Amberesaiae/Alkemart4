@@ -48,6 +48,9 @@ function withSellerAOnlyProduct(data: CatalogSnapshot): CatalogSnapshot {
         active: true,
       },
     ],
+    productOptions: [],
+    productOptionValues: [],
+    variantOptionValues: [],
   }
 }
 

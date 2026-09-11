@@ -36,6 +36,9 @@ function catalogWithProduct(): CatalogSnapshot {
     offers: [
       { id: "o-1", sellerId: "seller-1", productId: "p-1", variantId: "v-1", pricePesewas: 25000n, onHand: 5, reserved: 0, currency: "ghs", active: true },
     ],
+    productOptions: [],
+    productOptionValues: [],
+    variantOptionValues: [],
   }
 }
 

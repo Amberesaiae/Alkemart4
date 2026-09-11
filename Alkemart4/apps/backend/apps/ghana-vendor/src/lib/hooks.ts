@@ -199,6 +199,35 @@ export function useQuickSell() {
   })
 }
 
+export function useUpdateVariant() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ productId, variantId, patch }: {
+      productId: string
+      variantId: string
+      patch: { pricePesewas?: string; onHand?: number; active?: boolean }
+    }) => products.updateVariant(productId, variantId, patch),
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: ["vendor", "products", vars.productId] })
+      qc.invalidateQueries({ queryKey: ["vendor", "products"] })
+    },
+  })
+}
+
+export function useAddOptionValue() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ productId, input }: {
+      productId: string
+      input: { optionId?: string; optionName?: string; value: string; existingValue?: string }
+    }) => products.addOptionValue(productId, input),
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: ["vendor", "products", vars.productId] })
+      qc.invalidateQueries({ queryKey: ["vendor", "products"] })
+    },
+  })
+}
+
 export function useProposeProduct() {
   const qc = useQueryClient()
   return useMutation({

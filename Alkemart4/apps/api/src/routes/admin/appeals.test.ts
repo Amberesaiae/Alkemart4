@@ -40,6 +40,9 @@ async function setup() {
     products: [],
     variants: [],
     offers: [],
+    productOptions: [],
+    productOptionValues: [],
+    variantOptionValues: [],
   }
   const app = createApp({
     authRepo,

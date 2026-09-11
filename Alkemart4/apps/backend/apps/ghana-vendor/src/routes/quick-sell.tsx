@@ -228,7 +228,7 @@ function QuickSellPage() {
       <Card className="border-2 shadow-lg overflow-hidden">
         {step === 1 && (
           <div className="p-8 sm:p-12 flex flex-col items-center text-center">
-            <div className="h-24 w-24 bg-primary/10 text-primary rounded-full flex items-center justify-center mb-6">
+            <div className="h-24 w-24 bg-muted text-primary rounded-full flex items-center justify-center mb-6">
               <Image className="h-10 w-10" />
             </div>
             <h2 className="text-2xl font-bold mb-2">Snap a Photo</h2>

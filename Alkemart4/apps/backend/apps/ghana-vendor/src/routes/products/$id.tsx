@@ -1,8 +1,9 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router"
 import { useRef, useState } from "react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
-import { useProduct, useUpdateProduct, useDeleteProduct, useCategories, useProposeProduct, useUploadImage } from "../../lib/hooks"
-import { type ProductStatus, products as productsApi } from "../../lib/api"
+import { useProduct, useUpdateProduct, useDeleteProduct, useCategories, useProposeProduct, useUploadImage, useUpdateVariant, useAddOptionValue } from "../../lib/hooks"
+import { type ProductStatus, type ProductCombo, products as productsApi } from "../../lib/api"
+import { toast } from "sonner"
 import { Card, Button, Input, Label, Textarea, Select, Skeleton, Badge } from "@workspace/ui"
 import {
   ArrowLeft,
@@ -21,7 +22,10 @@ import {
   Tag,
 } from "@phosphor-icons/react"
 import { PageShell } from "../../components/page-shell"
-import { toast } from "sonner"
+function storefrontBase(): string {
+  const raw = (import.meta.env.VITE_ALKEMART_STOREFRONT_URL as string | undefined)?.trim()
+  return (raw ? raw : "http://127.0.0.1:5175").replace(/\/$/, "")
+}
 
 export const Route = createFileRoute('/products/$id')({
   component: ProductDetailPage,
@@ -62,6 +66,10 @@ function ProductDetailPage() {
   const [savingQuickOffers, setSavingQuickOffers] = useState(false)
 
   const product = data?.product
+  // Matrix products manage price/stock per combination (the product-level
+  // PATCH 400s for those fields) — the Combinations section owns them.
+  const hasOptions = (product?.productOptions?.length ?? 0) > 0
+  const combos: ProductCombo[] = product?.combos ?? []
   const meta = product?.metadata as Record<string, unknown> | undefined
   const alkemartMeta = meta?.alkemart as Record<string, unknown> | undefined
   const moderation = alkemartMeta?.moderation as Record<string, unknown> | undefined
@@ -180,7 +188,11 @@ function ProductDetailPage() {
     }
 
     const priceRaw = form.priceGhs.trim()
-    if (priceRaw !== "") {
+    const stockRaw = form.stockQty.trim()
+    if (hasOptions && (priceRaw !== "" || stockRaw !== "")) {
+      toast.info("Price & stock live on each combination — saved content only; adjust combos below.")
+    }
+    if (!hasOptions && priceRaw !== "") {
       const price = parseFloat(priceRaw)
       if (isNaN(price) || price < 0) {
         toast.error("Price must be a valid number.")
@@ -189,8 +201,7 @@ function ProductDetailPage() {
       patch.pricePesewas = String(Math.round(price * 100))
     }
 
-    const stockRaw = form.stockQty.trim()
-    if (stockRaw !== "") {
+    if (!hasOptions && stockRaw !== "") {
       const qty = Number(stockRaw)
       if (!Number.isInteger(qty) || qty < 0) {
         toast.error("Stock must be a whole number of 0 or more.")
@@ -229,6 +240,10 @@ function ProductDetailPage() {
   }
 
   const handleSaveQuickOffers = async () => {
+    if (hasOptions) {
+      toast.info("Price & stock live on each combination — adjust them below.")
+      return
+    }
     const patch: { pricePesewas?: string; onHand?: number } = {}
     const priceRaw = quickPrice.trim()
     if (priceRaw !== "") {
@@ -559,52 +574,17 @@ function ProductDetailPage() {
                 )}
               </div>
             )}
-          </Card>
 
-          {/* Marketplace Stats Card */}
-          <Card className="p-5 space-y-4 border border-border/80 shadow-2xs rounded-2xl bg-card">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Marketplace Overview</h3>
-
-            <div className="grid grid-cols-2 gap-3 pt-1">
-              <div className="p-3 bg-muted/30 rounded-xl border border-border/50">
-                <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Selling Price</p>
-                <p className="text-lg font-black text-foreground mt-0.5">
-                  {currentPriceGhs > 0 ? `GH₵ ${currentPriceGhs.toFixed(2)}` : "Not set"}
-                </p>
-              </div>
-
-              <div className="p-3 bg-muted/30 rounded-xl border border-border/50">
-                <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Stock Level</p>
-                <p className={`text-lg font-black mt-0.5 ${currentStock > 0 ? "text-success" : "text-destructive"}`}>
-                  {currentStock} units
-                </p>
-              </div>
-            </div>
-
-            <div className="space-y-2.5 text-xs pt-2 border-t border-border/60">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Category</span>
-                <span className="font-semibold text-foreground truncate max-w-[170px]">
-                  {categoryName || "Uncategorized"}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Created Date</span>
-                <span className="font-medium text-foreground">
-                  {product.created_at ? new Date(product.created_at).toLocaleDateString() : "—"}
-                </span>
-              </div>
-            </div>
-
+            {/* Live Storefront Link directly in Media Card Footer */}
             {product.status === "published" && product.handle && (
-              <div className="pt-2 border-t border-border/60">
+              <div className="p-3.5 bg-muted/15 border-t border-border/60">
                 <a
-                  href={`http://127.0.0.1:5175/products/${product.handle}`}
+                  href={`${storefrontBase()}/products/${product.handle}`}
                   target="_blank"
                   rel="noreferrer"
-                  className="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl border text-xs font-bold text-primary hover:bg-primary/5 transition"
+                  className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl border border-border/70 bg-background text-xs font-bold text-foreground hover:text-primary hover:border-primary/50 shadow-2xs transition"
                 >
-                  <ArrowSquareOut className="h-3.5 w-3.5" /> View on Live Store
+                  <ArrowSquareOut className="h-3.5 w-3.5 text-primary" /> View on Live Store
                 </a>
               </div>
             )}
@@ -666,19 +646,24 @@ function ProductDetailPage() {
                 </div>
               </Card>
 
-              {/* Pricing & Stock Card (integrated in the form!) */}
+              {/* Pricing & Stock Card (Expanded with proper room!) */}
               <Card className="p-6 space-y-5 border border-border/80 shadow-xs rounded-2xl bg-card">
-                <h2 className="font-bold text-base text-foreground flex items-center gap-2 border-b border-border/60 pb-3">
-                  <Tag className="h-5 w-5 text-primary" /> Pricing &amp; Inventory
-                </h2>
+                <div className="border-b border-border/60 pb-3">
+                  <h2 className="font-bold text-base text-foreground flex items-center gap-2">
+                    <Tag className="h-5 w-5 text-primary" /> Pricing &amp; Inventory
+                  </h2>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Set your marketplace retail price and manage immediate fulfillment stock.
+                  </p>
+                </div>
 
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="edit-price" className="text-sm font-semibold">
+                <div className="grid gap-5 sm:grid-cols-2">
+                  <div className="space-y-2 p-4 rounded-2xl bg-muted/15 border border-border/60">
+                    <Label htmlFor="edit-price" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
                       Selling Price (GH₵)
                     </Label>
                     <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-muted-foreground select-none">
+                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-bold text-muted-foreground select-none">
                         GH₵
                       </span>
                       <Input
@@ -687,16 +672,16 @@ function ProductDetailPage() {
                         step="0.01"
                         min="0"
                         placeholder="0.00"
-                        className="pl-13 h-10 font-bold"
+                        className="pl-14 h-11 text-base font-bold bg-background rounded-xl"
                         value={form.priceGhs}
                         onChange={e => setForm(p => ({ ...p, priceGhs: e.target.value }))}
                       />
                     </div>
-                    <p className="text-[11px] text-muted-foreground font-medium">Standard marketplace selling price</p>
+                    <p className="text-[11px] text-muted-foreground">Standard listing price visible to shoppers</p>
                   </div>
 
-                  <div className="space-y-1.5">
-                    <Label htmlFor="edit-stock" className="text-sm font-semibold">
+                  <div className="space-y-2 p-4 rounded-2xl bg-muted/15 border border-border/60">
+                    <Label htmlFor="edit-stock" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
                       Available Stock (Units)
                     </Label>
                     <Input
@@ -705,21 +690,38 @@ function ProductDetailPage() {
                       step="1"
                       min="0"
                       placeholder="0"
-                      className="h-10 font-bold"
+                      className="h-11 text-base font-bold bg-background rounded-xl"
                       value={form.stockQty}
                       onChange={e => setForm(p => ({ ...p, stockQty: e.target.value }))}
                     />
-                    <p className="text-[11px] text-muted-foreground font-medium">Quantity available for immediate dispatch</p>
+                    <p className="text-[11px] text-muted-foreground">Units available for immediate warehouse dispatch</p>
                   </div>
                 </div>
+
+                {/* Live Estimated Valuation banner */}
+                {(() => {
+                  const p = parseFloat(form.priceGhs) || 0
+                  const s = parseInt(form.stockQty, 10) || 0
+                  if (p > 0 && s > 0) {
+                    return (
+                      <div className="flex items-center justify-between p-3.5 rounded-xl bg-muted border border-primary/25 text-xs">
+                        <span className="font-semibold text-foreground">Estimated Catalog Value at this price:</span>
+                        <span className="font-black text-sm text-foreground tabular-nums">
+                          GH₵ {(p * s).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </span>
+                      </div>
+                    )
+                  }
+                  return null
+                })()}
               </Card>
 
               {/* Action Buttons */}
               <div className="flex items-center gap-3 pt-2">
-                <Button onClick={handleSave} isLoading={update.isPending} size="lg" className="gap-2 font-bold px-6 shadow-sm">
+                <Button onClick={handleSave} isLoading={update.isPending} size="lg" className="gap-2 font-bold px-6 shadow-sm rounded-xl">
                   <FloppyDisk className="h-4 w-4" weight="bold" /> Save Changes
                 </Button>
-                <Button onClick={() => setEditing(false)} variant="outline" size="lg">
+                <Button onClick={() => setEditing(false)} variant="outline" size="lg" className="rounded-xl">
                   Cancel
                 </Button>
               </div>
@@ -733,7 +735,7 @@ function ProductDetailPage() {
                   <h2 className="font-bold text-base text-foreground flex items-center gap-2">
                     <Package className="h-5 w-5 text-primary" /> Product Information
                   </h2>
-                  <Button onClick={startEditing} variant="outline" size="sm" className="gap-1.5 text-xs font-semibold">
+                  <Button onClick={startEditing} variant="outline" size="sm" className="gap-1.5 text-xs font-semibold rounded-xl">
                     <PencilSimple className="h-3.5 w-3.5" /> Edit Information
                   </Button>
                 </div>
@@ -750,30 +752,56 @@ function ProductDetailPage() {
 
                   <div>
                     <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground block mb-1">
-                      Category
-                    </span>
-                    <span className="inline-block text-xs font-semibold px-2.5 py-1 rounded-lg bg-muted text-foreground border border-border/60">
-                      {categoryName || "Uncategorized"}
-                    </span>
-                  </div>
-
-                  <div>
-                    <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground block mb-1">
                       Description
                     </span>
                     <p className="text-sm text-foreground/90 whitespace-pre-wrap leading-relaxed">
                       {product.description || "No description provided."}
                     </p>
                   </div>
+
+                  {/* Metadata Specs Strip */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-3 border-t border-border/60">
+                    <div>
+                      <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground block mb-1">
+                        Category
+                      </span>
+                      <span className="inline-block text-xs font-semibold px-2.5 py-1 rounded-lg bg-muted text-foreground border border-border/60">
+                        {categoryName || "Uncategorized"}
+                      </span>
+                    </div>
+
+                    <div>
+                      <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground block mb-1">
+                        Product Reference
+                      </span>
+                      <span className="text-xs font-mono font-semibold text-foreground">
+                        {product.handle || product.id.slice(0, 12)}
+                      </span>
+                    </div>
+
+                    <div>
+                      <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground block mb-1">
+                        Created Date
+                      </span>
+                      <span className="text-xs font-medium text-foreground">
+                        {product.created_at ? new Date(product.created_at).toLocaleDateString() : "—"}
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </Card>
 
-              {/* Pricing & Stock Card */}
+              {/* Pricing & Stock Card (Expanded with proper room!) */}
               <Card className="p-6 space-y-5 border border-border/80 shadow-xs rounded-2xl bg-card">
                 <div className="flex items-center justify-between border-b border-border/60 pb-3">
-                  <h2 className="font-bold text-base text-foreground flex items-center gap-2">
-                    <Tag className="h-5 w-5 text-primary" /> Pricing &amp; Stock
-                  </h2>
+                  <div>
+                    <h2 className="font-bold text-base text-foreground flex items-center gap-2">
+                      <Tag className="h-5 w-5 text-primary" /> Pricing &amp; Inventory
+                    </h2>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Marketplace listing price, stock allocation, and asset valuation.
+                    </p>
+                  </div>
                   {!quickOfferOpen && (
                     <Button
                       onClick={() => {
@@ -783,42 +811,67 @@ function ProductDetailPage() {
                       }}
                       variant="outline"
                       size="sm"
-                      className="gap-1.5 text-xs font-semibold"
+                      className="gap-1.5 text-xs font-bold rounded-xl"
                     >
-                      <PencilSimple className="h-3.5 w-3.5" /> Quick Adjust
+                      <PencilSimple className="h-3.5 w-3.5 text-primary" /> Quick Adjust
                     </Button>
                   )}
                 </div>
 
                 {!quickOfferOpen ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="p-4 rounded-xl bg-muted/20 border border-border/60">
-                      <p className="text-xs font-semibold text-muted-foreground">Selling Price</p>
-                      <p className="text-2xl font-black text-foreground mt-1">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    {/* Selling Price */}
+                    <div className="p-4 rounded-2xl bg-muted/20 border border-border/60 flex flex-col justify-between gap-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Selling Price</span>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-muted text-primary-foreground">GHS</span>
+                      </div>
+                      <p className="text-2xl sm:text-3xl font-black text-foreground tabular-nums tracking-tight">
                         {currentPriceGhs > 0 ? `GH₵ ${currentPriceGhs.toFixed(2)}` : "—"}
                       </p>
-                      <p className="text-[11px] text-muted-foreground mt-1">Gross listing price</p>
+                      <p className="text-[11px] text-muted-foreground font-medium">Gross marketplace consumer price</p>
                     </div>
 
-                    <div className="p-4 rounded-xl bg-muted/20 border border-border/60">
-                      <p className="text-xs font-semibold text-muted-foreground">Inventory Status</p>
-                      <p className={`text-2xl font-black mt-1 ${currentStock > 0 ? "text-success" : "text-destructive"}`}>
-                        {currentStock} units
+                    {/* Available Stock */}
+                    <div className="p-4 rounded-2xl bg-muted/20 border border-border/60 flex flex-col justify-between gap-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Available Stock</span>
+                        <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                          currentStock > 0 ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300" : "bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300"
+                        }`}>
+                          <span className={`h-1.5 w-1.5 rounded-full ${currentStock > 0 ? "bg-emerald-500" : "bg-rose-500"}`} />
+                          {currentStock > 0 ? "In Stock" : "Depleted"}
+                        </span>
+                      </div>
+                      <p className={`text-2xl sm:text-3xl font-black tabular-nums tracking-tight ${currentStock > 0 ? "text-foreground" : "text-destructive"}`}>
+                        {currentStock.toLocaleString()} <span className="text-sm font-semibold text-muted-foreground">units</span>
                       </p>
-                      <p className="text-[11px] text-muted-foreground mt-1">
-                        {currentStock > 0 ? "In stock & ready to dispatch" : "Marked as out of stock"}
+                      <p className="text-[11px] text-muted-foreground font-medium">Ready for immediate fulfillment</p>
+                    </div>
+
+                    {/* Inventory Valuation */}
+                    <div className="p-4 rounded-2xl bg-muted/20 border border-border/60 flex flex-col justify-between gap-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Asset Value</span>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-stone-200 dark:bg-stone-800 text-stone-700 dark:text-stone-300">Catalog</span>
+                      </div>
+                      <p className="text-2xl sm:text-3xl font-black text-foreground tabular-nums tracking-tight">
+                        {currentPriceGhs > 0 && currentStock > 0
+                          ? `GH₵ ${(currentPriceGhs * currentStock).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                          : "GH₵ 0.00"}
                       </p>
+                      <p className="text-[11px] text-muted-foreground font-medium">Total on-hand stock valuation</p>
                     </div>
                   </div>
                 ) : (
-                  <div className="p-4 bg-muted/20 border border-border/80 rounded-xl space-y-4">
+                  <div className="p-5 bg-muted/20 border border-border/80 rounded-2xl space-y-4">
                     <div className="grid gap-4 sm:grid-cols-2">
                       <div className="space-y-1.5">
                         <Label htmlFor="quick-price" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
                           Price (GHS)
                         </Label>
                         <div className="relative">
-                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-muted-foreground">
+                          <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-bold text-muted-foreground">
                             GH₵
                           </span>
                           <Input
@@ -826,7 +879,7 @@ function ProductDetailPage() {
                             type="number"
                             step="0.01"
                             min="0"
-                            className="pl-13 h-10 font-bold"
+                            className="pl-14 h-11 text-base font-bold bg-background rounded-xl"
                             value={quickPrice}
                             onChange={e => setQuickPrice(e.target.value)}
                           />
@@ -842,7 +895,7 @@ function ProductDetailPage() {
                           type="number"
                           step="1"
                           min="0"
-                          className="h-10 font-bold"
+                          className="h-11 text-base font-bold bg-background rounded-xl"
                           value={quickStock}
                           onChange={e => setQuickStock(e.target.value)}
                         />
@@ -854,17 +907,19 @@ function ProductDetailPage() {
                         onClick={() => { void handleSaveQuickOffers() }}
                         isLoading={savingQuickOffers}
                         size="sm"
-                        className="gap-1.5 font-bold"
+                        className="gap-1.5 font-bold rounded-xl"
                       >
                         <FloppyDisk className="h-3.5 w-3.5" /> Save Price &amp; Stock
                       </Button>
-                      <Button onClick={() => setQuickOfferOpen(false)} variant="outline" size="sm">
+                      <Button onClick={() => setQuickOfferOpen(false)} variant="outline" size="sm" className="rounded-xl">
                         Cancel
                       </Button>
                     </div>
                   </div>
                 )}
               </Card>
+
+              <VariantsSection productId={id} />
             </div>
           )}
         </div>
@@ -872,3 +927,297 @@ function ProductDetailPage() {
     </PageShell>
   )
 }
+
+function comboDisplayName(combo: ProductCombo): string {
+  const parts = Object.entries(combo.options ?? {})
+  if (combo.title && combo.title !== "Default") return combo.title
+  return parts.length > 0 ? parts.map(([, v]) => v).join(" / ") : (combo.title || "Standard")
+}
+
+function VariantsSection({ productId }: { productId: string }) {
+  const qc = useQueryClient()
+  const { data } = useProduct(productId)
+  const product = data?.product
+  const updateVariant = useUpdateVariant()
+  const addOption = useAddOptionValue()
+
+  const combos: ProductCombo[] = product?.combos ?? []
+  const options = product?.productOptions ?? []
+  const [edits, setEdits] = useState<Record<string, { price: string; stock: string }>>({})
+  const [savingId, setSavingId] = useState<string | null>(null)
+  const [newValue, setNewValue] = useState("")
+  const [newOption, setNewOption] = useState("")
+  const [existingValue, setExistingValue] = useState("")
+  const [addingOption, setAddingOption] = useState(false)
+
+  const editOf = (combo: ProductCombo) =>
+    edits[combo.variantId] ?? { price: combo.priceGhs > 0 ? String(combo.priceGhs) : "", stock: String(combo.onHand) }
+  const setEdit = (variantId: string, patch: Partial<{ price: string; stock: string }>) => {
+    const current = combos.find((c) => c.variantId === variantId)
+    if (!current) return
+    setEdits((p) => ({ ...p, [variantId]: { ...editOf(current), ...patch } }))
+  }
+  const isDirty = (combo: ProductCombo) => {
+    const e = edits[combo.variantId]
+    if (!e) return false
+    return e.price !== (combo.priceGhs > 0 ? String(combo.priceGhs) : "") || e.stock !== String(combo.onHand)
+  }
+
+  const handleSaveCombo = async (combo: ProductCombo) => {
+    const e = editOf(combo)
+    const patch: { pricePesewas?: string; onHand?: number } = {}
+    if (e.price.trim() !== "") {
+      const price = parseFloat(e.price)
+      if (isNaN(price) || price < 0) {
+        toast.error("Enter a valid price.")
+        return
+      }
+      patch.pricePesewas = String(Math.round(price * 100))
+    }
+    if (e.stock.trim() !== "") {
+      const qty = Number(e.stock)
+      if (!Number.isInteger(qty) || qty < 0) {
+        toast.error("Stock must be a whole number of 0 or more.")
+        return
+      }
+      patch.onHand = qty
+    }
+    setSavingId(combo.variantId)
+    try {
+      await updateVariant.mutateAsync({ productId, variantId: combo.variantId, patch })
+      toast.success(comboDisplayName(combo) + " updated - stays live, no re-review.")
+      setEdits((p) => {
+        const next = { ...p }
+        delete next[combo.variantId]
+        return next
+      })
+      qc.invalidateQueries({ queryKey: ["vendor", "products", productId] })
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to update combination.")
+    } finally {
+      setSavingId(null)
+    }
+  }
+
+  const handleToggleActive = async (combo: ProductCombo) => {
+    setSavingId(combo.variantId)
+    try {
+      await updateVariant.mutateAsync({
+        productId,
+        variantId: combo.variantId,
+        patch: { active: !combo.active },
+      })
+      toast.success(combo.active ? comboDisplayName(combo) + " archived." : comboDisplayName(combo) + " back live.")
+      qc.invalidateQueries({ queryKey: ["vendor", "products", productId] })
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to update combination.")
+    } finally {
+      setSavingId(null)
+    }
+  }
+
+  const handleAddValue = async () => {
+    if (!newValue.trim()) {
+      toast.error("Enter a value first (e.g. XL).")
+      return
+    }
+    try {
+      if (addingOption) {
+        if (!newOption.trim()) {
+          toast.error("Name the new option type (e.g. Colour).")
+          return
+        }
+        if (!existingValue.trim()) {
+          toast.error("Label what your current listing is (e.g. Red).")
+          return
+        }
+        await addOption.mutateAsync({
+          productId,
+          input: { optionName: newOption.trim(), value: newValue.trim(), existingValue: existingValue.trim() },
+        })
+      } else {
+        const target = options.length === 1 ? options[0] : undefined
+        if (!target) {
+          toast.error("Pick which option this value belongs to.")
+          return
+        }
+        await addOption.mutateAsync({ productId, input: { optionId: target.id, value: newValue.trim() } })
+      }
+      toast.success("Combination added - new stock starts at 0, review may re-open.")
+      setNewValue("")
+      setNewOption("")
+      setExistingValue("")
+      setAddingOption(false)
+      qc.invalidateQueries({ queryKey: ["vendor", "products", productId] })
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to add combination.")
+    }
+  }
+
+  return (
+    <Card className="p-6 space-y-5 border border-border/80 shadow-xs rounded-2xl bg-card">
+      <div className="flex items-center justify-between border-b border-border/60 pb-3">
+        <div>
+          <h2 className="font-bold text-base text-foreground flex items-center gap-2">
+            <Tag className="h-5 w-5 text-primary" /> Combinations
+            <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-muted text-muted-foreground tabular-nums">
+              {combos.length}
+            </span>
+          </h2>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            {options.length === 0
+              ? "Single listing. Add an option type to sell variations."
+              : "Price & stock per combination - edits stay live, no re-review."}
+          </p>
+        </div>
+      </div>
+
+      {combos.length > 0 && (
+        <ul className="space-y-2">
+          {combos.map((combo) => {
+            const e = editOf(combo)
+            const dirty = isDirty(combo)
+            return (
+              <li
+                key={combo.variantId}
+                className={"rounded-2xl border p-4 space-y-3 " + (combo.active ? "border-border/60 bg-muted/20" : "border-dashed border-border bg-muted/10 opacity-80")}
+              >
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-bold text-sm">{comboDisplayName(combo)}</span>
+                  {combo.sku && (
+                    <span className="text-[11px] font-mono text-muted-foreground">{combo.sku}</span>
+                  )}
+                  <span
+                    className={"ml-auto text-[10px] font-bold px-2 py-0.5 rounded-full " + (combo.active ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300" : "bg-muted text-muted-foreground")}
+                  >
+                    {combo.active ? (combo.onHand > 0 ? "Live" : "Live - Unstocked") : "Archived"}
+                  </span>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-[1fr_1fr_auto] items-end">
+                  <div className="space-y-1.5">
+                    <Label htmlFor={"combo-price-" + combo.variantId} className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                      Price (GHS)
+                    </Label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-muted-foreground">
+                        GHc
+                      </span>
+                      <Input
+                        id={"combo-price-" + combo.variantId}
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        className="pl-11 h-10 text-sm font-bold bg-background rounded-xl"
+                        value={e.price}
+                        onChange={(ev) => setEdit(combo.variantId, { price: ev.target.value })}
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor={"combo-stock-" + combo.variantId} className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                      Stock
+                    </Label>
+                    <Input
+                      id={"combo-stock-" + combo.variantId}
+                      type="number"
+                      step="1"
+                      min="0"
+                      className="h-10 text-sm font-bold bg-background rounded-xl tabular-nums"
+                      value={e.stock}
+                      onChange={(ev) => setEdit(combo.variantId, { stock: ev.target.value })}
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      disabled={!dirty || savingId === combo.variantId}
+                      isLoading={savingId === combo.variantId}
+                      onClick={() => { void handleSaveCombo(combo) }}
+                      className="rounded-xl font-bold"
+                    >
+                      Save
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={savingId === combo.variantId}
+                      onClick={() => { void handleToggleActive(combo) }}
+                      className="rounded-xl"
+                    >
+                      {combo.active ? "Archive" : "Restore"}
+                    </Button>
+                  </div>
+                </div>
+              </li>
+            )
+          })}
+        </ul>
+      )}
+
+      <div className="rounded-2xl border border-border/60 bg-muted/20 p-4 space-y-3">
+        <h3 className="font-bold text-sm">Add a combination</h3>
+        {options.length > 0 && !addingOption ? (
+          <div className="flex flex-col sm:flex-row gap-2">
+            <Input
+              value={newValue}
+              maxLength={41}
+              placeholder={"New value (e.g. XL)"}
+              onChange={(e) => setNewValue(e.target.value)}
+              className="h-10 bg-background rounded-xl"
+              aria-label="New option value"
+            />
+            <div className="flex gap-2">
+              <Button size="sm" onClick={() => { void handleAddValue() }} isLoading={addOption.isPending} className="rounded-xl font-bold whitespace-nowrap">
+                Add value
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => setAddingOption(true)} className="rounded-xl whitespace-nowrap">
+                + Option type
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="grid gap-2 sm:grid-cols-2">
+            <Input
+              value={newOption}
+              maxLength={41}
+              placeholder="Option name (e.g. Colour)"
+              onChange={(e) => setNewOption(e.target.value)}
+              className="h-10 bg-background rounded-xl"
+              aria-label="New option name"
+            />
+            <Input
+              value={newValue}
+              maxLength={41}
+              placeholder="New value (e.g. Navy)"
+              onChange={(e) => setNewValue(e.target.value)}
+              className="h-10 bg-background rounded-xl"
+              aria-label="New option value"
+            />
+            <Input
+              value={existingValue}
+              maxLength={41}
+              placeholder="Current listing is... (e.g. Red)"
+              onChange={(e) => setExistingValue(e.target.value)}
+              className="h-10 bg-background rounded-xl sm:col-span-2"
+              aria-label="Current listing value"
+            />
+            <div className="flex gap-2 sm:col-span-2">
+              <Button size="sm" onClick={() => { void handleAddValue() }} isLoading={addOption.isPending} className="rounded-xl font-bold">
+                Add option type
+              </Button>
+              {options.length > 0 && (
+                <Button size="sm" variant="outline" onClick={() => { setAddingOption(false); setNewOption(""); setExistingValue(""); setNewValue("") }} className="rounded-xl">
+                  Cancel
+                </Button>
+              )}
+            </div>
+          </div>
+        )}
+        <p className="text-[11px] text-muted-foreground font-medium">
+          New combinations start unstocked (0) so nothing oversells. Structural changes send published listings back for review.
+        </p>
+      </div>
+    </Card>
+  )
+}
+

@@ -63,13 +63,20 @@
 
 ## Phases
 
-- **V1 (API):** tables + migration, `variant_options` accepted on
-  `POST /vendor/products`, `PATCH` per-combo price/stock/active,
-  `GET` product returns options+variants+offers. Tests: matrix
-  generation, cap enforcement, archive semantics, 409 on oversize.
-- **V2 (vendor UI):** quick-sell step-2 grid wired to V1 (fixing the
-  silent-drop bug), Variants section on `products/$id`.
-- **V3 (storefront):** PDP selector + live offer resolution.
+- **V1 (API) — SHIPPED + proven live.** Tables (`product_options`,
+  `product_option_values`, `variant_option_values`, migration 0016),
+  `variant_options`/`variant_entries` accepted on `POST
+  /vendor/products`, `PATCH .../variants/:variantId`
+  (price/stock/active, never re-reviews),
+  `POST .../options` (add value / first option type, re-reviews on
+  structural change), full `options`+`variants` in product DTOs,
+  `quickList` now actually sends the matrix (silent-drop fixed).
+  Verified: 9 API tests + live create→patch→add-value cycle.
+- **V2 (vendor UI) — mostly shipped.** Edit-product page has the
+  Combinations section (per-combo edit/archive/add); quick-sell
+  already collects and now sends entries. Remaining polish: combo
+  grid preview inside quick-sell step 2.
+- **V3 (storefront) — open.** PDP selector + live offer resolution.
 
 ## Addendum — gaps closed on second pass
 

@@ -16,15 +16,22 @@ import {
   ArrowSquareOut,
   Tag,
   X,
+  Sparkle,
+  ArrowRight,
+  Cube,
 } from "@phosphor-icons/react"
 import { PageShell } from "../../components/page-shell"
-import { PageHeader } from "../../components/page-header"
 
 export const Route = createFileRoute('/products/')({
   component: ProductsPage,
 })
 
 const PAGE_SIZE = 20
+
+function storefrontBase(): string {
+  const raw = (import.meta.env.VITE_ALKEMART_STOREFRONT_URL as string | undefined)?.trim()
+  return (raw ? raw : "http://127.0.0.1:5175").replace(/\/$/, "")
+}
 
 function ProductsPage() {
   const qc = useQueryClient()
@@ -45,14 +52,20 @@ function ProductsPage() {
 
   const allProducts = data?.products ?? []
 
-  // Stats computation
+  // High-value merchant catalog computations
   const stats = useMemo(() => {
     const total = allProducts.length
     const published = allProducts.filter((p) => p.status === "published").length
     const inReview = allProducts.filter((p) => p.status === "proposed").length
     const drafts = allProducts.filter((p) => p.status === "draft" || !p.status).length
     const rejected = allProducts.filter((p) => p.status === "rejected").length
-    return { total, published, inReview, drafts, rejected }
+    const totalStock = allProducts.reduce((acc, p) => acc + (typeof p.metadata?.onHand === "number" ? p.metadata.onHand : 0), 0)
+    const totalValuation = allProducts.reduce((acc, p) => {
+      const price = p.variants?.[0]?.prices?.[0]?.amount ?? 0
+      const stock = typeof p.metadata?.onHand === "number" ? (p.metadata.onHand as number) : 0
+      return acc + (price * stock)
+    }, 0)
+    return { total, published, inReview, drafts, rejected, totalStock, totalValuation }
   }, [allProducts])
 
   // Filter products by search and status
@@ -75,15 +88,15 @@ function ProductsPage() {
     switch (status) {
       case "published":
         return (
-          <Badge variant="success" className="gap-1 shadow-2xs text-[11px] font-semibold py-0.5 px-2">
-            <CheckCircle className="h-3 w-3" /> Published
-          </Badge>
+          <span className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full bg-emerald-600 text-white shadow-xs">
+            <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" /> Live
+          </span>
         )
       case "proposed":
         return (
-          <Badge variant="warning" className="gap-1 shadow-2xs text-[11px] font-semibold py-0.5 px-2">
-            <Clock className="h-3 w-3" /> In Review
-          </Badge>
+          <span className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full bg-amber-500 text-white shadow-xs">
+            <Clock className="h-3 w-3" weight="bold" /> In Review
+          </span>
         )
       case "rejected": {
         const meta = product?.metadata as Record<string, unknown> | undefined
@@ -91,19 +104,23 @@ function ProductsPage() {
         const mod = alk?.moderation as Record<string, unknown> | undefined
         const reason = mod?.reason as string | undefined
         return (
-          <Badge variant="destructive" className="gap-1 text-[11px] font-semibold py-0.5 px-2 group relative" title={reason || "Rejected"}>
-            <WarningCircle className="h-3 w-3" />
+          <span className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full bg-rose-600 text-white shadow-xs group relative cursor-help" title={reason || "Rejected"}>
+            <WarningCircle className="h-3 w-3" weight="bold" />
             Rejected
             {reason && (
               <span className="absolute bottom-full right-0 mb-2 hidden group-hover:block bg-popover text-popover-foreground text-xs rounded-lg px-3 py-2 shadow-lg whitespace-nowrap z-10 max-w-64 overflow-hidden text-ellipsis border">
                 {reason}
               </span>
             )}
-          </Badge>
+          </span>
         )
       }
       default:
-        return <Badge variant="secondary" className="gap-1 text-[11px] font-semibold py-0.5 px-2">Draft</Badge>
+        return (
+          <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-stone-100 text-stone-700 dark:bg-stone-800 dark:text-stone-300 border border-border/60">
+            Draft
+          </span>
+        )
     }
   }
 
@@ -114,140 +131,152 @@ function ProductsPage() {
 
   return (
     <PageShell>
-      {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-1">
-        <PageHeader title="Products" description="Manage your inventory, prices, and marketplace listings." />
+      {/* ── Bespoke Page Header: High-Impact Merchant Overview ── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-border/60">
+        <div>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-black tracking-tight text-foreground">Catalog &amp; Inventory</h1>
+            <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-muted text-primary-foreground border border-primary/25">
+              {stats.total} {stats.total === 1 ? "Listing" : "Listings"}
+            </span>
+          </div>
+          <p className="text-xs text-muted-foreground mt-1 flex flex-wrap items-center gap-x-2">
+            <span>{stats.totalStock.toLocaleString()} total units in stock</span>
+            {stats.totalValuation > 0 && (
+              <>
+                <span className="text-border">•</span>
+                <span className="font-semibold text-foreground/80">
+                  Valuation: GH₵ {stats.totalValuation.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </span>
+              </>
+            )}
+          </p>
+        </div>
+
         <Link to="/quick-sell">
-          <Button size="lg" className="w-full sm:w-auto gap-2 shadow-sm font-bold">
-            <PlusCircle className="h-5 w-5" weight="bold" />
+          <Button size="default" className="w-full sm:w-auto gap-2 shadow-sm font-bold px-5 rounded-xl">
+            <PlusCircle className="h-4 w-4" weight="bold" />
             Add Product
           </Button>
         </Link>
       </div>
 
-      {/* Summary Metrics Bar */}
+      {/* ── Proper, Large Interactive Status Tabs ── */}
       {!isLoading && !isError && allProducts.length > 0 && (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
-          <Card className="p-4 shadow-2xs flex items-center gap-3.5 rounded-2xl border bg-card">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary shrink-0">
-              <Package className="h-5 w-5" weight="bold" />
-            </div>
-            <div>
-              <p className="text-xs font-semibold text-muted-foreground">Total Listings</p>
-              <p className="text-2xl font-black text-foreground tracking-tight">{stats.total}</p>
-            </div>
-          </Card>
-
-          <Card className="p-4 shadow-2xs flex items-center gap-3.5 rounded-2xl border bg-card">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600 shrink-0">
-              <CheckCircle className="h-5 w-5" weight="bold" />
-            </div>
-            <div>
-              <p className="text-xs font-semibold text-muted-foreground">Published</p>
-              <p className="text-2xl font-black text-foreground tracking-tight">{stats.published}</p>
-            </div>
-          </Card>
-
-          <Card className="p-4 shadow-2xs flex items-center gap-3.5 rounded-2xl border bg-card">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-amber-500/10 text-amber-600 shrink-0">
-              <Clock className="h-5 w-5" weight="bold" />
-            </div>
-            <div>
-              <p className="text-xs font-semibold text-muted-foreground">In Review</p>
-              <p className="text-2xl font-black text-foreground tracking-tight">{stats.inReview}</p>
-            </div>
-          </Card>
-
-          <Card className="p-4 shadow-2xs flex items-center gap-3.5 rounded-2xl border bg-card">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-muted text-muted-foreground shrink-0">
-              <Tag className="h-5 w-5" weight="bold" />
-            </div>
-            <div>
-              <p className="text-xs font-semibold text-muted-foreground">Drafts &amp; Other</p>
-              <p className="text-2xl font-black text-foreground tracking-tight">{stats.drafts + stats.rejected}</p>
-            </div>
-          </Card>
-        </div>
-      )}
-
-      {/* Search & Filter Toolbar */}
-      {!isLoading && !isError && allProducts.length > 0 && (
-        <div className="p-2 bg-card border border-border/80 rounded-2xl shadow-2xs flex flex-col sm:flex-row gap-2.5 items-stretch sm:items-center justify-between">
-          <div className="relative flex-1 max-w-sm">
-            <MagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-            <Input
-              placeholder="Search products by title or ref..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-9 h-9 text-xs bg-muted/20 border-border/60 rounded-xl"
-            />
-            {search && (
-              <button
-                type="button"
-                onClick={() => setSearch("")}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
-            )}
-          </div>
-
-          <div className="flex items-center gap-2">
-            {/* Status Filter Tabs */}
-            <div className="inline-flex rounded-xl border border-border/60 p-1 bg-muted/30 text-xs font-semibold">
-              {[
-                { id: "all", label: "All" },
-                { id: "published", label: `Live (${stats.published})` },
-                { id: "proposed", label: `Review (${stats.inReview})` },
-                { id: "draft", label: `Draft (${stats.drafts})` },
-              ].map((tab) => (
+        <div className="space-y-4 pt-1">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+            {[
+              { id: "all", label: "All Items", count: stats.total, dot: null },
+              { id: "published", label: "Live on Store", count: stats.published, dot: "bg-emerald-500" },
+              { id: "proposed", label: "In Review", count: stats.inReview, dot: "bg-amber-500" },
+              { id: "draft", label: "Drafts", count: stats.drafts + stats.rejected, dot: "bg-stone-400" },
+            ].map((tab) => {
+              const isSelected = statusFilter === tab.id
+              return (
                 <button
                   key={tab.id}
                   type="button"
                   onClick={() => setStatusFilter(tab.id)}
-                  className={`px-3 py-1 rounded-lg transition-all cursor-pointer ${
-                    statusFilter === tab.id
-                      ? "bg-card text-foreground shadow-2xs font-bold border border-border/60"
-                      : "text-muted-foreground hover:text-foreground"
+                  className={`group relative text-left p-4 rounded-2xl border transition-all duration-200 cursor-pointer flex flex-col justify-between gap-2 ${
+                    isSelected
+                      ? "bg-card border-primary ring-2 ring-primary/20 shadow-sm"
+                      : "bg-card/70 hover:bg-card border-border/80 hover:border-primary/40 hover:shadow-2xs"
                   }`}
                 >
-                  {tab.label}
+                  <div className="flex items-center justify-between gap-2">
+                    <span className={`text-xs font-bold uppercase tracking-wider ${
+                      isSelected ? "text-foreground font-black" : "text-muted-foreground group-hover:text-foreground"
+                    }`}>
+                      {tab.label}
+                    </span>
+                    {tab.dot ? (
+                      <span className="flex items-center gap-1">
+                        <span className={`h-2.5 w-2.5 rounded-full ${tab.dot} ${tab.id === "published" ? "animate-pulse" : ""}`} />
+                      </span>
+                    ) : (
+                      <Package className={`h-4 w-4 ${isSelected ? "text-primary" : "text-muted-foreground/50"}`} />
+                    )}
+                  </div>
+
+                  <div className="flex items-baseline justify-between mt-1">
+                    <span className={`text-2xl sm:text-3xl font-black tabular-nums tracking-tight ${
+                      isSelected ? "text-foreground" : "text-foreground/80"
+                    }`}>
+                      {tab.count}
+                    </span>
+                    {isSelected && (
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-primary px-2 py-0.5 rounded-full bg-muted border border-primary/20">
+                        Selected
+                      </span>
+                    )}
+                  </div>
                 </button>
-              ))}
+              )
+            })}
+          </div>
+
+          {/* ── Spacious Horizontal Search & Controls Section ── */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-2 rounded-2xl border border-border/80 bg-card/60 shadow-2xs">
+            <div className="relative flex-1">
+              <MagnifyingGlass className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+              <Input
+                placeholder="Search products..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-10 h-10.5 text-sm bg-background border-border/70 focus:border-primary rounded-xl transition-colors w-full"
+              />
+              {search && (
+                <button
+                  type="button"
+                  onClick={() => setSearch("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-1"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
             </div>
 
-            {/* View Mode Switcher */}
-            <div className="inline-flex rounded-xl border border-border/60 p-1 bg-muted/30">
-              <button
-                type="button"
-                onClick={() => setViewMode("grid")}
-                className={`p-1.5 rounded-lg transition-all cursor-pointer ${
-                  viewMode === "grid"
-                    ? "bg-card text-foreground shadow-2xs font-bold border border-border/60"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-                title="Grid view"
-              >
-                <SquaresFour className="h-4 w-4" weight={viewMode === "grid" ? "bold" : "regular"} />
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewMode("table")}
-                className={`p-1.5 rounded-lg transition-all cursor-pointer ${
-                  viewMode === "table"
-                    ? "bg-card text-foreground shadow-2xs font-bold border border-border/60"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-                title="Table view"
-              >
-                <ListBullets className="h-4 w-4" weight={viewMode === "table" ? "bold" : "regular"} />
-              </button>
+            <div className="flex items-center gap-2 self-end sm:self-center">
+              {search && (
+                <span className="text-xs text-muted-foreground font-medium px-2">
+                  {filteredProducts.length} {filteredProducts.length === 1 ? "result" : "results"}
+                </span>
+              )}
+
+              <div className="inline-flex rounded-xl border border-border/80 p-1 bg-muted/30">
+                <button
+                  type="button"
+                  onClick={() => setViewMode("grid")}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+                    viewMode === "grid"
+                      ? "bg-card text-foreground shadow-xs border border-border/80"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                  title="Grid view"
+                >
+                  <SquaresFour className="h-4 w-4" weight={viewMode === "grid" ? "bold" : "regular"} />
+                  <span>Grid</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewMode("table")}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+                    viewMode === "table"
+                      ? "bg-card text-foreground shadow-xs border border-border/80"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                  title="Table view"
+                >
+                  <ListBullets className="h-4 w-4" weight={viewMode === "table" ? "bold" : "regular"} />
+                  <span>Table</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* Main Content Area */}
+      {/* ── Main Content Area ── */}
       {isError ? (
         <Card className="p-8 text-center border border-destructive/20 shadow-xs rounded-2xl">
           <WarningCircle className="h-10 w-10 mx-auto mb-3 text-destructive" />
@@ -258,14 +287,14 @@ function ProductsPage() {
           </Button>
         </Card>
       ) : isLoading ? (
-        <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,340px))] gap-6">
-          {[1, 2, 3, 4].map((i) => (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[1, 2, 3].map((i) => (
             <Card key={i} className="h-80 animate-pulse bg-muted/40 border-border/60 rounded-2xl" />
           ))}
         </div>
       ) : allProducts.length === 0 ? (
         <Card className="flex flex-col items-center justify-center p-14 text-center border-dashed border-2 shadow-xs bg-muted/10 rounded-2xl">
-          <div className="h-16 w-16 bg-primary/10 text-primary rounded-2xl flex items-center justify-center mb-4 shadow-inner">
+          <div className="h-16 w-16 bg-muted text-primary rounded-2xl flex items-center justify-center mb-4 shadow-inner">
             <Package className="h-8 w-8" weight="bold" />
           </div>
           <h2 className="text-xl font-bold mb-1">No products yet</h2>
@@ -289,86 +318,112 @@ function ProductsPage() {
           </Button>
         </Card>
       ) : viewMode === "grid" ? (
-        /* ── Refined Grid View: Perfectly proportioned cards that never squeeze ── */
-        <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,340px))] gap-6 items-start">
+        /* ── Bespoke Product Cards: Distinctive, High-Density Merchant Aesthetic ── */
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 items-stretch">
           {filteredProducts.map((product) => {
             const price = product.variants?.[0]?.prices?.[0]?.amount ?? 0
             const stock = typeof product.metadata?.onHand === "number" ? (product.metadata.onHand as number) : null
             const categoryName = categoryNameOf(product.categories?.[0]?.id)
+            const storefrontUrl = product.handle ? `${storefrontBase()}/products/${product.handle}` : null
 
             return (
-              <Card
+              <div
                 key={product.id}
-                className="overflow-hidden border border-border/80 hover:border-primary/50 transition-all duration-200 hover:shadow-md flex flex-col group rounded-2xl bg-card"
+                className="group relative flex flex-col rounded-2xl border border-border/80 bg-card overflow-hidden transition-all duration-300 hover:shadow-lg hover:border-primary/50"
               >
-                {/* Image Container with overlay badges */}
-                <div className="aspect-[4/3] bg-muted/50 relative overflow-hidden">
+                {/* Media Showcase Frame with Status & Storefront Link */}
+                <div className="aspect-[16/10] bg-stone-100 dark:bg-stone-900/60 relative overflow-hidden">
                   {product.thumbnail ? (
                     <img
                       src={product.thumbnail}
                       alt={product.title || "Product"}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     />
                   ) : (
-                    <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground/40">
+                    <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground/30">
                       <Package className="h-10 w-10 stroke-[1.5]" />
                       <span className="text-[11px] font-semibold mt-1">No Image</span>
                     </div>
                   )}
 
-                  {/* Status Badge */}
-                  <div className="absolute top-2.5 right-2.5">
+                  {/* Status Overlay */}
+                  <div className="absolute top-3 right-3 z-10">
                     {getStatusBadge(product.status || "draft", product)}
                   </div>
+
+                  {/* Live Storefront Link */}
+                  {product.status === "published" && storefrontUrl && (
+                    <a
+                      href={storefrontUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="absolute top-3 left-3 z-10 inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-1 rounded-lg bg-background/90 text-foreground border border-border/60 shadow-2xs backdrop-blur hover:bg-background hover:text-primary transition-colors"
+                      title="View live product listing on storefront"
+                    >
+                      <ArrowSquareOut className="h-3 w-3" />
+                      Storefront
+                    </a>
+                  )}
+
+                  {/* Floating Category Pill */}
+                  {categoryName && (
+                    <span className="absolute bottom-3 left-3 text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-md bg-background/90 text-foreground border border-border/60 shadow-2xs backdrop-blur">
+                      {categoryName}
+                    </span>
+                  )}
                 </div>
 
-                {/* Details Section */}
+                {/* Card Body */}
                 <div className="p-4 flex-1 flex flex-col justify-between gap-3">
-                  <div className="space-y-1">
-                    {categoryName && (
-                      <span className="text-[11px] font-bold text-primary uppercase tracking-wider block truncate">
-                        {categoryName}
-                      </span>
-                    )}
-                    <h3 className="font-bold text-base text-foreground line-clamp-1 group-hover:text-primary transition-colors" title={product.title || "Untitled"}>
+                  <div>
+                    <h3 className="font-bold text-base text-foreground line-clamp-1 group-hover:text-primary transition-colors tracking-tight" title={product.title || "Untitled"}>
                       {product.title || "Untitled"}
                     </h3>
-                    <p className="text-xs text-muted-foreground font-mono">
-                      Ref: {product.handle?.slice(0, 10) || product.id.slice(0, 8)}
+                    <p className="text-[11px] text-muted-foreground font-mono mt-0.5">
+                      Ref: {product.handle || product.id.slice(0, 10)}
                     </p>
                   </div>
 
-                  {/* Price & Stock info: Always clean, non-wrapping horizontal layout */}
-                  <div className="flex items-end justify-between pt-2.5 border-t border-border/60">
+                  {/* Price & Stock Commercial Specs */}
+                  <div className="flex items-end justify-between pt-3 border-t border-border/60">
                     <div>
-                      <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Price</p>
-                      <p className="text-lg font-black text-foreground whitespace-nowrap tabular-nums">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Selling Price</p>
+                      <p className="text-xl font-black text-foreground whitespace-nowrap tabular-nums">
                         {price > 0 ? `GH₵ ${price.toFixed(2)}` : "—"}
                       </p>
                     </div>
 
                     <div className="text-right">
-                      <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Stock</p>
-                      <span className={`inline-flex items-center text-xs font-bold whitespace-nowrap ${stock !== null && stock > 0 ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"}`}>
-                        {stock !== null ? (stock > 0 ? `${stock} in stock` : "Out of stock") : "Standard"}
-                      </span>
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Inventory</p>
+                      {stock !== null ? (
+                        <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-0.5 rounded-full ${
+                          stock > 0
+                            ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800"
+                            : "bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 border border-rose-200 dark:border-rose-800"
+                        }`}>
+                          <span className={`h-1.5 w-1.5 rounded-full ${stock > 0 ? "bg-emerald-500" : "bg-rose-500"}`} />
+                          {stock > 0 ? `${stock} in stock` : "Out of stock"}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-muted-foreground font-medium">Standard</span>
+                      )}
                     </div>
                   </div>
                 </div>
 
-                {/* Footer Actions */}
-                <div className="p-3 bg-muted/20 border-t border-border/60 flex items-center gap-2">
+                {/* Card Action Footer */}
+                <div className="p-3 bg-muted/15 border-t border-border/60 flex items-center gap-2">
                   <Link to="/products/$id" params={{ id: product.id }} className="flex-1">
-                    <Button className="w-full gap-1.5 h-8 text-xs font-semibold" size="sm" variant="outline">
-                      <PencilSimple className="h-3.5 w-3.5" />
-                      View &amp; Edit
+                    <Button className="w-full gap-1.5 h-8.5 text-xs font-bold rounded-xl" size="sm" variant="outline">
+                      <PencilSimple className="h-3.5 w-3.5 text-primary" />
+                      Manage Listing
                     </Button>
                   </Link>
 
                   {product.status === "draft" && (
                     <Button
                       size="sm"
-                      className="h-8 text-xs font-semibold gap-1"
+                      className="h-8.5 text-xs font-semibold gap-1 rounded-xl"
                       onClick={() => handlePropose(product.id)}
                       isLoading={propose.isPending && propose.variables === product.id}
                     >
@@ -376,12 +431,31 @@ function ProductsPage() {
                     </Button>
                   )}
                 </div>
-              </Card>
+              </div>
             )
           })}
+
+          {/* Quick-Add Companion Card when catalog has few items to balance layout */}
+          {filteredProducts.length <= 2 && statusFilter === "all" && search === "" && (
+            <Link
+              to="/quick-sell"
+              className="group relative flex flex-col items-center justify-center p-8 rounded-2xl border-2 border-dashed border-border/80 hover:border-primary bg-muted/10 hover:bg-muted/20 transition-all min-h-[320px] text-center"
+            >
+              <div className="h-12 w-12 rounded-2xl bg-muted text-primary flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                <PlusCircle className="h-6 w-6" weight="bold" />
+              </div>
+              <h4 className="font-bold text-sm text-foreground mb-1">Add Another Product</h4>
+              <p className="text-xs text-muted-foreground max-w-xs mb-4">
+                Expand your catalog with more variants, photography, and inventory to drive marketplace sales.
+              </p>
+              <span className="inline-flex items-center gap-1.5 text-xs font-bold text-primary group-hover:underline">
+                Create Listing <ArrowRight className="h-3.5 w-3.5" />
+              </span>
+            </Link>
+          )}
         </div>
       ) : (
-        /* ── Table View ── */
+        /* ── Refined Table View ── */
         <Card className="overflow-hidden shadow-2xs rounded-2xl border">
           <Table>
             <TableHeader>
@@ -400,11 +474,12 @@ function ProductsPage() {
                 const price = product.variants?.[0]?.prices?.[0]?.amount ?? 0
                 const stock = typeof product.metadata?.onHand === "number" ? (product.metadata.onHand as number) : null
                 const categoryName = categoryNameOf(product.categories?.[0]?.id)
+                const storefrontUrl = product.handle ? `${storefrontBase()}/products/${product.handle}` : null
 
                 return (
                   <TableRow key={product.id} className="hover:bg-muted/20">
                     <TableCell>
-                      <div className="h-10 w-10 rounded-lg overflow-hidden bg-muted/60 border border-border/60 flex items-center justify-center">
+                      <div className="h-11 w-11 rounded-xl overflow-hidden bg-muted/60 border border-border/60 flex items-center justify-center">
                         {product.thumbnail ? (
                           <img src={product.thumbnail} alt="" className="h-full w-full object-cover" />
                         ) : (
@@ -417,7 +492,7 @@ function ProductsPage() {
                         {product.title || "Untitled"}
                       </Link>
                       <span className="text-xs text-muted-foreground font-mono">
-                        {product.handle ? `Ref: ${product.handle.slice(0, 10)}` : `ID: ${product.id.slice(0, 8)}`}
+                        {product.handle ? `Ref: ${product.handle.slice(0, 14)}` : `ID: ${product.id.slice(0, 8)}`}
                       </span>
                     </TableCell>
                     <TableCell>
@@ -430,7 +505,9 @@ function ProductsPage() {
                     </TableCell>
                     <TableCell className="text-center">
                       {stock !== null ? (
-                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-md ${stock > 0 ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive"}`}>
+                        <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full ${
+                          stock > 0 ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300" : "bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300"
+                        }`}>
                           {stock > 0 ? `${stock} left` : "Out"}
                         </span>
                       ) : (
@@ -442,6 +519,13 @@ function ProductsPage() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-2">
+                        {product.status === "published" && storefrontUrl && (
+                          <a href={storefrontUrl} target="_blank" rel="noreferrer">
+                            <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-muted-foreground hover:text-primary" title="View live on storefront">
+                              <ArrowSquareOut className="h-4 w-4" />
+                            </Button>
+                          </a>
+                        )}
                         <Link to="/products/$id" params={{ id: product.id }}>
                           <Button size="sm" variant="outline" className="h-8 px-2.5 text-xs font-semibold gap-1">
                             <PencilSimple className="h-3.5 w-3.5" /> Edit

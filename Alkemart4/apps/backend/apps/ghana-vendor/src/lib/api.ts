@@ -305,6 +305,9 @@ export type Product = {
   variants?: ProductVariant[]
   created_at?: string | null
   updated_at?: string | null
+  /** All combinations (V1 matrix); empty/undefined for legacy products. */
+  combos?: ProductCombo[]
+  productOptions?: { id: string; name: string; values: { id: string; value: string }[] }[]
 }
 
 export type ProductVariant = {
@@ -507,6 +510,23 @@ type WorkersProductItem = {
     currency?: string
     active?: boolean
   }
+  options?: { id: string; name: string; values: { id: string; value: string }[] }[]
+  variants?: {
+    variant: { id: string; sku: string | null; title: string | null }
+    offer: { id: string; pricePesewas: string; onHand: number; active: boolean }
+    options: Record<string, string>
+  }[]
+}
+
+export type ProductCombo = {
+  variantId: string
+  offerId: string
+  sku: string | null
+  title: string | null
+  options: Record<string, string>
+  priceGhs: number
+  onHand: number
+  active: boolean
 }
 
 type WorkersOrderItem = {
@@ -545,6 +565,17 @@ function mapWorkersProduct(item: WorkersProductItem): Product {
         ],
       },
     ],
+    combos: (item.variants ?? []).map((c) => ({
+      variantId: c.variant.id,
+      offerId: c.offer.id,
+      sku: c.variant.sku,
+      title: c.variant.title,
+      options: c.options,
+      priceGhs: Number(c.offer.pricePesewas) / 100,
+      onHand: Number(c.offer.onHand),
+      active: c.offer.active,
+    })),
+    productOptions: item.options ?? [],
     metadata: {
       onHand: item.offer.onHand,
       offerId: item.offer.id,
@@ -872,6 +903,22 @@ export const products = {
   /**
    * Submit for admin review — POST /vendor/products/:id/propose.
    */
+  /**
+   * PATCH /vendor/products/:id/variants/:variantId — per-combination
+   * price/stock/visibility. Never triggers re-review.
+   */
+  updateVariant: (productId: string, variantId: string, patch: { pricePesewas?: string; onHand?: number; active?: boolean }) => {
+    return patchJson<{ product: unknown }>(`/vendor/products/${productId}/variants/${variantId}`, patch)
+  },
+
+  /**
+   * POST /vendor/products/:id/options — add a value (or a first option
+   * type with existingValue). Structural changes re-review published items.
+   */
+  addOptionValue: (productId: string, input: { optionId?: string; optionName?: string; value: string; existingValue?: string }) => {
+    return post<{ product: unknown }>(`/vendor/products/${productId}/options`, input)
+  },
+
   propose: async (id: string) => {
     const updated = await post<WorkersProductItem>(`/vendor/products/${id}/propose`)
     return { success: true, product_id: updated.product.id }
@@ -909,6 +956,20 @@ export const products = {
       pricePesewas,
       onHand: input.quantity ?? 1,
       ...(input.image_url ? { imageUrl: input.image_url } : {}),
+      // Variations used to be assembled client-side and silently dropped by
+      // the API. The server now accepts the full matrix (V1).
+      ...(input.variant_options?.length
+        ? {
+          variant_options: input.variant_options,
+          variant_entries: (input.variant_entries ?? []).map((e) => ({
+            options: e.options,
+            ...(e.price_ghs !== undefined
+              ? { pricePesewas: String(Math.round(Number(e.price_ghs) * 100)) }
+              : {}),
+            ...(e.quantity !== undefined ? { quantity: e.quantity } : {}),
+          })),
+        }
+        : {}),
     })
     return {
       product_id: created.product.id,

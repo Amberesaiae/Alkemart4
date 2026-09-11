@@ -64,6 +64,11 @@ export const adminMigrate = new Hono<AppEnv>()
     await db.execute(sql`CREATE TABLE IF NOT EXISTS notifications (id text PRIMARY KEY, key text NOT NULL UNIQUE, channel text NOT NULL DEFAULT 'sms', recipient text NOT NULL, body text NOT NULL, status notification_status NOT NULL DEFAULT 'pending', attempts integer NOT NULL DEFAULT 0, last_error text, created_at timestamptz NOT NULL DEFAULT now(), sent_at timestamptz)`)
     await db.execute(sql`DO $$ BEGIN CREATE TYPE review_status AS ENUM('pending', 'published', 'hidden'); EXCEPTION WHEN duplicate_object THEN NULL; END $$`)
     await db.execute(sql`CREATE TABLE IF NOT EXISTS reviews (id text PRIMARY KEY, order_id text NOT NULL UNIQUE REFERENCES orders(id), product_id text NOT NULL REFERENCES products(id), seller_id text NOT NULL REFERENCES sellers(id), buyer_email text NOT NULL, rating integer NOT NULL, title text, body text NOT NULL, status review_status NOT NULL DEFAULT 'pending', vendor_response text, responded_at timestamptz, created_at timestamptz NOT NULL DEFAULT now())`)
+    await db.execute(sql`CREATE TABLE IF NOT EXISTS product_options (id text PRIMARY KEY, product_id text NOT NULL REFERENCES products(id), name text NOT NULL, position integer NOT NULL DEFAULT 0, created_at timestamptz NOT NULL DEFAULT now())`)
+    await db.execute(sql`CREATE TABLE IF NOT EXISTS product_option_values (id text PRIMARY KEY, option_id text NOT NULL REFERENCES product_options(id), value text NOT NULL, position integer NOT NULL DEFAULT 0)`)
+    await db.execute(sql`CREATE TABLE IF NOT EXISTS variant_option_values (id text PRIMARY KEY, variant_id text NOT NULL REFERENCES product_variants(id), value_id text NOT NULL REFERENCES product_option_values(id))`)
+    await db.execute(sql`CREATE UNIQUE INDEX IF NOT EXISTS variant_option_values_variant_value_uidx ON variant_option_values (variant_id, value_id)`)
+    await db.execute(sql`CREATE UNIQUE INDEX IF NOT EXISTS product_option_values_option_value_uidx ON product_option_values (option_id, value)`)
     return c.json({
       ok: true,
       applied: [
@@ -85,6 +90,7 @@ export const adminMigrate = new Hono<AppEnv>()
         "shop_featured",
         "notifications",
         "reviews",
+        "product_options",
       ],
       note: "Use packages/db drizzle migrate when direct DATABASE_URL is available",
     })
