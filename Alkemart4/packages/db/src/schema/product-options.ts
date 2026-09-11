@@ -20,6 +20,8 @@ export const productOptionValues = pgTable("product_option_values", {
     .references(() => productOptions.id),
   value: text("value").notNull(),
   position: integer("position").notNull().default(0),
+  /** Swatch photo for visual options (V1.5). One image per value. */
+  imageUrl: text("image_url"),
 })
 
 /** Combo membership: which values make up a variant. */

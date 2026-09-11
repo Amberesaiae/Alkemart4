@@ -175,6 +175,18 @@ export const vendorProducts = new Hono<AppEnv>()
     const appeals = await c.get("appeals").listBySeller(sellerId)
     return c.json({ appeals })
   })
+  .delete("/:id", async (c) => {
+    const sellerId = sellerIdOrThrow(c)
+    const productId = c.req.param("id")
+    const owned = (await c.get("repo").listVendorProducts(sellerId)).some((p) => p.product.id === productId)
+    if (!owned) throw new HTTPException(404, { message: "product not found" })
+    if (await c.get("checkoutRepo").productHasOrders(productId)) {
+      throw new HTTPException(409, { message: "order history exists - archive combinations instead of deleting" })
+    }
+    const deleted = await c.get("repo").deleteVendorProduct(sellerId, productId)
+    if (!deleted) throw new HTTPException(404, { message: "product not found" })
+    return c.json({ deleted: true })
+  })
   .patch("/:id/variants/:variantId", async (c) => {
     const parsed = VariantPatchBody.safeParse(await readJsonBody(c))
     if (!parsed.success) throw new HTTPException(400, { message: "invalid body" })
@@ -215,4 +227,17 @@ export const vendorProducts = new Hono<AppEnv>()
       if (err instanceof HTTPException) throw err
       mapCatalogWriteError(err)
     }
+  })
+  .patch("/:id/values/:valueId", async (c) => {
+    const parsed = z.object({ imageUrl: ImageUrl.nullable() }).safeParse(await readJsonBody(c))
+    if (!parsed.success) throw new HTTPException(400, { message: "invalid body" })
+    const sellerId = sellerIdOrThrow(c)
+    const updated = await c.get("repo").setOptionValueImage(
+      sellerId,
+      c.req.param("id"),
+      c.req.param("valueId"),
+      parsed.data.imageUrl,
+    )
+    if (!updated) throw new HTTPException(404, { message: "product or value not found" })
+    return c.json(updated)
   })

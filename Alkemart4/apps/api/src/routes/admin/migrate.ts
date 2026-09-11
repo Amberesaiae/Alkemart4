@@ -69,6 +69,8 @@ export const adminMigrate = new Hono<AppEnv>()
     await db.execute(sql`CREATE TABLE IF NOT EXISTS variant_option_values (id text PRIMARY KEY, variant_id text NOT NULL REFERENCES product_variants(id), value_id text NOT NULL REFERENCES product_option_values(id))`)
     await db.execute(sql`CREATE UNIQUE INDEX IF NOT EXISTS variant_option_values_variant_value_uidx ON variant_option_values (variant_id, value_id)`)
     await db.execute(sql`CREATE UNIQUE INDEX IF NOT EXISTS product_option_values_option_value_uidx ON product_option_values (option_id, value)`)
+    await db.execute(sql`ALTER TABLE product_option_values ADD COLUMN IF NOT EXISTS image_url text`)
+    await db.execute(sql`ALTER TABLE product_option_values ADD COLUMN IF NOT EXISTS image_url text`)
     return c.json({
       ok: true,
       applied: [
@@ -91,6 +93,7 @@ export const adminMigrate = new Hono<AppEnv>()
         "notifications",
         "reviews",
         "product_options",
+        "product_option_values.image_url",
       ],
       note: "Use packages/db drizzle migrate when direct DATABASE_URL is available",
     })

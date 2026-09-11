@@ -120,6 +120,13 @@
       "when": 1788800000009,
       "tag": "0016_product_options",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1788800000010,
+      "tag": "0017_option_value_images",
+      "breakpoints": true
     }
   ]
 }

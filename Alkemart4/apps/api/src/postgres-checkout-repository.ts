@@ -862,6 +862,15 @@ export class PostgresCheckoutRepository implements CheckoutRepository {
       .where(eq(notifications.id, id))
   }
 
+  async productHasOrders(productId: string) {
+    const rows = await this.db
+      .select({ id: orderItems.id })
+      .from(orderItems)
+      .where(eq(orderItems.productId, productId))
+      .limit(1)
+    return rows.length > 0
+  }
+
   private toReviewRow(r: typeof reviews.$inferSelect) {
     return {
       id: r.id,

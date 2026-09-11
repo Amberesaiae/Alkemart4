@@ -1,11 +1,15 @@
 import {
   categories,
+  moderationAppeals,
   offers,
   productOptions,
   productOptionValues,
   products,
   productVariants,
+  reviews,
   sellers,
+  shopFeatured,
+  shopViews,
   variantOptionValues,
 } from "@alkemart/db"
 import {
@@ -24,7 +28,7 @@ import {
   type ProductDetailDto,
   type ProductStatus,
 } from "@alkemart/domain"
-import { and, eq } from "drizzle-orm"
+import { and, eq, inArray } from "drizzle-orm"
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js"
 import { flagCatalogProduct, flaggingContext, type ProductFlag } from "./moderation-flags"
 import {
@@ -90,7 +94,7 @@ export type VendorOfferDto = {
 export type ProductOptionDto = {
   id: string
   name: string
-  values: { id: string; value: string }[]
+  values: { id: string; value: string; imageUrl: string | null }[]
 }
 
 export type ProductComboDto = {
@@ -224,7 +228,10 @@ function invalidateSnapshot(...dbs: PostgresJsDatabase[]): void {
 export interface CatalogRepository {
   listCategories(): Promise<CategoryNode[]>
   listCatalog(query: CatalogListQuery): Promise<CatalogListDto>
-  getProduct(id: string): Promise<ProductDetailDto | null>
+  getProduct(
+    id: string,
+    reviews?: { rating: number; title: string | null; body: string; vendorResponse: string | null; createdAt: Date }[],
+  ): Promise<ProductDetailDto | null>
   getSellerShop(handle: string): Promise<SellerShopDto | null>
   listOpenSellers(): Promise<Array<{ id: string; handle: string; name: string }>>
   createVendorProduct(input: CreateVendorProductInput): Promise<VendorProductDto>
@@ -244,6 +251,22 @@ export interface CatalogRepository {
     sellerId: string,
     productId: string,
     input: { optionId?: string; optionName?: string; value: string; existingValue?: string },
+  ): Promise<VendorProductDto | null>
+  /**
+   * Delete a product with every combo, option, and offer. Callers must
+   * refuse first when order history exists (money trail). Dependent
+   * moderation/review/feature rows go with it.
+   */
+  deleteVendorProduct(sellerId: string, productId: string): Promise<boolean>;
+  /**
+   * Set/clear a swatch photo on one option value. Visual change, so a
+   * published listing goes back for re-review (like product image edits).
+   */
+  setOptionValueImage(
+    sellerId: string,
+    productId: string,
+    valueId: string,
+    imageUrl: string | null,
   ): Promise<VendorProductDto | null>
   listVendorProducts(sellerId: string): Promise<VendorProductDto[]>
   listAdminProducts(status?: ProductStatus): Promise<AdminProductDto[]>
@@ -313,7 +336,7 @@ function assembleExtras(
     values: data.productOptionValues
       .filter((v) => v.optionId === o.id)
       .sort((a, b) => a.position - b.position)
-      .map((v) => ({ id: v.id, value: v.value })),
+      .map((v) => ({ id: v.id, value: v.value, imageUrl: v.imageUrl ?? null })),
   }))
   const valueById = new Map(data.productOptionValues.map((v) => [v.id, v]))
   const optionById = new Map(opts.map((o) => [o.id, o]))
@@ -623,7 +646,11 @@ export function listCatalogFrom(data: CatalogSnapshot, query: CatalogListQuery):
   }
 }
 
-export function getProductFrom(data: CatalogSnapshot, id: string): ProductDetailDto | null {
+export function getProductFrom(
+  data: CatalogSnapshot,
+  id: string,
+  reviews: { rating: number; title: string | null; body: string; vendorResponse: string | null; createdAt: Date }[] = [],
+): ProductDetailDto | null {
   const product = data.products.find((p) => p.id === id)
   if (!product) return null
   const cat = categoryById(data).get(product.primaryCategoryId)
@@ -648,7 +675,10 @@ export function getProductFrom(data: CatalogSnapshot, id: string): ProductDetail
     },
     offersForProduct,
     {
-      optionTypes: extras.options.map((o) => ({ name: o.name, values: o.values.map((v) => v.value) })),
+      optionTypes: extras.options.map((o) => ({
+        name: o.name,
+        values: o.values.map((v) => ({ value: v.value, imageUrl: v.imageUrl })),
+      })),
       combos: data.offers
         .filter((o) => o.productId === product.id)
         .map((o) => ({
@@ -659,6 +689,7 @@ export function getProductFrom(data: CatalogSnapshot, id: string): ProductDetail
           availableQty: o.onHand - o.reserved,
           active: o.active,
         })),
+      reviews,
     },
   )
 }
@@ -716,8 +747,11 @@ export class InMemoryCatalogRepository implements CatalogRepository {
     return listCatalogFrom(this.data, query)
   }
 
-  async getProduct(id: string) {
-    return getProductFrom(this.data, id)
+  async getProduct(
+    id: string,
+    reviews: { rating: number; title: string | null; body: string; vendorResponse: string | null; createdAt: Date }[] = [],
+  ) {
+    return getProductFrom(this.data, id, reviews)
   }
 
   async getSellerShop(handle: string) {
@@ -794,7 +828,7 @@ export class InMemoryCatalogRepository implements CatalogRepository {
       this.data.productOptions.push({ id: optionId, productId, name: spec.name, position: oi })
       spec.values.forEach((value, vi) => {
         const valueId = crypto.randomUUID()
-        this.data.productOptionValues.push({ id: valueId, optionId, value, position: vi })
+        this.data.productOptionValues.push({ id: valueId, optionId, value, position: vi, imageUrl: null })
         valueIds.set(`${optionId}|${value.toLowerCase()}`, valueId)
       })
     })
@@ -955,7 +989,7 @@ export class InMemoryCatalogRepository implements CatalogRepository {
         return toVendorProductDto(product, firstVariant, firstOffer, existing)
       }
       const valueId = crypto.randomUUID()
-      this.data.productOptionValues.push({ id: valueId, optionId: option.id, value, position: option.values.length })
+      this.data.productOptionValues.push({ id: valueId, optionId: option.id, value, position: option.values.length, imageUrl: null })
       createdCombos = this.createCombosForValues(productId, [{ optionId: option.id, valueId }])
     } else {
       const existingValue = input.existingValue !== undefined ? clean(input.existingValue) : ""
@@ -970,7 +1004,7 @@ export class InMemoryCatalogRepository implements CatalogRepository {
       const valueIds = new Map<string, string>()
       distinct.forEach((v, vi) => {
         const valueId = crypto.randomUUID()
-        this.data.productOptionValues.push({ id: valueId, optionId, value: v, position: vi })
+        this.data.productOptionValues.push({ id: valueId, optionId, value: v, position: vi, imageUrl: null })
         valueIds.set(v.toLowerCase(), valueId)
       })
       const labelId = valueIds.get(existingValue.toLowerCase()) as string
@@ -1080,6 +1114,40 @@ export class InMemoryCatalogRepository implements CatalogRepository {
 
   private lookupValue(valueId: string): string {
     return this.data.productOptionValues.find((v) => v.id === valueId)?.value ?? ""
+  }
+
+  async deleteVendorProduct(sellerId: string, productId: string): Promise<boolean> {
+    const product = this.data.products.find((p) => p.id === productId && p.sellerId === sellerId)
+    if (!product) return false
+    const variantIds = new Set(this.data.variants.filter((v) => v.productId === productId).map((v) => v.id))
+    this.data.offers = this.data.offers.filter((o) => o.productId !== productId)
+    this.data.variantOptionValues = this.data.variantOptionValues.filter((l) => !variantIds.has(l.variantId))
+    this.data.variants = this.data.variants.filter((v) => v.productId !== productId)
+    const optionIds = new Set(
+      this.data.productOptions.filter((o) => o.productId === productId).map((o) => o.id),
+    )
+    this.data.productOptionValues = this.data.productOptionValues.filter((v) => !optionIds.has(v.optionId))
+    this.data.productOptions = this.data.productOptions.filter((o) => o.productId !== productId)
+    this.data.products = this.data.products.filter((p) => p.id !== productId)
+    return true
+  }
+
+  async setOptionValueImage(
+    sellerId: string,
+    productId: string,
+    valueId: string,
+    imageUrl: string | null,
+  ): Promise<VendorProductDto | null> {
+    const product = this.data.products.find((p) => p.id === productId && p.sellerId === sellerId)
+    if (!product) return null
+    const row = this.data.productOptionValues.find((v) => v.id === valueId)
+    const option = row ? this.data.productOptions.find((o) => o.id === row.optionId && o.productId === productId) : undefined
+    if (!row || !option) return null
+    if ((row.imageUrl ?? null) !== imageUrl) {
+      row.imageUrl = imageUrl
+      if (product.status === "published") product.status = "proposed"
+    }
+    return this.assembleOwnedProduct(productId)
   }
 
   async proposeVendorProduct(
@@ -1272,6 +1340,7 @@ export class PostgresCatalogRepository implements CatalogRepository {
         optionId: r.optionId,
         value: r.value,
         position: r.position,
+        imageUrl: r.imageUrl ?? null,
       })),
       variantOptionValues: linkRows.map((r) => ({
         variantId: r.variantId,
@@ -1288,8 +1357,11 @@ export class PostgresCatalogRepository implements CatalogRepository {
     return listCatalogFrom(await this.load(), query)
   }
 
-  async getProduct(id: string) {
-    return getProductFrom(await this.load(), id)
+  async getProduct(
+    id: string,
+    reviews: { rating: number; title: string | null; body: string; vendorResponse: string | null; createdAt: Date }[] = [],
+  ) {
+    return getProductFrom(await this.load(), id, reviews)
   }
 
   async getSellerShop(handle: string) {
@@ -1523,6 +1595,71 @@ export class PostgresCatalogRepository implements CatalogRepository {
       }
     })
     invalidateSnapshot(this.wdb, this.db)
+    return this.loadOwnedVendorProduct(sellerId, productId, this.wdb)
+  }
+
+  async deleteVendorProduct(sellerId: string, productId: string): Promise<boolean> {
+    const owned = await this.loadOwnedVendorProduct(sellerId, productId, this.wdb)
+    if (!owned) return false
+    await this.wdb.transaction(async (tx) => {
+      const variantRows = await tx
+        .select({ id: productVariants.id })
+        .from(productVariants)
+        .where(eq(productVariants.productId, productId))
+      const variantIds = variantRows.map((r) => r.id)
+      if (variantIds.length > 0) {
+        await tx.delete(variantOptionValues).where(inArray(variantOptionValues.variantId, variantIds))
+        await tx.delete(offers).where(inArray(offers.variantId, variantIds))
+        await tx.delete(productVariants).where(inArray(productVariants.id, variantIds))
+      }
+      const optionRows = await tx
+        .select({ id: productOptions.id })
+        .from(productOptions)
+        .where(eq(productOptions.productId, productId))
+      const optionIds = optionRows.map((r) => r.id)
+      if (optionIds.length > 0) {
+        await tx.delete(productOptionValues).where(inArray(productOptionValues.optionId, optionIds))
+        await tx.delete(productOptions).where(inArray(productOptions.id, optionIds))
+      }
+      await tx.delete(shopFeatured).where(eq(shopFeatured.productId, productId))
+      await tx.delete(moderationAppeals).where(eq(moderationAppeals.productId, productId))
+      await tx.delete(reviews).where(eq(reviews.productId, productId))
+      await tx.delete(shopViews).where(eq(shopViews.productId, productId))
+      await tx.delete(products).where(eq(products.id, productId))
+    })
+    invalidateSnapshot(this.wdb, this.db)
+    return true
+  }
+
+  async setOptionValueImage(
+    sellerId: string,
+    productId: string,
+    valueId: string,
+    imageUrl: string | null,
+  ): Promise<VendorProductDto | null> {
+    const rows = await this.wdb
+      .select({ valueId: productOptionValues.id, current: productOptionValues.imageUrl, status: products.status })
+      .from(productOptionValues)
+      .innerJoin(productOptions, eq(productOptions.id, productOptionValues.optionId))
+      .innerJoin(products, eq(products.id, productOptions.productId))
+      .where(
+        and(
+          eq(productOptionValues.id, valueId),
+          eq(productOptions.productId, productId),
+          eq(products.id, productId),
+          eq(products.sellerId, sellerId),
+        ),
+      )
+      .limit(1)
+    const row = rows[0]
+    if (!row) return null
+    if ((row.current ?? null) !== imageUrl) {
+      await this.wdb.update(productOptionValues).set({ imageUrl }).where(eq(productOptionValues.id, valueId))
+      if (row.status === "published") {
+        await this.wdb.update(products).set({ status: "proposed" }).where(eq(products.id, productId))
+      }
+      invalidateSnapshot(this.wdb, this.db)
+    }
     return this.loadOwnedVendorProduct(sellerId, productId, this.wdb)
   }
 

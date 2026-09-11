@@ -15,6 +15,7 @@ Checkout charge/initialize is Plan 3 (not documented here).
 import type { PeerOffer } from './peerOffer';
 import type { ProductOptionType } from './productOptionType';
 import type { ProductCombo } from './productCombo';
+import type { ProductReview } from './productReview';
 
 export interface ProductDetail {
   productId: string;
@@ -30,4 +31,13 @@ export interface ProductDetail {
   optionTypes: ProductOptionType[];
   /** Every combination incl. unstocked/archived, for honest strikethrough. */
   combos: ProductCombo[];
+  /**
+   * Mean of published review ratings.
+   * @nullable
+   */
+  ratingAvg: number | null;
+  /** @minimum 0 */
+  ratingCount: number;
+  /** Latest published reviews (max 5). */
+  reviews: ProductReview[];
 }

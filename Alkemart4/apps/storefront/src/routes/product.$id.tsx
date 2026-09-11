@@ -102,7 +102,9 @@ function ProductDetailPage() {
   const comboComplete =
     !hasMatrix ||
     optionTypes.every(
-      (t) => comboSel[t.name] && t.values.some((v) => v.toLowerCase() === comboSel[t.name].toLowerCase()),
+      (t) =>
+        comboSel[t.name] &&
+        t.values.some((vo) => vo.value.toLowerCase() === comboSel[t.name].toLowerCase()),
     )
   const comboBuyable = (c: { active: boolean; availableQty: number; offerId: string }) =>
     c.active && c.availableQty > 0 && peerIdSet.has(c.offerId)
@@ -153,6 +155,18 @@ function ProductDetailPage() {
   const displayAmount = matrixAmount ?? activePeer?.amount ?? p?.amount ?? null
   const displayCurrency = activePeer?.currencyCode ?? p?.currencyCode ?? null
   const displaySeller = activePeer?.seller ?? p?.seller ?? null
+  const galleryImages = useMemo(() => {
+    const base = p?.images ?? []
+    if (!hasMatrix) return base
+    const picked: { url: string }[] = []
+    for (const t of optionTypes) {
+      const sel = comboSel[t.name]
+      const hit = sel ? t.values.find((vo) => vo.value.toLowerCase() === sel.toLowerCase()) : undefined
+      if (hit?.imageUrl && !picked.some((im) => im.url === hit.imageUrl)) picked.push({ url: hit.imageUrl as string })
+    }
+    const rest = base.filter((im) => !picked.some((pk) => pk.url === im.url))
+    return [...picked, ...rest]
+  }, [hasMatrix, optionTypes, comboSel, p?.images])
   const matrixOk = !hasMatrix || (comboComplete && exactBuyable.length > 0)
   const matrixReason = !hasMatrix
     ? null
@@ -319,7 +333,7 @@ function ProductDetailPage() {
         <article className="grid items-start gap-6 lg:grid-cols-12 lg:gap-8">
           <div className="lg:col-span-5">
             <ProductImageGallery
-              images={p.images}
+              images={galleryImages}
               webUrl={p.webUrl}
               thumbUrl={p.thumbUrl}
               title={p.title}
@@ -358,7 +372,8 @@ function ProductDetailPage() {
                       </span>
                     </p>
                     <div role="radiogroup" aria-labelledby={"combo-label-" + t.name} className="flex flex-wrap gap-2">
-                      {t.values.map((v) => {
+                      {t.values.map((vo) => {
+                        const v = vo.value
                         const chosen: Record<string, string> = { ...comboSel, [t.name]: v }
                         const exists = allCombos.some((c) => comboMatches(c, chosen))
                         if (!exists) return null
@@ -385,7 +400,17 @@ function ProductDetailPage() {
                               (!buyable ? " cursor-not-allowed opacity-60 line-through" : "")
                             }
                           >
-                            {v}
+                            {vo.imageUrl ? (
+                              <img
+                                src={vo.imageUrl}
+                                alt=""
+                                aria-hidden="true"
+                                className="h-8 w-8 rounded-lg object-cover"
+                                loading="lazy"
+                              />
+                            ) : (
+                              v
+                            )}
                           </button>
                         )
                       })}
@@ -464,6 +489,35 @@ function ProductDetailPage() {
             unavailableReason={unavailableReason}
           />
         </div>
+      ) : null}
+
+      {p && (p.ratingCount ?? 0) > 0 ? (
+        <section aria-label="Buyer reviews" className="space-y-4 border-t border-border pt-8">
+          <div className="flex items-baseline gap-2">
+            <h2 className="type-section text-foreground">Reviews</h2>
+            <span className="text-sm font-bold text-muted-foreground tabular-nums" aria-label={'Average rating ' + (p.ratingAvg ?? 0) + ' out of 5 from ' + (p.ratingCount ?? 0) + ' reviews'}>
+              {"★".repeat(Math.round(p.ratingAvg ?? 0))}{"☆".repeat(5 - Math.round(p.ratingAvg ?? 0))} {(p.ratingAvg ?? 0).toFixed(1)} ({p.ratingCount})
+            </span>
+          </div>
+          <ul className="space-y-3">
+            {(p.reviews ?? []).map((r, i) => (
+              <li key={i} className="rounded-2xl border border-border bg-card p-4 space-y-1.5">
+                <p className="font-bold text-primary tabular-nums text-sm" aria-label={r.rating + ' out of 5 stars'}>
+                  {"★".repeat(r.rating)}{"☆".repeat(5 - r.rating)}
+                </p>
+                {r.title ? <p className="font-bold text-sm">{r.title}</p> : null}
+                <p className="text-sm">{r.body}</p>
+                {r.vendorResponse ? (
+                  <div className="rounded-xl bg-muted/40 border p-3 text-sm">
+                    <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground mb-1">Seller reply</p>
+                    <p>{r.vendorResponse}</p>
+                  </div>
+                ) : null}
+                <p className="text-xs text-muted-foreground">{new Date(r.createdAt).toLocaleDateString()}</p>
+              </li>
+            ))}
+          </ul>
+        </section>
       ) : null}
 
       {/* Related rail only when it has content (loading skeleton or items) —

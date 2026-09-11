@@ -1414,7 +1414,21 @@ components:
         values:
           type: array
           items:
-            type: string
+            $ref: "#/components/schemas/ProductOptionValue"
+
+    ProductOptionValue:
+      type: object
+      additionalProperties: false
+      required:
+        - value
+        - imageUrl
+      properties:
+        value:
+          type: string
+        imageUrl:
+          type: string
+          nullable: true
+          description: Swatch photo for visual options.
 
     ProductCombo:
       type: object
@@ -1443,6 +1457,32 @@ components:
         active:
           type: boolean
 
+    ProductReview:
+      type: object
+      additionalProperties: false
+      required:
+        - rating
+        - title
+        - body
+        - vendorResponse
+        - createdAt
+      properties:
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+        title:
+          type: string
+          nullable: true
+        body:
+          type: string
+        vendorResponse:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+
     ProductDetail:
       type: object
       additionalProperties: false
@@ -1456,6 +1496,9 @@ components:
         - offers
         - optionTypes
         - combos
+        - ratingAvg
+        - ratingCount
+        - reviews
       properties:
         productId:
           type: string
@@ -1487,6 +1530,18 @@ components:
           items:
             $ref: "#/components/schemas/ProductCombo"
           description: Every combination incl. unstocked/archived, for honest strikethrough.
+        ratingAvg:
+          type: number
+          nullable: true
+          description: Mean of published review ratings.
+        ratingCount:
+          type: integer
+          minimum: 0
+        reviews:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProductReview"
+          description: Latest published reviews (max 5).
 
     CategoryNode:
       type: object

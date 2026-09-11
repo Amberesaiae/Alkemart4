@@ -230,6 +230,8 @@ export type SellerDisplay = {
   stockMode: "exact" | "bands"
 }
 
+export type ProductOptionValue = { id: string; value: string; imageUrl: string | null }
+
 export type SellerContact = {
   phone: string | null
   hours: { days: string; open: string; close: string } | null
@@ -307,7 +309,7 @@ export type Product = {
   updated_at?: string | null
   /** All combinations (V1 matrix); empty/undefined for legacy products. */
   combos?: ProductCombo[]
-  productOptions?: { id: string; name: string; values: { id: string; value: string }[] }[]
+  productOptions?: { id: string; name: string; values: ProductOptionValue[] }[]
 }
 
 export type ProductVariant = {
@@ -510,7 +512,7 @@ type WorkersProductItem = {
     currency?: string
     active?: boolean
   }
-  options?: { id: string; name: string; values: { id: string; value: string }[] }[]
+  options?: { id: string; name: string; values: ProductOptionValue[] }[]
   variants?: {
     variant: { id: string; sku: string | null; title: string | null }
     offer: { id: string; pricePesewas: string; onHand: number; active: boolean }
@@ -887,10 +889,11 @@ export const products = {
   },
 
   /**
-   * Product delete is not available yet.
+   * DELETE /vendor/products/:id — refused with 409 when order history
+   * exists (archive combinations instead).
    */
   delete: (id: string) => {
-    return Promise.reject(new ApiError(501, "Product delete is not available yet"))
+    return apiFetch<{ deleted: boolean }>(`/vendor/products/${id}`, { method: "DELETE" })
   },
 
   /**
@@ -917,6 +920,14 @@ export const products = {
    */
   addOptionValue: (productId: string, input: { optionId?: string; optionName?: string; value: string; existingValue?: string }) => {
     return post<{ product: unknown }>(`/vendor/products/${productId}/options`, input)
+  },
+
+  /**
+   * PATCH /vendor/products/:id/values/:valueId — swatch photo for one
+   * option value. Re-reviews published listings (visual change).
+   */
+  setOptionValueImage: (productId: string, valueId: string, imageUrl: string | null) => {
+    return patchJson<{ product: unknown }>(`/vendor/products/${productId}/values/${valueId}`, { imageUrl })
   },
 
   propose: async (id: string) => {

@@ -169,6 +169,8 @@ export interface CheckoutRepository {
   claimPendingNotifications(limit?: number, maxAttempts?: number): Promise<NotificationRow[]>
   markNotificationSent(id: string): Promise<void>
   markNotificationFailed(id: string, error: string): Promise<void>
+  /** True when any order item references the product (money trail guard). */
+  productHasOrders(productId: string): Promise<boolean>
   /**
    * Verified-purchase reviews. One row per order (unique order_id);
    * duplicate writes return null so routes answer 409.
@@ -689,6 +691,13 @@ export class InMemoryCheckoutRepository implements CheckoutRepository {
         return
       }
     }
+  }
+
+  async productHasOrders(productId: string) {
+    for (const items of this.orderItems.values()) {
+      if (items.some((i) => i.productId === productId)) return true
+    }
+    return false
   }
 
   private reviewsById = new Map<string, ReviewRow>()

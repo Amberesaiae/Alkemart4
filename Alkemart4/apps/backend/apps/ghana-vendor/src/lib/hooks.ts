@@ -228,6 +228,18 @@ export function useAddOptionValue() {
   })
 }
 
+export function useSetOptionValueImage() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ productId, valueId, imageUrl }: { productId: string; valueId: string; imageUrl: string | null }) =>
+      products.setOptionValueImage(productId, valueId, imageUrl),
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: ["vendor", "products", vars.productId] })
+      qc.invalidateQueries({ queryKey: ["vendor", "products"] })
+    },
+  })
+}
+
 export function useProposeProduct() {
   const qc = useQueryClient()
   return useMutation({

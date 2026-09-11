@@ -8,6 +8,16 @@ import { createApp } from "../../index"
 
 const JWT_SECRET = "test-jwt-secret-that-is-at-least-32-chars-long"
 
+function testEnv() {
+  return {
+    ENVIRONMENT: "development",
+    JWT_SECRET,
+    HYPERDRIVE: { connectionString: "postgres://x" },
+    HYPERDRIVE_PRIMARY: { connectionString: "postgres://x" },
+    CATALOG_KV: {} as KVNamespace,
+  }
+}
+
 function emptyCatalog(): CatalogSnapshot {
   return {
     categories: GHANA_CATEGORY_SEED.map((c) => ({ ...c })),
@@ -36,7 +46,7 @@ async function adminProductApp() {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email: "admin@alkemart.test", password: "AdminPass1" }),
-  })
+  }, testEnv())
   expect(login.status).toBe(200)
   const { token: adminToken } = (await login.json()) as { token: string }
 
@@ -49,7 +59,7 @@ async function adminProductApp() {
       sellerName: "Ama Shop",
       sellerHandle: "ama-shop",
     }),
-  })
+  }, testEnv())
   expect(vendor.status).toBe(201)
   const { token: sellerToken } = (await vendor.json()) as { token: string }
 
@@ -66,7 +76,7 @@ async function adminProductApp() {
       pricePesewas: "159900",
       onHand: 3,
     }),
-  })
+  }, testEnv())
   expect(created.status).toBe(201)
   const createdBody = (await created.json()) as {
     product: { id: string; status: string }
@@ -81,7 +91,7 @@ describe("GET /admin/products", () => {
     const { app, adminToken } = await adminProductApp()
     const res = await app.request("/admin/products?status=proposed", {
       headers: { Authorization: `Bearer ${adminToken}` },
-    })
+    }, testEnv())
     expect(res.status).toBe(200)
     const body = (await res.json()) as {
       items: { title: string; sellerName: string | null; sellerHandle: string | null }[]
@@ -100,7 +110,7 @@ describe("POST /admin/products/:id/approve", () => {
     const res = await app.request(`/admin/products/${productId}/approve`, {
       method: "POST",
       headers: { Authorization: `Bearer ${adminToken}` },
-    })
+    }, testEnv())
     expect(res.status).toBe(200)
     const body = (await res.json()) as { product: { id: string; status: string } }
     expect(body.product.id).toBe(productId)
@@ -115,7 +125,7 @@ describe("POST /admin/products/:id/reject", () => {
     const res = await app.request(`/admin/products/${productId}/reject`, {
       method: "POST",
       headers: { Authorization: `Bearer ${adminToken}` },
-    })
+    }, testEnv())
     expect(res.status).toBe(200)
     const body = (await res.json()) as { product: { id: string; status: string } }
     expect(body.product.id).toBe(productId)

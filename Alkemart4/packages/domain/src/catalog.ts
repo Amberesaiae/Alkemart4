@@ -22,7 +22,7 @@ export type ProductCardDto = {
 
 export type ProductOptionTypeDto = {
   name: string
-  values: string[]
+  values: { value: string; imageUrl: string | null }[]
 }
 
 /** Every combination incl. unstocked/archived (for honest strikethrough). */
@@ -35,6 +35,14 @@ export type ProductComboDetailDto = {
   active: boolean
 }
 
+export type ProductReviewDto = {
+  rating: number
+  title: string | null
+  body: string
+  vendorResponse: string | null
+  createdAt: string
+}
+
 export type ProductDetailDto = {
   productId: string
   title: string
@@ -45,6 +53,9 @@ export type ProductDetailDto = {
   offers: PeerOfferDto[]
   optionTypes: ProductOptionTypeDto[]
   combos: ProductComboDetailDto[]
+  ratingAvg: number | null
+  ratingCount: number
+  reviews: ProductReviewDto[]
 }
 
 export type ProductCardInput = {
@@ -108,8 +119,11 @@ export function toProductDetail(
   extras?: {
     optionTypes?: ProductOptionTypeDto[]
     combos?: ProductComboDetailDto[]
+    reviews?: { rating: number; title: string | null; body: string; vendorResponse: string | null; createdAt: Date }[]
   },
 ): ProductDetailDto {
+  const published = extras?.reviews ?? []
+  const ratingCount = published.length
   return {
     productId: product.productId,
     title: product.title,
@@ -120,5 +134,14 @@ export function toProductDetail(
     offers: sortPeerOffers(sellableOffers).map(toPeerOffer),
     optionTypes: extras?.optionTypes ?? [],
     combos: extras?.combos ?? [],
+    ratingAvg: ratingCount > 0 ? published.reduce((n, r) => n + r.rating, 0) / ratingCount : null,
+    ratingCount,
+    reviews: published.slice(0, 5).map((r) => ({
+      rating: r.rating,
+      title: r.title,
+      body: r.body,
+      vendorResponse: r.vendorResponse,
+      createdAt: r.createdAt instanceof Date ? r.createdAt.toISOString() : String(r.createdAt),
+    })),
   }
 }

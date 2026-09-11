@@ -3,6 +3,19 @@ import { createApp } from "../../index"
 import { InMemoryCatalogRepository } from "../../catalog-repository"
 import { demoCatalog } from "../../demo-seed"
 
+
+const JWT_SECRET_TEST = "test-jwt-secret-that-is-at-least-32-chars-long"
+
+function testEnv() {
+  return {
+    ENVIRONMENT: "development",
+    JWT_SECRET: JWT_SECRET_TEST,
+    HYPERDRIVE: { connectionString: "postgres://x" },
+    HYPERDRIVE_PRIMARY: { connectionString: "postgres://x" },
+    CATALOG_KV: {} as KVNamespace,
+  }
+}
+
 function appFromDemo(mutate?: (data: ReturnType<typeof demoCatalog>) => void) {
   const data = demoCatalog()
   mutate?.(data)
@@ -11,7 +24,7 @@ function appFromDemo(mutate?: (data: ReturnType<typeof demoCatalog>) => void) {
 
 describe("GET /store/products/:id", () => {
   it("returns peer offers cheapest first", async () => {
-    const res = await appFromDemo().request("/store/products/prod-tecno-spark")
+    const res = await appFromDemo().request("/store/products/prod-tecno-spark", {}, testEnv())
     expect(res.status).toBe(200)
     const body = (await res.json()) as {
       productId: string
@@ -26,12 +39,12 @@ describe("GET /store/products/:id", () => {
   })
 
   it("404s when the product is missing and returns offers: [] when none sellable", async () => {
-    const missing = await appFromDemo().request("/store/products/does-not-exist")
+    const missing = await appFromDemo().request("/store/products/does-not-exist", {}, testEnv())
     expect(missing.status).toBe(404)
 
     const unpublished = await appFromDemo((data) => {
       data.products[0]!.status = "draft"
-    }).request("/store/products/prod-tecno-spark")
+    }).request("/store/products/prod-tecno-spark", {}, testEnv())
     expect(unpublished.status).toBe(200)
     const body = (await unpublished.json()) as { offers: unknown[] }
     expect(body.offers).toEqual([])

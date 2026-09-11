@@ -46,6 +46,7 @@ export type CatalogProductOptionValue = {
   optionId: string
   value: string
   position: number
+  imageUrl: string | null
 }
 
 export type CatalogVariantOptionValue = {

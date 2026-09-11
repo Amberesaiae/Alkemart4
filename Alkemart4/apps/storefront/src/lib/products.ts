@@ -41,7 +41,11 @@ export type StoreProductCard = {
   /** Seller identity if store API returns it — omit when missing. */
   seller?: SellerRef | null
   /** Variant option types in display order (V1 matrix; empty for legacy). */
-  optionTypes?: { name: string; values: string[] }[]
+  optionTypes?: { name: string; values: { value: string; imageUrl: string | null }[] }[]
+  /** Aggregate of published reviews. */
+  ratingAvg?: number | null
+  ratingCount?: number
+  reviews?: { rating: number; title: string | null; body: string; vendorResponse: string | null; createdAt: string }[]
   /** Every combination incl. unstocked/archived. */
   combos?: {
     offerId: string
@@ -136,7 +140,10 @@ function mapCfDetail(d: CfProductDetail): StoreProductCard {
           handle: best.sellerHandle,
         }
       : null,
-    optionTypes: d.optionTypes ?? [],
+    optionTypes: (d.optionTypes ?? []).map((t) => ({
+      name: t.name,
+      values: (t.values ?? []).map((v) => ({ value: v.value, imageUrl: v.imageUrl ?? null })),
+    })),
     combos: (d.combos ?? []).map((c) => ({
       offerId: c.offerId,
       sellerId: c.sellerId,
@@ -144,6 +151,15 @@ function mapCfDetail(d: CfProductDetail): StoreProductCard {
       amount: pesewasStringToMajor(c.pricePesewas),
       availableQty: c.availableQty,
       active: c.active,
+    })),
+    ratingAvg: d.ratingAvg ?? null,
+    ratingCount: d.ratingCount ?? 0,
+    reviews: (d.reviews ?? []).map((r) => ({
+      rating: r.rating,
+      title: r.title,
+      body: r.body,
+      vendorResponse: r.vendorResponse,
+      createdAt: r.createdAt,
     })),
   }
 }

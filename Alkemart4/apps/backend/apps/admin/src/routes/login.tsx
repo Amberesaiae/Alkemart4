@@ -44,7 +44,7 @@ function LoginPage() {
         />
         <div
           aria-hidden
-          className="pointer-events-none absolute -bottom-36 -left-20 h-96 w-96 rounded-full bg-primary/15 blur-[90px]"
+          className="pointer-events-none absolute -bottom-36 -left-20 h-96 w-96 rounded-full bg-muted blur-[90px]"
         />
         <div
           aria-hidden
@@ -65,7 +65,7 @@ function LoginPage() {
         {/* Hero & Glass Feature Cards */}
         <div className="relative z-10 max-w-md space-y-8 my-auto py-6">
           <div className="space-y-4">
-            <div className="inline-flex items-center gap-2 rounded-md border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary shadow-2xs backdrop-blur-md">
+            <div className="inline-flex items-center gap-2 rounded-md border border-primary/30 bg-muted px-3 py-1 text-xs font-semibold text-primary shadow-2xs backdrop-blur-md">
               <ShieldCheck className="h-3.5 w-3.5" weight="bold" />
               <span>Platform Operations Console</span>
             </div>
@@ -82,7 +82,7 @@ function LoginPage() {
 
           <div className="space-y-3.5">
             <div className="group flex items-start gap-4 rounded-2xl border border-white/10 bg-white/[0.04] p-4 backdrop-blur-xl transition-all hover:border-primary/40 hover:bg-white/[0.07]">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/20 text-primary group-hover:scale-105 transition-transform">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-muted text-primary group-hover:scale-105 transition-transform">
                 <ShieldCheck className="h-5 w-5" weight="bold" aria-hidden />
               </div>
               <div className="space-y-0.5">
@@ -94,7 +94,7 @@ function LoginPage() {
             </div>
 
             <div className="group flex items-start gap-4 rounded-2xl border border-white/10 bg-white/[0.04] p-4 backdrop-blur-xl transition-all hover:border-primary/40 hover:bg-white/[0.07]">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/20 text-primary group-hover:scale-105 transition-transform">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-muted text-primary group-hover:scale-105 transition-transform">
                 <Package className="h-5 w-5" weight="bold" aria-hidden />
               </div>
               <div className="space-y-0.5">
@@ -106,7 +106,7 @@ function LoginPage() {
             </div>
 
             <div className="group flex items-start gap-4 rounded-2xl border border-white/10 bg-white/[0.04] p-4 backdrop-blur-xl transition-all hover:border-primary/40 hover:bg-white/[0.07]">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/20 text-primary group-hover:scale-105 transition-transform">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-muted text-primary group-hover:scale-105 transition-transform">
                 <Scales className="h-5 w-5" weight="bold" aria-hidden />
               </div>
               <div className="space-y-0.5">

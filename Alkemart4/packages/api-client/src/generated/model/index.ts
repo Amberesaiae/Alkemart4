@@ -53,6 +53,8 @@ export * from './productCombo';
 export * from './productComboOptions';
 export * from './productDetail';
 export * from './productOptionType';
+export * from './productOptionValue';
+export * from './productReview';
 export * from './productStatus';
 export * from './sellerAvailability';
 export * from './sellerAvailabilityState';

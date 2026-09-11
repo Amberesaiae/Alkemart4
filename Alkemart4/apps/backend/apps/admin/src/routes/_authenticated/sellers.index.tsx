@@ -136,7 +136,7 @@ function SellersPage() {
                 <TableRow key={seller.id} className="hover:bg-muted/50">
                   <TableCell>
                     <div className="flex items-center gap-3">
-                      <div className="h-9 w-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
+                      <div className="h-9 w-9 rounded-xl bg-muted border border-primary/20 flex items-center justify-center shrink-0">
                         <Storefront className="h-4 w-4 text-primary" />
                       </div>
                       <div className="min-w-0">

@@ -12,9 +12,12 @@ Checkout charge/initialize is Plan 3 (not documented here).
 
  * OpenAPI spec version: 0.4.0
  */
-import type { ProductOptionValue } from './productOptionValue';
 
-export interface ProductOptionType {
-  name: string;
-  values: ProductOptionValue[];
+export interface ProductOptionValue {
+  value: string;
+  /**
+   * Swatch photo for visual options.
+   * @nullable
+   */
+  imageUrl: string | null;
 }

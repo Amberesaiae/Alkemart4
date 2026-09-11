@@ -183,7 +183,7 @@ function SellersQueuePage() {
       <section>
         <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
           Pending Approval
-          <span className="inline-flex items-center rounded-md border border-primary/30 bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">{pending.length}</span>
+          <span className="inline-flex items-center rounded-md border border-primary/30 bg-muted px-2 py-0.5 text-xs font-semibold text-primary">{pending.length}</span>
         </h2>
 
         {pending.length === 0 ? (

@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router"
 import { useRef, useState } from "react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
-import { useProduct, useUpdateProduct, useDeleteProduct, useCategories, useProposeProduct, useUploadImage, useUpdateVariant, useAddOptionValue } from "../../lib/hooks"
+import { useProduct, useUpdateProduct, useDeleteProduct, useCategories, useProposeProduct, useUploadImage, useUpdateVariant, useAddOptionValue, useSetOptionValueImage } from "../../lib/hooks"
 import { type ProductStatus, type ProductCombo, products as productsApi } from "../../lib/api"
 import { toast } from "sonner"
 import { Card, Button, Input, Label, Textarea, Select, Skeleton, Badge } from "@workspace/ui"
@@ -1217,7 +1217,102 @@ function VariantsSection({ productId }: { productId: string }) {
           New combinations start unstocked (0) so nothing oversells. Structural changes send published listings back for review.
         </p>
       </div>
+
+      {options.length > 0 && (
+        <ValuePhotos productId={productId} options={options} />
+      )}
     </Card>
+  )
+}
+
+function ValuePhotos({ productId, options }: {
+  productId: string
+  options: { id: string; name: string; values: { id: string; value: string; imageUrl: string | null }[] }[]
+}) {
+  const qc = useQueryClient()
+  const upload = useUploadImage()
+  const setImage = useSetOptionValueImage()
+  const [busyId, setBusyId] = useState<string | null>(null)
+
+  const handleFile = async (valueId: string, file: File | undefined) => {
+    if (!file) return
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please choose an image file.")
+      return
+    }
+    setBusyId(valueId)
+    try {
+      const url = await upload.mutateAsync(file)
+      await setImage.mutateAsync({ productId, valueId, imageUrl: url })
+      toast.success("Swatch photo saved - listing sent back for review.")
+      qc.invalidateQueries({ queryKey: ["vendor", "products", productId] })
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to save photo.")
+    } finally {
+      setBusyId(null)
+    }
+  }
+
+  const handleRemove = async (valueId: string) => {
+    setBusyId(valueId)
+    try {
+      await setImage.mutateAsync({ productId, valueId, imageUrl: null })
+      toast.success("Swatch photo removed.")
+      qc.invalidateQueries({ queryKey: ["vendor", "products", productId] })
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to remove photo.")
+    } finally {
+      setBusyId(null)
+    }
+  }
+
+  return (
+    <div className="rounded-2xl border border-border/60 bg-muted/20 p-4 space-y-3">
+      <h3 className="font-bold text-sm">Swatch photos (optional)</h3>
+      <p className="text-[11px] text-muted-foreground font-medium">
+        One photo per value on visual options (e.g. Colour) - buyers see it as the selector tile and gallery lead.
+      </p>
+      {options.map((opt) => (
+        <div key={opt.id} className="space-y-1.5">
+          <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{opt.name}</p>
+          <ul className="flex flex-wrap gap-2">
+            {opt.values.map((v) => (
+              <li key={v.id} className="flex items-center gap-2 rounded-xl border border-border/60 bg-card px-2 py-1.5">
+                {v.imageUrl ? (
+                  <img src={v.imageUrl} alt="" className="h-8 w-8 rounded-lg object-cover" />
+                ) : (
+                  <span className="h-8 w-8 rounded-lg bg-muted flex items-center justify-center text-[10px] font-bold text-muted-foreground">
+                    {v.value.slice(0, 2).toUpperCase()}
+                  </span>
+                )}
+                <span className="text-xs font-bold max-w-24 truncate">{v.value}</span>
+                <label className="text-[11px] font-bold text-primary cursor-pointer hover:underline">
+                  {v.imageUrl ? "Replace" : "Add"}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="sr-only"
+                    disabled={busyId === v.id}
+                    onChange={(e) => { void handleFile(v.id, e.target.files?.[0]); e.target.value = "" }}
+                  />
+                </label>
+                {v.imageUrl && (
+                  <button
+                    type="button"
+                    disabled={busyId === v.id}
+                    onClick={() => { void handleRemove(v.id) }}
+                    className="text-[11px] font-bold text-destructive hover:underline disabled:opacity-50"
+                    aria-label={'Remove photo for ' + v.value}
+                  >
+                    {busyId === v.id ? "..." : "Remove"}
+                  </button>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </div>
   )
 }
 

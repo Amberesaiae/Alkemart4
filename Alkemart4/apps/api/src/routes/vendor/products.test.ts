@@ -7,6 +7,16 @@ import { createApp } from "../../index"
 
 const JWT_SECRET = "test-jwt-secret-that-is-at-least-32-chars-long"
 
+function testEnv() {
+  return {
+    ENVIRONMENT: "development",
+    JWT_SECRET,
+    HYPERDRIVE: { connectionString: "postgres://x" },
+    HYPERDRIVE_PRIMARY: { connectionString: "postgres://x" },
+    CATALOG_KV: {} as KVNamespace,
+  }
+}
+
 function emptyCatalog(): CatalogSnapshot {
   return {
     categories: GHANA_CATEGORY_SEED.map((c) => ({ ...c })),
@@ -33,7 +43,7 @@ async function registerVendor(
       sellerName: input.sellerName,
       sellerHandle: input.sellerHandle,
     }),
-  })
+  }, testEnv())
   const body = (await res.json()) as { token: string; user: { sellerId: string } }
   expect(res.status).toBe(201)
   return { token: body.token, sellerId: body.user.sellerId }
@@ -77,7 +87,7 @@ describe("vendor product isolation", () => {
     const created = await app.request(
       "/vendor/products",
       authJson("POST", sellerB.token, createBody),
-    )
+    testEnv())
     expect(created.status).toBe(201)
     const createdBody = (await created.json()) as { product: { id: string } }
     const productId = createdBody.product.id
@@ -88,15 +98,15 @@ describe("vendor product isolation", () => {
         title: "Hijacked title",
         pricePesewas: "1",
       }),
-    )
+    testEnv())
     expect(patch.status).toBe(404)
 
-    const listA = await app.request("/vendor/products", authJson("GET", sellerA.token))
+    const listA = await app.request("/vendor/products", authJson("GET", sellerA.token), testEnv())
     expect(listA.status).toBe(200)
     const listABody = (await listA.json()) as { items: unknown[] }
     expect(listABody.items).toEqual([])
 
-    const listB = await app.request("/vendor/products", authJson("GET", sellerB.token))
+    const listB = await app.request("/vendor/products", authJson("GET", sellerB.token), testEnv())
     const listBBody = (await listB.json()) as {
       items: Array<{ product: { title: string }; offer: { pricePesewas: string } }>
     }
@@ -117,7 +127,7 @@ describe("POST /vendor/products", () => {
       sellerHandle: "ama-shop",
     })
 
-    const res = await app.request("/vendor/products", authJson("POST", seller.token, createBody))
+    const res = await app.request("/vendor/products", authJson("POST", seller.token, createBody), testEnv())
     expect(res.status).toBe(201)
     const body = (await res.json()) as {
       product: {
@@ -156,7 +166,7 @@ describe("POST /vendor/products", () => {
         ...createBody,
         primaryCategoryId: "phones-electronics",
       }),
-    )
+    testEnv())
     expect(res.status).toBe(400)
   })
 })
@@ -180,13 +190,13 @@ describe("POST /vendor/products/:id/propose", () => {
     const created = await app.request(
       "/vendor/products",
       authJson("POST", sellerB.token, createBody),
-    )
+    testEnv())
     const { product } = (await created.json()) as { product: { id: string } }
 
     const own = await app.request(
       `/vendor/products/${product.id}/propose`,
       authJson("POST", sellerB.token),
-    )
+    testEnv())
     expect(own.status).toBe(200)
     expect(((await own.json()) as { product: { status: string } }).product.status).toBe(
       "proposed",
@@ -195,7 +205,7 @@ describe("POST /vendor/products/:id/propose", () => {
     const cross = await app.request(
       `/vendor/products/${product.id}/propose`,
       authJson("POST", sellerA.token),
-    )
+    testEnv())
     expect(cross.status).toBe(404)
   })
 })

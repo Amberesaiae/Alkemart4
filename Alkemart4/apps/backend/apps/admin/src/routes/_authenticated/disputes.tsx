@@ -149,7 +149,7 @@ function DisputeDetail({ id, onBack }: { id: string; onBack: () => void }) {
                   onClick={() => setDecision(d)}
                   className={`p-3 rounded-xl border-2 text-sm font-bold text-center transition-all ${
                     decision === d
-                      ? "border-primary bg-primary/5 text-primary"
+                      ? "border-primary bg-muted text-primary"
                       : "border-border hover:border-primary/40 text-muted-foreground"
                   }`}
                 >

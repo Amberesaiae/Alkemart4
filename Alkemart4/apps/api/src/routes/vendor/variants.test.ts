@@ -85,7 +85,7 @@ const MATRIX = {
 
 type FullProduct = {
   product: { id: string; status: string }
-  options: { id: string; name: string; values: { id: string; value: string }[] }[]
+  options: { id: string; name: string; values: { id: string; value: string; imageUrl: string | null }[] }[]
   variants: {
     variant: { id: string; sku: string | null; title: string }
     offer: { pricePesewas: string; onHand: number; active: boolean }
@@ -175,6 +175,58 @@ describe("PATCH /vendor/products/:id/variants/:variantId", () => {
       testEnv(),
     )
     expect(blocked.status).toBe(400)
+  })
+})
+
+describe("PATCH /vendor/products/:id/values/:valueId", () => {
+  it("sets and clears swatch photos, re-reviewing published listings", async () => {
+    const { app, sellerToken, adminToken } = await setup()
+    const created = await app.request(
+      "/vendor/products",
+      json("POST", {
+        title: "Ankara Gown",
+        primaryCategoryId: "women",
+        pricePesewas: "50000",
+        onHand: 10,
+        variant_options: [{ name: "Colour", values: ["Red", "Navy"] }],
+      }, sellerToken),
+      testEnv(),
+    )
+    const body = (await created.json()) as FullProduct
+    const productId = body.product.id
+    const valueId = body.options[0]!.values[0]!.id
+    await app.request(`/admin/products/${productId}/approve`, json("POST", {}, adminToken), testEnv())
+
+    const set = await app.request(
+      `/vendor/products/${productId}/values/${valueId}`,
+      json("PATCH", { imageUrl: "https://example.com/red.jpg" }, sellerToken),
+      testEnv(),
+    )
+    expect(set.status).toBe(200)
+    const afterSet = (await set.json()) as FullProduct
+    expect(afterSet.options[0]!.values[0]).toMatchObject({ value: "Red", imageUrl: "https://example.com/red.jpg" })
+    expect(afterSet.product.status).toBe("proposed")
+
+    const cleared = await app.request(
+      `/vendor/products/${productId}/values/${valueId}`,
+      json("PATCH", { imageUrl: null }, sellerToken),
+      testEnv(),
+    )
+    expect(((await cleared.json()) as FullProduct).options[0]!.values[0]!.imageUrl).toBeNull()
+
+    const badUrl = await app.request(
+      `/vendor/products/${productId}/values/${valueId}`,
+      json("PATCH", { imageUrl: "not-a-url" }, sellerToken),
+      testEnv(),
+    )
+    expect(badUrl.status).toBe(400)
+
+    const missing = await app.request(
+      `/vendor/products/${productId}/values/value-nope`,
+      json("PATCH", { imageUrl: null }, sellerToken),
+      testEnv(),
+    )
+    expect(missing.status).toBe(404)
   })
 })
 

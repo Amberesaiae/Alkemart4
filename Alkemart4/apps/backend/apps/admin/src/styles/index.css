@@ -51,74 +51,75 @@
   --color-ring: var(--ring);
   --color-ink: var(--ink);
   --color-ink-foreground: #ffffff;
-  --color-surface-cream: var(--surface-cream);
+  --color-surface-soft: var(--surface-soft);
   --color-success: #0e7a45;
   --color-success-foreground: #ffffff;
   --color-warning: #e89b00;
   --color-warning-fg: #8a5a00;
-  --color-warning-foreground: #231a05;
+  --color-warning-foreground: #1f1e1b;
   --radius-2xl: 24px;
   --radius-3xl: 32px;
-  --shadow-xs: 0 1px 2px 0 rgb(43 35 26 / 0.05);
-  --shadow-sm: 0 1px 3px 0 rgb(43 35 26 / 0.07), 0 1px 2px -1px rgb(43 35 26 / 0.06);
-  --shadow-md: 0 6px 16px -6px rgb(43 35 26 / 0.14), 0 2px 6px -2px rgb(43 35 26 / 0.08);
-  --shadow-lg: 0 16px 40px -16px rgb(43 35 26 / 0.22), 0 4px 12px -4px rgb(43 35 26 / 0.1);
+  --shadow-xs: 0 1px 2px 0 rgb(28 27 24 / 0.05);
+  --shadow-sm: 0 1px 3px 0 rgb(28 27 24 / 0.07), 0 1px 2px -1px rgb(28 27 24 / 0.06);
+  --shadow-md: 0 6px 16px -6px rgb(28 27 24 / 0.14), 0 2px 6px -2px rgb(28 27 24 / 0.08);
+  --shadow-lg: 0 16px 40px -16px rgb(28 27 24 / 0.22), 0 4px 12px -4px rgb(28 27 24 / 0.1);
 }
 
 :root {
   /* ─── Badge tone ramp — GENERATED, do not hand-edit ───
    * Regenerate rather than nudging a value: src/lib/__tests__/tone-ramp.test.ts
    * re-derives every pair from this CSS and fails below WCAG AA (4.5:1).
-   * Values are solved on the ROUNDED hex (not the float) and aimed at
-   * 4.6:1 so rounding can never drop a pair under the floor.
+   * Solved against premium-white paper #fafaf9 and white cards, on the
+   * ROUNDED hex (not the float), aimed at 4.6:1 so rounding can never
+   * drop a pair under the floor.
    *
    * Soft tints are OPAQUE mixes, never alpha: a bg-x/10 chip disappears
    * over product photography and shifts with whatever sits behind it.
    * Solid fills are the lightest shade of each hue that still holds its
    * text colour, so a tone stays recognisable as its hue.
    */
-  --tone-neutral: #817355;
+  --tone-neutral: #797569;
   --tone-neutral-fg: #ffffff;
-  --tone-neutral-soft: #e7e2d7;
-  --tone-neutral-ink: #6e6248;  /* solid 4.65 · soft 4.64 · card 5.99 */
+  --tone-neutral-soft: #e6e6e3;
+  --tone-neutral-ink: #69655b;  /* solid 4.60 · soft 4.65 · card 5.81 */
   --tone-brand: #febf31;
-  --tone-brand-fg: #231a05;
-  --tone-brand-soft: #fbefd4;
-  --tone-brand-ink: #8f6301;  /* solid 10.41 · soft 4.65 · card 5.31 */
+  --tone-brand-fg: #1f1e1b;
+  --tone-brand-soft: #fbf2dd;
+  --tone-brand-ink: #926501;  /* solid 10.09 · soft 4.61 · card 5.14 */
   --tone-success: #16864e;
   --tone-success-fg: #ffffff;
-  --tone-success-soft: #dbe8d8;
-  --tone-success-ink: #137343;  /* solid 4.61 · soft 4.65 · card 5.90 */
+  --tone-success-soft: #daeae1;
+  --tone-success-ink: #147544;  /* solid 4.61 · soft 4.60 · card 5.74 */
   --tone-warning: #e89b00;
-  --tone-warning-fg: #231a05;
-  --tone-warning-soft: #f8eacd;
-  --tone-warning-ink: #8f5f00;  /* solid 7.47 · soft 4.64 · card 5.52 */
+  --tone-warning-fg: #1f1e1b;
+  --tone-warning-soft: #f7edd6;
+  --tone-warning-ink: #916100;  /* solid 7.24 · soft 4.61 · card 5.37 */
   --tone-danger: #d43e3e;
   --tone-danger-fg: #ffffff;
-  --tone-danger-soft: #f6ded6;
-  --tone-danger-ink: #bd2a2a;  /* solid 4.61 · soft 4.63 · card 5.95 */
+  --tone-danger-soft: #f5e1e0;
+  --tone-danger-ink: #c12a2a;  /* solid 4.61 · soft 4.61 · card 5.78 */
   --tone-info: #297da4;
   --tone-info-fg: #ffffff;
-  --tone-info-soft: #dee8e7;
-  --tone-info-ink: #246c8e;  /* solid 4.60 · soft 4.65 · card 5.82 */
+  --tone-info-soft: #deebf0;
+  --tone-info-ink: #246e90;  /* solid 4.60 · soft 4.65 · card 5.66 */
   --tone-scarce: #c2531e;
   --tone-scarce-fg: #ffffff;
-  --tone-scarce-soft: #efded0;
-  --tone-scarce-ink: #a44619;  /* solid 4.62 · soft 4.62 · card 6.05 */
+  --tone-scarce-soft: #efe1da;
+  --tone-scarce-ink: #a7471a;  /* solid 4.62 · soft 4.62 · card 5.90 */
   color-scheme: light;
   --primary: #FEBF31;
-  --primary-foreground: #231a05;
-  --background: #fbf7ee;
-  --foreground: #241d12;
+  --primary-foreground: #1f1e1b;
+  --background: #fafaf9;
+  --foreground: #1f1e1b;
   --card: #ffffff;
-  --card-foreground: #241d12;
-  --muted: #f4edde;
-  --muted-foreground: #6e6248;
-  --border: #eae1cc;
+  --card-foreground: #1f1e1b;
+  --muted: #f3f3f1;
+  --muted-foreground: #74726b;
+  --border: #e4e3e0;
   --destructive: #d64545;
   --ring: #e89b00;
-  --ink: #1a1510;
-  --surface-cream: #f6f0e2;
+  --ink: #171614;
+  --surface-soft: #f5f5f3;
 }
 
 * { border-color: var(--border); }
@@ -134,6 +135,10 @@ body {
 :focus { outline: none; }
 :focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; border-radius: 4px; }
 
+.surface-soft {
+  background-color: var(--surface-soft);
+}
+/* @deprecated alias — kept so any missed call site keeps its surface. */
 .surface-cream {
-  background-color: var(--surface-cream);
+  background-color: var(--surface-soft);
 }
