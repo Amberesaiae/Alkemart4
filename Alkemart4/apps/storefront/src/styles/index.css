@@ -67,82 +67,84 @@
   --color-success-foreground: #ffffff;
   --color-warning: #e89b00;
   --color-warning-fg: #8a5a00;
-  --color-warning-foreground: #231a05;
+  --color-warning-foreground: #1f1e1b;
   /* Warm-tinted shadow scale — depth with the ink's own hue, never gray-black */
-  --shadow-xs: 0 1px 2px 0 rgb(43 35 26 / 0.05);
-  --shadow-sm: 0 1px 3px 0 rgb(43 35 26 / 0.07), 0 1px 2px -1px rgb(43 35 26 / 0.06);
-  --shadow-md: 0 6px 16px -6px rgb(43 35 26 / 0.14), 0 2px 6px -2px rgb(43 35 26 / 0.08);
-  --shadow-lg: 0 16px 40px -16px rgb(43 35 26 / 0.22), 0 4px 12px -4px rgb(43 35 26 / 0.1);
+  --shadow-xs: 0 1px 2px 0 rgb(28 27 24 / 0.05);
+  --shadow-sm: 0 1px 3px 0 rgb(28 27 24 / 0.07), 0 1px 2px -1px rgb(28 27 24 / 0.06);
+  --shadow-md: 0 6px 16px -6px rgb(28 27 24 / 0.14), 0 2px 6px -2px rgb(28 27 24 / 0.08);
+  --shadow-lg: 0 16px 40px -16px rgb(28 27 24 / 0.22), 0 4px 12px -4px rgb(28 27 24 / 0.1);
 }
 
 :root {
   /* ─── Badge tone ramp — GENERATED, do not hand-edit ───
    * Regenerate rather than nudging a value: src/lib/__tests__/tone-ramp.test.ts
    * re-derives every pair from this CSS and fails below WCAG AA (4.5:1).
-   * Values are solved on the ROUNDED hex (not the float) and aimed at
-   * 4.6:1 so rounding can never drop a pair under the floor.
+   * Solved against premium-white paper #fafaf9 and white cards, on the
+   * ROUNDED hex (not the float), aimed at 4.6:1 so rounding can never
+   * drop a pair under the floor.
    *
    * Soft tints are OPAQUE mixes, never alpha: a bg-x/10 chip disappears
    * over product photography and shifts with whatever sits behind it.
    * Solid fills are the lightest shade of each hue that still holds its
    * text colour, so a tone stays recognisable as its hue.
    */
-  --tone-neutral: #817355;
+  --tone-neutral: #797569;
   --tone-neutral-fg: #ffffff;
-  --tone-neutral-soft: #e7e2d7;
-  --tone-neutral-ink: #6e6248;  /* solid 4.65 · soft 4.64 · card 5.99 */
+  --tone-neutral-soft: #e6e6e3;
+  --tone-neutral-ink: #69655b;  /* solid 4.60 · soft 4.65 · card 5.81 */
   --tone-brand: #febf31;
-  --tone-brand-fg: #231a05;
-  --tone-brand-soft: #fbefd4;
-  --tone-brand-ink: #8f6301;  /* solid 10.41 · soft 4.65 · card 5.31 */
+  --tone-brand-fg: #1f1e1b;
+  --tone-brand-soft: #fbf2dd;
+  --tone-brand-ink: #926501;  /* solid 10.09 · soft 4.61 · card 5.14 */
   --tone-success: #16864e;
   --tone-success-fg: #ffffff;
-  --tone-success-soft: #dbe8d8;
-  --tone-success-ink: #137343;  /* solid 4.61 · soft 4.65 · card 5.90 */
+  --tone-success-soft: #daeae1;
+  --tone-success-ink: #147544;  /* solid 4.61 · soft 4.60 · card 5.74 */
   --tone-warning: #e89b00;
-  --tone-warning-fg: #231a05;
-  --tone-warning-soft: #f8eacd;
-  --tone-warning-ink: #8f5f00;  /* solid 7.47 · soft 4.64 · card 5.52 */
+  --tone-warning-fg: #1f1e1b;
+  --tone-warning-soft: #f7edd6;
+  --tone-warning-ink: #916100;  /* solid 7.24 · soft 4.61 · card 5.37 */
   --tone-danger: #d43e3e;
   --tone-danger-fg: #ffffff;
-  --tone-danger-soft: #f6ded6;
-  --tone-danger-ink: #bd2a2a;  /* solid 4.61 · soft 4.63 · card 5.95 */
+  --tone-danger-soft: #f5e1e0;
+  --tone-danger-ink: #c12a2a;  /* solid 4.61 · soft 4.61 · card 5.78 */
   --tone-info: #297da4;
   --tone-info-fg: #ffffff;
-  --tone-info-soft: #dee8e7;
-  --tone-info-ink: #246c8e;  /* solid 4.60 · soft 4.65 · card 5.82 */
+  --tone-info-soft: #deebf0;
+  --tone-info-ink: #246e90;  /* solid 4.60 · soft 4.65 · card 5.66 */
   --tone-scarce: #c2531e;
   --tone-scarce-fg: #ffffff;
-  --tone-scarce-soft: #efded0;
-  --tone-scarce-ink: #a44619;  /* solid 4.62 · soft 4.62 · card 6.05 */
+  --tone-scarce-soft: #efe1da;
+  --tone-scarce-ink: #a7471a;  /* solid 4.62 · soft 4.62 · card 5.90 */
   /* ─── Alkemart premium palette ───
-   * Warm espresso charcoal + cream paper + hero gold + warm stone.
+   * Charcoal ink + premium-white paper + hero gold + neutral stone.
    * Every dark surface shares the ink's warm undertone so gold sits in
    * harmony instead of fighting a blue-slate cast. */
   --primary: #febf31;
-  --primary-foreground: #231a05;
+  --primary-foreground: #1f1e1b;
   --primary-strong: #e89b00;
-  /* Espresso ink — headings, dark bands, footer, sidebars */
-  --ink: #1a1510;
-  --ink-soft: #2b231a;
-  /* Cream paper — bright and warm, never gray-musky */
-  --background: #fbf7ee;
-  --foreground: #241d12;
-  /* Cards stay pure white on cream for crisp product presentation */
+  /* Charcoal ink — headings, dark bands, footer, sidebars */
+  --ink: #171614;
+  --ink-soft: #272523;
+  /* Premium white — a whisper of warmth at near-zero chroma, so it reads
+   * as white paper, never as cream. */
+  --background: #fafaf9;
+  --foreground: #1f1e1b;
+  /* Cards go pure white above the paper for crisp product presentation */
   --card: #ffffff;
-  --card-foreground: #241d12;
-  --muted: #f4edde;
-  --muted-foreground: #6e6248;
-  --border: #eae1cc;
+  --card-foreground: #1f1e1b;
+  --muted: #f3f3f1;
+  --muted-foreground: #74726b;
+  --border: #e4e3e0;
   --destructive: #d64545;
   --ring: #e89b00;
-  --surface-cream: #f6f0e2;
-  --footer-bg: #1a1510;
+  --surface-soft: #f5f5f3;
+  --footer-bg: #171614;
 }
 
 ::selection {
   background: #febf31;
-  color: #231a05;
+  color: #1f1e1b;
 }
 
 * {
@@ -325,7 +327,7 @@ html {
 /* ─── Department themes (imgi_11 / imgi_12 Categories panel) ───
  * Apply theme-* on a parent; children use .dept-panel / .dept-soft.
  * Hues are category coding — kept distinct but deepened into the warm
- * premium register (no neon candy against cream/espresso).
+ * premium register (no neon candy against the charcoal/white base).
  * Never set backgroundColor via style={} in components.
  */
 .theme-dept-electronics {
@@ -336,7 +338,7 @@ html {
 }
 .theme-dept-food {
   --dept-bg: #FEBF31;
-  --dept-fg: #241d12;
+  --dept-fg: #1f1e1b;
   --dept-soft: #fffbeb;
   --dept-ink: #936601;
 }
@@ -392,7 +394,7 @@ html {
  * One container language for every filter surface: the neutral card.
  * Department identity is carried by a top rule + active-state accent,
  * never by a solid fill — wayfinding survives, the shouting doesn't.
- * Text-safe hue is --dept-ink (AA on both cream and white).
+ * Text-safe hue is --dept-ink (AA on both the paper and white cards).
  */
 .facet-panel {
   position: relative;
@@ -555,8 +557,12 @@ html {
   color: var(--background);
 }
 
+.surface-soft {
+  background-color: var(--surface-soft);
+}
+/* @deprecated alias — kept so any missed call site keeps its surface. */
 .surface-cream {
-  background-color: var(--surface-cream);
+  background-color: var(--surface-soft);
 }
 
 /**
@@ -600,11 +606,15 @@ html {
   border: 1px solid var(--border);
   box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.04), 0 1px 2px -1px rgb(0 0 0 / 0.04);
 }
+/* Hero ground: depth only. A gold radial over light paper mixes straight
+ * back to cream (gold at 35% over #fafaf9 lands on #fbeb c7), which is what
+ * kept re-introducing the warm cast after the palette moved to premium
+ * white. Gold stays for CTAs, rules and icons — never as a large wash. */
 .listing-hero-ground {
   background: radial-gradient(
     ellipse at center,
-    color-mix(in srgb, var(--primary) 35%, transparent) 0%,
-    color-mix(in srgb, var(--primary) 12%, transparent) 45%,
+    color-mix(in srgb, var(--ink) 7%, transparent) 0%,
+    color-mix(in srgb, var(--ink) 3%, transparent) 45%,
     transparent 72%
   );
 }

@@ -34,12 +34,12 @@ export function HomeDeliveryBand({
             <span className="relative inline-block whitespace-nowrap text-primary">
               {titleAccent}
               <span
-                className="absolute -bottom-0.5 left-0 h-0.5 w-full rounded-full bg-primary/60"
+                className="absolute -bottom-0.5 left-0 h-0.5 w-full rounded-full bg-primary"
                 aria-hidden
               />
             </span>
           </h2>
-          <p className="text-sm leading-relaxed text-[#e9dfc8] sm:text-base">
+          <p className="text-sm leading-relaxed text-white/75 sm:text-base">
             {body}
           </p>
           <Link

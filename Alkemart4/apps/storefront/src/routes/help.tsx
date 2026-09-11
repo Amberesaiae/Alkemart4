@@ -78,7 +78,7 @@ function HelpPage() {
             orders, and selling.
           </p>
         </div>
-        <div className="flex justify-center rounded-2xl surface-cream p-4 sm:p-5">
+        <div className="flex justify-center rounded-2xl surface-soft p-4 sm:p-5">
           <Illustration name="customerSupport" size="md" />
         </div>
       </header>
@@ -184,7 +184,7 @@ function HelpHighlight(props: {
   return (
     <li className="rounded-2xl border border-border bg-card p-4 text-center shadow-sm">
       <div className="mb-2 flex justify-center">
-        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/15">
+        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-muted">
           <IconSafe name={props.icon} size={28} />
         </div>
       </div>

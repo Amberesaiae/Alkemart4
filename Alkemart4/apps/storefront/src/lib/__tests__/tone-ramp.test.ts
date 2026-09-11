@@ -27,6 +27,7 @@ const TONES = [
 ] as const
 
 const CARD = "#ffffff"
+const PAPER = "#fafaf9"
 const AA = 4.5
 
 function css(app: keyof typeof APPS): string {
@@ -96,6 +97,36 @@ describe("badge tone ramp", () => {
       })
     })
   }
+
+  it.each(["ink", "foreground", "card-foreground"])(
+    "%s is charcoal, not brown — chroma stays near-neutral",
+    (name) => {
+      for (const app of Object.keys(APPS) as (keyof typeof APPS)[]) {
+        const hex = token(css(app), name)
+        const c = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16))
+        // Brown is the red channel running away from blue. Charcoal holds
+        // them within a few points, which is what keeps it reading as grey.
+        expect(Math.max(...c) - Math.min(...c)).toBeLessThanOrEqual(8)
+      }
+    },
+  )
+
+  it("uses premium white paper, not cream", () => {
+    for (const app of Object.keys(APPS) as (keyof typeof APPS)[]) {
+      const bg = token(css(app), "background")
+      const c = [1, 3, 5].map((i) => parseInt(bg.slice(i, i + 2), 16))
+      expect(Math.min(...c)).toBeGreaterThanOrEqual(245) // bright
+      expect(Math.max(...c) - Math.min(...c)).toBeLessThanOrEqual(6) // not cream
+    }
+  })
+
+  it("keeps body text readable on the paper", () => {
+    for (const app of Object.keys(APPS) as (keyof typeof APPS)[]) {
+      expect(
+        contrast(token(css(app), "foreground"), PAPER),
+      ).toBeGreaterThanOrEqual(AA)
+    }
+  })
 
   it("keeps the three apps on an identical ramp", () => {
     const sources = (Object.keys(APPS) as (keyof typeof APPS)[]).map(css)

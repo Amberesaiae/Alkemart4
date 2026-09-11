@@ -118,7 +118,7 @@ function ContactPage() {
       <div className="space-y-10 pb-8">
         <header className="relative overflow-hidden rounded-3xl border border-border bg-card p-6 shadow-sm sm:p-10">
           <div
-            className="pointer-events-none absolute -left-10 top-0 h-40 w-40 rounded-full bg-primary/25 blur-3xl"
+            className="pointer-events-none absolute -left-10 top-0 h-40 w-40 rounded-full bg-ink/5 blur-3xl"
             aria-hidden
           />
           <div className="relative max-w-2xl space-y-3">
@@ -141,7 +141,7 @@ function ContactPage() {
               key={c.title}
               className="flex flex-col rounded-2xl border border-border bg-card p-5 shadow-sm"
             >
-              <span className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-primary/15">
+              <span className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-muted">
                 <IconSafe name={c.icon} size={20} />
               </span>
               <h2 className="font-bold text-foreground">{c.title}</h2>
@@ -254,7 +254,7 @@ function ContactPage() {
               ) : null}
               {sent ? (
                 <p
-                  className="rounded-xl bg-primary/10 px-4 py-3 text-sm font-medium text-foreground"
+                  className="rounded-xl bg-muted px-4 py-3 text-sm font-medium text-foreground"
                   role="status"
                   aria-live="polite"
                 >

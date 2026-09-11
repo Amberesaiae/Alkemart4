@@ -75,7 +75,7 @@ function PartnersPage() {
         />
       </div>
 
-      <section className="grid gap-4 rounded-3xl border border-border surface-cream p-6 sm:grid-cols-[auto_1fr] sm:items-center sm:gap-8">
+      <section className="grid gap-4 rounded-3xl border border-border surface-soft p-6 sm:grid-cols-[auto_1fr] sm:items-center sm:gap-8">
         <Illustration name="authBuyer" size="md" className="mx-0" />
         <div className="space-y-2">
           <h2 className="text-lg font-bold text-foreground">

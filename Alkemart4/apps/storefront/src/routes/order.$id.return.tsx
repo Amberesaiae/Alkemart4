@@ -218,7 +218,7 @@ function ReturnRequestPage() {
                   key={item.id}
                   className={`flex items-center gap-3 rounded-2xl border p-3 cursor-pointer transition-colors ${
                     isSelected
-                      ? "border-primary bg-primary/5"
+                      ? "border-primary bg-muted"
                       : "border-border/80 bg-background hover:border-muted-foreground/30"
                   }`}
                 >

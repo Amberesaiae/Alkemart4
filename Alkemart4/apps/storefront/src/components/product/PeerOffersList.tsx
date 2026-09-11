@@ -47,7 +47,7 @@ export function PeerOffersList({
                 className={cn(
                   "flex w-full items-center justify-between gap-3 rounded-xl p-2.5 text-left text-sm transition-all",
                   selected
-                    ? "bg-primary/15 font-semibold ring-1 ring-primary/40 shadow-xs text-foreground"
+                    ? "bg-muted font-semibold ring-1 ring-primary/40 shadow-xs text-foreground"
                     : "hover:bg-muted/60 text-muted-foreground hover:text-foreground",
                 )}
               >

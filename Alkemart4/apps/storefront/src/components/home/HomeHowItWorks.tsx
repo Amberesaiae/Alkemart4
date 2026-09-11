@@ -78,7 +78,7 @@ export function HomeHowItWorks({
             <div
               className={cn(
                 "relative flex shrink-0 items-center justify-center rounded-lg",
-                "bg-primary/10 size-16 sm:size-20",
+                "bg-muted size-16 sm:size-20",
               )}
             >
               <span
@@ -105,7 +105,7 @@ export function HomeHowItWorks({
               <h3 className="text-base font-bold tracking-tight text-white sm:text-lg">
                 {step.title}
               </h3>
-              <p className="text-sm leading-snug text-[#e9dfc8] sm:text-base sm:leading-relaxed">
+              <p className="text-sm leading-snug text-white/75 sm:text-base sm:leading-relaxed">
                 {step.body}
               </p>
             </div>

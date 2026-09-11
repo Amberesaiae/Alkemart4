@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { createFileRoute, Link } from "@tanstack/react-router"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { Button } from "@workspace/ui"
@@ -86,17 +86,87 @@ function ProductDetailPage() {
   const peerOffers = peersQ.data ?? []
   const peersReady = peersQ.isSuccess || peersQ.isError
   // Prefer product.offerCount (CF detail) so we don't auto-select during peer load.
+  /** V1 matrix: attribute-first selection resolving to combo offers. */
+  const optionTypes = p?.optionTypes ?? []
+  const allCombos = p?.combos ?? []
+  const hasMatrix = optionTypes.length > 0
+  const [comboSel, setComboSel] = useState<Record<string, string>>({})
+  const peerIdSet = useMemo(() => new Set(peerOffers.map((o) => o.offerId)), [peerOffers])
+  const comboMatches = (combo: { options: Record<string, string> }, sel: Record<string, string>) =>
+    Object.entries(sel).every(([k, v]) => (combo.options[k] ?? "").toLowerCase() === v.toLowerCase())
+  const matchingCombos = useMemo(
+    () => allCombos.filter((c) => comboMatches(c, comboSel)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [allCombos, comboSel],
+  )
+  const comboComplete =
+    !hasMatrix ||
+    optionTypes.every(
+      (t) => comboSel[t.name] && t.values.some((v) => v.toLowerCase() === comboSel[t.name].toLowerCase()),
+    )
+  const comboBuyable = (c: { active: boolean; availableQty: number; offerId: string }) =>
+    c.active && c.availableQty > 0 && peerIdSet.has(c.offerId)
+  const exactBuyable = comboComplete ? matchingCombos.filter(comboBuyable) : []
+  // Preselect the cheapest buyable combo once peers resolve (anchors lowest price).
+  useEffect(() => {
+    if (!hasMatrix || !peersReady || Object.keys(comboSel).length > 0) return
+    const finite = allCombos.filter((c) => comboBuyable(c) && c.amount != null)
+    finite.sort((a, b) => (a.amount as number) - (b.amount as number))
+    const first = finite[0]
+    if (!first) return
+    const sel: Record<string, string> = {}
+    for (const t of optionTypes) {
+      const v = first.options[t.name]
+      if (v) sel[t.name] = v
+    }
+    setComboSel(sel)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasMatrix, peersReady, p?.id])
+  // A stale seller pick must never survive a combination change.
+  useEffect(() => {
+    if (hasMatrix) setSelectedOfferId(null)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [comboSel])
   const knownOfferCount = p?.offerCount ?? (peersReady ? peerOffers.length : null)
-  const requiresOfferPick = (knownOfferCount ?? 0) > 1
+  const matchingBuyableIds = useMemo(
+    () => new Set(matchingCombos.filter(comboBuyable).map((c) => c.offerId)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [matchingCombos, peerIdSet],
+  )
+  const matrixPeers = useMemo(
+    () => (hasMatrix ? peerOffers.filter((o) => matchingBuyableIds.has(o.offerId)) : peerOffers),
+    [hasMatrix, peerOffers, matchingBuyableIds],
+  )
+  const requiresOfferPick = hasMatrix
+    ? matrixPeers.length > 1
+    : (knownOfferCount ?? 0) > 1
   const activeOfferId = requiresOfferPick
     ? selectedOfferId
-    : selectedOfferId || p?.offerId || peerOffers[0]?.offerId || null
+    : selectedOfferId || (hasMatrix ? (matrixPeers[0]?.offerId ?? null) : (p?.offerId || peerOffers[0]?.offerId || null))
   const activePeer = peerOffers.find((o) => o.offerId === activeOfferId)
-  const displayAmount = activePeer?.amount ?? p?.amount ?? null
+  const matrixAmount = hasMatrix && comboComplete
+    ? matchingCombos.reduce<number | null>(
+        (best, c) => (c.amount != null && (best == null || c.amount < best) ? c.amount : best),
+        null,
+      )
+    : null
+  const displayAmount = matrixAmount ?? activePeer?.amount ?? p?.amount ?? null
   const displayCurrency = activePeer?.currencyCode ?? p?.currencyCode ?? null
   const displaySeller = activePeer?.seller ?? p?.seller ?? null
+  const matrixOk = !hasMatrix || (comboComplete && exactBuyable.length > 0)
+  const matrixReason = !hasMatrix
+    ? null
+    : !comboComplete
+      ? "Select " + (optionTypes.find((t) => !comboSel[t.name])?.name ?? "options")
+      : exactBuyable.length === 0
+        ? (matchingCombos.length > 0 && matchingCombos.every((c) => !c.active)
+          ? "This combination is no longer available"
+          : "This combination is out of stock")
+        : null
 
   useEffect(() => {
+    // Matrix products resolve through the combination selector instead.
+    if (hasMatrix) return
     // Wait until we know offer count; never auto-pick when multiple sellers.
     if (!peersReady && p?.offerCount == null) return
     if (requiresOfferPick) return
@@ -108,6 +178,7 @@ function ProductDetailPage() {
   // Reset selection when navigating to a different product.
   useEffect(() => {
     setSelectedOfferId(null)
+    setComboSel({})
   }, [p?.id])
 
   const add = useMutation({
@@ -147,10 +218,11 @@ function ProductDetailPage() {
   })
   const pauseInfo = pauseQ.data?.vendor.availability
   const sellerPaused = pauseInfo?.state === "paused"
-  const canAdd = canAddBase && !sellerPaused
+  const canAdd = canAddBase && !sellerPaused && matrixOk
   const pausedReason = sellerPaused
     ? `This shop is paused${pauseInfo?.note ? ` — ${pauseInfo.note}` : ""}${pauseInfo?.pausedUntil ? ` (back ${new Date(pauseInfo.pausedUntil).toLocaleDateString()})` : ""}`
     : null
+  const unavailableReason = pausedReason ?? matrixReason
   const productPath = `/product/${id}`
 
   const jsonLd = p?.id
@@ -275,8 +347,56 @@ function ProductDetailPage() {
               className="text-2xl font-bold"
             />
 
+            {hasMatrix && (
+              <div className="space-y-3">
+                {optionTypes.map((t) => (
+                  <div key={t.name} className="space-y-1.5">
+                    <p className="text-sm font-bold" id={"combo-label-" + t.name}>
+                      {t.name}:{" "}
+                      <span className="font-medium text-muted-foreground">
+                        {comboSel[t.name] ?? "Select"}
+                      </span>
+                    </p>
+                    <div role="radiogroup" aria-labelledby={"combo-label-" + t.name} className="flex flex-wrap gap-2">
+                      {t.values.map((v) => {
+                        const chosen: Record<string, string> = { ...comboSel, [t.name]: v }
+                        const exists = allCombos.some((c) => comboMatches(c, chosen))
+                        if (!exists) return null
+                        const buyable = allCombos.some(
+                          (c) => comboMatches(c, chosen) && comboBuyable(c),
+                        )
+                        const selected = (comboSel[t.name] ?? "").toLowerCase() === v.toLowerCase()
+                        return (
+                          <button
+                            key={v}
+                            type="button"
+                            role="radio"
+                            aria-checked={selected}
+                            aria-label={t.name + ": " + v + (buyable ? "" : " (out of stock)")}
+                            title={buyable ? v : v + " - out of stock"}
+                            disabled={!buyable}
+                            onClick={() => setComboSel(chosen)}
+                            className={
+                              "min-h-11 min-w-11 rounded-xl border px-3 py-2 text-sm font-bold transition-colors " +
+                              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 " +
+                              (selected
+                                ? "border-primary bg-muted text-foreground ring-2 ring-primary"
+                                : "border-border bg-card text-foreground hover:border-primary/60") +
+                              (!buyable ? " cursor-not-allowed opacity-60 line-through" : "")
+                            }
+                          >
+                            {v}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
             <PeerOffersList
-              offers={peerOffers}
+              offers={hasMatrix ? matrixPeers : peerOffers}
               activeOfferId={activeOfferId}
               onSelect={setSelectedOfferId}
             />
@@ -315,7 +435,7 @@ function ProductDetailPage() {
               onAdd={() => add.mutate()}
               sellerName={displaySeller?.name}
               sellerHandle={displaySeller?.handle}
-              unavailableReason={pausedReason}
+              unavailableReason={unavailableReason}
             />
           </div>
         </article>
@@ -341,7 +461,7 @@ function ProductDetailPage() {
             onAdd={() => add.mutate()}
             sellerName={displaySeller?.name}
             sellerHandle={displaySeller?.handle}
-            unavailableReason={pausedReason}
+            unavailableReason={unavailableReason}
           />
         </div>
       ) : null}

@@ -90,7 +90,7 @@ export function ListingLayout({
             className={cn(
               "ms-auto inline-flex min-h-11 items-center gap-2 rounded-full border border-border bg-card px-4 py-2 type-sm font-semibold transition",
               "hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
-              filtersOpen && "border-primary/40 bg-primary/5",
+              filtersOpen && "border-primary/40 bg-muted",
             )}
             aria-expanded={filtersOpen}
             aria-controls={panelId}

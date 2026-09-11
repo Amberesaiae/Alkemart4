@@ -61,7 +61,7 @@ function SellPage() {
             ) : null}
           </div>
         </div>
-        <div className="surface-cream mt-4 flex items-center justify-center rounded-2xl p-6 sm:mt-0 sm:p-8">
+        <div className="surface-soft mt-4 flex items-center justify-center rounded-2xl p-6 sm:mt-0 sm:p-8">
           <Illustration name="authSeller" size="lg" priority alt="Seller Hub illustration" />
         </div>
       </header>
@@ -124,7 +124,7 @@ function Step(props: {
       className="flex flex-col rounded-2xl border border-border bg-card p-6 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       aria-label={`Step ${props.n}: ${props.title}`}
     >
-      <div className="surface-cream mb-4 flex justify-center rounded-xl py-4 ring-1 ring-border/50">
+      <div className="surface-soft mb-4 flex justify-center rounded-xl py-4 ring-1 ring-border/50">
         <Illustration name={props.art} size="sm" alt="" />
       </div>
       <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">

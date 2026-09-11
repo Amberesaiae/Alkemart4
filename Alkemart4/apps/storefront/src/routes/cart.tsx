@@ -113,7 +113,7 @@ function CartPage() {
         <div className="grid gap-8 lg:grid-cols-[1fr_300px]">
           <div className="space-y-6">
             {multiSeller ? (
-              <p className="rounded-2xl border border-primary/30 bg-primary/15 px-4 py-3 text-xs leading-relaxed text-foreground">
+              <p className="rounded-2xl border border-primary/30 bg-muted px-4 py-3 text-xs leading-relaxed text-foreground">
                 Items in this cart come from more than one seller. Shipping
                 options are chosen per seller at checkout.
               </p>

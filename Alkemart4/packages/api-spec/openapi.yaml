@@ -1396,6 +1396,52 @@ components:
           description: onHand minus reserved.
         deliveryFeePesewas:
           $ref: "#/components/schemas/PesewasString"
+        options:
+          type: object
+          additionalProperties:
+            type: string
+          description: Combination option map (V1 matrix); empty for legacy offers.
+
+    ProductOptionType:
+      type: object
+      additionalProperties: false
+      required:
+        - name
+        - values
+      properties:
+        name:
+          type: string
+        values:
+          type: array
+          items:
+            type: string
+
+    ProductCombo:
+      type: object
+      additionalProperties: false
+      required:
+        - offerId
+        - sellerId
+        - options
+        - pricePesewas
+        - availableQty
+        - active
+      properties:
+        offerId:
+          type: string
+        sellerId:
+          type: string
+        options:
+          type: object
+          additionalProperties:
+            type: string
+        pricePesewas:
+          $ref: "#/components/schemas/PesewasString"
+        availableQty:
+          type: integer
+          description: onHand minus reserved (may be <= 0 for strikethrough display).
+        active:
+          type: boolean
 
     ProductDetail:
       type: object
@@ -1408,6 +1454,8 @@ components:
         - categoryName
         - imageUrls
         - offers
+        - optionTypes
+        - combos
       properties:
         productId:
           type: string
@@ -1429,6 +1477,16 @@ components:
           items:
             $ref: "#/components/schemas/PeerOffer"
           description: Sellable peer offers, cheapest first (offerId tie-break).
+        optionTypes:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProductOptionType"
+          description: Variant option types in display order (V1 matrix).
+        combos:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProductCombo"
+          description: Every combination incl. unstocked/archived, for honest strikethrough.
 
     CategoryNode:
       type: object

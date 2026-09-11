@@ -402,7 +402,7 @@ function CheckoutPage() {
                           className={cn(
                             "w-full rounded-2xl border p-4 text-left text-sm transition",
                             selected
-                              ? "border-primary bg-primary/10 ring-1 ring-primary"
+                              ? "border-primary bg-muted ring-1 ring-primary"
                               : "border-border hover:bg-muted/40",
                           )}
                         >
@@ -432,7 +432,7 @@ function CheckoutPage() {
                       className={cn(
                         "w-full rounded-2xl border border-dashed p-4 text-left text-sm font-medium transition",
                         selectedAddressId === "new"
-                          ? "border-primary bg-primary/10 ring-1 ring-primary"
+                          ? "border-primary bg-muted ring-1 ring-primary"
                           : "border-border hover:bg-muted/40",
                       )}
                     >
@@ -602,7 +602,7 @@ function CheckoutPage() {
                   className={cn(
                     "flex cursor-pointer items-start gap-3 rounded-xl border p-3",
                     payMethod === "cod"
-                      ? "border-primary bg-primary/10"
+                      ? "border-primary bg-muted"
                       : "border-border",
                   )}
                 >
@@ -627,7 +627,7 @@ function CheckoutPage() {
                     className={cn(
                       "flex cursor-pointer items-start gap-3 rounded-xl border p-3",
                       payMethod === "card"
-                        ? "border-primary bg-primary/10"
+                        ? "border-primary bg-muted"
                         : "border-border",
                     )}
                   >
@@ -654,7 +654,7 @@ function CheckoutPage() {
                       className={cn(
                         "flex cursor-pointer items-start gap-3 rounded-xl border p-3",
                         payMethod === "momo"
-                          ? "border-primary bg-primary/10"
+                          ? "border-primary bg-muted"
                           : "border-border",
                       )}
                     >

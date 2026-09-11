@@ -13,6 +13,8 @@ Checkout charge/initialize is Plan 3 (not documented here).
  * OpenAPI spec version: 0.4.0
  */
 import type { PeerOffer } from './peerOffer';
+import type { ProductOptionType } from './productOptionType';
+import type { ProductCombo } from './productCombo';
 
 export interface ProductDetail {
   productId: string;
@@ -24,4 +26,8 @@ export interface ProductDetail {
   imageUrls: string[];
   /** Sellable peer offers, cheapest first (offerId tie-break). */
   offers: PeerOffer[];
+  /** Variant option types in display order (V1 matrix). */
+  optionTypes: ProductOptionType[];
+  /** Every combination incl. unstocked/archived, for honest strikethrough. */
+  combos: ProductCombo[];
 }

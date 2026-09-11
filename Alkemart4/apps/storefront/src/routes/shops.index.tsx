@@ -104,7 +104,7 @@ function SellersPage() {
               className="group flex h-full flex-col gap-4 rounded-2xl border border-border bg-card p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"
             >
               <div className="flex items-center gap-3">
-                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-primary/25 text-xl font-bold text-foreground">
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-muted text-xl font-bold text-foreground">
                   {s.name.slice(0, 1).toUpperCase()}
                 </div>
                 <div className="min-w-0">

@@ -82,11 +82,11 @@ function AboutPage() {
         {/* Hero */}
         <header className="relative overflow-hidden rounded-2xl border border-border bg-card shadow-xs">
           <div
-            className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-primary/20 blur-3xl"
+            className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-ink/5 blur-3xl"
             aria-hidden
           />
           <div
-            className="pointer-events-none absolute -bottom-20 left-1/3 h-48 w-48 rounded-full bg-primary/10 blur-3xl"
+            className="pointer-events-none absolute -bottom-20 left-1/3 h-48 w-48 rounded-full bg-ink/5 blur-3xl"
             aria-hidden
           />
           <div className="relative grid gap-8 p-6 sm:p-10 lg:grid-cols-[1.2fr_0.8fr] lg:items-center lg:p-12">
@@ -181,7 +181,7 @@ function AboutPage() {
                 key={p.title}
                 className="flex gap-4 rounded-2xl border border-border bg-card p-5 shadow-sm"
               >
-                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-foreground">
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-muted text-foreground">
                   <IconSafe name={p.icon} size={22} />
                 </span>
                 <div className="space-y-1">

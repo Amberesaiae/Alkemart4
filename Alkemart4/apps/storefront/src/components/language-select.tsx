@@ -80,7 +80,7 @@ export function LanguageSelect({ className, compact }: Props) {
               data-testid={`auth-language-select-option-${lang.code}`}
               className={cn(
                 "block w-full px-3 py-2 text-left text-sm transition hover:bg-muted",
-                lang.code === code && "bg-primary/15 font-semibold",
+                lang.code === code && "bg-muted font-semibold",
               )}
               onClick={() => {
                 setCode(lang.code)

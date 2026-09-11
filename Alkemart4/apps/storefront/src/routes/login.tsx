@@ -75,11 +75,11 @@ function SignInPage() {
       <aside className="relative hidden flex-col justify-between overflow-hidden bg-ink px-10 py-10 text-white md:flex lg:px-14 lg:py-12">
         <div
           aria-hidden
-          className="pointer-events-none absolute -top-32 -right-32 h-96 w-96 rounded-full bg-primary/25 blur-3xl"
+          className="pointer-events-none absolute -top-32 -right-32 h-96 w-96 rounded-full bg-ink/5 blur-3xl"
         />
         <div
           aria-hidden
-          className="pointer-events-none absolute -bottom-40 -left-24 h-80 w-80 rounded-full bg-primary/10 blur-3xl"
+          className="pointer-events-none absolute -bottom-40 -left-24 h-80 w-80 rounded-full bg-ink/5 blur-3xl"
         />
         <Link to="/" className="relative text-2xl font-extrabold tracking-tight">
           <span className="text-primary">●</span> alkemart

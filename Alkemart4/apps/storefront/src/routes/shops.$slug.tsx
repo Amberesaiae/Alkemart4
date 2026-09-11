@@ -137,7 +137,7 @@ function StorePage() {
       {vendor && name ? (
         <div className="space-y-4">
           {vendor.availability?.state === "paused" ? (
-            <div role="status" className="p-4 rounded-2xl bg-warning/10 border border-warning/20">
+            <div role="status" className="p-4 rounded-2xl bg-tone-warning-soft text-tone-warning-ink border border-tone-warning-ink/25">
               <p className="font-bold text-warning-fg">This shop is taking a break.</p>
               {vendor.availability.note ? (
                 <p className="text-sm text-warning-fg/90 mt-1">{vendor.availability.note}</p>

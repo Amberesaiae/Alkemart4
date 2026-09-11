@@ -76,7 +76,16 @@
   Combinations section (per-combo edit/archive/add); quick-sell
   already collects and now sends entries. Remaining polish: combo
   grid preview inside quick-sell step 2.
-- **V3 (storefront) — open.** PDP selector + live offer resolution.
+- **V3 (storefront) — SHIPPED + proven live.** `ProductDetailDto`
+  carries `optionTypes` + every combo (incl. unstocked/archived) +
+  per-offer option maps; PDP renders one radiogroup per attribute
+  (pills, 44px targets, live labels, focus rings, colour-independent
+  selection), preselects the cheapest buyable combo, strike-throughs
+  unbuyable values without hiding them, narrows the seller picker to
+  the chosen combo, and disables ATC with named reasons
+  (Select X / out of stock / no longer available / paused shop).
+  Verified live with a throwaway vendor (created → approved →
+  screenshot → full SQL cleanup).
 
 ## Addendum — gaps closed on second pass
 

@@ -20,6 +20,21 @@ export type ProductCardDto = {
   currency: "ghs"
 }
 
+export type ProductOptionTypeDto = {
+  name: string
+  values: string[]
+}
+
+/** Every combination incl. unstocked/archived (for honest strikethrough). */
+export type ProductComboDetailDto = {
+  offerId: string
+  sellerId: string
+  options: Record<string, string>
+  pricePesewas: string
+  availableQty: number
+  active: boolean
+}
+
 export type ProductDetailDto = {
   productId: string
   title: string
@@ -28,6 +43,8 @@ export type ProductDetailDto = {
   categoryName: string
   imageUrls: string[]
   offers: PeerOfferDto[]
+  optionTypes: ProductOptionTypeDto[]
+  combos: ProductComboDetailDto[]
 }
 
 export type ProductCardInput = {
@@ -88,6 +105,10 @@ export function toProductCard(
 export function toProductDetail(
   product: ProductDetailInput,
   sellableOffers: PeerOfferInput[],
+  extras?: {
+    optionTypes?: ProductOptionTypeDto[]
+    combos?: ProductComboDetailDto[]
+  },
 ): ProductDetailDto {
   return {
     productId: product.productId,
@@ -97,5 +118,7 @@ export function toProductDetail(
     categoryName: product.categoryName,
     imageUrls: product.imageUrls,
     offers: sortPeerOffers(sellableOffers).map(toPeerOffer),
+    optionTypes: extras?.optionTypes ?? [],
+    combos: extras?.combos ?? [],
   }
 }

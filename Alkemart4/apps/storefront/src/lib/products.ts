@@ -40,6 +40,17 @@ export type StoreProductCard = {
   webUrl?: string | null
   /** Seller identity if store API returns it — omit when missing. */
   seller?: SellerRef | null
+  /** Variant option types in display order (V1 matrix; empty for legacy). */
+  optionTypes?: { name: string; values: string[] }[]
+  /** Every combination incl. unstocked/archived. */
+  combos?: {
+    offerId: string
+    sellerId: string
+    options: Record<string, string>
+    amount: number | null
+    availableQty: number
+    active: boolean
+  }[]
   /**
    * Frontend homepage demo seed only — not from Medusa.
    * Cards must not invent offers; add-to-cart stays disabled.
@@ -125,12 +136,22 @@ function mapCfDetail(d: CfProductDetail): StoreProductCard {
           handle: best.sellerHandle,
         }
       : null,
+    optionTypes: d.optionTypes ?? [],
+    combos: (d.combos ?? []).map((c) => ({
+      offerId: c.offerId,
+      sellerId: c.sellerId,
+      options: c.options ?? {},
+      amount: pesewasStringToMajor(c.pricePesewas),
+      availableQty: c.availableQty,
+      active: c.active,
+    })),
   }
 }
 
 function mapCfPeer(o: CfPeerOffer, productId: string): PeerOffer {
   return {
     offerId: o.offerId,
+    options: o.options ?? {},
     productId,
     seller: {
       id: o.sellerId,
@@ -631,6 +652,7 @@ export type StoreCategory = {
  */
 export type PeerOffer = {
   offerId: string
+  options?: Record<string, string>
   productId?: string | null
   seller: SellerRef
   amount?: number | null

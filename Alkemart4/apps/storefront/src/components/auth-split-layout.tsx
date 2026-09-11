@@ -33,11 +33,11 @@ export function AuthSplitLayout({
         className,
       )}
     >
-      <aside className="relative hidden h-full min-h-0 overflow-hidden surface-cream md:flex md:flex-col">
+      <aside className="relative hidden h-full min-h-0 overflow-hidden surface-soft md:flex md:flex-col">
         {/* Soft ambient glow — same family as cream, no hard geometry */}
         <div
           aria-hidden
-          className="pointer-events-none absolute left-1/2 top-1/2 h-[70vmin] w-[70vmin] -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/25 blur-3xl"
+          className="pointer-events-none absolute left-1/2 top-1/2 h-[70vmin] w-[70vmin] -translate-x-1/2 -translate-y-1/2 rounded-full bg-ink/5 blur-3xl"
         />
 
         <div className="relative z-10 px-10 pt-10 lg:px-12 lg:pt-12">

@@ -12,23 +12,15 @@ Checkout charge/initialize is Plan 3 (not documented here).
 
  * OpenAPI spec version: 0.4.0
  */
+import type { ProductComboOptions } from './productComboOptions';
 import type { PesewasString } from './pesewasString';
-import type { Currency } from './currency';
-import type { PeerOfferOptions } from './peerOfferOptions';
 
-export interface PeerOffer {
+export interface ProductCombo {
   offerId: string;
   sellerId: string;
-  sellerHandle: string;
-  sellerName: string;
+  options: ProductComboOptions;
   pricePesewas: PesewasString;
-  currency: Currency;
-  /**
-   * onHand minus reserved.
-   * @minimum 0
-   */
-  available: number;
-  deliveryFeePesewas: PesewasString;
-  /** Combination option map (V1 matrix); empty for legacy offers. */
-  options?: PeerOfferOptions;
+  /** onHand minus reserved (may be <= 0 for strikethrough display). */
+  availableQty: number;
+  active: boolean;
 }

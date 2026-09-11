@@ -627,7 +627,16 @@ export function getProductFrom(data: CatalogSnapshot, id: string): ProductDetail
   const product = data.products.find((p) => p.id === id)
   if (!product) return null
   const cat = categoryById(data).get(product.primaryCategoryId)
-  const offersForProduct = sellablePeerOffers(data).get(product.id) ?? []
+  const extras = assembleExtras(data, product.id)
+  const optionMap = new Map<string, Record<string, string>>()
+  for (const combo of extras.variants) {
+    const offer = data.offers.find((o) => o.id === combo.offer.id)
+    if (offer) optionMap.set(offer.id, combo.options)
+  }
+  const offersForProduct = (sellablePeerOffers(data).get(product.id) ?? []).map((o) => ({
+    ...o,
+    options: optionMap.get(o.offerId) ?? {},
+  }))
   return toProductDetail(
     {
       productId: product.id,
@@ -638,6 +647,19 @@ export function getProductFrom(data: CatalogSnapshot, id: string): ProductDetail
       imageUrls: product.imageUrl ? [product.imageUrl] : [],
     },
     offersForProduct,
+    {
+      optionTypes: extras.options.map((o) => ({ name: o.name, values: o.values.map((v) => v.value) })),
+      combos: data.offers
+        .filter((o) => o.productId === product.id)
+        .map((o) => ({
+          offerId: o.id,
+          sellerId: o.sellerId,
+          options: optionMap.get(o.id) ?? {},
+          pricePesewas: o.pricePesewas.toString(),
+          availableQty: o.onHand - o.reserved,
+          active: o.active,
+        })),
+    },
   )
 }
 

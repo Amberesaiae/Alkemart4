@@ -374,7 +374,7 @@ function AccountPage() {
                 <p className="font-semibold">
                   {[a.firstName, a.lastName].filter(Boolean).join(" ")}
                   {a.isDefaultShipping ? (
-                    <span className="ml-2 rounded-full bg-primary/20 px-2 py-0.5 text-xs font-bold uppercase tracking-wide text-foreground">
+                    <span className="ml-2 rounded-full bg-muted px-2 py-0.5 text-xs font-bold uppercase tracking-wide text-foreground">
                       default
                     </span>
                   ) : null}

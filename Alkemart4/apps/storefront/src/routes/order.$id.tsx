@@ -130,7 +130,7 @@ function OrderDetailPage() {
 
       {justPlaced ? (
         <section
-          className="overflow-hidden rounded-3xl border border-primary/30 bg-primary/15 p-6 sm:p-8"
+          className="overflow-hidden rounded-3xl border border-primary/30 bg-muted p-6 sm:p-8"
           aria-live="polite"
         >
           <div className="flex flex-col items-start gap-5 sm:flex-row sm:items-center">

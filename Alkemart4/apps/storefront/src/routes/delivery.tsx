@@ -47,7 +47,7 @@ function DeliveryPage() {
             <div
               className={cn(
                 "flex shrink-0 items-center justify-center rounded-2xl",
-                "bg-primary/10 size-20 sm:size-28",
+                "bg-muted size-20 sm:size-28",
               )}
               aria-hidden="true"
             >
@@ -132,7 +132,7 @@ function DeliveryPage() {
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="flex items-start gap-4 rounded-xl border border-border bg-card p-5 shadow-sm">
               <div
-                className="flex shrink-0 items-center justify-center rounded-xl bg-primary/10 size-14 sm:size-16"
+                className="flex shrink-0 items-center justify-center rounded-xl bg-muted size-14 sm:size-16"
                 aria-hidden="true"
               >
                 <img
@@ -157,7 +157,7 @@ function DeliveryPage() {
             </div>
             <div className="flex items-start gap-4 rounded-xl border border-border bg-card p-5 shadow-sm">
               <div
-                className="flex shrink-0 items-center justify-center rounded-xl bg-primary/10 size-14 sm:size-16"
+                className="flex shrink-0 items-center justify-center rounded-xl bg-muted size-14 sm:size-16"
                 aria-hidden="true"
               >
                 <img
@@ -199,7 +199,7 @@ function DeliveryPage() {
         </section>
 
         {/* CTA */}
-        <section className="rounded-2xl border border-border bg-primary/10 p-6 text-center sm:p-8">
+        <section className="rounded-2xl border border-border bg-muted p-6 text-center sm:p-8">
           <h2 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
             Ready to shop?
           </h2>

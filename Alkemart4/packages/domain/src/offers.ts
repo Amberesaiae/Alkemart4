@@ -7,6 +7,8 @@ export type PeerOfferDto = {
   currency: "ghs"
   available: number
   deliveryFeePesewas: string
+  /** Combination option map (V1 matrix); empty for legacy offers. */
+  options: Record<string, string>
 }
 
 export type PeerOfferInput = {
@@ -18,6 +20,7 @@ export type PeerOfferInput = {
   onHand: number
   reserved: number
   deliveryFeePesewas: bigint
+  options?: Record<string, string>
 }
 
 function compareOfferPriceThenId<T extends { pricePesewas: bigint; offerId: string }>(
@@ -51,5 +54,6 @@ export function toPeerOffer(offer: PeerOfferInput): PeerOfferDto {
     currency: "ghs",
     available: offer.onHand - offer.reserved,
     deliveryFeePesewas: offer.deliveryFeePesewas.toString(),
+    options: offer.options ?? {},
   }
 }
