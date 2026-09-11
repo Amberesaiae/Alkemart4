@@ -1,9 +1,12 @@
 import {
   categories,
   offers,
+  productOptions,
+  productOptionValues,
   products,
   productVariants,
   sellers,
+  variantOptionValues,
 } from "@alkemart/db"
 import {
   approveProduct,
@@ -21,9 +24,19 @@ import {
   type ProductDetailDto,
   type ProductStatus,
 } from "@alkemart/domain"
-import { eq } from "drizzle-orm"
+import { and, eq } from "drizzle-orm"
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js"
 import { flagCatalogProduct, flaggingContext, type ProductFlag } from "./moderation-flags"
+import {
+  buildVariantMatrix,
+  comboLabel,
+  InvalidVariantMatrixError,
+  MAX_COMBOS,
+  MAX_OPTION_TYPES,
+  MAX_OPTION_VALUE,
+  normalizeOptionSpecs,
+  type OptionSpec,
+} from "./variant-matrix"
 import type {
   CatalogOffer,
   CatalogProduct,
@@ -74,6 +87,23 @@ export type VendorOfferDto = {
   active: boolean
 }
 
+export type ProductOptionDto = {
+  id: string
+  name: string
+  values: { id: string; value: string }[]
+}
+
+export type ProductComboDto = {
+  variant: {
+    id: string
+    sku: string | null
+    title: string | null
+  }
+  offer: VendorOfferDto
+  /** Option name → value for this combo (spec order). */
+  options: Record<string, string>
+}
+
 export type VendorProductDto = {
   product: {
     id: string
@@ -90,6 +120,23 @@ export type VendorProductDto = {
     title: string | null
   }
   offer: VendorOfferDto
+  /** Option types + values (empty for legacy single-variant products). */
+  options: ProductOptionDto[]
+  /** Every combo with its offer; legacy `variant`/`offer` mirror the first. */
+  variants: ProductComboDto[]
+}
+
+export type VariantOptionInput = {
+  name: string
+  values: string[]
+}
+
+export type VariantEntryInput = {
+  /** Option name → value; must match a generated combo exactly. */
+  options: Record<string, string>
+  pricePesewas?: bigint
+  quantity?: number
+  sku?: string | null
 }
 
 export type CreateVendorProductInput = {
@@ -102,6 +149,22 @@ export type CreateVendorProductInput = {
   sku?: string | null
   variantTitle?: string | null
   imageUrl?: string | null
+  variantOptions?: VariantOptionInput[]
+  variantEntries?: VariantEntryInput[]
+}
+
+export type UpdateProductVariantInput = {
+  pricePesewas?: bigint
+  onHand?: number
+  active?: boolean
+}
+
+export type AddOptionValueInput = {
+  optionId?: string
+  optionName?: string
+  value: string
+  /** Required when introducing a brand-new option type: labels every existing combo. */
+  existingValue?: string
 }
 
 export type UpdateVendorProductInput = {
@@ -171,6 +234,17 @@ export interface CatalogRepository {
     patch: UpdateVendorProductInput,
   ): Promise<VendorProductDto | null>
   proposeVendorProduct(sellerId: string, productId: string): Promise<VendorProductDto | null>
+  updateProductVariant(
+    sellerId: string,
+    productId: string,
+    variantId: string,
+    patch: { pricePesewas?: bigint; onHand?: number; active?: boolean },
+  ): Promise<VendorProductDto | null>
+  addProductOptionValue(
+    sellerId: string,
+    productId: string,
+    input: { optionId?: string; optionName?: string; value: string; existingValue?: string },
+  ): Promise<VendorProductDto | null>
   listVendorProducts(sellerId: string): Promise<VendorProductDto[]>
   listAdminProducts(status?: ProductStatus): Promise<AdminProductDto[]>
   listAdminProductsWithFlags(status?: ProductStatus): Promise<(AdminProductDto & { flags: ProductFlag[] })[]>
@@ -206,11 +280,73 @@ function assertLeafCategoryId(
   }
 }
 
+function toOfferDto(offer: CatalogOffer): VendorOfferDto {
+  return {
+    id: offer.id,
+    sellerId: offer.sellerId,
+    productId: offer.productId,
+    variantId: offer.variantId,
+    pricePesewas: offer.pricePesewas.toString(),
+    onHand: offer.onHand,
+    reserved: offer.reserved,
+    currency: "ghs",
+    active: offer.active,
+  }
+}
+
+type ExtrasData = Pick<
+  CatalogSnapshot,
+  "productOptions" | "productOptionValues" | "variantOptionValues" | "variants" | "offers"
+>
+
+/** Full option structure + every combo for one product. */
+function assembleExtras(
+  data: ExtrasData,
+  productId: string,
+): { options: ProductOptionDto[]; variants: ProductComboDto[] } {
+  const opts = data.productOptions
+    .filter((o) => o.productId === productId)
+    .sort((a, b) => a.position - b.position)
+  const options: ProductOptionDto[] = opts.map((o) => ({
+    id: o.id,
+    name: o.name,
+    values: data.productOptionValues
+      .filter((v) => v.optionId === o.id)
+      .sort((a, b) => a.position - b.position)
+      .map((v) => ({ id: v.id, value: v.value })),
+  }))
+  const valueById = new Map(data.productOptionValues.map((v) => [v.id, v]))
+  const optionById = new Map(opts.map((o) => [o.id, o]))
+  const variants: ProductComboDto[] = data.variants
+    .filter((v) => v.productId === productId)
+    .flatMap((v) => {
+      const offer = data.offers.find((o) => o.variantId === v.id)
+      if (!offer) return []
+      const map: Record<string, string> = {}
+      for (const link of data.variantOptionValues.filter((l) => l.variantId === v.id)) {
+        const val = valueById.get(link.valueId)
+        const opt = val ? optionById.get(val.optionId) : undefined
+        if (val && opt) map[opt.name] = val.value
+      }
+      return [
+        {
+          variant: { id: v.id, sku: v.sku, title: v.title },
+          offer: toOfferDto(offer),
+          options: map,
+        },
+      ]
+    })
+  return { options, variants }
+}
+
 function toVendorProductDto(
   product: CatalogProduct,
   variant: CatalogVariant,
   offer: CatalogOffer,
+  extras?: { options: ProductOptionDto[]; variants: ProductComboDto[] },
 ): VendorProductDto {
+  const baseVariant = { id: variant.id, sku: variant.sku, title: variant.title }
+  const baseOffer = toOfferDto(offer)
   return {
     product: {
       id: product.id,
@@ -221,23 +357,79 @@ function toVendorProductDto(
       sellerId: product.sellerId,
       imageUrl: product.imageUrl ?? null,
     },
-    variant: {
-      id: variant.id,
-      sku: variant.sku,
-      title: variant.title,
-    },
-    offer: {
-      id: offer.id,
-      sellerId: offer.sellerId,
-      productId: offer.productId,
-      variantId: offer.variantId,
-      pricePesewas: offer.pricePesewas.toString(),
-      onHand: offer.onHand,
-      reserved: offer.reserved,
-      currency: "ghs",
-      active: offer.active,
-    },
+    variant: baseVariant,
+    offer: baseOffer,
+    options: extras?.options ?? [],
+    variants: extras?.variants ?? [{ variant: baseVariant, offer: baseOffer, options: {} }],
   }
+}
+
+/** Deterministic per-product SKU for generated combos. */
+function comboSku(productId: string, index: number): string {
+  return `v-${productId.slice(0, 8)}-${index + 1}`
+}
+
+function matrixError<T>(fn: () => T): T {
+  try {
+    return fn()
+  } catch (err) {
+    if (err instanceof InvalidVariantMatrixError) throw new CatalogValidationError(err.message)
+    throw err
+  }
+}
+
+export type ResolvedCombo = {
+  combo: Record<string, string>
+  pricePesewas: bigint
+  onHand: number
+  sku: string | null
+}
+
+/**
+ * Match per-combo entry overrides onto generated combos. Unmatched entries
+ * are vendor typos — 400, never silent.
+ */
+function resolveComboEntries(
+  specs: OptionSpec[],
+  entries: VariantEntryInput[],
+  base: { pricePesewas: bigint; onHand: number },
+): ResolvedCombo[] {
+  const combos = buildVariantMatrix(specs)
+  const norm = (v: string) => v.trim().toLowerCase()
+  const remaining = entries.map((e) => ({
+    keys: new Map(Object.entries(e.options).map(([k, v]) => [norm(k), norm(v)])),
+    pricePesewas: e.pricePesewas,
+    quantity: e.quantity,
+    sku: e.sku ?? null,
+  }))
+  if (remaining.length > MAX_COMBOS) {
+    throw new CatalogValidationError(`at most ${MAX_COMBOS} combo overrides`)
+  }
+  const matched = combos.map((combo) => {
+    const keys = new Map(Object.entries(combo).map(([k, v]) => [norm(k), norm(v)]))
+    const idx = remaining.findIndex(
+      (e) =>
+        e.keys.size === keys.size && [...e.keys].every(([k, v]) => keys.get(k) === v),
+    )
+    const entry = idx >= 0 ? remaining.splice(idx, 1)[0]! : null
+    if (entry?.quantity !== undefined && (!Number.isInteger(entry.quantity) || entry.quantity < 0)) {
+      throw new CatalogValidationError("combo quantity must be a whole number ≥ 0")
+    }
+    if (entry?.pricePesewas !== undefined && entry.pricePesewas < 0n) {
+      throw new CatalogValidationError("combo price must be ≥ 0")
+    }
+    return {
+      combo,
+      pricePesewas: entry?.pricePesewas ?? base.pricePesewas,
+      onHand: entry?.quantity ?? base.onHand,
+      sku: entry?.sku?.trim() ? entry.sku.trim() : null,
+    }
+  })
+  if (remaining.length > 0) {
+    const stray = [...remaining[0]!.keys.entries()].map(([k, v]) => `${k}=${v}`).join(", ")
+    throw new CatalogValidationError(`no such combination: ${stray}`)
+  }
+  return matched
 }
 
 function toAdminProductDto(product: CatalogProduct): AdminProductDto {
@@ -516,9 +708,23 @@ export class InMemoryCatalogRepository implements CatalogRepository {
 
   async createVendorProduct(input: CreateVendorProductInput): Promise<VendorProductDto> {
     assertLeafCategoryId(this.data.categories, input.primaryCategoryId)
+    const specs = matrixError(() =>
+      normalizeOptionSpecs((input.variantOptions ?? []).map((o) => ({ name: o.name, values: o.values }))),
+    )
+    if (specs.length > 0 && (input.sku ?? null) !== null) {
+      throw new CatalogValidationError("set SKUs per combination via variant entries, not on the product")
+    }
+    if (specs.length > 0 && (input.variantTitle ?? null) !== null) {
+      throw new CatalogValidationError("combination titles derive from options")
+    }
+    // Resolve entries before mutating anything: typos 400 with a clean slate.
+    const resolved = matrixError(() =>
+      resolveComboEntries(specs, input.variantEntries ?? [], {
+        pricePesewas: input.pricePesewas,
+        onHand: input.onHand,
+      }),
+    )
     const productId = crypto.randomUUID()
-    const variantId = crypto.randomUUID()
-    const offerId = crypto.randomUUID()
     const product: CatalogProduct = {
       id: productId,
       title: input.title,
@@ -527,34 +733,94 @@ export class InMemoryCatalogRepository implements CatalogRepository {
       primaryCategoryId: input.primaryCategoryId,
       sellerId: input.sellerId,
     }
-    const variant: CatalogVariant = {
-      id: variantId,
-      productId,
-      sku: input.sku ?? null,
-      title: input.variantTitle ?? "Default",
-    }
-    const offer: CatalogOffer = {
-      id: offerId,
-      sellerId: input.sellerId,
-      productId,
-      variantId,
-      pricePesewas: input.pricePesewas,
-      onHand: input.onHand,
-      reserved: 0,
-      currency: "ghs",
-      active: true,
-    }
-    const clash = this.data.offers.some(
-      (o) =>
-        o.sellerId === offer.sellerId &&
-        o.productId === offer.productId &&
-        o.variantId === offer.variantId,
-    )
-    if (clash) throw new CatalogConflictError()
     this.data.products.push(product)
-    this.data.variants.push(variant)
-    this.data.offers.push(offer)
-    return toVendorProductDto(product, variant, offer)
+    if (specs.length === 0) {
+      const variantId = crypto.randomUUID()
+      const offerId = crypto.randomUUID()
+      const variant: CatalogVariant = {
+        id: variantId,
+        productId,
+        sku: input.sku ?? null,
+        title: input.variantTitle ?? "Default",
+      }
+      const offer: CatalogOffer = {
+        id: offerId,
+        sellerId: input.sellerId,
+        productId,
+        variantId,
+        pricePesewas: input.pricePesewas,
+        onHand: input.onHand,
+        reserved: 0,
+        currency: "ghs",
+        active: true,
+      }
+      const clash = this.data.offers.some(
+        (o) =>
+          o.sellerId === offer.sellerId &&
+          o.productId === offer.productId &&
+          o.variantId === offer.variantId,
+      )
+      if (clash) throw new CatalogConflictError()
+      this.data.variants.push(variant)
+      this.data.offers.push(offer)
+      return toVendorProductDto(product, variant, offer, assembleExtras(this.data, productId))
+    }
+    const names = specs.map((o) => o.name)
+    const valueIds = new Map<string, string>()
+    specs.forEach((spec, oi) => {
+      const optionId = crypto.randomUUID()
+      this.data.productOptions.push({ id: optionId, productId, name: spec.name, position: oi })
+      spec.values.forEach((value, vi) => {
+        const valueId = crypto.randomUUID()
+        this.data.productOptionValues.push({ id: valueId, optionId, value, position: vi })
+        valueIds.set(`${optionId}|${value.toLowerCase()}`, valueId)
+      })
+    })
+    const seenSkus = new Set<string>()
+    resolved.forEach((r, i) => {
+      const sku = r.sku ?? comboSku(productId, i)
+      if (seenSkus.has(sku.toLowerCase())) throw new CatalogValidationError(`duplicate sku "${sku}"`)
+      seenSkus.add(sku.toLowerCase())
+      const variantId = crypto.randomUUID()
+      this.data.variants.push({
+        id: variantId,
+        productId,
+        sku,
+        title: comboLabel(r.combo, names),
+      })
+      names.forEach((name, ni) => {
+        const option = this.data.productOptions.find(
+          (o) => o.productId === productId && o.name.toLowerCase() === name.toLowerCase(),
+        )
+        const valueId = valueIds.get(`${option!.id}|${r.combo[name]!.toLowerCase()}`)
+        if (!valueId) throw new CatalogValidationError(`unknown option value "${r.combo[name]}"`)
+        this.data.variantOptionValues.push({ variantId, valueId })
+        void ni
+      })
+      this.data.offers.push({
+        id: crypto.randomUUID(),
+        sellerId: input.sellerId,
+        productId,
+        variantId,
+        pricePesewas: r.pricePesewas,
+        onHand: r.onHand,
+        reserved: 0,
+        currency: "ghs",
+        active: true,
+      })
+    })
+    return this.assembleOwnedProduct(productId)
+  }
+
+  private assembleOwnedProduct(productId: string): VendorProductDto {
+    const product = this.data.products.find((p) => p.id === productId)
+    if (!product) throw new Error("product not found")
+    const extras = assembleExtras(this.data, productId)
+    const first = extras.variants[0]
+    if (!first) throw new Error("product has no variants")
+    const variant = this.data.variants.find((v) => v.id === first.variant.id)!
+    const offer = this.data.offers.find((o) => o.id === first.offer.id)!
+    return toVendorProductDto(product, variant, offer, extras)
   }
 
   async updateVendorProduct(
@@ -564,6 +830,18 @@ export class InMemoryCatalogRepository implements CatalogRepository {
   ): Promise<VendorProductDto | null> {
     const owned = sellerOwnsProduct(this.data, sellerId, productId)
     if (!owned) return null
+    if (
+      assembleExtras(this.data, productId).options.length > 0 &&
+      (patch.pricePesewas !== undefined ||
+        patch.onHand !== undefined ||
+        patch.active !== undefined ||
+        patch.sku !== undefined ||
+        patch.variantTitle !== undefined)
+    ) {
+      throw new CatalogValidationError(
+        "this product has combinations - edit price, stock, SKUs and visibility per combination",
+      )
+    }
     if (patch.primaryCategoryId !== undefined) {
       assertLeafCategoryId(this.data.categories, patch.primaryCategoryId)
       owned.product.primaryCategoryId = patch.primaryCategoryId
@@ -586,7 +864,200 @@ export class InMemoryCatalogRepository implements CatalogRepository {
     ) {
       owned.product.status = "proposed"
     }
-    return toVendorProductDto(owned.product, owned.variant, owned.offer)
+    return toVendorProductDto(
+      owned.product,
+      owned.variant,
+      owned.offer,
+      assembleExtras(this.data, productId),
+    )
+  }
+
+  async updateProductVariant(
+    sellerId: string,
+    productId: string,
+    variantId: string,
+    patch: UpdateProductVariantInput,
+  ): Promise<VendorProductDto | null> {
+    const product = this.data.products.find((p) => p.id === productId && p.sellerId === sellerId)
+    if (!product) return null
+    const variant = this.data.variants.find((v) => v.id === variantId && v.productId === productId)
+    if (!variant) return null
+    const offer = this.data.offers.find((o) => o.variantId === variantId)
+    if (!offer) return null
+    if (patch.pricePesewas !== undefined) {
+      if (patch.pricePesewas < 0n) throw new CatalogValidationError("price must be >= 0")
+      offer.pricePesewas = patch.pricePesewas
+    }
+    if (patch.onHand !== undefined) {
+      if (!Number.isInteger(patch.onHand) || patch.onHand < 0) {
+        throw new CatalogValidationError("stock must be a whole number >= 0")
+      }
+      offer.onHand = patch.onHand
+    }
+    if (patch.active !== undefined) offer.active = patch.active
+    return toVendorProductDto(product, variant, offer, assembleExtras(this.data, productId))
+  }
+
+  async addProductOptionValue(
+    sellerId: string,
+    productId: string,
+    input: AddOptionValueInput,
+  ): Promise<VendorProductDto | null> {
+    const clean = (v: string) => v.trim().replace(/\s+/g, " ")
+    const product = this.data.products.find((p) => p.id === productId && p.sellerId === sellerId)
+    if (!product) return null
+    const value = clean(input.value)
+    if (!value) throw new CatalogValidationError("value is required")
+    if (value.length > MAX_OPTION_VALUE) {
+      throw new CatalogValidationError("option value exceeds " + MAX_OPTION_VALUE + " characters")
+    }
+    const existing = assembleExtras(this.data, productId)
+    let option = input.optionId
+      ? existing.options.find((o) => o.id === input.optionId)
+      : input.optionName
+        ? existing.options.find((o) => o.name.toLowerCase() === clean(input.optionName as string).toLowerCase())
+        : undefined
+    if (!option && input.optionId) throw new CatalogValidationError("unknown option")
+    if (!option && (input.optionName || !input.optionId) && existing.options.length >= MAX_OPTION_TYPES) {
+      throw new CatalogValidationError("at most " + MAX_OPTION_TYPES + " option types")
+    }
+    if (option && input.existingValue !== undefined) {
+      throw new CatalogValidationError("existingValue only applies to brand-new option types")
+    }
+    let createdCombos = 0
+    if (option) {
+      if (option.values.some((v) => v.value.toLowerCase() === value.toLowerCase())) {
+        const firstVariant = this.data.variants.find((v) => v.productId === productId)
+        const firstOffer = this.data.offers.find((o) => o.productId === productId)
+        if (!firstVariant || !firstOffer) throw new Error("product has no variants")
+        return toVendorProductDto(product, firstVariant, firstOffer, existing)
+      }
+      const valueId = crypto.randomUUID()
+      this.data.productOptionValues.push({ id: valueId, optionId: option.id, value, position: option.values.length })
+      createdCombos = this.createCombosForValues(productId, [{ optionId: option.id, valueId }])
+    } else {
+      const existingValue = input.existingValue !== undefined ? clean(input.existingValue) : ""
+      if (!existingValue) {
+        throw new CatalogValidationError("existingValue labels your current listing - required for a new option type")
+      }
+      const optionName = clean(input.optionName ?? "Option")
+      if (!optionName) throw new CatalogValidationError("option name is required")
+      const optionId = crypto.randomUUID()
+      this.data.productOptions.push({ id: optionId, productId, name: optionName, position: existing.options.length })
+      const distinct = [...new Set([existingValue, value])]
+      const valueIds = new Map<string, string>()
+      distinct.forEach((v, vi) => {
+        const valueId = crypto.randomUUID()
+        this.data.productOptionValues.push({ id: valueId, optionId, value: v, position: vi })
+        valueIds.set(v.toLowerCase(), valueId)
+      })
+      const labelId = valueIds.get(existingValue.toLowerCase()) as string
+      for (const combo of existing.variants) {
+        const linked = new Set(
+          this.data.variantOptionValues
+            .filter((l) => l.variantId === combo.variant.id)
+            .map((l) => this.lookupValue(l.valueId).toLowerCase()),
+        )
+        void linked
+        if (!this.data.variantOptionValues.some((l) => l.variantId === combo.variant.id && l.valueId === labelId)) {
+          this.data.variantOptionValues.push({ variantId: combo.variant.id, valueId: labelId })
+        }
+      }
+      const extra = distinct.filter((v) => v.toLowerCase() !== existingValue.toLowerCase())
+      if (extra.length > 0) {
+        createdCombos = this.createCombosForValues(
+          productId,
+          extra.map((v) => ({ optionId, valueId: valueIds.get(v.toLowerCase()) as string })),
+        )
+      }
+    }
+    if (createdCombos > 0 && product.status === "published") {
+      product.status = "proposed"
+    }
+    return this.assembleOwnedProduct(productId)
+  }
+
+  /** Materialize new combos for fixed (optionId, valueId) pairs. */
+  private createCombosForValues(
+    productId: string,
+    fixed: { optionId: string; valueId: string }[],
+  ): number {
+    const extras = assembleExtras(this.data, productId)
+    const fixedOptionIds = new Set(fixed.map((f) => f.optionId))
+    const others = extras.options.filter((o) => !fixedOptionIds.has(o.id))
+    let base: Record<string, string>[] = [{}]
+    for (const opt of others) {
+      const next: Record<string, string>[] = []
+      for (const combo of base) {
+        for (const v of opt.values) next.push({ ...combo, [opt.name]: v.value })
+      }
+      base = next
+    }
+    const optNames = new Map(extras.options.map((o) => [o.id, o.name]))
+    const fixedByOption = new Map<string, string[]>()
+    for (const f of fixed) {
+      const val = this.lookupValue(f.valueId)
+      const arr = fixedByOption.get(f.optionId) ?? []
+      arr.push(val)
+      fixedByOption.set(f.optionId, arr)
+    }
+    let expanded: Record<string, string>[] = base
+    for (const [optionId, vals] of fixedByOption) {
+      const name = optNames.get(optionId) as string
+      const next: Record<string, string>[] = []
+      for (const c of expanded) for (const v of vals) next.push({ ...c, [name]: v })
+      expanded = next
+    }
+    const sellerId = this.data.products.find((p) => p.id === productId)?.sellerId as string
+    const startIndex = this.data.variants.filter((v) => v.productId === productId).length
+    let created = 0
+    for (const full of expanded) {
+      const variantId = crypto.randomUUID()
+      this.data.variants.push({
+        id: variantId,
+        productId,
+        sku: comboSku(productId, startIndex + created),
+        title: comboLabel(full, extras.options.map((o) => o.name)),
+      })
+      for (const entry of Object.entries(full)) {
+        const opt = extras.options.find((o) => o.name.toLowerCase() === entry[0].toLowerCase())
+        const valueId = this.data.productOptionValues.find(
+          (r) => r.optionId === opt?.id && r.value.toLowerCase() === entry[1].toLowerCase(),
+        )?.id
+        if (valueId) this.data.variantOptionValues.push({ variantId, valueId })
+      }
+      // Sibling price: combo sharing every *other* value; fallback: first combo.
+      const names = Object.keys(full)
+      const sibling =
+        extras.variants.find((c) =>
+          names.every((k) => {
+            const fixedForKey = [...fixedByOption].some(
+              ([oid, vals]) =>
+                optNames.get(oid)?.toLowerCase() === k.toLowerCase() &&
+                vals.some((x) => x.toLowerCase() === (full[k] as string).toLowerCase()),
+            )
+            if (fixedForKey) return true
+            return (c.options[k] ?? "").toLowerCase() === (full[k] as string).toLowerCase()
+          }),
+        ) ?? extras.variants[0]
+      this.data.offers.push({
+        id: crypto.randomUUID(),
+        sellerId,
+        productId,
+        variantId,
+        pricePesewas: sibling ? BigInt(sibling.offer.pricePesewas) : 0n,
+        onHand: 0,
+        reserved: 0,
+        currency: "ghs",
+        active: true,
+      })
+      created += 1
+    }
+    return created
+  }
+
+  private lookupValue(valueId: string): string {
+    return this.data.productOptionValues.find((v) => v.id === valueId)?.value ?? ""
   }
 
   async proposeVendorProduct(
@@ -596,7 +1067,12 @@ export class InMemoryCatalogRepository implements CatalogRepository {
     const owned = sellerOwnsProduct(this.data, sellerId, productId)
     if (!owned) return null
     owned.product.status = proposeProduct(owned.product.status)
-    return toVendorProductDto(owned.product, owned.variant, owned.offer)
+    return toVendorProductDto(
+      owned.product,
+      owned.variant,
+      owned.offer,
+      assembleExtras(this.data, productId),
+    )
   }
 
   async listVendorProducts(sellerId: string): Promise<VendorProductDto[]> {
@@ -703,6 +1179,19 @@ export class PostgresCatalogRepository implements CatalogRepository {
       db.select().from(productVariants),
       db.select().from(offers),
     ])
+    // Option tables are newer than the base schema: a database that has not
+    // run migration 0016 yet must keep serving the catalog, so these reads
+    // degrade to empty instead of failing the whole snapshot. Writes to new
+    // endpoints still require the migration (and 400/500 honestly if absent).
+    type OptionRow = typeof productOptions.$inferSelect
+    type OptionValueRow = typeof productOptionValues.$inferSelect
+    type VariantLinkRow = typeof variantOptionValues.$inferSelect
+    const [optionRows, valueRows, linkRows]: [OptionRow[], OptionValueRow[], VariantLinkRow[]] =
+      await Promise.all([
+        db.select().from(productOptions).catch((): OptionRow[] => []),
+        db.select().from(productOptionValues).catch((): OptionValueRow[] => []),
+        db.select().from(variantOptionValues).catch((): VariantLinkRow[] => []),
+      ])
     return {
       categories: categoryRows.map((r) => ({
         id: r.id,
@@ -750,6 +1239,22 @@ export class PostgresCatalogRepository implements CatalogRepository {
         currency: r.currency,
         active: r.active,
       })),
+      productOptions: optionRows.map((r) => ({
+        id: r.id,
+        productId: r.productId,
+        name: r.name,
+        position: r.position,
+      })),
+      productOptionValues: valueRows.map((r) => ({
+        id: r.id,
+        optionId: r.optionId,
+        value: r.value,
+        position: r.position,
+      })),
+      variantOptionValues: linkRows.map((r) => ({
+        variantId: r.variantId,
+        valueId: r.valueId,
+      })),
     }
   }
 
@@ -795,14 +1300,40 @@ export class PostgresCatalogRepository implements CatalogRepository {
   ): Promise<VendorProductDto | null> {
     const data = await this.load(db)
     const owned = sellerOwnsProduct(data, sellerId, productId)
-    return owned ? toVendorProductDto(owned.product, owned.variant, owned.offer) : null
+    if (!owned) return null
+    return toVendorProductDto(owned.product, owned.variant, owned.offer, assembleExtras(data, productId))
+  }
+
+  /** Fresh option structure for planning writes (bypasses the snapshot cache). */
+  private async freshExtras(productId: string): Promise<{ options: ProductOptionDto[]; variants: ProductComboDto[] }> {
+    const data = await this.load(this.wdb)
+    return assembleExtras(data, productId)
   }
 
   async createVendorProduct(input: CreateVendorProductInput): Promise<VendorProductDto> {
     await this.requireLeafCategory(input.primaryCategoryId)
+    const specs = matrixError(() =>
+      normalizeOptionSpecs((input.variantOptions ?? []).map((o) => ({ name: o.name, values: o.values }))),
+    )
+    if (specs.length > 0 && (input.sku ?? null) !== null) {
+      throw new CatalogValidationError("set SKUs per combination via variant entries, not on the product")
+    }
+    if (specs.length > 0 && (input.variantTitle ?? null) !== null) {
+      throw new CatalogValidationError("combination titles derive from options")
+    }
+    const resolved = matrixError(() =>
+      resolveComboEntries(specs, input.variantEntries ?? [], {
+        pricePesewas: input.pricePesewas,
+        onHand: input.onHand,
+      }),
+    )
     const productId = crypto.randomUUID()
-    const variantId = crypto.randomUUID()
-    const offerId = crypto.randomUUID()
+    const seenSkus = new Set<string>()
+    for (const r of resolved) {
+      const sku = r.sku ?? comboSku(productId, resolved.indexOf(r))
+      if (seenSkus.has(sku.toLowerCase())) throw new CatalogValidationError('duplicate sku "' + sku + '"')
+      seenSkus.add(sku.toLowerCase())
+    }
     try {
       await this.wdb.transaction(async (tx) => {
         await tx.insert(products).values({
@@ -814,26 +1345,75 @@ export class PostgresCatalogRepository implements CatalogRepository {
           sellerId: input.sellerId,
           imageUrl: input.imageUrl ?? null,
         })
-        await tx.insert(productVariants).values({
-          id: variantId,
-          productId,
-          sku: input.sku ?? null,
-          title: input.variantTitle ?? "Default",
-        })
-        await tx.insert(offers).values({
-          id: offerId,
-          sellerId: input.sellerId,
-          productId,
-          variantId,
-          pricePesewas: input.pricePesewas,
-          onHand: input.onHand,
-          reserved: 0,
-          currency: "ghs",
-          active: true,
-        })
+        if (specs.length === 0) {
+          const variantId = crypto.randomUUID()
+          await tx.insert(productVariants).values({
+            id: variantId,
+            productId,
+            sku: input.sku ?? null,
+            title: input.variantTitle ?? "Default",
+          })
+          await tx.insert(offers).values({
+            id: crypto.randomUUID(),
+            sellerId: input.sellerId,
+            productId,
+            variantId,
+            pricePesewas: input.pricePesewas,
+            onHand: input.onHand,
+            reserved: 0,
+            currency: "ghs",
+            active: true,
+          })
+          return
+        }
+        const names = specs.map((o) => o.name)
+        const valueIds = new Map<string, string>()
+        const optionIdByName = new Map<string, string>()
+        for (const [oi, spec] of specs.entries()) {
+          const optionId = crypto.randomUUID()
+          optionIdByName.set(spec.name.toLowerCase(), optionId)
+          await tx.insert(productOptions).values({ id: optionId, productId, name: spec.name, position: oi })
+          for (const [vi, value] of spec.values.entries()) {
+            const valueId = crypto.randomUUID()
+            await tx
+              .insert(productOptionValues)
+              .values({ id: valueId, optionId, value, position: vi })
+            valueIds.set(optionId + "|" + value.toLowerCase(), valueId)
+          }
+        }
+        for (const [i, r] of resolved.entries()) {
+          const variantId = crypto.randomUUID()
+          await tx.insert(productVariants).values({
+            id: variantId,
+            productId,
+            sku: r.sku ?? comboSku(productId, i),
+            title: comboLabel(r.combo, names),
+          })
+          for (const name of names) {
+            const optionId = optionIdByName.get(name.toLowerCase()) as string
+            const valueId = valueIds.get(optionId + "|" + (r.combo[name] as string).toLowerCase())
+            if (!valueId) throw new CatalogValidationError('unknown option value "' + r.combo[name] + '"')
+            await tx.insert(variantOptionValues).values({ id: crypto.randomUUID(), variantId, valueId })
+          }
+          await tx.insert(offers).values({
+            id: crypto.randomUUID(),
+            sellerId: input.sellerId,
+            productId,
+            variantId,
+            pricePesewas: r.pricePesewas,
+            onHand: r.onHand,
+            reserved: 0,
+            currency: "ghs",
+            active: true,
+          })
+        }
       })
     } catch (err) {
+      if (err instanceof CatalogValidationError) throw err
       const message = err instanceof Error ? err.message : String(err)
+      if (message.includes("product_variants_sku") && message.includes("23505")) {
+        throw new CatalogConflictError("sku already exists")
+      }
       if (message.includes("offers_seller_product_variant_uidx") || message.includes("23505")) {
         throw new CatalogConflictError()
       }
@@ -854,6 +1434,18 @@ export class PostgresCatalogRepository implements CatalogRepository {
     // Ownership pre-read via primary: a just-created product may be invisible to the cached binding.
     const owned = await this.loadOwnedVendorProduct(sellerId, productId, this.wdb)
     if (!owned) return null
+    if (
+      owned.options.length > 0 &&
+      (patch.pricePesewas !== undefined ||
+        patch.onHand !== undefined ||
+        patch.active !== undefined ||
+        patch.sku !== undefined ||
+        patch.variantTitle !== undefined)
+    ) {
+      throw new CatalogValidationError(
+        "this product has combinations - edit price, stock, SKUs and visibility per combination",
+      )
+    }
     if (patch.primaryCategoryId !== undefined) {
       await this.requireLeafCategory(patch.primaryCategoryId)
     }
@@ -926,16 +1518,232 @@ export class PostgresCatalogRepository implements CatalogRepository {
 
   async listVendorProducts(sellerId: string): Promise<VendorProductDto[]> {
     const data = await this.load()
+    const memo = new Map<string, { options: ProductOptionDto[]; variants: ProductComboDto[] }>()
     const items: VendorProductDto[] = []
     for (const offer of data.offers) {
       if (offer.sellerId !== sellerId) continue
       const product = data.products.find((p) => p.id === offer.productId)
       const variant = data.variants.find((v) => v.id === offer.variantId)
       if (!product || !variant) continue
-      items.push(toVendorProductDto(product, variant, offer))
+      let extras = memo.get(product.id)
+      if (!extras) {
+        extras = assembleExtras(data, product.id)
+        memo.set(product.id, extras)
+      }
+      items.push(toVendorProductDto(product, variant, offer, extras))
     }
     items.sort((a, b) => a.product.title.localeCompare(b.product.title))
     return items
+  }
+
+  async updateProductVariant(
+    sellerId: string,
+    productId: string,
+    variantId: string,
+    patch: UpdateProductVariantInput,
+  ): Promise<VendorProductDto | null> {
+    const found = await this.wdb
+      .select({ variantId: productVariants.id, offerId: offers.id })
+      .from(productVariants)
+      .innerJoin(products, eq(products.id, productVariants.productId))
+      .innerJoin(offers, eq(offers.variantId, productVariants.id))
+      .where(
+        and(
+          eq(productVariants.id, variantId),
+          eq(products.id, productId),
+          eq(products.sellerId, sellerId),
+        ),
+      )
+      .limit(1)
+    const row = found[0]
+    if (!row) return null
+    if (patch.pricePesewas !== undefined && patch.pricePesewas < 0n) {
+      throw new CatalogValidationError("price must be >= 0")
+    }
+    if (patch.onHand !== undefined && (!Number.isInteger(patch.onHand) || patch.onHand < 0)) {
+      throw new CatalogValidationError("stock must be a whole number >= 0")
+    }
+    const offerPatch: Partial<{ pricePesewas: bigint; onHand: number; active: boolean }> = {}
+    if (patch.pricePesewas !== undefined) offerPatch.pricePesewas = patch.pricePesewas
+    if (patch.onHand !== undefined) offerPatch.onHand = patch.onHand
+    if (patch.active !== undefined) offerPatch.active = patch.active
+    if (Object.keys(offerPatch).length > 0) {
+      await this.wdb.update(offers).set(offerPatch).where(eq(offers.id, row.offerId))
+    }
+    invalidateSnapshot(this.wdb, this.db)
+    return this.loadOwnedVendorProduct(sellerId, productId, this.wdb)
+  }
+
+  async addProductOptionValue(
+    sellerId: string,
+    productId: string,
+    input: AddOptionValueInput,
+  ): Promise<VendorProductDto | null> {
+    const clean = (v: string) => v.trim().replace(/\s+/g, " ")
+    const data = await this.load(this.wdb)
+    const product = data.products.find((p) => p.id === productId && p.sellerId === sellerId)
+    if (!product) return null
+    const value = clean(input.value)
+    if (!value) throw new CatalogValidationError("value is required")
+    if (value.length > MAX_OPTION_VALUE) {
+      throw new CatalogValidationError("option value exceeds " + MAX_OPTION_VALUE + " characters")
+    }
+    const extras = assembleExtras(data, productId)
+    const option = input.optionId
+      ? extras.options.find((o) => o.id === input.optionId)
+      : input.optionName
+        ? extras.options.find((o) => o.name.toLowerCase() === clean(input.optionName as string).toLowerCase())
+        : undefined
+    if (!option && input.optionId) throw new CatalogValidationError("unknown option")
+    if (!option && extras.options.length >= MAX_OPTION_TYPES) {
+      throw new CatalogValidationError("at most " + MAX_OPTION_TYPES + " option types")
+    }
+    if (option && input.existingValue !== undefined) {
+      throw new CatalogValidationError("existingValue only applies to brand-new option types")
+    }
+    let createdCombos = 0
+    if (option) {
+      if (option.values.some((v) => v.value.toLowerCase() === value.toLowerCase())) {
+        return this.loadOwnedVendorProduct(sellerId, productId, this.wdb)
+      }
+      const valueId = crypto.randomUUID()
+      await this.wdb.insert(productOptionValues).values({
+        id: valueId,
+        optionId: option.id,
+        value,
+        position: option.values.length,
+      })
+      createdCombos = await this.createCombosForValues(productId, [{ optionId: option.id, valueId }])
+    } else {
+      const existingValue = input.existingValue !== undefined ? clean(input.existingValue) : ""
+      if (!existingValue) {
+        throw new CatalogValidationError("existingValue labels your current listing - required for a new option type")
+      }
+      const optionName = clean(input.optionName ?? "Option")
+      if (!optionName) throw new CatalogValidationError("option name is required")
+      const optionId = crypto.randomUUID()
+      await this.wdb.insert(productOptions).values({
+        id: optionId,
+        productId,
+        name: optionName,
+        position: extras.options.length,
+      })
+      const distinct = [...new Set([existingValue, value])]
+      const valueIds = new Map<string, string>()
+      for (const entry of distinct.entries()) {
+        const valueId = crypto.randomUUID()
+        await this.wdb.insert(productOptionValues).values({ id: valueId, optionId, value: entry[1], position: entry[0] })
+        valueIds.set(entry[1].toLowerCase(), valueId)
+      }
+      const labelId = valueIds.get(existingValue.toLowerCase()) as string
+      const current = await this.load(this.wdb)
+      for (const combo of assembleExtras(current, productId).variants) {
+        const has = current.variantOptionValues.some(
+          (l) => l.variantId === combo.variant.id && l.valueId === labelId,
+        )
+        if (!has) {
+          await this.wdb
+            .insert(variantOptionValues)
+            .values({ id: crypto.randomUUID(), variantId: combo.variant.id, valueId: labelId })
+        }
+      }
+      const extra = distinct.filter((v) => v.toLowerCase() !== existingValue.toLowerCase())
+      if (extra.length > 0) {
+        createdCombos = await this.createCombosForValues(
+          productId,
+          extra.map((v) => ({ optionId, valueId: valueIds.get(v.toLowerCase()) as string })),
+        )
+      }
+    }
+    if (createdCombos > 0 && product.status === "published") {
+      await this.wdb.update(products).set({ status: "proposed" }).where(eq(products.id, productId))
+    }
+    invalidateSnapshot(this.wdb, this.db)
+    return this.loadOwnedVendorProduct(sellerId, productId, this.wdb)
+  }
+
+  /** Materialize new combos for fixed (optionId, valueId) pairs; new combos start unstocked. */
+  private async createCombosForValues(
+    productId: string,
+    fixed: { optionId: string; valueId: string }[],
+  ): Promise<number> {
+    const data = await this.load(this.wdb)
+    const extras = assembleExtras(data, productId)
+    const product = data.products.find((p) => p.id === productId)
+    if (!product || !product.sellerId) return 0
+    const fixedOptionIds = new Set(fixed.map((f) => f.optionId))
+    const others = extras.options.filter((o) => !fixedOptionIds.has(o.id))
+    let base: Record<string, string>[] = [{}]
+    for (const opt of others) {
+      const next: Record<string, string>[] = []
+      for (const combo of base) {
+        for (const v of opt.values) next.push({ ...combo, [opt.name]: v.value })
+      }
+      base = next
+    }
+    const optNames = new Map(extras.options.map((o) => [o.id, o.name]))
+    const fixedByOption = new Map<string, string[]>()
+    for (const f of fixed) {
+      const val = data.productOptionValues.find((v) => v.id === f.valueId)?.value ?? ""
+      const arr = fixedByOption.get(f.optionId) ?? []
+      arr.push(val)
+      fixedByOption.set(f.optionId, arr)
+    }
+    let expanded: Record<string, string>[] = base
+    for (const entry of fixedByOption) {
+      const name = optNames.get(entry[0]) as string
+      const next: Record<string, string>[] = []
+      for (const c of expanded) for (const v of entry[1]) next.push({ ...c, [name]: v })
+      expanded = next
+    }
+    const existingCount = data.variants.filter((v) => v.productId === productId).length
+    let created = 0
+    for (const full of expanded) {
+      const variantId = crypto.randomUUID()
+      const names = Object.keys(full)
+      const sibling =
+        extras.variants.find((c) =>
+          names.every((k) => {
+            const isFixed = [...fixedByOption].some(
+              ([oid, vals]) =>
+                optNames.get(oid)?.toLowerCase() === k.toLowerCase() &&
+                vals.some((x) => x.toLowerCase() === (full[k] as string).toLowerCase()),
+            )
+            if (isFixed) return true
+            return (c.options[k] ?? "").toLowerCase() === (full[k] as string).toLowerCase()
+          }),
+        ) ?? extras.variants[0]
+      await this.wdb.insert(productVariants).values({
+        id: variantId,
+        productId,
+        sku: comboSku(productId, existingCount + created),
+        title: comboLabel(full, extras.options.map((o) => o.name)),
+      })
+      for (const entry of Object.entries(full)) {
+        const opt = extras.options.find((o) => o.name.toLowerCase() === entry[0].toLowerCase())
+        const valueId = data.productOptionValues.find(
+          (r) => r.optionId === opt?.id && r.value.toLowerCase() === entry[1].toLowerCase(),
+        )?.id
+        if (valueId) {
+          await this.wdb
+            .insert(variantOptionValues)
+            .values({ id: crypto.randomUUID(), variantId, valueId })
+        }
+      }
+      await this.wdb.insert(offers).values({
+        id: crypto.randomUUID(),
+        sellerId: product.sellerId,
+        productId,
+        variantId,
+        pricePesewas: sibling ? BigInt(sibling.offer.pricePesewas) : 0n,
+        onHand: 0,
+        reserved: 0,
+        currency: "ghs",
+        active: true,
+      })
+      created += 1
+    }
+    return created
   }
 
   async listAdminProducts(status?: ProductStatus): Promise<AdminProductDto[]> {
