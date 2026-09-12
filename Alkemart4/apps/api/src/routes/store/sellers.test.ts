@@ -68,10 +68,24 @@ describe("GET /store/sellers/:handle", () => {
     const a = await app.request("/store/sellers/seller-a", {}, testEnv())
     expect(a.status).toBe(200)
     const aBody = (await a.json()) as {
-      seller: { id: string; handle: string; name: string; description: null; logo: null; banner: null }
+      seller: {
+        id: string
+        handle: string
+        name: string
+        description: null
+        logo: null
+        banner: null
+        trust: {
+          ratingAvg: number | null
+          ratingCount: number
+          salesCount: number
+          recentReviews: unknown[]
+        } | null
+      }
       items: Array<{ productId: string; offerCount: number; fromPricePesewas: string }>
     }
-    expect(aBody.seller).toEqual({ id: "seller-a", handle: "seller-a", name: "Accra Mart", availability: { state: "open", pausedUntil: null, note: null }, description: null, logo: null, banner: null })
+    expect(aBody.seller).toMatchObject({ id: "seller-a", handle: "seller-a", name: "Accra Mart", availability: { state: "open", pausedUntil: null, note: null }, description: null, logo: null, banner: null })
+    expect(aBody.seller.trust).toMatchObject({ ratingCount: expect.any(Number), salesCount: expect.any(Number), recentReviews: expect.any(Array) })
     const aIds = aBody.items.map((i) => i.productId).sort()
     expect(aIds).toEqual(["prod-royal-rice", "prod-tecno-spark"])
     const phone = aBody.items.find((i) => i.productId === "prod-tecno-spark")

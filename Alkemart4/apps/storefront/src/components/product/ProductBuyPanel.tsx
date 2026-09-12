@@ -1,3 +1,4 @@
+import { Check } from "@phosphor-icons/react"
 import { Link } from "@tanstack/react-router"
 import { Button } from "@workspace/ui"
 import { Price } from "@/components/price"
@@ -133,7 +134,7 @@ export function ProductBuyPanel({
           className="rounded-xl bg-emerald-50 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/40 p-3 text-center text-sm font-medium"
           aria-live="polite"
         >
-          ✓ Added to your cart!{" "}
+          <Check size={14} weight="bold" aria-hidden className="mr-1 inline" /> Added to your cart!{" "}
           <Link to="/cart" className="font-bold underline ml-1">
             View cart
           </Link>

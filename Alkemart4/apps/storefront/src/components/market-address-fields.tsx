@@ -52,16 +52,11 @@ export function MarketAddressFields({
       }}
       required
       error={error}
-    >
-      {markets.map((m) => (
-        <option key={m.country_code} value={m.country_code}>
-          {m.display_name}
-          {m.currency_code
-            ? ` · ${m.currency_code.toUpperCase()}`
-            : ""}
-        </option>
-      ))}
-    </FormSelect>
+      options={markets.map((m) => ({
+        value: m.country_code,
+        label: m.display_name + (m.currency_code ? ` · ${m.currency_code.toUpperCase()}` : ""),
+      }))}
+    />
   )
 
   if (!market) {
@@ -120,16 +115,9 @@ export function MarketAddressFields({
               value={value}
               onChange={set}
               required={f.required}
-            >
-              <option value="">
-                {f.required ? "Select…" : "Optional…"}
-              </option>
-              {f.options.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
-                </option>
-              ))}
-            </FormSelect>
+              placeholder={f.required ? "Select…" : "Optional…"}
+              options={(f.options ?? []).map((o) => ({ value: o.value, label: o.label }))}
+            />
           )
         }
 

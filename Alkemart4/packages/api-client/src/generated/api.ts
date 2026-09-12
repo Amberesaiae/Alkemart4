@@ -606,6 +606,30 @@ export const setSellerCommission = async (id: string,
 
 
 /**
+ * @summary Full product detail for review (options + combinations)
+ */
+export const getGetAdminProductDetailUrl = (id: string,) => {
+
+
+  
+
+  return `/admin/products/${id}`
+}
+
+export const getAdminProductDetail = async (id: string, options?: RequestInit): Promise<VendorProduct> => {
+  
+  return customFetch<VendorProduct>(getGetAdminProductDetailUrl(id),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+/**
  * @summary Approve product (status → published)
  */
 export const getApproveProductUrl = (id: string,) => {

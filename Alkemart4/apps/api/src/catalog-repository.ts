@@ -65,6 +65,31 @@ export type CatalogListDto = {
   total: number
 }
 
+export type SellerShopTrust = {
+  /** Mean of published review ratings across the seller's products. */
+  ratingAvg: number | null
+  ratingCount: number
+  /** Fulfilled order count (social proof, not revenue). */
+  salesCount: number
+  memberSince: string | null
+  location: string | null
+  /** Short keyword tagline from the seller's storefront settings. */
+  tagline: string | null
+  phone: string | null
+  hours: { days: string; open: string; close: string } | null
+  social: { instagram?: string; facebook?: string; tiktok?: string; whatsapp?: string }
+  /** Currently-active shop announcement text (Etsy-style, high conversion impact). */
+  announcement: string | null
+  policy: { shipping?: string; returnsDays?: number; warranty?: string } | null
+  recentReviews: {
+    productTitle: string
+    rating: number
+    title: string | null
+    body: string
+    createdAt: string
+  }[]
+}
+
 export type SellerShopDto = {
   seller: {
     id: string
@@ -74,6 +99,8 @@ export type SellerShopDto = {
     description: string | null
     logo: string | null
     banner: string | null
+    /** Trust bundle; null when the route couldn't assemble it (shop still renders). */
+    trust: SellerShopTrust | null
   }
   featuredProductIds: string[]
   items: ProductCardDto[]
@@ -275,6 +302,11 @@ export interface CatalogRepository {
     productId: string,
     action: AdminProductModerationAction,
   ): Promise<AdminProductDto | null>
+  /**
+   * Full product detail for admin review (options + combos included so
+   * moderators see variant listings, not just the base product).
+   */
+  getAdminProductDetail(productId: string): Promise<VendorProductDto | null>
 }
 function toBigInt(value: bigint | string | number): bigint {
   return typeof value === "bigint" ? value : BigInt(value)
@@ -712,6 +744,7 @@ export function getSellerShopFrom(data: CatalogSnapshot, handle: string): Seller
       description: null,
       logo: null,
       banner: null,
+      trust: null,
     },
     featuredProductIds: [],
     items: cardsFor(
@@ -877,6 +910,11 @@ export class InMemoryCatalogRepository implements CatalogRepository {
     const variant = this.data.variants.find((v) => v.id === first.variant.id)!
     const offer = this.data.offers.find((o) => o.id === first.offer.id)!
     return toVendorProductDto(product, variant, offer, extras)
+  }
+
+  async getAdminProductDetail(productId: string): Promise<VendorProductDto | null> {
+    if (!this.data.products.some((p) => p.id === productId)) return null
+    return this.assembleOwnedProduct(productId)
   }
 
   async updateVendorProduct(
@@ -1961,5 +1999,12 @@ export class PostgresCatalogRepository implements CatalogRepository {
     await this.wdb.update(products).set({ status: next }).where(eq(products.id, productId))
     invalidateSnapshot(this.wdb, this.db)
     return { ...toAdminProductDto(product), status: next }
+  }
+
+  async getAdminProductDetail(productId: string): Promise<VendorProductDto | null> {
+    const data = await this.load(this.wdb)
+    const product = data.products.find((p) => p.id === productId)
+    if (!product || !product.sellerId) return null
+    return this.loadOwnedVendorProduct(product.sellerId, productId, this.wdb)
   }
 }

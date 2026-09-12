@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from "react"
 import { useNavigate } from "@tanstack/react-router"
+import { X } from "@phosphor-icons/react"
 import { IconSafe } from "@/design/icons"
 import { POPULAR_SEARCHES } from "@/lib/popular-searches"
 import { useSearchHistory } from "@/lib/search-history"
@@ -59,7 +60,7 @@ export function SearchHero() {
                     className="ml-1 inline-flex min-h-11 min-w-11 items-center justify-center text-[ink]/50 hover:text-[ink]"
                     aria-label={`Remove ${term}`}
                   >
-                    ✕
+                    <X size={16} weight="bold" aria-hidden />
                   </button>
                 </span>
               ))}

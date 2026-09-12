@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { useProduct, useUpdateProduct, useDeleteProduct, useCategories, useProposeProduct, useUploadImage, useUpdateVariant, useAddOptionValue, useSetOptionValueImage } from "../../lib/hooks"
 import { type ProductStatus, type ProductCombo, products as productsApi } from "../../lib/api"
 import { toast } from "sonner"
-import { Card, Button, Input, Label, Textarea, Select, Skeleton, Badge } from "@workspace/ui"
+import { Card, Button, Input, Label, Textarea, Skeleton, Badge, Tabs, TabsList, TabsTrigger, TabsContent, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui"
 import {
   ArrowLeft,
   FloppyDisk,
@@ -341,37 +341,44 @@ function ProductDetailPage() {
 
   return (
     <PageShell>
-      {/* Navigation Breadcrumb Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2">
-        <div className="flex items-center gap-3">
+      {/* Header: back, identity + live summary, primary actions */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-1">
+        <div className="flex items-center gap-3 min-w-0">
           <Button
             variant="outline"
             size="sm"
             onClick={() => navigate({ to: "/products" })}
-            className="h-8 px-2.5 rounded-xl border-border/80 text-xs font-semibold gap-1.5 hover:bg-muted"
+            className="h-8 px-2.5 rounded-xl border-border/80 text-xs font-semibold gap-1.5 hover:bg-muted shrink-0"
+            aria-label="Back to products"
           >
-            <ArrowLeft className="h-3.5 w-3.5" /> Back
+            <ArrowLeft className="h-3.5 w-3.5" />
           </Button>
-          <div>
-            <div className="flex items-center gap-2.5">
-              <h1 className="text-xl font-black text-foreground">{product.title || "Untitled Product"}</h1>
+          {displayImage ? (
+            <img src={displayImage} alt="" className="h-11 w-11 rounded-xl object-cover border border-border/60 shrink-0" />
+          ) : null}
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="text-lg font-black text-foreground truncate">{product.title || "Untitled Product"}</h1>
               {statusBadge(product.status || "draft")}
             </div>
-            <p className="text-xs text-muted-foreground font-mono mt-0.5">
-              Ref: {product.handle || product.id}
+            <p className="text-xs text-muted-foreground font-medium mt-0.5 truncate">
+              {hasOptions
+                ? `${combos.length} combination${combos.length === 1 ? "" : "s"}`
+                : currentPriceGhs > 0
+                  ? `GH₵ ${currentPriceGhs.toFixed(2)} · ${currentStock} in stock`
+                  : `${currentStock} in stock`}
+              {categoryName ? ` · ${categoryName}` : ""}
             </p>
           </div>
         </div>
 
-        {/* Top Header Actions */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           {!editing ? (
             <>
               <Button onClick={startEditing} variant="default" size="sm" className="gap-1.5 font-bold shadow-xs">
-                <PencilSimple className="h-4 w-4" /> Edit Product
+                <PencilSimple className="h-4 w-4" /> Edit
               </Button>
-
-              {product.status === "draft" && (
+              {(product.status === "draft" || product.status === "rejected") && (
                 <Button
                   size="sm"
                   variant="outline"
@@ -379,27 +386,16 @@ function ProductDetailPage() {
                   onClick={handleReSubmit}
                   isLoading={propose.isPending}
                 >
-                  <PaperPlaneTilt className="h-4 w-4" /> Submit for Review
+                  <PaperPlaneTilt className="h-4 w-4" />
+                  {product.status === "draft" ? "Submit" : "Re-submit"}
                 </Button>
               )}
-
-              {product.status === "rejected" && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="gap-1.5 font-semibold"
-                  onClick={handleReSubmit}
-                  isLoading={propose.isPending}
-                >
-                  <PaperPlaneTilt className="h-4 w-4" /> Re-submit
-                </Button>
-              )}
-
               {product.status !== "published" && !confirmDelete ? (
                 <Button
                   onClick={() => setConfirmDelete(true)}
                   variant="outline"
                   size="sm"
+                  aria-label="Delete product"
                   className="text-destructive border-destructive/30 hover:bg-destructive/10"
                 >
                   <Trash className="h-4 w-4" />
@@ -417,43 +413,32 @@ function ProductDetailPage() {
               ) : null}
             </>
           ) : (
-            <div className="flex gap-2">
-              <Button onClick={handleSave} isLoading={update.isPending} className="gap-1.5 font-bold shadow-xs">
-                <FloppyDisk className="h-4 w-4" /> Save Changes
-              </Button>
-              <Button onClick={() => setEditing(false)} variant="outline" size="sm">
-                Cancel
-              </Button>
-            </div>
+            <span className="text-xs font-bold uppercase tracking-wider text-primary">Editing</span>
           )}
         </div>
       </div>
 
-      {/* Moderation Alerts */}
+      {/* Moderation alerts */}
       {rejectionReason && (
         <div className="p-4 bg-destructive/10 border-2 border-destructive/30 rounded-2xl">
           <div className="flex items-start gap-3">
             <WarningCircle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
             <div className="flex-1">
-              <h3 className="font-bold text-sm text-destructive">Listing Needs Attention</h3>
+              <h3 className="font-bold text-sm text-destructive">Needs attention</h3>
               <p className="text-sm text-destructive/90 mt-0.5">{rejectionReason}</p>
-              <p className="text-xs text-muted-foreground mt-2">
-                Address the reason above by updating your listing details or appeal to our ops team.
-              </p>
-
               {openAppeal ? (
                 <p className="text-xs font-bold text-primary mt-2 flex items-center gap-1.5">
-                  <Clock className="h-4 w-4" /> Appeal submitted — review in progress.
+                  <Clock className="h-4 w-4" /> Appeal in review.
                 </p>
               ) : closedAppeal ? (
                 <p className="text-xs text-muted-foreground mt-2">
-                  Previous appeal decision: <strong>{closedAppeal.decision}</strong>
+                  Appeal decision: <strong>{closedAppeal.decision}</strong>
                   {closedAppeal.response ? ` — “${closedAppeal.response}”` : ""}
                 </p>
               ) : appealOpen ? (
                 <div className="mt-3 space-y-2 max-w-lg">
                   <Textarea
-                    placeholder="Provide clarification for ops review..."
+                    placeholder="Why should ops take another look?"
                     value={appealMessage}
                     onChange={e => setAppealMessage(e.target.value)}
                     rows={3}
@@ -461,13 +446,13 @@ function ProductDetailPage() {
                     autoFocus
                   />
                   <div className="flex gap-2">
-                    <Button size="sm" onClick={() => { void handleAppeal() }}>Send Appeal</Button>
+                    <Button size="sm" onClick={() => { void handleAppeal() }}>Send appeal</Button>
                     <Button size="sm" variant="outline" onClick={() => { setAppealOpen(false); setAppealMessage("") }}>Cancel</Button>
                   </div>
                 </div>
               ) : (
                 <Button size="sm" variant="outline" className="mt-3 text-xs" onClick={() => setAppealOpen(true)}>
-                  Appeal this decision
+                  Appeal
                 </Button>
               )}
             </div>
@@ -480,20 +465,110 @@ function ProductDetailPage() {
           <div className="flex items-start gap-3">
             <Clock className="h-5 w-5 text-warning-fg shrink-0 mt-0.5" />
             <div>
-              <h3 className="font-bold text-sm text-warning-fg">Changes Requested</h3>
+              <h3 className="font-bold text-sm text-warning-fg">Changes requested</h3>
               <p className="text-sm text-warning-fg/90 mt-0.5">{changesRequestedReason}</p>
             </div>
           </div>
         </div>
       )}
 
-      {/* Main 2-Column Responsive Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* ── Left Column: Media & Specs (never stretches awkwardly!) ── */}
-        <div className="lg:col-span-5 xl:col-span-4 space-y-5 self-start">
-          {/* Main Image Card */}
+      <Tabs defaultValue="overview" className="space-y-4">
+        <TabsList className="w-full justify-start overflow-x-auto rounded-2xl [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <TabsTrigger value="overview" className="gap-1.5 rounded-xl">
+            <Package className="h-4 w-4" /> Overview
+          </TabsTrigger>
+          <TabsTrigger value="media" className="gap-1.5 rounded-xl">
+            <UploadSimple className="h-4 w-4" /> Photo
+          </TabsTrigger>
+          <TabsTrigger value="pricing" className="gap-1.5 rounded-xl">
+            <CurrencyCircleDollar className="h-4 w-4" /> Price &amp; stock
+          </TabsTrigger>
+          {!editing && hasOptions ? (
+            <TabsTrigger value="variants" className="gap-1.5 rounded-xl">
+              <Tag className="h-4 w-4" /> Combinations
+            </TabsTrigger>
+          ) : null}
+        </TabsList>
+
+        <TabsContent value="overview">
+          {editing ? (
+            <Card className="p-6 space-y-5 border border-border/80 shadow-xs rounded-2xl bg-card">
+              <div className="space-y-2">
+                <Label htmlFor="edit-title" className="text-sm font-semibold">
+                  Title <span className="text-xs font-normal text-muted-foreground">({form.title.length}/120)</span>
+                </Label>
+                <Input
+                  id="edit-title"
+                  value={form.title}
+                  maxLength={120}
+                  placeholder="e.g. Handmade Leather Sandals"
+                  onChange={e => setForm(p => ({ ...p, title: e.target.value }))}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-desc" className="text-sm font-semibold">
+                  Description <span className="text-xs font-normal text-muted-foreground">({form.description.length}/2000)</span>
+                </Label>
+                <Textarea
+                  id="edit-desc"
+                  value={form.description}
+                  onChange={e => setForm(p => ({ ...p, description: e.target.value }))}
+                  rows={4}
+                  placeholder="Materials, size, origin, care…"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-category" className="text-sm font-semibold">
+                  Category
+                </Label>
+                <Select
+                  value={form.categoryId}
+                  onValueChange={v => setForm(p => ({ ...p, categoryId: v }))}
+                >
+                  <SelectTrigger id="edit-category">
+                    <SelectValue placeholder="Select a category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categoriesData?.product_categories?.map(cat => (
+                      <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </Card>
+          ) : (
+            <Card className="p-6 space-y-4 border border-border/80 shadow-xs rounded-2xl bg-card">
+              <p className="text-sm text-foreground/90 whitespace-pre-wrap leading-relaxed">
+                {product.description || "No description yet — add one so shoppers know what they're buying."}
+              </p>
+              <dl className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-3 border-t border-border/60">
+                <div>
+                  <dt className="text-xs font-bold uppercase tracking-wider text-muted-foreground block mb-1">Category</dt>
+                  <dd className="inline-block text-xs font-semibold px-2.5 py-1 rounded-lg bg-muted text-foreground border border-border/60">
+                    {categoryName || "Uncategorized"}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-xs font-bold uppercase tracking-wider text-muted-foreground block mb-1">Reference</dt>
+                  <dd className="text-xs font-mono font-semibold text-foreground">
+                    {product.handle || product.id.slice(0, 12)}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-xs font-bold uppercase tracking-wider text-muted-foreground block mb-1">Created</dt>
+                  <dd className="text-xs font-medium text-foreground">
+                    {product.created_at ? new Date(product.created_at).toLocaleDateString() : "—"}
+                  </dd>
+                </div>
+              </dl>
+            </Card>
+          )}
+        </TabsContent>
+
+        <TabsContent value="media">
           <Card className="overflow-hidden border border-border/80 shadow-xs rounded-2xl bg-card">
-            <div className="aspect-square bg-muted/40 relative overflow-hidden flex items-center justify-center">
+            <div className="aspect-video bg-muted/40 relative overflow-hidden flex items-center justify-center">
               {displayImage ? (
                 <img
                   src={displayImage}
@@ -503,16 +578,13 @@ function ProductDetailPage() {
               ) : (
                 <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground/40">
                   <Package className="h-16 w-16 stroke-[1.5]" />
-                  <span className="text-xs font-semibold mt-2">No Product Image</span>
+                  <span className="text-xs font-semibold mt-2">No photo yet</span>
                 </div>
               )}
-
               <div className="absolute top-3 right-3">
                 {statusBadge(product.status || "draft")}
               </div>
             </div>
-
-            {/* Photo upload zone if editing */}
             {editing && (
               <div className="p-4 border-t border-border/60 space-y-3 bg-muted/10">
                 <input
@@ -524,7 +596,6 @@ function ProductDetailPage() {
                   className="hidden"
                   onChange={e => { void handlePhotoPick(e.target.files?.[0]); e.target.value = "" }}
                 />
-
                 <div className="flex items-center gap-2">
                   <Button
                     type="button"
@@ -536,9 +607,8 @@ function ProductDetailPage() {
                     className="w-full gap-1.5 text-xs font-semibold"
                   >
                     <UploadSimple className="h-3.5 w-3.5" />
-                    {form.imageUrl ? "Replace Photo" : "Upload Photo"}
+                    {form.imageUrl ? "Replace photo" : "Upload photo"}
                   </Button>
-
                   {form.imageUrl && (
                     <Button
                       type="button"
@@ -546,36 +616,32 @@ function ProductDetailPage() {
                       size="sm"
                       onClick={() => setForm(p => ({ ...p, imageUrl: "" }))}
                       className="text-xs text-destructive hover:bg-destructive/10 px-2"
+                      aria-label="Remove photo"
                     >
                       <Trash className="h-3.5 w-3.5" />
                     </Button>
                   )}
                 </div>
-
                 {!showUrlInput ? (
                   <button
                     type="button"
                     onClick={() => setShowUrlInput(true)}
                     className="text-[11px] font-semibold text-primary hover:underline block text-center w-full"
                   >
-                    Or paste direct image URL
+                    Or paste an image URL
                   </button>
                 ) : (
-                  <div className="space-y-1.5 pt-1">
-                    <Input
-                      id="edit-image-url"
-                      type="url"
-                      placeholder="https://example.com/image.webp"
-                      value={form.imageUrl}
-                      onChange={e => setForm(p => ({ ...p, imageUrl: e.target.value }))}
-                      className="text-xs h-8"
-                    />
-                  </div>
+                  <Input
+                    id="edit-image-url"
+                    type="url"
+                    placeholder="https://example.com/image.webp"
+                    value={form.imageUrl}
+                    onChange={e => setForm(p => ({ ...p, imageUrl: e.target.value }))}
+                    className="text-xs h-8"
+                  />
                 )}
               </div>
             )}
-
-            {/* Live Storefront Link directly in Media Card Footer */}
             {product.status === "published" && product.handle && (
               <div className="p-3.5 bg-muted/15 border-t border-border/60">
                 <a
@@ -584,346 +650,188 @@ function ProductDetailPage() {
                   rel="noreferrer"
                   className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl border border-border/70 bg-background text-xs font-bold text-foreground hover:text-primary hover:border-primary/50 shadow-2xs transition"
                 >
-                  <ArrowSquareOut className="h-3.5 w-3.5 text-primary" /> View on Live Store
+                  <ArrowSquareOut className="h-3.5 w-3.5 text-primary" /> View on live store
                 </a>
               </div>
             )}
           </Card>
-        </div>
+        </TabsContent>
 
-        {/* ── Right Column: Form (when editing) or Product Info (when viewing) ── */}
-        <div className="lg:col-span-7 xl:col-span-8 space-y-6">
-          {editing ? (
-            /* Edit Mode Form */
-            <div className="space-y-6">
-              {/* Product Information Card */}
-              <Card className="p-6 space-y-5 border border-border/80 shadow-xs rounded-2xl bg-card">
-                <h2 className="font-bold text-base text-foreground flex items-center gap-2 border-b border-border/60 pb-3">
-                  <Package className="h-5 w-5 text-primary" /> Product Details
-                </h2>
-
+        <TabsContent value="pricing">
+          {editing && !hasOptions ? (
+            <Card className="p-6 space-y-5 border border-border/80 shadow-xs rounded-2xl bg-card">
+              <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="edit-title" className="text-sm font-semibold">
-                    Product Title <span className="text-xs font-normal text-muted-foreground">({form.title.length}/120)</span>
+                  <Label htmlFor="edit-price" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                    Price (GH₵)
+                  </Label>
+                  <div className="relative">
+                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-bold text-muted-foreground select-none">
+                      GH₵
+                    </span>
+                    <Input
+                      id="edit-price"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      placeholder="0.00"
+                      className="pl-14 h-11 text-base font-bold bg-background rounded-xl"
+                      value={form.priceGhs}
+                      onChange={e => setForm(p => ({ ...p, priceGhs: e.target.value }))}
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-stock" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                    Stock (units)
                   </Label>
                   <Input
-                    id="edit-title"
-                    value={form.title}
-                    maxLength={120}
-                    placeholder="e.g. Handmade Leather Sandals"
-                    onChange={e => setForm(p => ({ ...p, title: e.target.value }))}
-                    required
+                    id="edit-stock"
+                    type="number"
+                    step="1"
+                    min="0"
+                    placeholder="0"
+                    className="h-11 text-base font-bold bg-background rounded-xl"
+                    value={form.stockQty}
+                    onChange={e => setForm(p => ({ ...p, stockQty: e.target.value }))}
                   />
                 </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="edit-desc" className="text-sm font-semibold">
-                    Product Description <span className="text-xs font-normal text-muted-foreground">({form.description.length}/2000)</span>
-                  </Label>
-                  <Textarea
-                    id="edit-desc"
-                    value={form.description}
-                    onChange={e => setForm(p => ({ ...p, description: e.target.value }))}
-                    rows={4}
-                    placeholder="Provide materials, size, origin, and care instructions..."
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="edit-category" className="text-sm font-semibold">
-                    Product Category
-                  </Label>
-                  <Select
-                    id="edit-category"
-                    value={form.categoryId}
-                    onChange={e => setForm(p => ({ ...p, categoryId: e.target.value }))}
-                  >
-                    <option value="">Select a category</option>
-                    {categoriesData?.product_categories?.map(cat => (
-                      <option key={cat.id} value={cat.id}>{cat.name}</option>
-                    ))}
-                  </Select>
-                </div>
-              </Card>
-
-              {/* Pricing & Stock Card (Expanded with proper room!) */}
-              <Card className="p-6 space-y-5 border border-border/80 shadow-xs rounded-2xl bg-card">
-                <div className="border-b border-border/60 pb-3">
-                  <h2 className="font-bold text-base text-foreground flex items-center gap-2">
-                    <Tag className="h-5 w-5 text-primary" /> Pricing &amp; Inventory
-                  </h2>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    Set your marketplace retail price and manage immediate fulfillment stock.
-                  </p>
-                </div>
-
-                <div className="grid gap-5 sm:grid-cols-2">
-                  <div className="space-y-2 p-4 rounded-2xl bg-muted/15 border border-border/60">
-                    <Label htmlFor="edit-price" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                      Selling Price (GH₵)
-                    </Label>
-                    <div className="relative">
-                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-bold text-muted-foreground select-none">
-                        GH₵
+              </div>
+              {(() => {
+                const p = parseFloat(form.priceGhs) || 0
+                const s = parseInt(form.stockQty, 10) || 0
+                if (p > 0 && s > 0) {
+                  return (
+                    <p className="flex items-center justify-between p-3.5 rounded-xl bg-muted border border-primary/25 text-xs font-semibold">
+                      Stock value
+                      <span className="font-black text-sm tabular-nums">
+                        GH₵ {(p * s).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </span>
-                      <Input
-                        id="edit-price"
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        placeholder="0.00"
-                        className="pl-14 h-11 text-base font-bold bg-background rounded-xl"
-                        value={form.priceGhs}
-                        onChange={e => setForm(p => ({ ...p, priceGhs: e.target.value }))}
-                      />
-                    </div>
-                    <p className="text-[11px] text-muted-foreground">Standard listing price visible to shoppers</p>
-                  </div>
-
-                  <div className="space-y-2 p-4 rounded-2xl bg-muted/15 border border-border/60">
-                    <Label htmlFor="edit-stock" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                      Available Stock (Units)
-                    </Label>
+                    </p>
+                  )
+                }
+                return null
+              })()}
+            </Card>
+          ) : editing ? (
+            <Card className="p-6 border border-border/80 shadow-xs rounded-2xl bg-card">
+              <p className="text-sm text-muted-foreground">
+                Price &amp; stock live on each combination — finish content edits here, then adjust them under <strong>Combinations</strong>.
+              </p>
+            </Card>
+          ) : !quickOfferOpen ? (
+            <Card className="p-6 space-y-4 border border-border/80 shadow-xs rounded-2xl bg-card">
+              <div className="flex items-center justify-between">
+                <div className="flex items-baseline gap-3">
+                  <p className="text-3xl font-black text-foreground tabular-nums tracking-tight">
+                    {hasOptions ? `${combos.length} combos` : currentPriceGhs > 0 ? `GH₵ ${currentPriceGhs.toFixed(2)}` : "—"}
+                  </p>
+                  {!hasOptions ? (
+                    <span className={`inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full ${
+                      currentStock > 0 ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-300" : "bg-rose-500/10 text-rose-600 dark:text-rose-300"
+                    }`}>
+                      <span className={`h-1.5 w-1.5 rounded-full ${currentStock > 0 ? "bg-emerald-500" : "bg-rose-500"}`} />
+                      {currentStock > 0 ? `${currentStock.toLocaleString()} in stock` : "Out of stock"}
+                    </span>
+                  ) : null}
+                </div>
+                {!hasOptions ? (
+                  <Button
+                    onClick={() => {
+                      setQuickPrice(currentPriceGhs > 0 ? String(currentPriceGhs) : "")
+                      setQuickStock(String(currentStock))
+                      setQuickOfferOpen(true)
+                    }}
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5 text-xs font-bold rounded-xl"
+                  >
+                    <PencilSimple className="h-3.5 w-3.5 text-primary" /> Adjust
+                  </Button>
+                ) : null}
+              </div>
+              {!hasOptions && currentPriceGhs > 0 && currentStock > 0 ? (
+                <p className="text-xs font-medium text-muted-foreground border-t border-border/60 pt-3">
+                  Stock value{" "}
+                  <span className="font-bold text-foreground tabular-nums">
+                    GH₵ {(currentPriceGhs * currentStock).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
+                </p>
+              ) : null}
+            </Card>
+          ) : (
+            <Card className="p-6 space-y-4 border border-border/80 shadow-xs rounded-2xl bg-card">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <Label htmlFor="quick-price" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                    Price (GH₵)
+                  </Label>
+                  <div className="relative">
+                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-bold text-muted-foreground">
+                      GH₵
+                    </span>
                     <Input
-                      id="edit-stock"
+                      id="quick-price"
                       type="number"
-                      step="1"
+                      step="0.01"
                       min="0"
-                      placeholder="0"
-                      className="h-11 text-base font-bold bg-background rounded-xl"
-                      value={form.stockQty}
-                      onChange={e => setForm(p => ({ ...p, stockQty: e.target.value }))}
+                      className="pl-14 h-11 text-base font-bold bg-background rounded-xl"
+                      value={quickPrice}
+                      onChange={e => setQuickPrice(e.target.value)}
                     />
-                    <p className="text-[11px] text-muted-foreground">Units available for immediate warehouse dispatch</p>
                   </div>
                 </div>
-
-                {/* Live Estimated Valuation banner */}
-                {(() => {
-                  const p = parseFloat(form.priceGhs) || 0
-                  const s = parseInt(form.stockQty, 10) || 0
-                  if (p > 0 && s > 0) {
-                    return (
-                      <div className="flex items-center justify-between p-3.5 rounded-xl bg-muted border border-primary/25 text-xs">
-                        <span className="font-semibold text-foreground">Estimated Catalog Value at this price:</span>
-                        <span className="font-black text-sm text-foreground tabular-nums">
-                          GH₵ {(p * s).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                        </span>
-                      </div>
-                    )
-                  }
-                  return null
-                })()}
-              </Card>
-
-              {/* Action Buttons */}
-              <div className="flex items-center gap-3 pt-2">
-                <Button onClick={handleSave} isLoading={update.isPending} size="lg" className="gap-2 font-bold px-6 shadow-sm rounded-xl">
-                  <FloppyDisk className="h-4 w-4" weight="bold" /> Save Changes
+                <div className="space-y-1.5">
+                  <Label htmlFor="quick-stock" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                    Stock (units)
+                  </Label>
+                  <Input
+                    id="quick-stock"
+                    type="number"
+                    step="1"
+                    min="0"
+                    className="h-11 text-base font-bold bg-background rounded-xl"
+                    value={quickStock}
+                    onChange={e => setQuickStock(e.target.value)}
+                  />
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => { void handleSaveQuickOffers() }}
+                  isLoading={savingQuickOffers}
+                  size="sm"
+                  className="gap-1.5 font-bold rounded-xl"
+                >
+                  <FloppyDisk className="h-3.5 w-3.5" /> Save
                 </Button>
-                <Button onClick={() => setEditing(false)} variant="outline" size="lg" className="rounded-xl">
+                <Button onClick={() => setQuickOfferOpen(false)} variant="outline" size="sm" className="rounded-xl">
                   Cancel
                 </Button>
               </div>
-            </div>
-          ) : (
-            /* View Mode */
-            <div className="space-y-6">
-              {/* Product Overview Card */}
-              <Card className="p-6 space-y-5 border border-border/80 shadow-xs rounded-2xl bg-card">
-                <div className="flex items-center justify-between border-b border-border/60 pb-3">
-                  <h2 className="font-bold text-base text-foreground flex items-center gap-2">
-                    <Package className="h-5 w-5 text-primary" /> Product Information
-                  </h2>
-                  <Button onClick={startEditing} variant="outline" size="sm" className="gap-1.5 text-xs font-semibold rounded-xl">
-                    <PencilSimple className="h-3.5 w-3.5" /> Edit Information
-                  </Button>
-                </div>
-
-                <div className="space-y-4">
-                  <div>
-                    <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground block mb-1">
-                      Title
-                    </span>
-                    <p className="text-lg font-bold text-foreground">
-                      {product.title || "Untitled"}
-                    </p>
-                  </div>
-
-                  <div>
-                    <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground block mb-1">
-                      Description
-                    </span>
-                    <p className="text-sm text-foreground/90 whitespace-pre-wrap leading-relaxed">
-                      {product.description || "No description provided."}
-                    </p>
-                  </div>
-
-                  {/* Metadata Specs Strip */}
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-3 border-t border-border/60">
-                    <div>
-                      <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground block mb-1">
-                        Category
-                      </span>
-                      <span className="inline-block text-xs font-semibold px-2.5 py-1 rounded-lg bg-muted text-foreground border border-border/60">
-                        {categoryName || "Uncategorized"}
-                      </span>
-                    </div>
-
-                    <div>
-                      <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground block mb-1">
-                        Product Reference
-                      </span>
-                      <span className="text-xs font-mono font-semibold text-foreground">
-                        {product.handle || product.id.slice(0, 12)}
-                      </span>
-                    </div>
-
-                    <div>
-                      <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground block mb-1">
-                        Created Date
-                      </span>
-                      <span className="text-xs font-medium text-foreground">
-                        {product.created_at ? new Date(product.created_at).toLocaleDateString() : "—"}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </Card>
-
-              {/* Pricing & Stock Card (Expanded with proper room!) */}
-              <Card className="p-6 space-y-5 border border-border/80 shadow-xs rounded-2xl bg-card">
-                <div className="flex items-center justify-between border-b border-border/60 pb-3">
-                  <div>
-                    <h2 className="font-bold text-base text-foreground flex items-center gap-2">
-                      <Tag className="h-5 w-5 text-primary" /> Pricing &amp; Inventory
-                    </h2>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      Marketplace listing price, stock allocation, and asset valuation.
-                    </p>
-                  </div>
-                  {!quickOfferOpen && (
-                    <Button
-                      onClick={() => {
-                        setQuickPrice(currentPriceGhs > 0 ? String(currentPriceGhs) : "")
-                        setQuickStock(String(currentStock))
-                        setQuickOfferOpen(true)
-                      }}
-                      variant="outline"
-                      size="sm"
-                      className="gap-1.5 text-xs font-bold rounded-xl"
-                    >
-                      <PencilSimple className="h-3.5 w-3.5 text-primary" /> Quick Adjust
-                    </Button>
-                  )}
-                </div>
-
-                {!quickOfferOpen ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    {/* Selling Price */}
-                    <div className="p-4 rounded-2xl bg-muted/20 border border-border/60 flex flex-col justify-between gap-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Selling Price</span>
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-muted text-primary-foreground">GHS</span>
-                      </div>
-                      <p className="text-2xl sm:text-3xl font-black text-foreground tabular-nums tracking-tight">
-                        {currentPriceGhs > 0 ? `GH₵ ${currentPriceGhs.toFixed(2)}` : "—"}
-                      </p>
-                      <p className="text-[11px] text-muted-foreground font-medium">Gross marketplace consumer price</p>
-                    </div>
-
-                    {/* Available Stock */}
-                    <div className="p-4 rounded-2xl bg-muted/20 border border-border/60 flex flex-col justify-between gap-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Available Stock</span>
-                        <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                          currentStock > 0 ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300" : "bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300"
-                        }`}>
-                          <span className={`h-1.5 w-1.5 rounded-full ${currentStock > 0 ? "bg-emerald-500" : "bg-rose-500"}`} />
-                          {currentStock > 0 ? "In Stock" : "Depleted"}
-                        </span>
-                      </div>
-                      <p className={`text-2xl sm:text-3xl font-black tabular-nums tracking-tight ${currentStock > 0 ? "text-foreground" : "text-destructive"}`}>
-                        {currentStock.toLocaleString()} <span className="text-sm font-semibold text-muted-foreground">units</span>
-                      </p>
-                      <p className="text-[11px] text-muted-foreground font-medium">Ready for immediate fulfillment</p>
-                    </div>
-
-                    {/* Inventory Valuation */}
-                    <div className="p-4 rounded-2xl bg-muted/20 border border-border/60 flex flex-col justify-between gap-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Asset Value</span>
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-stone-200 dark:bg-stone-800 text-stone-700 dark:text-stone-300">Catalog</span>
-                      </div>
-                      <p className="text-2xl sm:text-3xl font-black text-foreground tabular-nums tracking-tight">
-                        {currentPriceGhs > 0 && currentStock > 0
-                          ? `GH₵ ${(currentPriceGhs * currentStock).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                          : "GH₵ 0.00"}
-                      </p>
-                      <p className="text-[11px] text-muted-foreground font-medium">Total on-hand stock valuation</p>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="p-5 bg-muted/20 border border-border/80 rounded-2xl space-y-4">
-                    <div className="grid gap-4 sm:grid-cols-2">
-                      <div className="space-y-1.5">
-                        <Label htmlFor="quick-price" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                          Price (GHS)
-                        </Label>
-                        <div className="relative">
-                          <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-bold text-muted-foreground">
-                            GH₵
-                          </span>
-                          <Input
-                            id="quick-price"
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            className="pl-14 h-11 text-base font-bold bg-background rounded-xl"
-                            value={quickPrice}
-                            onChange={e => setQuickPrice(e.target.value)}
-                          />
-                        </div>
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <Label htmlFor="quick-stock" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                          Stock Units
-                        </Label>
-                        <Input
-                          id="quick-stock"
-                          type="number"
-                          step="1"
-                          min="0"
-                          className="h-11 text-base font-bold bg-background rounded-xl"
-                          value={quickStock}
-                          onChange={e => setQuickStock(e.target.value)}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="flex gap-2 pt-1">
-                      <Button
-                        onClick={() => { void handleSaveQuickOffers() }}
-                        isLoading={savingQuickOffers}
-                        size="sm"
-                        className="gap-1.5 font-bold rounded-xl"
-                      >
-                        <FloppyDisk className="h-3.5 w-3.5" /> Save Price &amp; Stock
-                      </Button>
-                      <Button onClick={() => setQuickOfferOpen(false)} variant="outline" size="sm" className="rounded-xl">
-                        Cancel
-                      </Button>
-                    </div>
-                  </div>
-                )}
-              </Card>
-
-              <VariantsSection productId={id} />
-            </div>
+            </Card>
           )}
+        </TabsContent>
+
+        {!editing && hasOptions ? (
+          <TabsContent value="variants">
+            <VariantsSection productId={id} />
+          </TabsContent>
+        ) : null}
+      </Tabs>
+
+      {editing ? (
+        <div className="sticky bottom-0 z-20 -mx-4 border-t border-border/60 bg-background/95 px-4 py-3 backdrop-blur sm:-mx-6 sm:px-6">
+          <div className="flex items-center justify-end gap-2">
+            <Button onClick={() => setEditing(false)} variant="outline" size="sm" className="rounded-xl">
+              Cancel
+            </Button>
+            <Button onClick={handleSave} isLoading={update.isPending} size="sm" className="gap-1.5 font-bold shadow-xs rounded-xl">
+              <FloppyDisk className="h-4 w-4" /> Save changes
+            </Button>
+          </div>
         </div>
-      </div>
+      ) : null}
     </PageShell>
   )
 }

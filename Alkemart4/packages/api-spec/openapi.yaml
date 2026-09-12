@@ -620,6 +620,29 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
 
+  /admin/products/{id}:
+    get:
+      operationId: getAdminProductDetail
+      tags: [admin-products]
+      summary: Full product detail for review (options + combinations)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ProductId"
+      responses:
+        "200":
+          description: Product detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VendorProduct"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
   /admin/products/{id}/approve:
     post:
       operationId: approveProduct
@@ -1223,6 +1246,55 @@ components:
               nullable: true
         offer:
           $ref: "#/components/schemas/VendorOffer"
+        options:
+          type: array
+          items:
+            $ref: "#/components/schemas/VendorProductOption"
+          description: Option types + values (empty for legacy products).
+        variants:
+          type: array
+          items:
+            $ref: "#/components/schemas/VendorProductCombo"
+          description: Every combination with its offer.
+
+    VendorProductOption:
+      type: object
+      additionalProperties: false
+      required: [id, name, values]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        values:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [id, value, imageUrl]
+            properties:
+              id: { type: string }
+              value: { type: string }
+              imageUrl: { type: string, nullable: true }
+
+    VendorProductCombo:
+      type: object
+      additionalProperties: false
+      required: [variant, offer, options]
+      properties:
+        variant:
+          type: object
+          additionalProperties: false
+          required: [id, sku, title]
+          properties:
+            id: { type: string }
+            sku: { type: string, nullable: true }
+            title: { type: string, nullable: true }
+        offer:
+          $ref: "#/components/schemas/VendorOffer"
+        options:
+          type: object
+          additionalProperties:
+            type: string
+          description: Option name to value for this combination.
 
     VendorProductListResponse:
       type: object
@@ -1593,6 +1665,83 @@ components:
         banner:
           type: string
           nullable: true
+        trust:
+          $ref: "#/components/schemas/SellerShopTrust"
+          nullable: true
+          description: Ratings, sales, profile, announcement, policy, recent reviews. Null when unassemblable.
+
+    SellerShopTrust:
+      type: object
+      additionalProperties: false
+      required:
+        - ratingAvg
+        - ratingCount
+        - salesCount
+        - memberSince
+        - location
+        - tagline
+        - phone
+        - hours
+        - social
+        - announcement
+        - policy
+        - recentReviews
+      properties:
+        ratingAvg:
+          type: number
+          nullable: true
+        ratingCount:
+          type: integer
+        salesCount:
+          type: integer
+        memberSince:
+          type: string
+          nullable: true
+        location:
+          type: string
+          nullable: true
+        tagline:
+          type: string
+          nullable: true
+        phone:
+          type: string
+          nullable: true
+        hours:
+          type: object
+          nullable: true
+          additionalProperties: false
+          required: [days, open, close]
+          properties:
+            days: { type: string }
+            open: { type: string }
+            close: { type: string }
+        social:
+          type: object
+          additionalProperties:
+            type: string
+        announcement:
+          type: string
+          nullable: true
+        policy:
+          type: object
+          nullable: true
+          additionalProperties: false
+          properties:
+            shipping: { type: string }
+            returnsDays: { type: integer }
+            warranty: { type: string }
+        recentReviews:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [productTitle, rating, title, body, createdAt]
+            properties:
+              productTitle: { type: string }
+              rating: { type: number }
+              title: { type: string, nullable: true }
+              body: { type: string }
+              createdAt: { type: string }
 
     SellerAvailability:
       type: object

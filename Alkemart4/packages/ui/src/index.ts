@@ -10,8 +10,35 @@ export { Badge, badgeVariants } from "./badge"
 export type { BadgeProps } from "./badge"
 export { Avatar, AvatarImage, AvatarFallback } from "./avatar"
 export { Label } from "./label"
-export { Select } from "./select"
-export type { SelectProps } from "./select"
+export {
+  Select,
+  SelectGroup,
+  SelectValue,
+  SelectTrigger,
+  SelectContent,
+  SelectLabel,
+  SelectItem,
+  SelectSeparator,
+  SelectScrollUpButton,
+  SelectScrollDownButton,
+} from "./select"
+export {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuCheckboxItem,
+  DropdownMenuRadioItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuShortcut,
+  DropdownMenuGroup,
+  DropdownMenuPortal,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuRadioGroup,
+} from "./dropdown-menu"
 export { Modal, ModalTrigger, ModalClose } from "./modal"
 export { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "./table"
 export { Skeleton } from "./skeleton"

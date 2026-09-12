@@ -1,8 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router"
 import { useState } from "react"
-import { useQueryClient } from "@tanstack/react-query"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { Flag } from "@phosphor-icons/react"
 import { useProducts } from "../../hooks/use-products"
-import { moderation, type ProposedProduct } from "../../lib/api"
+import { moderation, type AdminProductDetail, type ProposedProduct } from "../../lib/api"
 import { Button, Badge, Modal, Textarea, Skeleton, EmptyState, Checkbox } from "@workspace/ui"
 import { PageShell } from "../../components/page-shell"
 import { PageHeader } from "../../components/page-header"
@@ -55,6 +56,13 @@ function ProductModerationPage() {
 
   const [error, setError] = useState<string | null>(null)
   const [reason, setReason] = useState("")
+  const [detailId, setDetailId] = useState<string | null>(null)
+  const detailQ = useQuery({
+    queryKey: ["product-detail", detailId],
+    queryFn: () => moderation.getProduct(detailId as string),
+    enabled: detailId !== null,
+    staleTime: 30_000,
+  })
 
   // Bulk selection + execution (raw moderation fns: single summary toast, not per-item)
   const [selected, setSelected] = useState<string[]>([])
@@ -98,6 +106,7 @@ function ProductModerationPage() {
       setError(null)
       await confirm(confirmModal.productId)
       setConfirmModal({ isOpen: false, productId: null })
+      setDetailId(null)
     } catch {
       setError("Failed to perform action")
     }
@@ -114,6 +123,7 @@ function ProductModerationPage() {
       }
       setModalState({ isOpen: false, type: null, productId: null })
       setReason("")
+      setDetailId(null)
     } catch {
       setError("Failed to perform action")
     }
@@ -196,18 +206,25 @@ function ProductModerationPage() {
                   aria-label={`Select ${p.title || "product"} for bulk action`}
                   className="mt-1 shrink-0"
                 />
-              <div className="h-32 w-32 shrink-0 rounded-lg overflow-hidden bg-muted border flex items-center justify-center">
+              <button
+                type="button"
+                onClick={() => setDetailId(p.id)}
+                className="h-32 w-32 shrink-0 rounded-lg overflow-hidden bg-muted border flex items-center justify-center hover:border-primary/60 transition-colors"
+                aria-label={`Review ${p.title || "product"} details`}
+              >
                 {p.thumbnail ? (
                   <img src={p.thumbnail} alt={p.title} className="h-full w-full object-cover" />
                 ) : (
                   <span className="text-muted-foreground text-sm">No Image</span>
                 )}
-              </div>
+              </button>
 
               <div className="flex-1 space-y-2">
                 <div className="flex justify-between items-start">
                   <div>
-                    <h3 className="font-semibold text-lg">{p.title}</h3>
+                    <button type="button" onClick={() => setDetailId(p.id)} className="text-left hover:underline">
+                      <h3 className="font-semibold text-lg">{p.title}</h3>
+                    </button>
                     <p className="text-sm text-muted-foreground">
                       Seller: <span className="font-medium text-foreground">{p.seller?.name || "Unknown"}</span> (@{p.seller?.handle || p.seller?.id || "…"})
                     </p>
@@ -236,8 +253,8 @@ function ProductModerationPage() {
                 {p.flags && p.flags.length > 0 ? (
                   <div className="flex flex-wrap gap-1.5 pt-1" aria-label="Auto-check flags">
                     {p.flags.map(f => (
-                      <Badge key={f.rule} variant="warning" className="text-xs font-semibold">
-                        ⚑ {f.message}
+                      <Badge key={f.rule} variant="warning" className="gap-1 text-xs font-semibold">
+                        <Flag size={12} weight="fill" aria-hidden /> {f.message}
                       </Badge>
                     ))}
                   </div>
@@ -287,9 +304,18 @@ function ProductModerationPage() {
         </>
       )}
 
+      <ProductDetailDrawer
+        productId={detailId}
+        detail={detailQ.data ?? null}
+        isLoading={detailQ.isLoading}
+        isError={detailQ.isError}
+        onClose={() => setDetailId(null)}
+        onApprove={(id) => setConfirmModal({ isOpen: true, productId: id })}
+        onDecide={(id, type) => setModalState({ isOpen: true, type, productId: id })}
+      />
+
       <ConfirmDialog
-        open={confirmModal.isOpen}
-        onOpenChange={(open) => setConfirmModal({ isOpen: open, productId: open ? confirmModal.productId : null })}
+        open={confirmModal.isOpen}        onOpenChange={(open) => setConfirmModal({ isOpen: open, productId: open ? confirmModal.productId : null })}
         title="Approve Product"
         onConfirm={handleConfirm}
         confirmLabel="Approve"
@@ -371,5 +397,146 @@ function ProductModerationPage() {
         </div>
       </Modal>
     </PageShell>
+  )
+}
+
+function ghs(pesewas: string): string {
+  const n = Number(pesewas)
+  return Number.isFinite(n) ? `GH₵ ${(n / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "—"
+}
+
+/**
+ * Review drawer: full listing incl. variant matrix, so moderators approve
+ * combinations — not just the base product. Read-only; actions reuse the
+ * queue modals (drawer closes on decision).
+ */
+function ProductDetailDrawer({ productId, detail, isLoading, isError, onClose, onApprove, onDecide }: {
+  productId: string | null
+  detail: AdminProductDetail | null
+  isLoading: boolean
+  isError: boolean
+  onClose: () => void
+  onApprove: (id: string) => void
+  onDecide: (id: string, type: "reject" | "request-changes") => void
+}) {
+  if (productId === null) return null
+  const combos = detail?.variants ?? []
+  const options = detail?.options ?? []
+  return (
+    <div className="fixed inset-0 z-40" role="dialog" aria-modal="true" aria-label="Product review details">
+      <button type="button" aria-label="Close details" onClick={onClose} className="absolute inset-0 bg-black/50 cursor-default" />
+      <aside className="absolute right-0 top-0 flex h-full w-full max-w-xl flex-col gap-4 overflow-y-auto border-l bg-card p-6 shadow-xl">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Review listing</p>
+            <h2 className="text-xl font-bold">{detail?.product.title ?? "Loading…"}</h2>
+          </div>
+          <Button variant="outline" size="sm" onClick={onClose}>Close</Button>
+        </div>
+
+        {isLoading ? (
+          <div className="space-y-3">
+            <Skeleton className="aspect-video w-full rounded-xl" />
+            <Skeleton className="h-4 w-2/3" />
+            <Skeleton className="h-4 w-1/2" />
+          </div>
+        ) : null}
+        {isError || (!isLoading && !detail) ? (
+          <p className="text-sm text-destructive font-medium">Could not load this listing. Close and try again.</p>
+        ) : null}
+
+        {detail ? (
+          <>
+            <div className="aspect-video w-full overflow-hidden rounded-xl border bg-muted">
+              {detail.product.imageUrl ? (
+                <img src={detail.product.imageUrl} alt={detail.product.title} className="h-full w-full object-cover" />
+              ) : (
+                <p className="flex h-full items-center justify-center text-sm text-muted-foreground">No photo</p>
+              )}
+            </div>
+            {detail.product.description ? (
+              <p className="text-sm leading-relaxed text-muted-foreground whitespace-pre-wrap">{detail.product.description}</p>
+            ) : null}
+            <dl className="grid grid-cols-2 gap-3 text-sm">
+              <div>
+                <dt className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Status</dt>
+                <dd className="font-semibold">{detail.product.status}</dd>
+              </div>
+              <div>
+                <dt className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Base price</dt>
+                <dd className="font-semibold tabular-nums">{ghs(detail.offer.pricePesewas)} · {detail.offer.onHand} in stock</dd>
+              </div>
+            </dl>
+
+            {options.length > 0 ? (
+              <section className="space-y-2">
+                <h3 className="text-sm font-bold">Options</h3>
+                <ul className="space-y-1.5">
+                  {options.map((o) => (
+                    <li key={o.id} className="flex flex-wrap items-center gap-2 text-sm">
+                      <span className="font-semibold">{o.name}:</span>
+                      {o.values.map((v) => (
+                        <span key={v.id} className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium">
+                          {v.imageUrl ? <img src={v.imageUrl} alt="" className="h-5 w-5 rounded-full object-cover" /> : null}
+                          {v.value}
+                        </span>
+                      ))}
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ) : null}
+
+            <section className="space-y-2">
+              <h3 className="text-sm font-bold">
+                Combinations{combos.length > 0 ? ` (${combos.length})` : ""}
+              </h3>
+              {combos.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Single listing — no combinations.</p>
+              ) : (
+                <div className="overflow-hidden rounded-xl border">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="bg-muted/50 text-left text-xs uppercase tracking-wider text-muted-foreground">
+                        <th className="px-3 py-2 font-bold">Combo</th>
+                        <th className="px-3 py-2 font-bold text-right">Price</th>
+                        <th className="px-3 py-2 font-bold text-right">Stock</th>
+                        <th className="px-3 py-2 font-bold text-right">State</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {combos.map((c) => (
+                        <tr key={c.variant.id} className="border-t">
+                          <td className="px-3 py-2 font-medium">
+                            {Object.values(c.options).join(" / ") || "Standard"}
+                          </td>
+                          <td className="px-3 py-2 text-right tabular-nums">{ghs(c.offer.pricePesewas)}</td>
+                          <td className="px-3 py-2 text-right tabular-nums">{c.offer.onHand}</td>
+                          <td className="px-3 py-2 text-right">
+                            <Badge variant={c.offer.active ? "success" : "secondary"}>
+                              {c.offer.active ? "Live" : "Off"}
+                            </Badge>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </section>
+
+            <div className="mt-auto flex gap-2 border-t pt-4">
+              <Button className="flex-1" onClick={() => onApprove(detail.product.id)}>Approve</Button>
+              <Button variant="outline" className="flex-1" onClick={() => onDecide(detail.product.id, "request-changes")}>
+                Request changes
+              </Button>
+              <Button variant="destructive" className="flex-1" onClick={() => onDecide(detail.product.id, "reject")}>
+                Reject
+              </Button>
+            </div>
+          </>
+        ) : null}
+      </aside>
+    </div>
   )
 }

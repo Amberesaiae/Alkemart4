@@ -3,7 +3,7 @@ import { useState } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { adminPayouts, adminSellers, type AdminPayout } from "../../lib/api"
 import { isWorkersApi } from "../../lib/config"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Badge, Button, Skeleton, EmptyState, Modal, Input, Select } from "@workspace/ui"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Badge, Button, Skeleton, EmptyState, Modal, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui"
 import { PageShell } from "../../components/page-shell"
 import { PageHeader } from "../../components/page-header"
 import { PaperPlaneTilt } from "@phosphor-icons/react"
@@ -84,17 +84,17 @@ function TriggerPayoutDialog({ isOpen, onClose }: { isOpen: boolean; onClose: ()
             <label className="text-sm font-medium">Seller</label>
             <Select
               value={sellerId}
-              onChange={e => setSellerId(e.target.value)}
-              className="mt-1"
+              onValueChange={setSellerId}
+              disabled={sellersLoading}
             >
-              <option value="">Select seller…</option>
-              {sellersLoading ? (
-                <option disabled>Loading…</option>
-              ) : (
-                sellersData?.sellers?.map(s => (
-                  <option key={s.id} value={s.id}>{s.name} (@{s.handle})</option>
-                ))
-              )}
+              <SelectTrigger aria-label="Seller" className="mt-1">
+                <SelectValue placeholder={sellersLoading ? "Loading…" : "Select seller…"} />
+              </SelectTrigger>
+              <SelectContent>
+                {sellersData?.sellers?.map(s => (
+                  <SelectItem key={s.id} value={s.id}>{s.name} (@{s.handle})</SelectItem>
+                ))}
+              </SelectContent>
             </Select>
           </div>
 

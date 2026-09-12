@@ -2,13 +2,16 @@ import { createFileRoute, Link } from "@tanstack/react-router"
 import { useState } from "react"
 import { useOrders } from "../../hooks/use-orders"
 import type { AdminOrder } from "../../lib/api"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Badge, Select, Skeleton, Button, Price, EmptyState } from "@workspace/ui"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Badge, Skeleton, Button, Price, EmptyState, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui"
 import { PageShell } from "../../components/page-shell"
 import { PageHeader } from "../../components/page-header"
 
 export const Route = createFileRoute("/_authenticated/orders")({
   component: OrdersPage,
 })
+
+/** Sentinel: Radix items need non-empty values; maps back to undefined. */
+const ALL_STATUSES = "__all"
 
 function StatusBadge({ status }: { status?: string }) {
   let variant: "default" | "secondary" | "destructive" | "success" | "warning" = "secondary"
@@ -56,16 +59,20 @@ function OrdersPage() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <PageHeader title="Marketplace Orders" description="View and track all platform orders." />
         <Select
-          value={status || ""}
-          onChange={(e) => { setStatus(e.target.value || undefined); setOffset(0) }}
-          className="h-10 w-full sm:w-48"
+          value={status ?? ALL_STATUSES}
+          onValueChange={(v) => { setStatus(v === ALL_STATUSES ? undefined : v); setOffset(0) }}
         >
-          <option value="">All Statuses</option>
-          <option value="pending">Pending</option>
-          <option value="processing">Processing</option>
-          <option value="shipped">Shipped</option>
-          <option value="delivered">Delivered</option>
-          <option value="cancelled">Cancelled</option>
+          <SelectTrigger aria-label="Filter by status" className="h-10 w-full sm:w-48">
+            <SelectValue placeholder="All Statuses" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={ALL_STATUSES}>All Statuses</SelectItem>
+            <SelectItem value="pending">Pending</SelectItem>
+            <SelectItem value="processing">Processing</SelectItem>
+            <SelectItem value="shipped">Shipped</SelectItem>
+            <SelectItem value="delivered">Delivered</SelectItem>
+            <SelectItem value="cancelled">Cancelled</SelectItem>
+          </SelectContent>
         </Select>
       </div>
 

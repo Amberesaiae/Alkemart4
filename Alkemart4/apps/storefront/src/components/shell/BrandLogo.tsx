@@ -38,9 +38,7 @@ export function BrandLogo({
       )}
     >
       {brand.wordmarkHtml}
-      <span className="brand-period" aria-hidden>
-        .
-      </span>
+      <span className="text-primary">.</span>
     </span>
   )
 

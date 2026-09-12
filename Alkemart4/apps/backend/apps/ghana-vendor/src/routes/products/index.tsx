@@ -94,7 +94,7 @@ function ProductsPage() {
         )
       case "proposed":
         return (
-          <span className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full bg-amber-500 text-white shadow-xs">
+          <span className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full bg-primary text-primary-foreground shadow-xs">
             <Clock className="h-3 w-3" weight="bold" /> In Review
           </span>
         )
@@ -117,7 +117,7 @@ function ProductsPage() {
       }
       default:
         return (
-          <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-stone-100 text-stone-700 dark:bg-stone-800 dark:text-stone-300 border border-border/60">
+          <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-white text-foreground border border-border/60">
             Draft
           </span>
         )
@@ -168,8 +168,8 @@ function ProductsPage() {
             {[
               { id: "all", label: "All Items", count: stats.total, dot: null },
               { id: "published", label: "Live on Store", count: stats.published, dot: "bg-emerald-500" },
-              { id: "proposed", label: "In Review", count: stats.inReview, dot: "bg-amber-500" },
-              { id: "draft", label: "Drafts", count: stats.drafts + stats.rejected, dot: "bg-stone-400" },
+              { id: "proposed", label: "In Review", count: stats.inReview, dot: "bg-primary" },
+              { id: "draft", label: "Drafts", count: stats.drafts + stats.rejected, dot: "bg-neutral-400" },
             ].map((tab) => {
               const isSelected = statusFilter === tab.id
               return (
@@ -332,7 +332,7 @@ function ProductsPage() {
                 className="group relative flex flex-col rounded-2xl border border-border/80 bg-card overflow-hidden transition-all duration-300 hover:shadow-lg hover:border-primary/50"
               >
                 {/* Media Showcase Frame with Status & Storefront Link */}
-                <div className="aspect-[16/10] bg-stone-100 dark:bg-stone-900/60 relative overflow-hidden">
+                <div className="aspect-[16/10] bg-white relative overflow-hidden">
                   {product.thumbnail ? (
                     <img
                       src={product.thumbnail}

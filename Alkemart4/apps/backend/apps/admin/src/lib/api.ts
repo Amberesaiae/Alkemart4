@@ -345,6 +345,26 @@ export const platformStats = {
 }
 
 // Product moderation
+export type AdminProductDetail = {
+  product: {
+    id: string
+    title: string
+    description: string | null
+    status: string
+    primaryCategoryId: string
+    sellerId: string | null
+    imageUrl: string | null
+  }
+  variant: { id: string; sku: string | null; title: string | null }
+  offer: { pricePesewas: string; onHand: number; active: boolean }
+  options: { id: string; name: string; values: { id: string; value: string; imageUrl: string | null }[] }[]
+  variants: {
+    variant: { id: string }
+    offer: { pricePesewas: string; onHand: number; active: boolean }
+    options: Record<string, string>
+  }[]
+}
+
 export const moderation = {
   listProducts: async () => {
     if (isWorkersApi) {
@@ -371,6 +391,7 @@ export const moderation = {
     apiFetch(`/admin/products/${id}/reject`, { method: "POST", body: JSON.stringify({ reason }) }),
   requestChanges: (id: string, reason: string) =>
     apiFetch(`/admin/products/${id}/request-changes`, { method: "POST", body: JSON.stringify({ reason }) }),
+  getProduct: (id: string) => apiFetch<AdminProductDetail>(`/admin/products/${id}`),
 }
 
 // Seller queue — Workers `/admin/sellers` (+ legacy Mercur path fallback)

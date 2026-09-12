@@ -34,19 +34,19 @@ function LoginPage() {
   return (
     <div className="grid min-h-[100dvh] md:grid-cols-[1.05fr_1fr]">
       {/* Brand panel */}
-      <aside className="relative hidden flex-col justify-between overflow-hidden bg-gradient-to-br from-[#16120d] via-[#1c1610] to-[#110d08] px-10 py-10 text-white md:flex lg:px-14 lg:py-12 border-r border-white/10">
+      <aside className="relative hidden flex-col justify-between overflow-hidden bg-white p-0 text-black md:flex [&>*:not(img):not(.auth-panel-copy)]:hidden">
         {/* Glow & Mesh background accents */}
         <div
           aria-hidden
-          className="pointer-events-none absolute -top-24 -right-24 h-[420px] w-[420px] rounded-full bg-gradient-to-br from-primary/30 to-amber-500/10 blur-[100px]"
+          className="pointer-events-none absolute -top-24 -right-24 h-[420px] w-[420px] rounded-full bg-primary/10 blur-[100px]"
         />
         <div
           aria-hidden
-          className="pointer-events-none absolute -bottom-36 -left-20 h-96 w-96 rounded-full bg-muted blur-[90px]"
+          className="pointer-events-none absolute -bottom-36 -left-20 h-96 w-96 rounded-full bg-white/5 blur-[90px]"
         />
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-0 bg-[radial-gradient(#febf31_1px,transparent_1px)] [background-size:24px_24px] opacity-[0.07]"
+          className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,transparent_0%,rgb(255_196_0_/_0.06)_50%,transparent_100%)]"
         />
 
         {/* Top Header */}
@@ -60,6 +60,17 @@ function LoginPage() {
           </Link>
         </div>
 
+        <img
+          src="/brand/auth/vendor.png"
+          alt="Vendor preparing marketplace orders"
+          className="absolute left-1/2 top-1/2 z-10 h-[118%] w-[118%] max-w-none -translate-x-1/2 -translate-y-1/2 scale-[1.08] object-contain object-center mix-blend-normal"
+        />
+
+        <div className="auth-panel-copy absolute left-0 top-0 z-20 w-full bg-white/90 px-8 py-6 backdrop-blur-sm lg:px-10">
+          <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-black/55">Alkemart for sellers</p>
+          <p className="mt-1 text-lg font-black tracking-tight text-black">Your products, ready for the next order.</p>
+        </div>
+
         {/* Hero & Glass Feature Cards */}
         <div className="relative z-10 max-w-md space-y-8 my-auto py-6">
           <div className="space-y-4">
@@ -69,7 +80,7 @@ function LoginPage() {
             </div>
             <h2 className="text-3xl font-extrabold leading-tight tracking-tight lg:text-4xl">
               Your stall,{" "}
-              <span className="bg-gradient-to-r from-primary via-amber-300 to-amber-500 bg-clip-text text-transparent">
+              <span className="text-primary">
                 open 24/7.
               </span>
             </h2>
@@ -139,7 +150,7 @@ function LoginPage() {
         </div>
 
         <div className="flex flex-1 flex-col items-center justify-center px-4 py-10 sm:px-8">
-          <div className="w-full max-w-md rounded-2xl border border-border/80 bg-card p-8 shadow-xl sm:p-10">
+          <div className="w-full max-w-md rounded-3xl border border-black/10 bg-white p-8 shadow-[0_20px_50px_-24px_rgb(0_0_0_/_0.35)] sm:p-10">
             <header className="mb-8 space-y-2">
               <p className="text-[11px] font-bold uppercase tracking-widest text-primary">
                 Seller Hub

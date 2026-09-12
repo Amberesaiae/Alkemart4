@@ -1,4 +1,11 @@
-import { Input, PasswordInput, Select } from "@workspace/ui"
+import { Input, PasswordInput } from "@workspace/ui"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@workspace/ui"
 
 type FormFieldProps = {
   label: string
@@ -56,7 +63,8 @@ export function FormSelect(props: {
   value: string
   onChange: (v: string) => void
   required?: boolean
-  children: React.ReactNode
+  options: { value: string; label: string }[]
+  placeholder?: string
   error?: string
 }) {
   const id = props.id ?? `select-${props.label.toLowerCase().replace(/\s+/g, "-")}`
@@ -68,13 +76,17 @@ export function FormSelect(props: {
       {props.error ? (
         <p className="text-sm text-destructive">{props.error}</p>
       ) : (
-        <Select
-          id={id}
-          value={props.value}
-          onChange={(e) => props.onChange(e.target.value)}
-          required={props.required}
-        >
-          {props.children}
+        <Select value={props.value} onValueChange={props.onChange} required={props.required}>
+          <SelectTrigger id={id} className="min-h-11">
+            <SelectValue placeholder={props.placeholder ?? `Select ${props.label.toLowerCase()}…`} />
+          </SelectTrigger>
+          <SelectContent>
+            {props.options.map((o) => (
+              <SelectItem key={o.value} value={o.value}>
+                {o.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
         </Select>
       )}
     </div>

@@ -132,3 +132,53 @@ describe("POST /admin/products/:id/reject", () => {
     expect(body.product.status).toBe("rejected")
   })
 })
+
+describe("GET /admin/products/:id", () => {
+  it("returns full detail with options and combos for review, 404 when missing", async () => {
+    const { app, adminToken } = await adminProductApp()
+    const { token: sellerToken } = await (async () => {
+      const vendor = await app.request("/vendor/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: "matrix@alkemart.test",
+          password: "VendorPass1",
+          sellerName: "Matrix Shop",
+          sellerHandle: "matrix-shop",
+        }),
+      }, testEnv())
+      return (await vendor.json()) as { token: string }
+    })()
+    const made = await app.request("/vendor/products", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${sellerToken}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title: "Matrix Gown",
+        primaryCategoryId: "women",
+        pricePesewas: "50000",
+        onHand: 4,
+        variant_options: [{ name: "Colour", values: ["Red", "Navy"] }],
+      }),
+    }, testEnv())
+    expect(made.status).toBe(201)
+    const madeBody = (await made.json()) as { product: { id: string } }
+
+    const res = await app.request(`/admin/products/${madeBody.product.id}`, {
+      headers: { Authorization: `Bearer ${adminToken}` },
+    }, testEnv())
+    expect(res.status).toBe(200)
+    const detail = (await res.json()) as {
+      product: { id: string; title: string }
+      options: { name: string; values: { value: string }[] }[]
+      variants: { options: Record<string, string>; offer: { onHand: number } }[]
+    }
+    expect(detail.product.title).toBe("Matrix Gown")
+    expect(detail.options.map((o) => o.name)).toEqual(["Colour"])
+    expect(detail.variants).toHaveLength(2)
+
+    const missing = await app.request("/admin/products/does-not-exist", {
+      headers: { Authorization: `Bearer ${adminToken}` },
+    }, testEnv())
+    expect(missing.status).toBe(404)
+  })
+})

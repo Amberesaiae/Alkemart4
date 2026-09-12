@@ -1,5 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" role="img" aria-label="alkemart">
   <!-- Mark only: black tile + gold period (no letter monogram) -->
-  <rect width="64" height="64" rx="16" fill="#141414"/>
-  <circle cx="32" cy="32" r="10" fill="#F5C518"/>
+  <rect width="64" height="64" rx="16" fill="#000000"/>
+  <circle cx="32" cy="32" r="13" fill="#FFC400"/>
+  <circle cx="32" cy="32" r="5" fill="#000000"/>
+  <path d="M32 14v7M32 43v7M14 32h7M43 32h7" stroke="#FFC400" stroke-width="3" stroke-linecap="round"/>
 </svg>

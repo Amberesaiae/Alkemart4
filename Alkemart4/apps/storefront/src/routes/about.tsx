@@ -3,7 +3,6 @@ import { PageSeo } from "@/components/page-seo"
 import { brand } from "@/design/brand"
 import { IconSafe } from "@/design/icons"
 import { absoluteUrl, organizationJsonLd, siteOrigin } from "@/lib/seo"
-import { cn } from "@/lib/utils"
 
 export const Route = createFileRoute("/about")({
   component: AboutPage,
@@ -17,17 +16,17 @@ const PILLARS = [
   },
   {
     title: "Built for Ghana",
-    body: "Cash on delivery, local delivery areas, and Mobile Money when sellers enable it.",
+    body: "Cash on delivery and Mobile Money, with local delivery areas.",
     icon: "truck" as const,
   },
   {
     title: "Seller isolation",
-    body: "Each shop owns its catalog and fulfills its own orders. Your cart can mix sellers.",
+    body: "Each shop fulfills its own orders — one cart can mix sellers.",
     icon: "secure" as const,
   },
   {
     title: "Honest catalog",
-    body: "Listings and prices come from the live marketplace API — we don’t invent products.",
+    body: "Live listings and prices, straight from sellers — never invented.",
     icon: "check" as const,
   },
 ]
@@ -152,21 +151,6 @@ function AboutPage() {
           </div>
         </header>
 
-        {/* Mission */}
-        <section className="mx-auto max-w-3xl space-y-3 text-center" aria-labelledby="mission-heading">
-          <h2
-            id="mission-heading"
-            className="text-2xl font-extrabold tracking-tight sm:text-3xl"
-          >
-            Our mission
-          </h2>
-          <p className="text-base leading-relaxed text-muted-foreground sm:text-lg">
-            Make everyday shopping clearer: see who is selling what, at what
-            price, and how you’ll pay — with a marketplace that respects sellers
-            and shoppers equally.
-          </p>
-        </section>
-
         {/* Pillars */}
         <section aria-labelledby="pillars-heading" className="space-y-6">
           <h2
@@ -179,7 +163,7 @@ function AboutPage() {
             {PILLARS.map((p) => (
               <li
                 key={p.title}
-                className="flex gap-4 rounded-2xl border border-border bg-card p-5 shadow-sm"
+                className="flex gap-4 rounded-2xl border border-border bg-card p-5 shadow-sm transition-colors hover:border-foreground/25"
               >
                 <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-muted text-foreground">
                   <IconSafe name={p.icon} size={22} />
@@ -226,7 +210,7 @@ function AboutPage() {
                 d: "Pay the rider. Mobile Money when a seller offers it.",
               },
             ].map((s) => (
-              <li key={s.n} className="space-y-2 rounded-2xl bg-card p-5 shadow-sm">
+              <li key={s.n} className="space-y-2 rounded-2xl bg-card p-5 shadow-sm transition-shadow hover:shadow-md">
                 <span className="text-xs font-bold text-primary">{s.n}</span>
                 <h3 className="font-bold text-foreground">{s.t}</h3>
                 <p className="text-sm leading-relaxed text-muted-foreground">
@@ -237,36 +221,6 @@ function AboutPage() {
           </ol>
         </section>
 
-        {/* CTA */}
-        <section
-          className={cn(
-            "flex flex-col items-start justify-between gap-6 rounded-3xl border border-border bg-card p-6 shadow-sm sm:flex-row sm:items-center sm:p-8",
-          )}
-        >
-          <div className="space-y-2">
-            <h2 className="text-xl font-extrabold tracking-tight">
-              Questions or partnership?
-            </h2>
-            <p className="max-w-md text-sm text-muted-foreground">
-              Reach the alkemart team — shopper support, seller onboarding, or
-              press.
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-3">
-            <Link
-              to="/contact"
-              className="inline-flex h-11 items-center rounded-full bg-primary px-6 text-sm font-bold text-primary-foreground hover:opacity-90"
-            >
-              Contact Us
-            </Link>
-            <Link
-              to="/sell"
-              className="inline-flex h-11 items-center rounded-full border border-border px-6 text-sm font-bold hover:bg-muted"
-            >
-              Sell on {brand.name}
-            </Link>
-          </div>
-        </section>
       </article>
     </>
   )

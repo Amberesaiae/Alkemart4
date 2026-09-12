@@ -78,13 +78,13 @@
    * Solid fills are the lightest shade of each hue that still holds its
    * text colour, so a tone stays recognisable as its hue.
    */
-  --tone-neutral: #797569;
+  --tone-neutral: #666666;
   --tone-neutral-fg: #ffffff;
-  --tone-neutral-soft: #e6e6e3;
-  --tone-neutral-ink: #69655b;  /* solid 4.60 · soft 4.65 · card 5.81 */
-  --tone-brand: #febf31;
-  --tone-brand-fg: #1f1e1b;
-  --tone-brand-soft: #fbf2dd;
+  --tone-neutral-soft: #eeeeee;
+  --tone-neutral-ink: #444444;
+  --tone-brand: #ffc400;
+  --tone-brand-fg: #000000;
+  --tone-brand-soft: #f1f1f1;
   --tone-brand-ink: #926501;  /* solid 10.09 · soft 4.61 · card 5.14 */
   --tone-success: #16864e;
   --tone-success-fg: #ffffff;
@@ -107,36 +107,43 @@
   --tone-scarce-soft: #efe1da;
   --tone-scarce-ink: #a7471a;  /* solid 4.62 · soft 4.62 · card 5.90 */
   color-scheme: light;
-  --primary: #FEBF31;
-  --primary-foreground: #1f1e1b;
-  --background: #fafaf9;
-  --foreground: #1f1e1b;
+  --primary: #FFC400;
+  --primary-foreground: #000000;
+  --background: #ffffff;
+  --foreground: #000000;
   --card: #ffffff;
-  --card-foreground: #1f1e1b;
-  --muted: #f3f3f1;
-  --muted-foreground: #74726b;
-  --border: #e4e3e0;
+  --card-foreground: #000000;
+  --muted: #ffffff;
+  --muted-foreground: #666666;
+  --border: #e5e5e5;
   --destructive: #d64545;
   --ring: #e89b00;
-  --ink: #171614;
-  --surface-soft: #f5f5f3;
+  --ink: #000000;
+  --surface-soft: #ffffff;
 }
 
 * { border-color: var(--border); }
 html, body {
   min-height: 100dvh; display: flex; flex-direction: column;
+  background: #ffffff;
 }
 body {
-  margin: 0; background: var(--background);
+  margin: 0;
+  background: var(--background);
   color: var(--foreground); font-family: var(--font-sans);
   font-size: 1rem; line-height: 1.5; -webkit-font-smoothing: antialiased;
 }
 #root { min-height: 100vh; }
+#root { background: #ffffff; }
 :focus { outline: none; }
 :focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; border-radius: 4px; }
 
 .surface-soft {
   background-color: var(--surface-soft);
+}
+.surface-gloss {
+  background: linear-gradient(145deg, #ffffff, #ffffff);
+  box-shadow: 0 1px 0 rgb(255 255 255 / 0.95) inset, var(--shadow-sm);
 }
 /* @deprecated alias — kept so any missed call site keeps its surface. */
 .surface-cream {

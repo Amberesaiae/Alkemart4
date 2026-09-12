@@ -3,7 +3,7 @@ import { isWorkersApi } from "../../lib/config"
 import { useState } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { adminPromotions } from "../../lib/api"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Badge, Button, Modal, Skeleton, EmptyState, Input, Select } from "@workspace/ui"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Badge, Button, Modal, Skeleton, EmptyState, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui"
 import { PageShell } from "../../components/page-shell"
 import { PageHeader } from "../../components/page-header"
 import { Plus, Percent, Coins, Truck } from "@phosphor-icons/react"
@@ -182,16 +182,26 @@ function CreatePromotionModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
           </div>
           <div>
             <label className="text-sm font-medium">Type</label>
-            <Select value={type} onChange={(e) => setType(e.target.value)}>
-              <option value="standard">Standard</option>
-              <option value="free_shipping">Free Shipping</option>
+            <Select value={type} onValueChange={setType}>
+              <SelectTrigger aria-label="Type">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="standard">Standard</SelectItem>
+                <SelectItem value="free_shipping">Free Shipping</SelectItem>
+              </SelectContent>
             </Select>
           </div>
           <div>
             <label className="text-sm font-medium">Discount Type</label>
-            <Select value={valueType} onChange={(e) => setValueType(e.target.value)}>
-              <option value="percentage">Percentage</option>
-              <option value="fixed">Fixed (GHS)</option>
+            <Select value={valueType} onValueChange={setValueType}>
+              <SelectTrigger aria-label="Discount type">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="percentage">Percentage</SelectItem>
+                <SelectItem value="fixed">Fixed (GHS)</SelectItem>
+              </SelectContent>
             </Select>
           </div>
           <div>

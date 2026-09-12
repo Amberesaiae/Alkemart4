@@ -1,6 +1,13 @@
 import { IconSafe, type IconId } from "@/design/icons"
 import { metaFor } from "@/lib/catalog-nav"
 import { cn } from "@/lib/utils"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@workspace/ui"
 
 export type OfferTabId =
   | "all"
@@ -104,17 +111,17 @@ export function LastOffersTabs({
         <label className="sr-only" htmlFor="offers-sort">
           Sort
         </label>
-        <select
-          id="offers-sort"
-          value={sort}
-          onChange={(e) => onSortChange(e.target.value as OfferSort)}
-          className="h-9 rounded-md border border-border bg-card px-2.5 text-sm font-medium outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-        >
-          <option value="featured">Featured</option>
-          <option value="price_asc">Price ↑</option>
-          <option value="price_desc">Price ↓</option>
-          <option value="newest">Newest</option>
-        </select>
+        <Select value={sort} onValueChange={(v) => onSortChange(v as OfferSort)}>
+          <SelectTrigger id="offers-sort" aria-label="Sort" className="h-9 w-auto gap-1.5 rounded-md px-2.5 text-sm font-medium">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="featured">Featured</SelectItem>
+            <SelectItem value="price_asc">Price ↑</SelectItem>
+            <SelectItem value="price_desc">Price ↓</SelectItem>
+            <SelectItem value="newest">Newest</SelectItem>
+          </SelectContent>
+        </Select>
 
         {onViewChange ? (
           <div

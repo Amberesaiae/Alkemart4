@@ -119,6 +119,26 @@ export type StoreVendorDetail = {
   badgeFastShipper?: boolean
   status?: string
   availability?: { state: "open" | "paused"; pausedUntil: string | null; note: string | null }
+  trust?: {
+    ratingAvg: number | null
+    ratingCount: number
+    salesCount: number
+    memberSince: string | null
+    location: string | null
+    tagline: string | null
+    phone: string | null
+    hours: { days: string; open: string; close: string } | null
+    social: { instagram?: string; facebook?: string; tiktok?: string; whatsapp?: string }
+    announcement: string | null
+    policy: { shipping?: string; returnsDays?: number; warranty?: string } | null
+    recentReviews: {
+      productTitle: string
+      rating: number
+      title: string | null
+      body: string
+      createdAt: string
+    }[]
+  } | null
 }
 
 /** Shop hero for /shops/$slug — Workers seller shop or Medusa alkemart vendor. */
@@ -139,6 +159,28 @@ export async function getStoreVendorBySlug(slug: string): Promise<{
           logoImageUrl: shop.seller.logo ?? null,
           coverImageUrl: shop.seller.banner ?? null,
           availability: shop.seller.availability,
+          trust: shop.seller.trust
+            ? {
+                ratingAvg: shop.seller.trust.ratingAvg ?? null,
+                ratingCount: shop.seller.trust.ratingCount ?? 0,
+                salesCount: shop.seller.trust.salesCount ?? 0,
+                memberSince: shop.seller.trust.memberSince ?? null,
+                location: shop.seller.trust.location ?? null,
+                tagline: shop.seller.trust.tagline ?? null,
+                phone: shop.seller.trust.phone ?? null,
+                hours: shop.seller.trust.hours ?? null,
+                social: shop.seller.trust.social ?? {},
+                announcement: shop.seller.trust.announcement ?? null,
+                policy: shop.seller.trust.policy ?? null,
+                recentReviews: (shop.seller.trust.recentReviews ?? []).map((r) => ({
+                  productTitle: r.productTitle,
+                  rating: r.rating,
+                  title: r.title ?? null,
+                  body: r.body,
+                  createdAt: r.createdAt,
+                })),
+              }
+            : null,
         },
         featuredProductIds: shop.featuredProductIds ?? [],
       }

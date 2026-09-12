@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query"
 import { requireAuth } from "@/lib/route-guards"
 import { getWishlist, removeFromWishlist } from "@/lib/wishlist"
 import { Skeleton } from "@/components/skeleton"
+import { X } from "@phosphor-icons/react"
 import { Button } from "@workspace/ui"
 import { EmptyState } from "@/components/empty-state"
 import { useCallback, useState } from "react"
@@ -136,7 +137,7 @@ function WishlistPage() {
                 }}
                 aria-label={`Remove ${product.title} from wishlist`}
               >
-                {removing === product.id ? "…" : "✕"}
+                {removing === product.id ? "…" : <X size={15} weight="bold" aria-hidden />}
               </Button>
             </div>
           </div>

@@ -4,6 +4,13 @@ import { PageSeo } from "@/components/page-seo"
 import { brand } from "@/design/brand"
 import { IconSafe } from "@/design/icons"
 import { Button, Textarea } from "@workspace/ui"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@workspace/ui"
 import { absoluteUrl, organizationJsonLd, siteOrigin } from "@/lib/seo"
 import { cn } from "@/lib/utils"
 
@@ -116,7 +123,7 @@ function ContactPage() {
       />
 
       <div className="space-y-10 pb-8">
-        <header className="relative overflow-hidden rounded-3xl border border-border bg-card p-6 shadow-sm sm:p-10">
+        <header className="relative overflow-hidden rounded-2xl border border-border bg-card p-6 shadow-sm sm:p-10">
           <div
             className="pointer-events-none absolute -left-10 top-0 h-40 w-40 rounded-full bg-ink/5 blur-3xl"
             aria-hidden
@@ -139,7 +146,7 @@ function ContactPage() {
           {CHANNELS.map((c) => (
             <li
               key={c.title}
-              className="flex flex-col rounded-2xl border border-border bg-card p-5 shadow-sm"
+              className="flex flex-col rounded-2xl border border-border bg-card p-5 shadow-sm transition-colors hover:border-foreground/25 hover:shadow-md"
             >
               <span className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-muted">
                 <IconSafe name={c.icon} size={20} />
@@ -170,7 +177,7 @@ function ContactPage() {
 
         <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
           <section
-            className="rounded-3xl border border-border bg-card p-6 shadow-sm sm:p-8"
+            className="rounded-2xl border border-border bg-card p-6 shadow-sm sm:p-8"
             aria-labelledby="form-heading"
           >
             <h2
@@ -180,8 +187,9 @@ function ContactPage() {
               Send a message
             </h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Opens your email app with a pre-filled message. No spam, no
-              invented tickets.
+              Opens your email app with a pre-filled message. We reply within{" "}
+              <strong className="text-foreground">2 business days</strong> —
+              include your order reference for purchase questions.
             </p>
 
             <form onSubmit={onSubmit} className="mt-6 space-y-4" noValidate>
@@ -215,19 +223,18 @@ function ContactPage() {
                 </Field>
               </div>
               <Field label="Topic" htmlFor="contact-topic">
-                <select
-                  id="contact-topic"
-                  name="topic"
-                  value={topic}
-                  onChange={(e) => setTopic(e.target.value)}
-                  className={inputClass}
-                >
-                  <option value="general">General</option>
-                  <option value="order">Order help</option>
-                  <option value="seller">Selling / Seller Hub</option>
-                  <option value="partnership">Partnership</option>
-                  <option value="press">Press</option>
-                </select>
+                <Select value={topic} onValueChange={setTopic}>
+                  <SelectTrigger id="contact-topic" className={inputClass}>
+                    <SelectValue placeholder="Choose a topic" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="general">General</SelectItem>
+                    <SelectItem value="order">Order help</SelectItem>
+                    <SelectItem value="seller">Selling / Seller Hub</SelectItem>
+                    <SelectItem value="partnership">Partnership</SelectItem>
+                    <SelectItem value="press">Press</SelectItem>
+                  </SelectContent>
+                </Select>
               </Field>
               <Field label="Message" htmlFor="contact-message">
                 <Textarea
@@ -293,7 +300,7 @@ function ContactPage() {
                 </li>
               </ul>
             </div>
-            <div className="rounded-3xl border border-border bg-card p-6 shadow-sm">
+            <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
               <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
                 Location
               </p>
@@ -309,6 +316,23 @@ function ContactPage() {
               >
                 Read about us →
               </Link>
+              <p className="mt-3 text-xs text-muted-foreground">
+                By messaging you accept our{" "}
+                <Link
+                  to="/terms"
+                  className="font-semibold text-primary underline-offset-2 hover:underline"
+                >
+                  Terms
+                </Link>{" "}
+                and{" "}
+                <Link
+                  to="/privacy"
+                  className="font-semibold text-primary underline-offset-2 hover:underline"
+                >
+                  Privacy Policy
+                </Link>
+                .
+              </p>
             </div>
           </aside>
         </div>

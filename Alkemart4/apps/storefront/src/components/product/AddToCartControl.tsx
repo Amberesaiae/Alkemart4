@@ -1,3 +1,4 @@
+import { Check } from "@phosphor-icons/react"
 import { IconSafe } from "@/design/icons"
 import { cn } from "@/lib/utils"
 
@@ -55,7 +56,7 @@ export function AddToCartControl({
       {pending ? (
         <span className="text-sm">…</span>
       ) : ok ? (
-        <span className="text-sm">✓</span>
+        <Check size={14} weight="bold" aria-hidden />
       ) : (
         <>
           {pill ? <span className="whitespace-nowrap">{label}</span> : null}

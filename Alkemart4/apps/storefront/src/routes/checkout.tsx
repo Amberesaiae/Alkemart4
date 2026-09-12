@@ -29,7 +29,7 @@ import { EmptyState } from "@/components/empty-state"
 import { TrustStrip } from "@/components/trust-strip"
 import { CheckoutStepper } from "@/components/checkout-stepper"
 import { Skeleton } from "@/components/skeleton"
-import { FormField, FormSelect } from "@/components/form-field"
+import { FormField } from "@/components/form-field"
 import {
   MarketAddressFields,
   type MarketAddressValues,

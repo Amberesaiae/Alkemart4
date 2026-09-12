@@ -6,7 +6,7 @@ interface PageShellProps {
 }
 
 function PageShell({ children, className }: PageShellProps) {
-  return <div className={cn("p-6 max-w-6xl mx-auto space-y-6", className)}>{children}</div>
+  return <div className={cn("p-5 sm:p-6 max-w-7xl mx-auto space-y-6", className)}>{children}</div>
 }
 
 export { PageShell }

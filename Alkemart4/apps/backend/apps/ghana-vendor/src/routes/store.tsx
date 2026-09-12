@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react"
 import { useBlocker } from "@tanstack/react-router"
 import { useSellerProfile, useUpdateStorefront, usePauseShop, useUnpauseShop, useShopPolicies, useSavePolicy, useCategories, useProducts, useUpdateDisplay, useUpdateContact, useFeatured, useSetFeatured } from "../lib/hooks"
 import type { StorefrontPatch } from "../lib/api"
-import { Card, Button, Input, Label, Select, Textarea, Skeleton, DatePicker } from "@workspace/ui"
+import { Card, Button, Input, Label, Textarea, Skeleton, DatePicker, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui"
 import { format } from "date-fns"
 import { PageShell } from "../components/page-shell"
 import { PageHeader } from "../components/page-header"
@@ -22,6 +22,8 @@ import {
   Tag,
   ShieldCheck,
   X,
+  CaretUp,
+  CaretDown,
   PhoneCall,
   CalendarBlank,
   Clock,
@@ -870,8 +872,10 @@ function PoliciesCard() {
   )
 }
 
-function DisplayCard() {
-  const { data: profile } = useSellerProfile()
+/** Sentinel: Radix items need non-empty values; maps back to "". */
+const NONE = "__none"
+
+function DisplayCard() {  const { data: profile } = useSellerProfile()
   const { data: categoriesData } = useCategories()
   const update = useUpdateDisplay()
   const seller = profile?.seller
@@ -939,25 +943,33 @@ function DisplayCard() {
       <div className="space-y-2">
         <Label htmlFor="store-display-stock">Stock display</Label>
         <Select
-          id="store-display-stock"
           value={stockValue}
-          onChange={(e) => { setStockMode(e.target.value as "exact" | "bands"); setSavedFlash(false) }}
+          onValueChange={(v) => { setStockMode(v as "exact" | "bands"); setSavedFlash(false) }}
         >
-          <option value="exact">Exact counts</option>
-          <option value="bands">Bands (Low stock / In stock)</option>
+          <SelectTrigger id="store-display-stock">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="exact">Exact counts</SelectItem>
+            <SelectItem value="bands">Bands (Low stock / In stock)</SelectItem>
+          </SelectContent>
         </Select>
       </div>
       <div className="space-y-2">
         <Label htmlFor="store-display-featured-cat">Featured category (optional)</Label>
         <Select
-          id="store-display-featured-cat"
-          value={featuredValue}
-          onChange={(e) => { setFeaturedCat(e.target.value); setSavedFlash(false) }}
+          value={featuredValue || NONE}
+          onValueChange={(v) => { setFeaturedCat(v === NONE ? "" : v); setSavedFlash(false) }}
         >
-          <option value="">None</option>
-          {categories.map((c) => (
-            <option key={c.id} value={c.id}>{c.name}</option>
-          ))}
+          <SelectTrigger id="store-display-featured-cat">
+            <SelectValue placeholder="None" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={NONE}>None</SelectItem>
+            {categories.map((c) => (
+              <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+            ))}
+          </SelectContent>
         </Select>
       </div>
       <div className="space-y-2">
@@ -970,19 +982,23 @@ function DisplayCard() {
               <li key={id} className="flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-medium">
                 <span className="font-bold text-muted-foreground tabular-nums">{i + 1}.</span>
                 <span className="flex-1 truncate">{nameOf(id)}</span>
-                <button type="button" aria-label={`Move ${nameOf(id)} up`} disabled={i === 0} onClick={() => move(i, -1)} className="font-bold px-1 disabled:opacity-30">▲</button>
-                <button type="button" aria-label={`Move ${nameOf(id)} down`} disabled={i === orderValue.length - 1} onClick={() => move(i, 1)} className="font-bold px-1 disabled:opacity-30">▼</button>
-                <button type="button" aria-label={`Remove ${nameOf(id)}`} onClick={() => { setOrder(orderValue.filter((x) => x !== id)); setSavedFlash(false) }} className="font-bold px-1 text-destructive">✕</button>
+                <button type="button" aria-label={`Move ${nameOf(id)} up`} disabled={i === 0} onClick={() => move(i, -1)} className="inline-flex items-center px-1 disabled:opacity-30"><CaretUp size={12} weight="bold" aria-hidden /></button>
+                <button type="button" aria-label={`Move ${nameOf(id)} down`} disabled={i === orderValue.length - 1} onClick={() => move(i, 1)} className="inline-flex items-center px-1 disabled:opacity-30"><CaretDown size={12} weight="bold" aria-hidden /></button>
+                <button type="button" aria-label={`Remove ${nameOf(id)}`} onClick={() => { setOrder(orderValue.filter((x) => x !== id)); setSavedFlash(false) }} className="inline-flex items-center px-1 text-destructive"><X size={12} weight="bold" aria-hidden /></button>
               </li>
             ))}
           </ul>
         )}
         <div className="flex gap-2">
-          <Select aria-label="Add category to order" value={addId} onChange={(e) => setAddId(e.target.value)} className="flex-1">
-            <option value="">Add a category…</option>
-            {categories.filter((c) => !orderValue.includes(c.id)).map((c) => (
-              <option key={c.id} value={c.id}>{c.name}</option>
-            ))}
+          <Select value={addId} onValueChange={setAddId}>
+            <SelectTrigger aria-label="Add category to order" className="flex-1">
+              <SelectValue placeholder="Add a category…" />
+            </SelectTrigger>
+            <SelectContent>
+              {categories.filter((c) => !orderValue.includes(c.id)).map((c) => (
+                <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+              ))}
+            </SelectContent>
           </Select>
           <Button
             variant="outline"
@@ -1067,9 +1083,9 @@ function FeaturedCard() {
             <li key={id} className="flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-medium">
               <span className="font-bold text-primary tabular-nums">#{i + 1}</span>
               <span className="flex-1 truncate">{titleOf(id)}</span>
-              <button type="button" aria-label={`Move ${titleOf(id)} up`} disabled={i === 0} onClick={() => move(i, -1)} className="font-bold px-1 disabled:opacity-30">▲</button>
-              <button type="button" aria-label={`Move ${titleOf(id)} down`} disabled={i === value.length - 1} onClick={() => move(i, 1)} className="font-bold px-1 disabled:opacity-30">▼</button>
-              <button type="button" aria-label={`Remove ${titleOf(id)}`} onClick={() => toggle(id)} className="font-bold px-1 text-destructive">✕</button>
+              <button type="button" aria-label={`Move ${titleOf(id)} up`} disabled={i === 0} onClick={() => move(i, -1)} className="inline-flex items-center px-1 disabled:opacity-30"><CaretUp size={12} weight="bold" aria-hidden /></button>
+              <button type="button" aria-label={`Move ${titleOf(id)} down`} disabled={i === value.length - 1} onClick={() => move(i, 1)} className="inline-flex items-center px-1 disabled:opacity-30"><CaretDown size={12} weight="bold" aria-hidden /></button>
+              <button type="button" aria-label={`Remove ${titleOf(id)}`} onClick={() => toggle(id)} className="inline-flex items-center px-1 text-destructive"><X size={12} weight="bold" aria-hidden /></button>
             </li>
           ))}
         </ol>

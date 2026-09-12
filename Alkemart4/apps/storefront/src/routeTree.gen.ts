@@ -9,11 +9,13 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as TermsRouteImport } from './routes/terms'
 import { Route as SigninRouteImport } from './routes/signin'
 import { Route as ShopsRouteImport } from './routes/shops'
 import { Route as SellersRouteImport } from './routes/sellers'
 import { Route as SellRouteImport } from './routes/sell'
 import { Route as SearchRouteImport } from './routes/search'
+import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as PartnersRouteImport } from './routes/partners'
 import { Route as OrdersRouteImport } from './routes/orders'
 import { Route as LoginRouteImport } from './routes/login'
@@ -37,6 +39,11 @@ import { Route as BrowseSlugRouteImport } from './routes/browse.$slug'
 import { Route as AccountWishlistRouteImport } from './routes/account.wishlist'
 import { Route as OrderIdReturnRouteImport } from './routes/order.$id.return'
 
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SigninRoute = SigninRouteImport.update({
   id: '/signin',
   path: '/signin',
@@ -60,6 +67,11 @@ const SellRoute = SellRouteImport.update({
 const SearchRoute = SearchRouteImport.update({
   id: '/search',
   path: '/search',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PartnersRoute = PartnersRouteImport.update({
@@ -185,11 +197,13 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/orders': typeof OrdersRoute
   '/partners': typeof PartnersRoute
+  '/privacy': typeof PrivacyRoute
   '/search': typeof SearchRoute
   '/sell': typeof SellRoute
   '/sellers': typeof SellersRoute
   '/shops': typeof ShopsRouteWithChildren
   '/signin': typeof SigninRoute
+  '/terms': typeof TermsRoute
   '/account/wishlist': typeof AccountWishlistRoute
   '/browse/$slug': typeof BrowseSlugRoute
   '/categories/$slug': typeof CategoriesSlugRoute
@@ -214,10 +228,12 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/orders': typeof OrdersRoute
   '/partners': typeof PartnersRoute
+  '/privacy': typeof PrivacyRoute
   '/search': typeof SearchRoute
   '/sell': typeof SellRoute
   '/sellers': typeof SellersRoute
   '/signin': typeof SigninRoute
+  '/terms': typeof TermsRoute
   '/account/wishlist': typeof AccountWishlistRoute
   '/browse/$slug': typeof BrowseSlugRoute
   '/categories/$slug': typeof CategoriesSlugRoute
@@ -243,11 +259,13 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/orders': typeof OrdersRoute
   '/partners': typeof PartnersRoute
+  '/privacy': typeof PrivacyRoute
   '/search': typeof SearchRoute
   '/sell': typeof SellRoute
   '/sellers': typeof SellersRoute
   '/shops': typeof ShopsRouteWithChildren
   '/signin': typeof SigninRoute
+  '/terms': typeof TermsRoute
   '/account/wishlist': typeof AccountWishlistRoute
   '/browse/$slug': typeof BrowseSlugRoute
   '/categories/$slug': typeof CategoriesSlugRoute
@@ -274,11 +292,13 @@ export interface FileRouteTypes {
     | '/login'
     | '/orders'
     | '/partners'
+    | '/privacy'
     | '/search'
     | '/sell'
     | '/sellers'
     | '/shops'
     | '/signin'
+    | '/terms'
     | '/account/wishlist'
     | '/browse/$slug'
     | '/categories/$slug'
@@ -303,10 +323,12 @@ export interface FileRouteTypes {
     | '/login'
     | '/orders'
     | '/partners'
+    | '/privacy'
     | '/search'
     | '/sell'
     | '/sellers'
     | '/signin'
+    | '/terms'
     | '/account/wishlist'
     | '/browse/$slug'
     | '/categories/$slug'
@@ -331,11 +353,13 @@ export interface FileRouteTypes {
     | '/login'
     | '/orders'
     | '/partners'
+    | '/privacy'
     | '/search'
     | '/sell'
     | '/sellers'
     | '/shops'
     | '/signin'
+    | '/terms'
     | '/account/wishlist'
     | '/browse/$slug'
     | '/categories/$slug'
@@ -361,11 +385,13 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   OrdersRoute: typeof OrdersRoute
   PartnersRoute: typeof PartnersRoute
+  PrivacyRoute: typeof PrivacyRoute
   SearchRoute: typeof SearchRoute
   SellRoute: typeof SellRoute
   SellersRoute: typeof SellersRoute
   ShopsRoute: typeof ShopsRouteWithChildren
   SigninRoute: typeof SigninRoute
+  TermsRoute: typeof TermsRoute
   BrowseSlugRoute: typeof BrowseSlugRoute
   CategoriesSlugRoute: typeof CategoriesSlugRoute
   OrderIdRoute: typeof OrderIdRouteWithChildren
@@ -375,6 +401,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/signin': {
       id: '/signin'
       path: '/signin'
@@ -408,6 +441,13 @@ declare module '@tanstack/react-router' {
       path: '/search'
       fullPath: '/search'
       preLoaderRoute: typeof SearchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/partners': {
@@ -627,11 +667,13 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   OrdersRoute: OrdersRoute,
   PartnersRoute: PartnersRoute,
+  PrivacyRoute: PrivacyRoute,
   SearchRoute: SearchRoute,
   SellRoute: SellRoute,
   SellersRoute: SellersRoute,
   ShopsRoute: ShopsRouteWithChildren,
   SigninRoute: SigninRoute,
+  TermsRoute: TermsRoute,
   BrowseSlugRoute: BrowseSlugRoute,
   CategoriesSlugRoute: CategoriesSlugRoute,
   OrderIdRoute: OrderIdRouteWithChildren,

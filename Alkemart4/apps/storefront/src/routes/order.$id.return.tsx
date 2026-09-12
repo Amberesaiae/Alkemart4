@@ -1,7 +1,14 @@
 import { useState } from "react"
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
-import { Button, Select, Textarea } from "@workspace/ui"
+import { Button, Textarea } from "@workspace/ui"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@workspace/ui"
 import { ErrorAlert } from "@/components/error-alert"
 import { Skeleton } from "@/components/skeleton"
 import { getOrder } from "@/lib/orders"
@@ -286,17 +293,17 @@ function ReturnRequestPage() {
             <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               Reason
             </span>
-            <Select
-              value={reasonId}
-              onChange={(e) => setReasonId(e.target.value)}
-              className="min-h-11"
-            >
-              <option value="">Select a reason…</option>
-              {reasons?.map((r) => (
-                <option key={r.id} value={r.id}>
-                  {r.label}
-                </option>
-              ))}
+            <Select value={reasonId} onValueChange={setReasonId}>
+              <SelectTrigger className="min-h-11">
+                <SelectValue placeholder="Select a reason…" />
+              </SelectTrigger>
+              <SelectContent>
+                {reasons?.map((r) => (
+                  <SelectItem key={r.id} value={r.id}>
+                    {r.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
             </Select>
           </label>
 

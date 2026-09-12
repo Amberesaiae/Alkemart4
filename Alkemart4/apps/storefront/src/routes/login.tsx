@@ -72,7 +72,7 @@ function SignInPage() {
   return (
     <div className="grid min-h-screen md:grid-cols-[1.05fr_1fr]">
       {/* Brand panel */}
-      <aside className="relative hidden flex-col justify-between overflow-hidden bg-ink px-10 py-10 text-white md:flex lg:px-14 lg:py-12">
+      <aside className="relative hidden flex-col justify-between overflow-hidden bg-white p-0 text-black md:flex [&>*:not(img):not(.auth-panel-copy)]:hidden">
         <div
           aria-hidden
           className="pointer-events-none absolute -top-32 -right-32 h-96 w-96 rounded-full bg-ink/5 blur-3xl"
@@ -84,6 +84,16 @@ function SignInPage() {
         <Link to="/" className="relative text-2xl font-extrabold tracking-tight">
           <span className="text-primary">●</span> alkemart
         </Link>
+        <img
+          src="/brand/auth/buyer.png"
+          alt="Shopper browsing Alkemart"
+          className="absolute left-1/2 top-1/2 z-10 h-[118%] w-[118%] max-w-none -translate-x-1/2 -translate-y-1/2 scale-[1.08] object-contain object-center"
+        />
+
+        <div className="auth-panel-copy absolute left-0 top-0 z-20 w-full bg-white/90 px-8 py-6 backdrop-blur-sm lg:px-10">
+          <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-black/55">Shop Alkemart</p>
+          <p className="mt-1 text-lg font-black tracking-tight text-black">Find what fits your everyday.</p>
+        </div>
         <div className="relative max-w-md space-y-7">
           <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-md">
             <ShoppingBag className="h-6 w-6" weight="bold" aria-hidden />
@@ -140,7 +150,7 @@ function SignInPage() {
         </div>
 
         <div className="flex flex-1 flex-col items-center justify-center px-4 py-10 sm:px-8">
-          <div className="w-full max-w-sm rounded-2xl border bg-card p-6 shadow-md sm:p-8">
+          <div className="w-full max-w-sm rounded-3xl border border-black/10 bg-white p-6 shadow-[0_20px_50px_-24px_rgb(0_0_0_/_0.35)] sm:p-8">
             <div
               className="mb-6 grid grid-cols-2 gap-1 rounded-full border border-border bg-muted/50 p-1"
               role="tablist"

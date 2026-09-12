@@ -17,6 +17,11 @@ import { resolveRailCategories } from "@/lib/catalog-nav"
 import { getMercurVendorUrl } from "@/lib/env"
 import { cn } from "@/lib/utils"
 import { AppHeader } from "@/components/shell/AppHeader"
+import {
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+} from "@workspace/ui"
 import { AppFooter } from "@/components/shell/AppFooter"
 import { CategoryIconRail } from "@/components/shell/CategoryIconRail"
 import { DocumentTitle } from "@/components/document-title"
@@ -144,16 +149,6 @@ function Shell() {
     setAccountOpen(false)
   }, [pathname])
 
-  // Escape closes account menu (WCAG 2.1.1 Keyboard)
-  useEffect(() => {
-    if (!accountOpen) return
-    function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") setAccountOpen(false)
-    }
-    document.addEventListener("keydown", onKey)
-    return () => document.removeEventListener("keydown", onKey)
-  }, [accountOpen])
-
   let sellUrl = ""
   try {
     sellUrl = getMercurVendorUrl()
@@ -175,24 +170,20 @@ function Shell() {
   }
 
   const accountMenu = (
-    <div
-      id="account-menu"
-      role="menu"
-      aria-label="Account menu"
-      className="absolute right-0 z-50 mt-1 w-56 overflow-hidden rounded-2xl border border-border bg-card py-1 shadow-lg"
-    >
+    <>
       {sessionQ.data ? (
         <>
-          <div className="border-b border-border px-4 py-3">
-            <p className="truncate text-sm font-semibold">
+          <DropdownMenuLabel>
+            <span className="block truncate text-sm font-semibold normal-case tracking-normal text-foreground">
               {[sessionQ.data.firstName, sessionQ.data.lastName]
                 .filter(Boolean)
                 .join(" ") || "Account"}
-            </p>
-            <p className="truncate text-xs text-muted-foreground">
+            </span>
+            <span className="block truncate text-xs font-medium normal-case tracking-normal text-muted-foreground">
               {sessionQ.data.email}
-            </p>
-          </div>
+            </span>
+          </DropdownMenuLabel>
+          <DropdownMenuSeparator />
           <MenuLink to="/account" onNavigate={closeAccount}>
             Profile &amp; addresses
           </MenuLink>
@@ -202,11 +193,10 @@ function Shell() {
         </>
       ) : (
         <>
-          <div className="space-y-2 border-b border-border p-3">
+          <div className="space-y-2 p-2">
             <Link
               to="/login"
               search={{ mode: "login" }}
-              role="menuitem"
               className="flex min-h-11 w-full items-center justify-center rounded-full bg-foreground px-4 text-sm font-bold text-background hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               onClick={closeAccount}
             >
@@ -215,24 +205,23 @@ function Shell() {
             <Link
               to="/login"
               search={{ mode: "register" }}
-              role="menuitem"
               className="flex min-h-11 w-full items-center justify-center rounded-full bg-primary px-4 text-sm font-bold text-primary-foreground hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               onClick={closeAccount}
             >
               Create account
             </Link>
           </div>
+          <DropdownMenuSeparator />
           <MenuLink to="/orders" onNavigate={closeAccount}>
             Find an order
           </MenuLink>
         </>
       )}
-      <div className="border-t border-border">
-        <MenuLink to="/help" onNavigate={closeAccount}>
-          Help
-        </MenuLink>
-      </div>
-    </div>
+      <DropdownMenuSeparator />
+      <MenuLink to="/help" onNavigate={closeAccount}>
+        Help
+      </MenuLink>
+    </>
   )
 
   return (
@@ -247,7 +236,7 @@ function Shell() {
           pathname.startsWith("/account") || pathname.startsWith("/orders")
         }
         accountOpen={accountOpen}
-        onAccountToggle={() => setAccountOpen((v) => !v)}
+        onAccountOpenChange={setAccountOpen}
         onAccountClose={closeAccount}
         accountMenu={accountMenu}
       />
@@ -285,14 +274,10 @@ function MenuLink(props: {
   children: React.ReactNode
 }) {
   return (
-    <Link
-      to={props.to as "/"}
-      search={props.search as never}
-      role="menuitem"
-      className="block min-h-11 px-4 py-2.5 text-sm text-foreground hover:bg-muted focus-visible:bg-muted"
-      onClick={props.onNavigate}
-    >
-      {props.children}
-    </Link>
+    <DropdownMenuItem asChild onSelect={props.onNavigate}>
+      <Link to={props.to as "/"} search={props.search as never}>
+        {props.children}
+      </Link>
+    </DropdownMenuItem>
   )
 }

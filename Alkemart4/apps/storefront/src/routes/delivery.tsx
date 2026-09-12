@@ -12,19 +12,19 @@ export const Route = createFileRoute("/delivery")({
 const DELIVERY_STEPS = [
   {
     title: "Browse & order",
-    body: "Pick from sellers across Ghana. Prices shown include the seller's delivery fee.",
+    body: "Pick from sellers across Ghana — fees show at checkout.",
   },
   {
     title: "Seller prepares",
-    body: "The seller packs your item and confirms readiness. Most sellers ship within 1-3 business days.",
+    body: "Sellers pack and ship, usually within 1–3 business days.",
   },
   {
     title: "Rider delivers",
-    body: "Local riders or seller's delivery team brings your order to your door — or a pickup point near you.",
+    body: "Riders deliver to your door or a nearby pickup point.",
   },
   {
     title: "Pay on arrival",
-    body: "Cash on delivery. Hand cash to the rider when your order arrives. No upfront payment needed.",
+    body: "Hand cash to the rider. Nothing to pay upfront.",
   },
 ]
 
@@ -72,9 +72,8 @@ function DeliveryPage() {
                 Delivery across Ghana
               </h1>
               <p className="max-w-xl text-sm leading-relaxed text-muted-foreground sm:text-base">
-                Cash on delivery. Riders bring orders directly to your door —
-                no credit card or upfront payment needed. Delivery fees are set by
-                each seller and shown transparently at checkout.
+                Pay cash when your order arrives. Each seller sets their own
+                delivery fee — shown at checkout.
               </p>
               <div className="pt-2">
                 <Link
@@ -103,7 +102,7 @@ function DeliveryPage() {
             {DELIVERY_STEPS.map((step, i) => (
               <div
                 key={step.title}
-                className="flex flex-col gap-3 rounded-xl border border-border bg-card p-5 shadow-sm"
+                className="flex flex-col gap-3 rounded-xl border border-border bg-card p-5 shadow-sm transition-colors hover:border-foreground/25"
               >
                 <span
                   className="flex size-9 items-center justify-center rounded-full bg-primary font-bold text-primary-foreground text-sm"
@@ -130,7 +129,7 @@ function DeliveryPage() {
             Delivery methods
           </h2>
           <div className="grid gap-4 sm:grid-cols-2">
-            <div className="flex items-start gap-4 rounded-xl border border-border bg-card p-5 shadow-sm">
+            <div className="flex items-start gap-4 rounded-xl border border-border bg-card p-5 shadow-sm transition-colors hover:border-foreground/25">
               <div
                 className="flex shrink-0 items-center justify-center rounded-xl bg-muted size-14 sm:size-16"
                 aria-hidden="true"
@@ -150,12 +149,11 @@ function DeliveryPage() {
                   Cash on delivery
                 </h3>
                 <p className="text-xs leading-relaxed text-muted-foreground sm:text-sm">
-                  Pay cash when the rider arrives. No cards, no sign-up
-                  needed. Available for most sellers across Ghana.
+                  Pay cash at your door. No cards, no sign-up.
                 </p>
               </div>
             </div>
-            <div className="flex items-start gap-4 rounded-xl border border-border bg-card p-5 shadow-sm">
+            <div className="flex items-start gap-4 rounded-xl border border-border bg-card p-5 shadow-sm transition-colors hover:border-foreground/25">
               <div
                 className="flex shrink-0 items-center justify-center rounded-xl bg-muted size-14 sm:size-16"
                 aria-hidden="true"
@@ -175,9 +173,7 @@ function DeliveryPage() {
                   Doorstep delivery
                 </h3>
                 <p className="text-xs leading-relaxed text-muted-foreground sm:text-sm">
-                  Delivered to your address — home, work, or a pickup
-                  location you choose. Each seller sets their delivery area
-                  and fee.
+                  Home, work, or a pickup point — areas and fees vary by seller.
                 </p>
               </div>
             </div>
@@ -191,9 +187,8 @@ function DeliveryPage() {
           </h2>
           <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
             <p className="text-sm leading-relaxed text-muted-foreground">
-              Sellers on alkemart operate across Greater Accra, Kumasi, Takoradi, and other major regions in Ghana. Each seller sets
-              their own delivery areas and fees. You'll see accurate
-              delivery options when you enter your address at checkout.
+              Sellers cover Greater Accra, Kumasi, Takoradi and beyond.
+              Exact options appear once you enter your address at checkout.
             </p>
           </div>
         </section>
@@ -204,7 +199,7 @@ function DeliveryPage() {
             Ready to shop?
           </h2>
           <p className="mt-2 text-sm leading-relaxed text-muted-foreground sm:text-base">
-            Browse categories, compare sellers, and pay safely on delivery.
+            Compare sellers and pay on delivery.
           </p>
           <div className="mt-4">
             <Link

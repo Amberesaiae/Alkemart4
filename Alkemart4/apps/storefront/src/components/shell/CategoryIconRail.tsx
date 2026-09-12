@@ -1,9 +1,16 @@
-import { useEffect, useId, useRef, useState } from "react"
+import { useState } from "react"
 import { Link } from "@tanstack/react-router"
 import type { IconId } from "@/design/icons"
 import { IconSafe } from "@/design/icons"
 import { iconForCategory, type RailCategory, type RailChild } from "@/lib/catalog-nav"
 import { cn } from "@/lib/utils"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@workspace/ui"
 
 type Props = {
   categories: RailCategory[]
@@ -71,24 +78,6 @@ function RailItem(props: {
 }) {
   const hasKids = props.children.length > 0
   const [open, setOpen] = useState(false)
-  const rootRef = useRef<HTMLDivElement>(null)
-  const menuId = useId()
-
-  useEffect(() => {
-    if (!open) return
-    const onDoc = (e: MouseEvent) => {
-      if (!rootRef.current?.contains(e.target as Node)) setOpen(false)
-    }
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false)
-    }
-    document.addEventListener("mousedown", onDoc)
-    document.addEventListener("keydown", onKey)
-    return () => {
-      document.removeEventListener("mousedown", onDoc)
-      document.removeEventListener("keydown", onKey)
-    }
-  }, [open])
 
   const chipClass = cn(
     "group relative flex shrink-0 flex-row items-center gap-1.5",
@@ -121,20 +110,16 @@ function RailItem(props: {
   }
 
   return (
-    <div
-      ref={rootRef}
-      className="relative shrink-0"
-      onMouseEnter={() => setOpen(true)}
-      onMouseLeave={() => setOpen(false)}
-    >
-      <div className="flex items-center">
+    <DropdownMenu open={open} onOpenChange={setOpen} modal={false}>
+      <div
+        className="relative flex shrink-0 items-center"
+        onMouseEnter={() => setOpen(true)}
+        onMouseLeave={() => setOpen(false)}
+      >
         <Link
           to="/categories/$slug"
           params={{ slug: props.slug }}
           className={cn(chipClass, "rounded-r-none pr-1.5 sm:pr-2")}
-          aria-expanded={open}
-          aria-haspopup="menu"
-          aria-controls={menuId}
         >
           <IconSafe name={props.iconId} size={20} preferAsset className="shrink-0" />
           <span
@@ -147,57 +132,36 @@ function RailItem(props: {
           </span>
           <ActiveBar active={props.active || open} />
         </Link>
-        <button
-          type="button"
-          className={cn(
-            chipClass,
-            "rounded-l-none border-l border-border/60 px-2",
-            open && "bg-muted/80 text-foreground",
-          )}
-          aria-label={`${props.label} subcategories`}
-          aria-expanded={open}
-          aria-controls={menuId}
-          onClick={() => setOpen((v) => !v)}
-        >
-          <Chevron open={open} />
-        </button>
-      </div>
-
-      {open ? (
-        <div
-          id={menuId}
-          role="menu"
-          aria-label={`${props.label} subcategories`}
-          className={cn(
-            "absolute left-0 top-full z-40 mt-1 min-w-[12rem] overflow-hidden",
-            "rounded-xl border border-border bg-card py-1 shadow-lg",
-          )}
-        >
-          <Link
-            role="menuitem"
-            to="/categories/$slug"
-            params={{ slug: props.slug }}
-            className="block px-3 py-2.5 text-sm font-semibold text-foreground hover:bg-muted/70"
-            onClick={() => setOpen(false)}
+        <DropdownMenuTrigger asChild>
+          <button
+            type="button"
+            className={cn(
+              chipClass,
+              "rounded-l-none border-l border-border/60 px-2",
+              open && "bg-muted/80 text-foreground",
+            )}
+            aria-label={`${props.label} subcategories`}
           >
-            Shop all {props.label}
-          </Link>
-          <div className="my-1 border-t border-border" />
-          {props.children.map((ch) => (
-            <Link
-              key={ch.id}
-              role="menuitem"
-              to="/categories/$slug"
-              params={{ slug: ch.handle }}
-              className="block px-3 py-2 text-sm text-muted-foreground hover:bg-muted/70 hover:text-foreground"
-              onClick={() => setOpen(false)}
-            >
-              {ch.name}
+            <Chevron open={open} />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start" aria-label={`${props.label} subcategories`}>
+          <DropdownMenuItem asChild className="font-semibold text-foreground">
+            <Link to="/categories/$slug" params={{ slug: props.slug }}>
+              Shop all {props.label}
             </Link>
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          {props.children.map((ch) => (
+            <DropdownMenuItem key={ch.id} asChild className="text-muted-foreground focus:text-foreground">
+              <Link to="/categories/$slug" params={{ slug: ch.handle }}>
+                {ch.name}
+              </Link>
+            </DropdownMenuItem>
           ))}
-        </div>
-      ) : null}
-    </div>
+        </DropdownMenuContent>
+      </div>
+    </DropdownMenu>
   )
 }
 

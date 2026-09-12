@@ -15,9 +15,15 @@ Checkout charge/initialize is Plan 3 (not documented here).
 import type { VendorProductProduct } from './vendorProductProduct';
 import type { VendorProductVariant } from './vendorProductVariant';
 import type { VendorOffer } from './vendorOffer';
+import type { VendorProductOption } from './vendorProductOption';
+import type { VendorProductCombo } from './vendorProductCombo';
 
 export interface VendorProduct {
   product: VendorProductProduct;
   variant: VendorProductVariant;
   offer: VendorOffer;
+  /** Option types + values (empty for legacy products). */
+  options?: VendorProductOption[];
+  /** Every combination with its offer. */
+  variants?: VendorProductCombo[];
 }

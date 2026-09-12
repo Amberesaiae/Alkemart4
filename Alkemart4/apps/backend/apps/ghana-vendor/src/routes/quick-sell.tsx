@@ -3,7 +3,7 @@ import { useState, useRef, useEffect } from "react"
 import { useUploadImage, useQuickSell, useCategories, useReadiness } from "../lib/hooks"
 import { type SellerReadiness } from "../lib/api"
 import { useQueryClient } from "@tanstack/react-query"
-import { Button, Input, Label, Card, Textarea, Select, Skeleton } from "@workspace/ui"
+import { Button, Input, Label, Card, Textarea, Skeleton, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui"
 import { CloudArrowUp, Image, ArrowRight, CheckCircle, CaretLeft, WarningCircle, Clock, TreeStructure, Plus, Trash } from "@phosphor-icons/react"
 import { PageShell } from "../components/page-shell"
 import { PageHeader } from "../components/page-header"
@@ -368,14 +368,17 @@ function QuickSellPage() {
                 <div className="space-y-2">
                   <Label htmlFor="category" className="text-base">Category <span className="text-muted-foreground font-normal">(Optional)</span></Label>
                   <Select
-                    id="category"
                     value={categoryId}
-                    onChange={e => setCategoryId(e.target.value)}
+                    onValueChange={setCategoryId}
                   >
-                    <option value="">Select a category</option>
-                    {categoriesData?.product_categories?.map(cat => (
-                      <option key={cat.id} value={cat.id}>{cat.name}</option>
-                    ))}
+                    <SelectTrigger id="category">
+                      <SelectValue placeholder="Select a category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categoriesData?.product_categories?.map(cat => (
+                        <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                      ))}
+                    </SelectContent>
                   </Select>
                 </div>
 

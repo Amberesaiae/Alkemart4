@@ -100,7 +100,7 @@ export function Sidebar() {
 
   return (
     <aside aria-label="Sidebar" className={cn(
-      "bg-ink text-white flex flex-col h-screen sticky top-0 border-r border-white/10 shrink-0 transition-all duration-200",
+      "bg-black text-white flex flex-col h-screen sticky top-0 border-r border-white/10 shrink-0 transition-all duration-200",
       collapsed ? "w-16" : "w-64"
     )}>
       <div className={cn(
@@ -111,7 +111,7 @@ export function Sidebar() {
           <span className="text-xl font-bold text-white">●</span>
         ) : (
           <h1 className="text-xl font-bold tracking-tight text-white flex items-center gap-2 flex-1">
-            <span className="text-primary">●</span> Alkemart Ops
+            <span className="text-primary">●</span> alkemart <span className="text-white/45 text-sm font-semibold">Ops</span>
           </h1>
         )}
         <button

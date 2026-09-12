@@ -4,7 +4,7 @@ import { useState } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { commissionRates } from "../../lib/api"
 import type { CommissionRate } from "../../lib/api"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Badge, Button, Modal, Skeleton, EmptyState, Input, Switch, Select } from "@workspace/ui"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Badge, Button, Modal, Skeleton, EmptyState, Input, Switch, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui"
 import { PageShell } from "../../components/page-shell"
 import { PageHeader } from "../../components/page-header"
 import { Plus, Trash, PencilSimple } from "@phosphor-icons/react"
@@ -244,9 +244,14 @@ function CreateRateModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => 
           </div>
           <div>
             <label className="text-sm font-medium">Type</label>
-            <Select value={type} onChange={(e) => setType(e.target.value as "fixed" | "percentage")}>
-              <option value="percentage">Percentage</option>
-              <option value="fixed">Fixed (GHS)</option>
+            <Select value={type} onValueChange={(v) => setType(v as "fixed" | "percentage")}>
+              <SelectTrigger aria-label="Type">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="percentage">Percentage</SelectItem>
+                <SelectItem value="fixed">Fixed (GHS)</SelectItem>
+              </SelectContent>
             </Select>
           </div>
           <div>
@@ -322,9 +327,14 @@ function EditRateModal({ rate, onClose }: { rate: CommissionRate; onClose: () =>
           </div>
           <div>
             <label className="text-sm font-medium">Type</label>
-            <Select value={type} onChange={(e) => setType(e.target.value as "fixed" | "percentage")}>
-              <option value="percentage">Percentage</option>
-              <option value="fixed">Fixed (GHS)</option>
+            <Select value={type} onValueChange={(v) => setType(v as "fixed" | "percentage")}>
+              <SelectTrigger aria-label="Type">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="percentage">Percentage</SelectItem>
+                <SelectItem value="fixed">Fixed (GHS)</SelectItem>
+              </SelectContent>
             </Select>
           </div>
           <div>

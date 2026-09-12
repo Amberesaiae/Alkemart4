@@ -39,14 +39,14 @@ export function Layout({ children }: { children: React.ReactNode }) {
     to === "/" ? pathname === "/" : pathname === to || pathname.startsWith(to + "/")
 
   return (
-    <div className="flex min-h-[100dvh] w-full bg-background flex-col md:flex-row">
+    <div className="flex min-h-[100dvh] w-full bg-white flex-col md:flex-row">
       {/* Skip to content */}
       <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:bg-primary focus:text-primary-foreground focus:px-4 focus:py-2 focus:rounded-lg focus:shadow-lg">
         Skip to content
       </a>
 
       {/* Desktop Sidebar */}
-      <aside aria-label="Sidebar" className="hidden md:flex w-64 h-screen sticky top-0 flex-col border-r border-border bg-ink text-ink-foreground shrink-0">
+      <aside aria-label="Sidebar" className="hidden md:flex w-64 h-screen sticky top-0 flex-col border-r border-white/10 bg-black text-white shrink-0">
         <div className="p-6 flex flex-col items-center text-center gap-3">
           <Avatar className="h-16 w-16">
             {shopLogo ? (
@@ -57,9 +57,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
             </AvatarFallback>
           </Avatar>
           <div>
-            <h2 className="font-bold text-lg text-ink-foreground">{shopName}</h2>
+            <h2 className="font-bold text-lg text-white">{shopName}</h2>
             {shopEmail ? (
-              <p className="text-xs text-ink-foreground/60 font-medium">{shopEmail}</p>
+              <p className="text-xs text-white/60 font-medium">{shopEmail}</p>
             ) : null}
           </div>
         </div>
@@ -74,7 +74,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                   "flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all text-sm",
                   isActive 
                     ? "bg-primary text-primary-foreground shadow-md" 
-                    : "text-ink-foreground/70 hover:bg-ink-foreground/10 hover:text-ink-foreground"
+                    : "text-white/70 hover:bg-white/10 hover:text-white"
                 )}
                 aria-current={isActive ? "page" : undefined}
               >
@@ -87,7 +87,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <div className="p-4">
           <Button 
             variant="ghost" 
-            className="w-full justify-start gap-3 text-ink-foreground/70 hover:text-ink-foreground hover:bg-ink-foreground/10"
+            className="w-full justify-start gap-3 text-white/70 hover:text-white hover:bg-white/10"
             onClick={() => logout.mutate()}
             isLoading={logout.isPending}
           >
@@ -99,7 +99,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
       {/* Main Content Area */}
       <main id="main-content" className="flex-1 flex flex-col min-w-0 pb-20 md:pb-0 overflow-y-auto">
-        <div className="md:hidden flex items-center justify-between p-4 bg-ink text-ink-foreground sticky top-0 z-20 shadow-sm">
+        <div className="md:hidden flex items-center justify-between p-4 bg-black text-white sticky top-0 z-20 shadow-sm">
           <div className="flex items-center gap-2">
             <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground">
               <Storefront className="h-4 w-4" />
@@ -113,7 +113,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
       </main>
 
       {/* Mobile Bottom Tab Bar */}
-      <nav aria-label="Mobile navigation" className="md:hidden fixed bottom-0 left-0 right-0 bg-ink text-ink-foreground/70 flex justify-around items-center p-2 pb-safe z-50 shadow-lg">
+      <nav aria-label="Mobile navigation" className="md:hidden fixed bottom-0 left-0 right-0 bg-black text-white/70 flex justify-around items-center p-2 pb-safe z-50 shadow-lg">
         {navItems.map((item) => {
           const isActive = navIsActive(item.to)
           return (

@@ -13,6 +13,7 @@ Checkout charge/initialize is Plan 3 (not documented here).
  * OpenAPI spec version: 0.4.0
  */
 import type { SellerAvailability } from './sellerAvailability';
+import type { SellerShopTrust } from './sellerShopTrust';
 
 export interface SellerSummary {
   id: string;
@@ -25,4 +26,9 @@ export interface SellerSummary {
   logo?: string | null;
   /** @nullable */
   banner?: string | null;
+  /**
+   * Ratings, sales, profile, announcement, policy, recent reviews. Null when unassemblable.
+   * @nullable
+   */
+  trust?: SellerShopTrust;
 }

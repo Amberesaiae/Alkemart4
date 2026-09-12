@@ -50,8 +50,12 @@ export const adminProducts = new Hono<AppEnv>()
       }),
     })
   })
-  .post("/:id/approve", async (c) => {
-    const product = await moderateProduct(c.get("repo"), c.req.param("id"), "approve")
+  .get("/:id", async (c) => {
+    const detail = await c.get("repo").getAdminProductDetail(c.req.param("id"))
+    if (!detail) throw new HTTPException(404, { message: "product not found" })
+    return c.json(detail)
+  })
+  .post("/:id/approve", async (c) => {    const product = await moderateProduct(c.get("repo"), c.req.param("id"), "approve")
     await c.get("auditLog").log({
       adminUserId: c.get("auth").userId,
       action: "product.approve",

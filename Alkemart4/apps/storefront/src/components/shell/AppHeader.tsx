@@ -1,8 +1,15 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router"
-import { useRef, useState, useEffect, type FormEvent, type ReactNode } from "react"
+import { useState, type FormEvent, type ReactNode } from "react"
 import { IconSafe } from "@/design/icons"
 import { BrandLogo } from "@/components/shell/BrandLogo"
-import { Avatar, AvatarFallback } from "@workspace/ui"
+import {
+  Avatar,
+  AvatarFallback,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@workspace/ui"
 import { cn } from "@/lib/utils"
 
 export type AppHeaderProps = {
@@ -12,7 +19,7 @@ export type AppHeaderProps = {
   isAccountActive: boolean
   accountMenu: ReactNode
   accountOpen: boolean
-  onAccountToggle: () => void
+  onAccountOpenChange: (open: boolean) => void
   onAccountClose: () => void
 }
 
@@ -37,40 +44,13 @@ export function AppHeader({
   isAccountActive,
   accountMenu,
   accountOpen,
-  onAccountToggle,
+  onAccountOpenChange,
   onAccountClose,
 }: AppHeaderProps) {
   const navigate = useNavigate()
   const pathname = useRouterState({ select: (s) => s.location.pathname })
   const [q, setQ] = useState("")
-  const accountRef = useRef<HTMLDivElement>(null)
-  const accountBtnRef = useRef<HTMLButtonElement>(null)
-  const menuDetailsRef = useRef<HTMLDetailsElement>(null)
 
-  useEffect(() => {
-    function onDoc(e: MouseEvent) {
-      if (!accountRef.current?.contains(e.target as Node)) onAccountClose()
-    }
-    document.addEventListener("mousedown", onDoc)
-    return () => document.removeEventListener("mousedown", onDoc)
-  }, [onAccountClose])
-
-  useEffect(() => {
-    if (!accountOpen) return
-    function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") {
-        onAccountClose()
-        accountBtnRef.current?.focus()
-      }
-    }
-    document.addEventListener("keydown", onKey)
-    return () => document.removeEventListener("keydown", onKey)
-  }, [accountOpen, onAccountClose])
-
-  useEffect(() => {
-    const el = menuDetailsRef.current
-    if (el) el.open = false
-  }, [pathname])
 
   function onSearch(e: FormEvent) {
     e.preventDefault()
@@ -154,87 +134,79 @@ export function AppHeader({
             aria-label="Account and cart"
           >
             {/* Mobile: utility menu (About) — left of account */}
-            <details ref={menuDetailsRef} className="relative lg:hidden">
-              <summary
-                className={cn(
-                  "flex h-11 min-h-11 min-w-11 list-none cursor-pointer items-center justify-center rounded-full",
-                  "text-muted-foreground hover:bg-muted hover:text-foreground",
-                  "focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden",
-                )}
-                aria-label="More menu"
-              >
-                <IconSafe name="menu" size={22} />
-              </summary>
-              <div
-                className="absolute right-0 z-50 mt-1 min-w-[12rem] rounded-2xl border border-border bg-card p-1.5 shadow-lg"
-                role="navigation"
-                aria-label="Site links"
-              >
+            <div className="lg:hidden">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  className={cn(
+                    "flex h-11 min-h-11 min-w-11 items-center justify-center rounded-full",
+                    "text-muted-foreground hover:bg-muted hover:text-foreground",
+                    "focus-visible:ring-2 focus-visible:ring-ring",
+                  )}
+                  aria-label="More menu"
+                >
+                  <IconSafe name="menu" size={22} />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="min-w-[12rem]" aria-label="Site links">
                 {UTILITY_NAV.map((item) =>
                   "hash" in item && item.hash ? (
-                    <a
-                      key={item.label}
-                      href={`/#${item.hash}`}
-                      className="flex min-h-11 items-center rounded-xl px-3 py-2.5 text-sm font-semibold hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    >
-                      {item.label}
-                    </a>
+                    <DropdownMenuItem asChild key={item.label}>
+                      <a href={`/#${item.hash}`}>{item.label}</a>
+                    </DropdownMenuItem>
                   ) : (
-                    <Link
-                      key={item.label}
-                      to={item.to}
-                      className="flex min-h-11 items-center rounded-xl px-3 py-2.5 text-sm font-semibold hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    >
-                      {item.label}
-                    </Link>
+                    <DropdownMenuItem asChild key={item.label}>
+                      <Link to={item.to}>{item.label}</Link>
+                    </DropdownMenuItem>
                   ),
                 )}
-              </div>
-            </details>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            </div>
 
             {/* Account */}
-            <div className="relative" ref={accountRef}>
-              <button
-                ref={accountBtnRef}
-                type="button"
-                id="account-menu-button"
-                className={cn(
-                  "inline-flex h-11 min-h-11 min-w-11 flex-col items-center justify-center gap-0 rounded-full px-2",
-                  "text-muted-foreground transition hover:bg-muted hover:text-foreground",
-                  "focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-                  "sm:min-w-[3.25rem] sm:px-2.5",
-                  (isAccountActive || accountOpen) && "bg-muted text-foreground",
-                )}
-                aria-expanded={accountOpen}
-                aria-haspopup="menu"
-                aria-controls="account-menu"
-                aria-label={userLabel}
-                onClick={onAccountToggle}
-              >
-                <Avatar className="h-7 w-7 border border-border sm:h-8 sm:w-8">
-                  <AvatarFallback
-                    className={cn(
-                      "text-xs",
-                      userInitials
-                        ? "bg-foreground text-background"
-                        : "bg-muted text-muted-foreground",
-                    )}
-                  >
-                    {userInitials ? (
-                      userInitials
-                    ) : (
-                      <span aria-hidden="true">
-                        <IconSafe name="user" size={16} />
-                      </span>
-                    )}
-                  </AvatarFallback>
-                </Avatar>
-                <span className="hidden max-w-[4.5rem] truncate text-xs font-semibold leading-none sm:block">
-                  {userInitials ? "Account" : "Sign in"}
-                </span>
-              </button>
-              {accountOpen ? accountMenu : null}
-            </div>
+            <DropdownMenu open={accountOpen} onOpenChange={onAccountOpenChange}>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  id="account-menu-button"
+                  className={cn(
+                    "inline-flex h-11 min-h-11 min-w-11 flex-col items-center justify-center gap-0 rounded-full px-2",
+                    "text-muted-foreground transition hover:bg-muted hover:text-foreground",
+                    "focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                    "sm:min-w-[3.25rem] sm:px-2.5",
+                    (isAccountActive || accountOpen) && "bg-muted text-foreground",
+                  )}
+                  aria-label={userLabel}
+                >
+                  <Avatar className="h-7 w-7 border border-border sm:h-8 sm:w-8">
+                    <AvatarFallback
+                      className={cn(
+                        "text-xs",
+                        userInitials
+                          ? "bg-foreground text-background"
+                          : "bg-muted text-muted-foreground",
+                      )}
+                    >
+                      {userInitials ? (
+                        userInitials
+                      ) : (
+                        <span aria-hidden="true">
+                          <IconSafe name="user" size={16} />
+                        </span>
+                      )}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="hidden max-w-[4.5rem] truncate text-xs font-semibold leading-none sm:block">
+                    {userInitials ? "Account" : "Sign in"}
+                  </span>
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56" aria-label="Account menu">
+                {accountMenu}
+              </DropdownMenuContent>
+            </DropdownMenu>
 
             {/* Cart — rightmost, badge on icon (Amazon/Jumia pattern) */}
             <Link

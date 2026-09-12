@@ -1,4 +1,5 @@
 import type { StoreOrder } from "@/lib/orders"
+import { Check, X } from "@phosphor-icons/react"
 import { cn } from "@/lib/utils"
 
 type TimelineStep = {
@@ -133,7 +134,13 @@ export function OrderTimeline({ order, className }: Props) {
               )}
               aria-current={step.current ? "step" : undefined}
             >
-              {step.icon}
+              {step.icon === "✓" ? (
+                <Check size={14} weight="bold" aria-hidden />
+              ) : step.icon === "✕" ? (
+                <X size={14} weight="bold" aria-hidden />
+              ) : (
+                step.icon
+              )}
             </span>
             <div className="min-w-0 flex-1 pt-0.5">
               <p

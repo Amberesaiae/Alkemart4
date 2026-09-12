@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { useState, useEffect, useRef } from "react"
 import { useSellerProfile, useUpdateProfile, useUpdateAddress, useUpdatePayment, useUploadImage } from "../lib/hooks"
-import { Card, CardHeader, CardTitle, CardContent, CardFooter, Button, Input, Label, Select, Skeleton } from "@workspace/ui"
+import { Card, CardHeader, CardTitle, CardContent, CardFooter, Button, Input, Label, Skeleton, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui"
 import { PageShell } from "../components/page-shell"
 import { PageHeader } from "../components/page-header"
 import {
@@ -500,14 +500,17 @@ function SettingsPage() {
                 <div className="space-y-1.5">
                   <Label htmlFor="region">Region</Label>
                   <Select
-                    id="region"
                     value={addressForm.province}
-                    onChange={e => setAddressForm({ ...addressForm, province: e.target.value, district: "" })}
+                    onValueChange={v => setAddressForm({ ...addressForm, province: v, district: "" })}
                   >
-                    <option value="" disabled>Select region</option>
-                    {GHANA_REGIONS.map(r => (
-                      <option key={r} value={r}>{r}</option>
-                    ))}
+                    <SelectTrigger id="region">
+                      <SelectValue placeholder="Select region" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {GHANA_REGIONS.map(r => (
+                        <SelectItem key={r} value={r}>{r}</SelectItem>
+                      ))}
+                    </SelectContent>
                   </Select>
                 </div>
               </div>
@@ -516,15 +519,18 @@ function SettingsPage() {
                 <div className="space-y-1.5">
                   <Label htmlFor="district">Municipal / District</Label>
                   <Select
-                    id="district"
                     value={addressForm.district}
-                    onChange={e => setAddressForm({ ...addressForm, district: e.target.value })}
+                    onValueChange={v => setAddressForm({ ...addressForm, district: v })}
                     disabled={!addressForm.province}
                   >
-                    <option value="" disabled>{addressForm.province ? "Select district" : "Pick region first"}</option>
-                    {districtsOf(addressForm.province).map(d => (
-                      <option key={d} value={d}>{d}</option>
-                    ))}
+                    <SelectTrigger id="district">
+                      <SelectValue placeholder={addressForm.province ? "Select district" : "Pick region first"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {districtsOf(addressForm.province).map(d => (
+                        <SelectItem key={d} value={d}>{d}</SelectItem>
+                      ))}
+                    </SelectContent>
                   </Select>
                 </div>
 

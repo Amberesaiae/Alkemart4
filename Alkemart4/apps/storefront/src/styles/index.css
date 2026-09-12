@@ -88,13 +88,13 @@
    * Solid fills are the lightest shade of each hue that still holds its
    * text colour, so a tone stays recognisable as its hue.
    */
-  --tone-neutral: #797569;
+  --tone-neutral: #666666;
   --tone-neutral-fg: #ffffff;
-  --tone-neutral-soft: #e6e6e3;
-  --tone-neutral-ink: #69655b;  /* solid 4.60 · soft 4.65 · card 5.81 */
-  --tone-brand: #febf31;
-  --tone-brand-fg: #1f1e1b;
-  --tone-brand-soft: #fbf2dd;
+  --tone-neutral-soft: #eeeeee;
+  --tone-neutral-ink: #444444;
+  --tone-brand: #ffc400;
+  --tone-brand-fg: #000000;
+  --tone-brand-soft: #f1f1f1;
   --tone-brand-ink: #926501;  /* solid 10.09 · soft 4.61 · card 5.14 */
   --tone-success: #16864e;
   --tone-success-fg: #ffffff;
@@ -120,26 +120,26 @@
    * Charcoal ink + premium-white paper + hero gold + neutral stone.
    * Every dark surface shares the ink's warm undertone so gold sits in
    * harmony instead of fighting a blue-slate cast. */
-  --primary: #febf31;
-  --primary-foreground: #1f1e1b;
-  --primary-strong: #e89b00;
+  --primary: #ffc400;
+  --primary-foreground: #000000;
+  --primary-strong: #e5a900;
   /* Charcoal ink — headings, dark bands, footer, sidebars */
-  --ink: #171614;
-  --ink-soft: #272523;
+  --ink: #000000;
+  --ink-soft: #111111;
   /* Premium white — a whisper of warmth at near-zero chroma, so it reads
    * as white paper, never as cream. */
-  --background: #fafaf9;
-  --foreground: #1f1e1b;
+  --background: #ffffff;
+  --foreground: #000000;
   /* Cards go pure white above the paper for crisp product presentation */
   --card: #ffffff;
-  --card-foreground: #1f1e1b;
-  --muted: #f3f3f1;
-  --muted-foreground: #74726b;
-  --border: #e4e3e0;
+  --card-foreground: #000000;
+  --muted: #ffffff;
+  --muted-foreground: #666666;
+  --border: #e5e5e5;
   --destructive: #d64545;
   --ring: #e89b00;
-  --surface-soft: #f5f5f3;
-  --footer-bg: #171614;
+  --surface-soft: #ffffff;
+  --footer-bg: #000000;
 }
 
 ::selection {
@@ -559,6 +559,13 @@ html {
 
 .surface-soft {
   background-color: var(--surface-soft);
+}
+
+.surface-gloss {
+  background:
+    linear-gradient(145deg, #ffffff, #ffffff),
+    var(--surface-soft);
+  box-shadow: 0 1px 0 rgb(255 255 255 / 0.95) inset, var(--shadow-sm);
 }
 /* @deprecated alias — kept so any missed call site keeps its surface. */
 .surface-cream {

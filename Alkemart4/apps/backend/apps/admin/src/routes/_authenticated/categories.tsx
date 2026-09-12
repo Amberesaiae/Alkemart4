@@ -4,7 +4,7 @@ import { useMemo, useState } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { adminCategories } from "../../lib/api"
 import type { AdminCategory } from "../../lib/api"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Badge, Button, Modal, Skeleton, EmptyState, Input, Switch, Select, Textarea, Checkbox } from "@workspace/ui"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Badge, Button, Modal, Skeleton, EmptyState, Input, Switch, Textarea, Checkbox, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui"
 import { PageShell } from "../../components/page-shell"
 import { PageHeader } from "../../components/page-header"
 import { Plus, Trash, PencilSimple, Link } from "@phosphor-icons/react"
@@ -18,6 +18,9 @@ export const Route = createFileRoute("/_authenticated/categories")({
   },
   component: CategoriesPage,
 })
+
+/** Sentinel: Radix items need non-empty values; maps back to "". */
+const TOP_LEVEL = "__top"
 
 function internalBadge(cat: AdminCategory) {
   return cat.is_internal ? (
@@ -296,11 +299,16 @@ function CategoryFields({ form, setForm, categories, hideParent }: {
         {!hideParent && (
           <div>
             <label className="text-sm font-medium">Parent</label>
-            <Select value={form.parentId} onChange={(e) => set({ parentId: e.target.value })}>
-              <option value="">— Top level —</option>
-              {parents.map((p) => (
-                <option key={p.id} value={p.id}>{p.name}</option>
-              ))}
+            <Select value={form.parentId || TOP_LEVEL} onValueChange={(v) => set({ parentId: v === TOP_LEVEL ? "" : v })}>
+              <SelectTrigger aria-label="Parent category">
+                <SelectValue placeholder="— Top level —" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={TOP_LEVEL}>— Top level —</SelectItem>
+                {parents.map((p) => (
+                  <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                ))}
+              </SelectContent>
             </Select>
           </div>
         )}

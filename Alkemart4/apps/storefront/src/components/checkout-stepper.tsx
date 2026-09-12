@@ -1,3 +1,4 @@
+import { Check } from "@phosphor-icons/react"
 import { cn } from "@/lib/utils"
 
 export type CheckoutStepId = "address" | "delivery" | "payment" | "done"
@@ -44,7 +45,11 @@ export function CheckoutStepper({ current, className }: Props) {
                 )}
                 aria-current={isCurrent ? "step" : undefined}
               >
-                {step.icon}
+                {step.icon === "✓" ? (
+                  <Check size={14} weight="bold" aria-hidden />
+                ) : (
+                  step.icon
+                )}
               </span>
               <span
                 className={cn(
