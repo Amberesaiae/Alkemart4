@@ -1,4 +1,5 @@
 import { isWorkersApi } from "./config"
+import type { HomeSection, HomepageDocument } from "@alkemart/shared/homepage"
 
 export { isWorkersApi }
 
@@ -296,6 +297,26 @@ export const auth = {
       return null
     }
   },
+}
+
+export const homepageStudio = {
+  get: () => apiFetch<HomepageDocument>("/admin/homepage"),
+  saveDraft: (revision: number, sections: HomeSection[]) =>
+    apiFetch<HomepageDocument>("/admin/homepage/draft", {
+      method: "PUT",
+      body: JSON.stringify({ revision, sections }),
+    }),
+  publish: (revision: number, unpublishAt?: string | null) =>
+    apiFetch<HomepageDocument>("/admin/homepage/publish", {
+      method: "POST",
+      body: JSON.stringify({ revision, unpublishAt: unpublishAt || null }),
+    }),
+  schedule: (revision: number, publishAt: string, unpublishAt?: string | null) =>
+    apiFetch<HomepageDocument>("/admin/homepage/schedule", {
+      method: "POST",
+      body: JSON.stringify({ revision, publishAt, unpublishAt: unpublishAt || null }),
+    }),
+  categories: () => apiFetch<{ categories: Array<{ id: string; name: string; handle?: string | null; children?: Array<{ id: string; name: string; handle?: string | null }> }> }>("/store/categories"),
 }
 
 // Stats

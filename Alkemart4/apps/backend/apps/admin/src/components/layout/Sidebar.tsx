@@ -17,6 +17,7 @@ import {
   Users,
   Scales,
   Stack,
+  Layout,
 } from "@phosphor-icons/react"
 import { useState } from "react"
 import { useAuth } from "../../hooks/use-auth"
@@ -27,6 +28,7 @@ const ALL_NAV_GROUPS: { label: string; items: { href: string; label: string; ico
   {
     label: "Catalogue",
     items: [
+      { href: "/homepage", label: "Homepage Studio", icon: Layout, workers: true },
       { href: "/analytics", label: "Analytics", icon: ChartBar, workers: true },
       { href: "/markets", label: "Markets", icon: Globe },
       { href: "/categories", label: "Categories", icon: Stack },

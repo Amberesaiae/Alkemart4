@@ -1,4 +1,5 @@
 export * from "./ghana"
 export * from "./brand"
+export * from "./homepage"
 export * from "./utils"
 export * from "./error-boundary"

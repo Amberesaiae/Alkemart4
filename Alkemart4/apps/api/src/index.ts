@@ -3,6 +3,7 @@ import { Hono, type MiddlewareHandler } from "hono"
 import { InMemoryAdminAuditLog, PostgresAdminAuditLog, type AdminAuditLog } from "./admin-audit"
 import { InMemoryAppealStore, PostgresAppealStore, type AppealStore } from "./appeals"
 import { InMemoryShopFeaturedStore, PostgresShopFeaturedStore, type ShopFeaturedStore } from "./shop-featured"
+import { InMemoryHomepageContentStore, PostgresHomepageContentStore, type HomepageContentStore } from "./homepage-content"
 import { InMemoryShopPolicyStore, PostgresShopPolicyStore, type ShopPolicyStore } from "./shop-policies"
 import { InMemoryTrafficStore, PostgresTrafficStore, type TrafficStore } from "./traffic"
 import { PostgresAuthRepository, type AuthRepository } from "./auth-repository"
@@ -41,6 +42,7 @@ import { adminPayouts } from "./routes/admin/payouts"
 import { adminProducts } from "./routes/admin/products"
 import { adminSellers } from "./routes/admin/sellers"
 import { adminStats, adminTrafficStats } from "./routes/admin/stats"
+import { adminHomepage } from "./routes/admin/homepage"
 import { health } from "./routes/health"
 import { storeAuth } from "./routes/store/auth"
 import { storeCart } from "./routes/store/cart"
@@ -51,6 +53,7 @@ import { storeOrders } from "./routes/store/orders"
 import { storeReviews } from "./routes/store/reviews"
 import { products } from "./routes/store/products"
 import { sellers } from "./routes/store/sellers"
+import { storeHomepage } from "./routes/store/homepage"
 import { paystackHooks } from "./routes/hooks/paystack"
 import { vendorAuth } from "./routes/vendor/auth"
 import { vendorOnboarding } from "./routes/vendor/onboarding"
@@ -77,6 +80,7 @@ export function createApp(
     appealStore?: AppealStore
     policyStore?: ShopPolicyStore
     featuredStore?: ShopFeaturedStore
+    homepageStore?: HomepageContentStore
     jwtSecret?: string
     paystackSecretKey?: string
     createPaystackTransferRecipient?: CreatePaystackTransferRecipient
@@ -100,6 +104,7 @@ export function createApp(
   const fallbackAppeals = options.appealStore ?? (options.repo ? new InMemoryAppealStore() : undefined)
   const fallbackPolicies = options.policyStore ?? (options.repo ? new InMemoryShopPolicyStore() : undefined)
   const fallbackFeatured = options.featuredStore ?? (options.repo ? new InMemoryShopFeaturedStore() : undefined)
+  const fallbackHomepage = options.homepageStore ?? (options.repo ? new InMemoryHomepageContentStore() : undefined)
 
   const bindCatalog: MiddlewareHandler<AppEnv> = async (c, next) => {
     if (options.repo) {
@@ -141,6 +146,14 @@ export function createApp(
     } else {
       const env = parseEnv(c.env as unknown as Record<string, unknown>)
       c.set("featured", new PostgresShopFeaturedStore(primaryDb(env)))
+    }
+    if (options.homepageStore) {
+      c.set("homepage", options.homepageStore)
+    } else if (fallbackHomepage) {
+      c.set("homepage", fallbackHomepage)
+    } else {
+      const env = parseEnv(c.env as unknown as Record<string, unknown>)
+      c.set("homepage", new PostgresHomepageContentStore(primaryDb(env)))
     }
     await next()
   }
@@ -238,6 +251,7 @@ export function createApp(
   store.route("/catalog", withBind(bindCatalog, catalog))
   store.route("/products", withBind(bindCatalog, withBind(bindCheckout, products)))
   store.route("/sellers", withBind(bindAuth, withBind(bindCatalog, sellers)))
+  store.route("/homepage", withBind(bindCatalog, storeHomepage))
   store.route("/cart", withBind(bindCheckout, storeCart))
   store.route("/checkout", withBind(bindAuth, withBind(bindCheckout, storeCheckout)))
   store.route("/reviews", withBind(bindCheckout, storeReviews))
@@ -273,6 +287,7 @@ export function createApp(
   admin.route("/orders", withBind(bindCheckout, adminOrders))
   admin.route("/migrate", adminMigrate)
   admin.route("/actions", adminActions)
+  admin.route("/homepage", withBind(bindCatalog, adminHomepage))
   admin.route("/appeals", withBind(bindCatalog, adminAppeals))
   admin.route("/reviews", withBind(bindAuth, withBind(bindCheckout, adminReviews)))
   admin.route(

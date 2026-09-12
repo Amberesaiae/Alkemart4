@@ -70,6 +70,7 @@ export const adminMigrate = new Hono<AppEnv>()
     await db.execute(sql`CREATE UNIQUE INDEX IF NOT EXISTS variant_option_values_variant_value_uidx ON variant_option_values (variant_id, value_id)`)
     await db.execute(sql`CREATE UNIQUE INDEX IF NOT EXISTS product_option_values_option_value_uidx ON product_option_values (option_id, value)`)
     await db.execute(sql`ALTER TABLE product_option_values ADD COLUMN IF NOT EXISTS image_url text`)
+    await db.execute(sql`CREATE TABLE IF NOT EXISTS content_pages (key text PRIMARY KEY, revision integer NOT NULL DEFAULT 1, draft_sections jsonb NOT NULL DEFAULT '[]'::jsonb, published_sections jsonb NOT NULL DEFAULT '[]'::jsonb, scheduled_sections jsonb, publish_at timestamptz, unpublish_at timestamptz, updated_at timestamptz NOT NULL DEFAULT now())`)
     await db.execute(sql`ALTER TABLE product_option_values ADD COLUMN IF NOT EXISTS image_url text`)
     return c.json({
       ok: true,
@@ -94,6 +95,7 @@ export const adminMigrate = new Hono<AppEnv>()
         "reviews",
         "product_options",
         "product_option_values.image_url",
+        "content_pages",
       ],
       note: "Use packages/db drizzle migrate when direct DATABASE_URL is available",
     })

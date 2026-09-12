@@ -6,7 +6,8 @@
   "types": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts",
-    "./ghana": "./src/ghana/index.ts"
+    "./ghana": "./src/ghana/index.ts",
+    "./homepage": "./src/homepage.ts"
   },
   "peerDependencies": {
     "clsx": "^2.1.1",

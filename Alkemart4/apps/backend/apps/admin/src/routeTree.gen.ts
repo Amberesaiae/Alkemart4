@@ -21,6 +21,7 @@ import { Route as AuthenticatedProductModerationRouteImport } from './routes/_au
 import { Route as AuthenticatedPayoutsRouteImport } from './routes/_authenticated/payouts'
 import { Route as AuthenticatedOrdersRouteImport } from './routes/_authenticated/orders'
 import { Route as AuthenticatedMarketsRouteImport } from './routes/_authenticated/markets'
+import { Route as AuthenticatedHomepageRouteImport } from './routes/_authenticated/homepage'
 import { Route as AuthenticatedFeaturedProductsRouteImport } from './routes/_authenticated/featured-products'
 import { Route as AuthenticatedDisputesRouteImport } from './routes/_authenticated/disputes'
 import { Route as AuthenticatedCommissionRatesRouteImport } from './routes/_authenticated/commission-rates'
@@ -93,6 +94,11 @@ const AuthenticatedMarketsRoute = AuthenticatedMarketsRouteImport.update({
   path: '/markets',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedHomepageRoute = AuthenticatedHomepageRouteImport.update({
+  id: '/homepage',
+  path: '/homepage',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedFeaturedProductsRoute =
   AuthenticatedFeaturedProductsRouteImport.update({
     id: '/featured-products',
@@ -151,6 +157,7 @@ export interface FileRoutesByFullPath {
   '/commission-rates': typeof AuthenticatedCommissionRatesRoute
   '/disputes': typeof AuthenticatedDisputesRoute
   '/featured-products': typeof AuthenticatedFeaturedProductsRoute
+  '/homepage': typeof AuthenticatedHomepageRoute
   '/markets': typeof AuthenticatedMarketsRoute
   '/orders': typeof AuthenticatedOrdersRouteWithChildren
   '/payouts': typeof AuthenticatedPayoutsRoute
@@ -173,6 +180,7 @@ export interface FileRoutesByTo {
   '/commission-rates': typeof AuthenticatedCommissionRatesRoute
   '/disputes': typeof AuthenticatedDisputesRoute
   '/featured-products': typeof AuthenticatedFeaturedProductsRoute
+  '/homepage': typeof AuthenticatedHomepageRoute
   '/markets': typeof AuthenticatedMarketsRoute
   '/orders': typeof AuthenticatedOrdersRouteWithChildren
   '/payouts': typeof AuthenticatedPayoutsRoute
@@ -197,6 +205,7 @@ export interface FileRoutesById {
   '/_authenticated/commission-rates': typeof AuthenticatedCommissionRatesRoute
   '/_authenticated/disputes': typeof AuthenticatedDisputesRoute
   '/_authenticated/featured-products': typeof AuthenticatedFeaturedProductsRoute
+  '/_authenticated/homepage': typeof AuthenticatedHomepageRoute
   '/_authenticated/markets': typeof AuthenticatedMarketsRoute
   '/_authenticated/orders': typeof AuthenticatedOrdersRouteWithChildren
   '/_authenticated/payouts': typeof AuthenticatedPayoutsRoute
@@ -221,6 +230,7 @@ export interface FileRouteTypes {
     | '/commission-rates'
     | '/disputes'
     | '/featured-products'
+    | '/homepage'
     | '/markets'
     | '/orders'
     | '/payouts'
@@ -243,6 +253,7 @@ export interface FileRouteTypes {
     | '/commission-rates'
     | '/disputes'
     | '/featured-products'
+    | '/homepage'
     | '/markets'
     | '/orders'
     | '/payouts'
@@ -266,6 +277,7 @@ export interface FileRouteTypes {
     | '/_authenticated/commission-rates'
     | '/_authenticated/disputes'
     | '/_authenticated/featured-products'
+    | '/_authenticated/homepage'
     | '/_authenticated/markets'
     | '/_authenticated/orders'
     | '/_authenticated/payouts'
@@ -372,6 +384,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMarketsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/homepage': {
+      id: '/_authenticated/homepage'
+      path: '/homepage'
+      fullPath: '/homepage'
+      preLoaderRoute: typeof AuthenticatedHomepageRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/featured-products': {
       id: '/_authenticated/featured-products'
       path: '/featured-products'
@@ -456,6 +475,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedCommissionRatesRoute: typeof AuthenticatedCommissionRatesRoute
   AuthenticatedDisputesRoute: typeof AuthenticatedDisputesRoute
   AuthenticatedFeaturedProductsRoute: typeof AuthenticatedFeaturedProductsRoute
+  AuthenticatedHomepageRoute: typeof AuthenticatedHomepageRoute
   AuthenticatedMarketsRoute: typeof AuthenticatedMarketsRoute
   AuthenticatedOrdersRoute: typeof AuthenticatedOrdersRouteWithChildren
   AuthenticatedPayoutsRoute: typeof AuthenticatedPayoutsRoute
@@ -476,6 +496,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedCommissionRatesRoute: AuthenticatedCommissionRatesRoute,
   AuthenticatedDisputesRoute: AuthenticatedDisputesRoute,
   AuthenticatedFeaturedProductsRoute: AuthenticatedFeaturedProductsRoute,
+  AuthenticatedHomepageRoute: AuthenticatedHomepageRoute,
   AuthenticatedMarketsRoute: AuthenticatedMarketsRoute,
   AuthenticatedOrdersRoute: AuthenticatedOrdersRouteWithChildren,
   AuthenticatedPayoutsRoute: AuthenticatedPayoutsRoute,

@@ -6,6 +6,8 @@ import {
   HomeAdvertiseBand,
   HomeHowItWorks,
   HomeLastOffers,
+  HomepageSections,
+  HomepageSkeleton,
 } from "@/components/home"
 import { ProductCard } from "@/components/product-card"
 import { ProductGridShell } from "@/components/product-grid"
@@ -14,6 +16,7 @@ import { Skeleton } from "@/components/skeleton"
 import { getMercurVendorUrl } from "@/lib/env"
 import { trackHomepageViewed } from "@/lib/analytics"
 import { fetchFeaturedProducts, listStoreCategories } from "@/lib/products"
+import { fetchHomepageSections } from "@/lib/homepage"
 import { resolveMosaicTiles } from "@/lib/catalog-nav"
 import {
   absoluteUrl,
@@ -45,6 +48,11 @@ function HomePage() {
     queryFn: () => listStoreCategories(),
     staleTime: 5 * 60_000,
   })
+  const homepageQ = useQuery({
+    queryKey: ["store", "homepage-content"],
+    queryFn: fetchHomepageSections,
+    staleTime: 60_000,
+  })
 
   const mosaic = useMemo(
     () => resolveMosaicTiles(catsQ.data ?? []),
@@ -65,6 +73,7 @@ function HomePage() {
   }, [])
 
   const loadingOffers = featuredQ.isLoading && featured.length === 0
+  const managedSections = homepageQ.data ?? []
 
   useEffect(() => {
     if (tracked.current) return
@@ -115,7 +124,13 @@ function HomePage() {
         path="/"
         jsonLd={homeJsonLd}
       />
-      {catsQ.isLoading && mosaic.length === 0 ? (
+      {homepageQ.isLoading ? (
+        <HomepageSkeleton />
+      ) : null}
+      {managedSections.length > 0 ? (
+        <HomepageSections sections={managedSections} categories={catsQ.data ?? []} products={featured} />
+      ) : null}
+      {managedSections.length === 0 && catsQ.isLoading && mosaic.length === 0 ? (
         <div
           className="grid grid-cols-2 gap-2.5 sm:gap-3 lg:grid-cols-3 lg:grid-rows-2 lg:h-[min(440px,50vw)] lg:min-h-[420px]"
           role="status"
@@ -132,11 +147,11 @@ function HomePage() {
           ))}
         </div>
       ) : null}
-      {mosaic.length > 0 ? (
+      {managedSections.length === 0 && mosaic.length > 0 ? (
         <CategoryMosaic tiles={mosaic} />
       ) : null}
 
-      {featuredQ.data && featured.length > 0 ? (
+      {managedSections.length === 0 && featuredQ.data && featured.length > 0 ? (
         <section aria-label="Fresh picks — newest products" className="space-y-4">
           <div className="flex items-baseline justify-between gap-3">
             <h2 className="type-section text-foreground">Fresh picks</h2>
@@ -154,7 +169,7 @@ function HomePage() {
 
       {/* Only when there is something to show — an empty rail would contradict
           the catalog (honesty rule: no fake emptiness claims). */}
-      {featured.length > 0 ? (
+      {managedSections.length === 0 && featured.length > 0 ? (
         <HomeLastOffers
           products={featured}
           categories={catsQ.data ?? []}
@@ -175,7 +190,7 @@ function HomePage() {
           </button>
         </div>
       ) : null}
-      {!loadingOffers && featured.length === 0 && mosaic.length === 0 ? (
+      {managedSections.length === 0 && !loadingOffers && featured.length === 0 && mosaic.length === 0 ? (
         <p className="text-center text-sm text-muted-foreground">
           No listings yet.{" "}
           <a
@@ -186,8 +201,8 @@ function HomePage() {
           </a>
         </p>
       ) : null}
-      <HomeHowItWorks />
-      <HomeAdvertiseBand ctaHref={sellUrl || undefined} ctaTo="/sell" />
+      {managedSections.length === 0 ? <HomeHowItWorks /> : null}
+      {managedSections.length === 0 ? <HomeAdvertiseBand ctaHref={sellUrl || undefined} ctaTo="/sell" /> : null}
     </div>
   )
 }
