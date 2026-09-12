@@ -8,8 +8,14 @@ import { requireAdmin } from "../../middleware/auth"
 
 const id = z.string().trim().min(1).max(80)
 const href = z.string().trim().min(1).max(500).refine((value) => value.startsWith("/") && !value.startsWith("//"), "links must be internal paths")
-const imageUrl = z.string().trim().max(1000).refine((value) => value.startsWith("/") || value.startsWith("https://"), "images must use HTTPS or an internal path").optional()
+const imageUrl = z.string().trim().max(1000).refine((value) => value === "" || value.startsWith("/") || value.startsWith("https://"), "images must use HTTPS or an internal path").optional()
 const optionalText = z.string().trim().max(240).optional()
+const subtitle = z.string().trim().max(160).optional()
+const visibility = {
+  visible: z.boolean().optional(),
+  startsAt: z.string().datetime().nullable().optional(),
+  endsAt: z.string().datetime().nullable().optional(),
+}
 const tile = z.object({
   id,
   title: z.string().trim().min(1).max(80),
@@ -18,45 +24,74 @@ const tile = z.object({
   imageUrl,
   href,
 })
+const link = z.object({ label: z.string().trim().min(1).max(40), href })
 const section = z.discriminatedUnion("type", [
   z.object({
     id,
     type: z.literal("promo_hero"),
     eyebrow: z.string().trim().max(40).optional(),
     title: z.string().trim().min(1).max(100),
+    subtitle,
     body: optionalText,
     imageUrl,
-    action: z.object({ label: z.string().trim().min(1).max(40), href }).optional(),
+    action: link.optional(),
     theme: z.enum(["white", "gold", "black"]),
+    layout: z.enum(["split", "band"]).optional(),
+    ...visibility,
   }),
   z.object({
     id,
     type: z.literal("promo_grid"),
     title: z.string().trim().max(100).optional(),
+    subtitle,
     columns: z.union([z.literal(2), z.literal(3), z.literal(4)]),
     theme: z.enum(["white", "gold", "black"]),
+    variant: z.enum(["cards", "bento"]).optional(),
     tiles: z.array(tile).min(1).max(8),
+    ...visibility,
   }),
   z.object({
     id,
     type: z.literal("category_grid"),
     title: z.string().trim().min(1).max(100),
+    subtitle,
     columns: z.union([z.literal(4), z.literal(6), z.literal(8)]),
+    variant: z.enum(["tiles", "mosaic", "rail"]).optional(),
+    showAllLink: z.boolean().optional(),
     categoryIds: z.array(z.string().trim().min(1).max(100)).max(16),
+    ...visibility,
   }),
   z.object({
     id,
     type: z.literal("product_shelf"),
     title: z.string().trim().min(1).max(100),
-    source: z.enum(["featured", "latest", "category"]),
+    subtitle,
+    source: z.enum(["featured", "latest", "category", "manual"]),
     categoryId: z.string().trim().max(100).optional(),
+    productIds: z.array(z.string().trim().min(1).max(100)).max(12).optional(),
     limit: z.union([z.literal(4), z.literal(8), z.literal(12)]),
+    layout: z.enum(["grid", "carousel"]).optional(),
+    ...visibility,
+  }),
+  z.object({
+    id,
+    type: z.literal("promo_band"),
+    eyebrow: z.string().trim().max(40).optional(),
+    title: z.string().trim().min(1).max(100),
+    body: optionalText,
+    imageUrl,
+    action: link.optional(),
+    secondaryAction: link.optional(),
+    theme: z.enum(["white", "gold", "black"]),
+    ...visibility,
   }),
   z.object({
     id,
     type: z.literal("value_grid"),
     title: z.string().trim().max(100).optional(),
+    subtitle,
     items: z.array(z.object({ id, title: z.string().trim().min(1).max(80), body: z.string().trim().min(1).max(180) })).min(2).max(4),
+    ...visibility,
   }),
 ])
 const saveBody = z.object({ revision: z.number().int().positive(), sections: z.array(section).max(24) }).superRefine((value, context) => {
@@ -65,6 +100,12 @@ const saveBody = z.object({ revision: z.number().int().positive(), sections: z.a
   value.sections.forEach((item, index) => {
     if (item.type === "product_shelf" && item.source === "category" && !item.categoryId) {
       context.addIssue({ code: z.ZodIssueCode.custom, message: "categoryId is required for a category shelf", path: ["sections", index, "categoryId"] })
+    }
+    if (item.type === "product_shelf" && item.source === "manual" && !(item.productIds ?? []).length) {
+      context.addIssue({ code: z.ZodIssueCode.custom, message: "add at least one product ID for a manual shelf", path: ["sections", index, "productIds"] })
+    }
+    if (item.startsAt && item.endsAt && item.startsAt >= item.endsAt) {
+      context.addIssue({ code: z.ZodIssueCode.custom, message: "section end must be after section start", path: ["sections", index, "endsAt"] })
     }
   })
 })

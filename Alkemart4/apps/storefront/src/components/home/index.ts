@@ -1,7 +1,7 @@
 export { CategoryMosaic } from "./CategoryMosaic"
 export { HomeLastOffers } from "./HomeLastOffers"
 export { HomepageSections } from "./HomepageSections"
-export { HomepageSkeleton } from "./HomepageSkeleton"
+export { HomepageSectionsSkeleton, HomepageSkeleton } from "./HomepageSkeleton"
 export { HomeHowItWorks } from "./HomeHowItWorks"
 export { HomeDeliveryBand } from "./HomeDeliveryBand"
 export { HomeAdvertiseBand } from "./HomeAdvertiseBand"
