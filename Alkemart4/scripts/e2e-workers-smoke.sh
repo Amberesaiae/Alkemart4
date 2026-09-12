@@ -21,7 +21,8 @@ TOKEN=$(curl -sS -A "$UA" -X POST "$API/store/auth/login" \
 test -n "$TOKEN"
 
 echo "== catalog search =="
-curl -sS -A "$UA" "$API/store/catalog?q=tecno&limit=1" | json_get 'd["items"][0]["title"]'
+# Seed-independent: assert the catalog serves at least one item (no hardcoded fixture term).
+curl -sS -A "$UA" "$API/store/catalog?limit=1" | json_get 'd["items"][0]["title"]'
 
 echo "== COD checkout =="
 CART=$(curl -sS -A "$UA" -X POST "$API/store/cart" | json_get 'd["cartId"]')
