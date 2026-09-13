@@ -16,7 +16,6 @@ import {
   ArrowSquareOut,
   Tag,
   X,
-  Sparkle,
   ArrowRight,
   Cube,
 } from "@phosphor-icons/react"
