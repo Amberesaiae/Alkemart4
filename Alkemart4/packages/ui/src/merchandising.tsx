@@ -189,7 +189,12 @@ export function MerchGridSection({ title, subtitle, eyebrow, action, columns, va
       <MerchSectionHeader eyebrow={eyebrow} title={title} subtitle={subtitle} action={action} />
       <div className={cn(
         "grid gap-3",
-        variant === "mosaic" ? "grid-cols-2 lg:grid-cols-3" : columns === 4 ? "grid-cols-2 sm:grid-cols-4" : columns === 6 ? "grid-cols-3 sm:grid-cols-6" : "grid-cols-4 sm:grid-cols-8",
+        // Mosaic restores the editorial hierarchy: the first two tiles feature
+        // large (tall on desktop), the rest fill the remaining cells. Bento
+        // belongs on editorial/homepage surfaces — never product listings.
+        variant === "mosaic"
+          ? "grid-cols-2 lg:grid-cols-3 lg:grid-rows-2 [&>*:nth-child(-n+2)]:lg:row-span-2"
+          : columns === 4 ? "grid-cols-2 sm:grid-cols-4" : columns === 6 ? "grid-cols-3 sm:grid-cols-6" : "grid-cols-4 sm:grid-cols-8",
       )}>{children}</div>
     </section>
   )

@@ -47,6 +47,7 @@ function CategoryGrid({ section, categories }: { section: Extract<HomeSection, {
       {items.map((category, index) => {
         const photo = metaFor(category.handle)?.mosaic?.photo
         const slug = category.handle || category.id
+        const featured = variant === "mosaic" && index < 2
         return (
           <Link
             key={category.id}
@@ -56,10 +57,9 @@ function CategoryGrid({ section, categories }: { section: Extract<HomeSection, {
             className={cn(
               "group overflow-hidden rounded-2xl border border-black/10 bg-white",
               variant === "rail" && "w-36 shrink-0 snap-start sm:w-44",
-              variant === "mosaic" && index < 2 && "lg:row-span-2",
             )}
           >
-            <div className="relative aspect-square bg-[#f5f5f5]">
+            <div className={cn("relative bg-[#f5f5f5]", featured ? "aspect-square sm:aspect-auto sm:h-full sm:min-h-72 lg:min-h-80" : "aspect-square")}>
               {photo ? <img src={photo} alt="" loading="lazy" className="h-full w-full object-cover transition duration-300 group-hover:scale-105" /> : <IconSafe name={iconForCategory(category.name, category.handle)} size={52} preferAsset className="absolute inset-0 m-auto" />}
             </div>
             <p className="truncate px-3 py-3 text-center text-sm font-bold">{category.name}</p>

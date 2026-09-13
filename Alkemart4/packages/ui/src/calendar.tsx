@@ -2,6 +2,8 @@ import * as React from "react"
 import { CaretLeft, CaretRight } from "@phosphor-icons/react"
 import {
   addMonths,
+  setMonth,
+  setYear,
   subMonths,
   startOfMonth,
   endOfMonth,
@@ -15,6 +17,14 @@ import {
 } from "date-fns"
 import { cn } from "./cn"
 import { Button } from "./button"
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./select"
 
 export interface CalendarProps {
   className?: string
@@ -25,7 +35,16 @@ export interface CalendarProps {
   minDate?: Date
   maxDate?: Date
   initialMonth?: Date
+  /**
+   * Click-and-choose month/year dropdowns in the caption (Carbon/Syncfusion
+   * pattern for jumping to far dates). Defaults to chevron-only navigation.
+   */
+  captionDropdowns?: boolean
+  /** Inclusive year range for the year dropdown. Defaults to [now - 5, now + 10]. */
+  yearRange?: [number, number]
 }
+
+const MONTHS = Array.from({ length: 12 }, (_, index) => index)
 
 export function Calendar({
   className,
@@ -35,6 +54,8 @@ export function Calendar({
   minDate,
   maxDate,
   initialMonth,
+  captionDropdowns = false,
+  yearRange,
 }: CalendarProps) {
   const [currentMonth, setCurrentMonth] = React.useState<Date>(() => {
     if (selected && !isNaN(selected.getTime())) return startOfMonth(selected)
@@ -67,14 +88,61 @@ export function Calendar({
     return false
   }
 
+  const currentYear = new Date().getFullYear()
+  const [rangeStart, rangeEnd] = yearRange ?? [currentYear - 5, currentYear + 10]
+  const years = React.useMemo(() => {
+    const list: number[] = []
+    for (let year = rangeStart; year <= rangeEnd; year += 1) list.push(year)
+    return list
+  }, [rangeStart, rangeEnd])
+
   return (
     <div className={cn("p-3 w-[280px] select-none space-y-3 bg-card text-card-foreground rounded-2xl", className)}>
       {/* Header with Navigation */}
-      <div className="flex items-center justify-between px-1">
-        <span className="text-sm font-bold text-foreground">
-          {format(currentMonth, "MMMM yyyy")}
-        </span>
-        <div className="flex items-center gap-1">
+      <div className="flex items-center justify-between gap-1 px-1">
+        {captionDropdowns ? (
+          <div className="flex min-w-0 flex-1 items-center gap-1">
+            <Select
+              value={String(currentMonth.getMonth())}
+              onValueChange={(value) => setCurrentMonth((prev) => setMonth(prev, Number(value)))}
+            >
+              <SelectTrigger aria-label="Choose month" className="h-8 flex-1 px-2 text-xs font-bold">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  {MONTHS.map((month) => (
+                    <SelectItem key={month} value={String(month)}>
+                      {format(setMonth(new Date(), month), "MMMM")}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+            <Select
+              value={String(currentMonth.getFullYear())}
+              onValueChange={(value) => setCurrentMonth((prev) => setYear(prev, Number(value)))}
+            >
+              <SelectTrigger aria-label="Choose year" className="h-8 w-[76px] shrink-0 px-2 text-xs font-bold">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  {years.map((year) => (
+                    <SelectItem key={year} value={String(year)}>
+                      {year}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+          </div>
+        ) : (
+          <span className="text-sm font-bold text-foreground">
+            {format(currentMonth, "MMMM yyyy")}
+          </span>
+        )}
+        <div className="flex shrink-0 items-center gap-1">
           <Button
             type="button"
             variant="outline"
@@ -128,6 +196,7 @@ export function Calendar({
                   onSelect?.(isSelected ? undefined : day)
                 }
               }}
+              aria-label={format(day, "EEEE, d MMMM yyyy")}
               aria-selected={isSelected}
               aria-disabled={isDisabled}
               className={cn(

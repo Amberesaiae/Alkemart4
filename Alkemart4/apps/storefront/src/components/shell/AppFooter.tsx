@@ -12,8 +12,8 @@ type Props = {
 }
 
 /**
- * Footer: 2-col link grid on mobile (brand full-width above),
- * 5-col row on large screens — avoids a tall single-column stack on phones.
+ * Footer: compact on mobile (brand row + collapsed link groups +
+ * single-line copyright), 5-col row on large screens.
  *
  * Colors: only `.footer-*` tokens from `.site-footer` (light-on-dark).
  * Do not use text-primary-foreground / text-muted-foreground / text-foreground —
@@ -25,22 +25,20 @@ export function AppFooter({ sellUrl = "" }: Props) {
       className="site-footer relative mt-auto border-0 shadow-none"
       role="contentinfo"
     >
-      <Container className="relative z-10 grid grid-cols-2 gap-x-6 gap-y-8 pb-10 pt-12 sm:gap-x-8 lg:grid-cols-5 lg:gap-10">
-        {/* Brand + payment — full width on mobile, one column on lg */}
-        <div className="col-span-2 space-y-3 lg:col-span-1">
+      <Container className="relative z-10 grid grid-cols-2 gap-x-6 gap-y-6 pb-6 pt-8 sm:gap-x-8 lg:grid-cols-5 lg:gap-10 lg:pb-10 lg:pt-12">
+        {/* Brand + payment — compact row on mobile, one column on lg */}
+        <div className="col-span-2 space-y-2 lg:col-span-1 lg:space-y-3">
           <BrandLogo size="sm" onDark />
-          <p className="footer-copy max-w-xs text-sm leading-relaxed">
+          <p className="footer-copy hidden max-w-xs text-sm leading-relaxed sm:block">
             {brand.description}
           </p>
-          <p className="footer-muted type-sm font-bold uppercase tracking-wider">
-            Payment method
-          </p>
           <p className="footer-copy text-sm">
-            Cash on delivery · Mobile Money (when offered)
+            <span className="footer-muted font-bold uppercase tracking-wider type-sm">Payment · </span>
+            Cash on delivery · Mobile Money
           </p>
         </div>
 
-        {/* Link columns sit in a 2×2 grid on phones */}
+        {/* Link columns collapse into accordions on phones */}
         <FooterCol title="Shop">
           <FooterLink to="/categories/$slug" params={{ slug: "all" }}>
             All products
@@ -86,13 +84,13 @@ export function AppFooter({ sellUrl = "" }: Props) {
         </FooterCol>
       </Container>
 
-      {/* Copyright */}
+      {/* Copyright — single short line on mobile */}
       <div className="relative z-10 bg-black/20">
-        <Container className="footer-muted flex flex-col gap-1 py-4 text-center text-sm sm:flex-row sm:justify-between sm:text-start">
+        <Container className="footer-muted flex flex-col gap-0.5 py-3 text-center text-xs sm:flex-row sm:justify-between sm:py-4 sm:text-sm sm:text-start">
           <span>
-            © {new Date().getFullYear()} {brand.name}. All rights reserved.
+            © {new Date().getFullYear()} {brand.name}
           </span>
-          <span>Compare prices · Shop local · COD</span>
+          <span className="hidden sm:inline">Compare prices · Shop local · COD</span>
         </Container>
       </div>
     </footer>
@@ -110,13 +108,25 @@ function FooterCol({
   children: ReactNode
 }) {
   return (
-    <div className="min-w-0 space-y-2">
-      <p className="footer-muted text-xs font-bold uppercase tracking-wider">
-        {title}
-      </p>
-      <nav className="flex flex-col gap-0.5" aria-label={title}>
-        {children}
-      </nav>
+    <div className="min-w-0">
+      {/* Collapsed disclosure on mobile keeps the footer short; full column on lg. */}
+      <details className="group lg:hidden">
+        <summary className="footer-muted flex min-h-11 cursor-pointer list-none items-center justify-between gap-2 py-1 text-xs font-bold uppercase tracking-wider focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary [&::-webkit-details-marker]:hidden">
+          {title}
+          <span aria-hidden="true" className="text-base font-normal leading-none transition-transform group-open:rotate-45">+</span>
+        </summary>
+        <nav className="flex flex-col gap-0.5 pb-2" aria-label={title}>
+          {children}
+        </nav>
+      </details>
+      <div className="hidden space-y-2 lg:block">
+        <p className="footer-muted text-xs font-bold uppercase tracking-wider">
+          {title}
+        </p>
+        <nav className="flex flex-col gap-0.5" aria-label={title}>
+          {children}
+        </nav>
+      </div>
     </div>
   )
 }

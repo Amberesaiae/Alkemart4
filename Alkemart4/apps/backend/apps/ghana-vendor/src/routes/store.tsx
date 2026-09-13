@@ -3,14 +3,12 @@ import { useEffect, useMemo, useState } from "react"
 import { useBlocker } from "@tanstack/react-router"
 import { useSellerProfile, useUpdateStorefront, usePauseShop, useUnpauseShop, useShopPolicies, useSavePolicy, useCategories, useProducts, useUpdateDisplay, useUpdateContact, useFeatured, useSetFeatured } from "../lib/hooks"
 import type { StorefrontPatch } from "../lib/api"
-import { Card, Button, Input, Label, Textarea, Skeleton, DatePicker, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui"
+import { Card, Button, Input, Label, LivePreview, Textarea, Skeleton, DatePicker, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui"
 import { format } from "date-fns"
 import { PageShell } from "../components/page-shell"
 import { PageHeader } from "../components/page-header"
 import {
   Storefront,
-  DeviceMobile,
-  DeviceTablet,
   ArrowSquareOut,
   CheckCircle,
   WarningCircle,
@@ -82,7 +80,6 @@ function StorePage() {
 
   const [form, setForm] = useState(saved)
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(null)
-  const [previewMode, setPreviewMode] = useState<"desktop" | "mobile">("desktop")
   const [activeCategory, setActiveCategory] = useState<"branding" | "catalog" | "operations">("branding")
   const [showPreview, setShowPreview] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -582,70 +579,14 @@ function StorePage() {
 
         {/* ── Live Preview Side Panel (Toggleable) ── */}
         {showPreview && (
-          <div id="store-preview" className="xl:sticky xl:top-16 space-y-3 animate-in fade-in slide-in-from-right-3 duration-200">
-            <div className="flex items-center justify-between gap-2 p-2 bg-muted/40 rounded-xl border border-border">
-              <div className="inline-flex rounded-lg border p-0.5 bg-background shadow-2xs" role="group" aria-label="Preview device size">
-                <Button
-                  size="sm"
-                  variant={previewMode === "desktop" ? "default" : "ghost"}
-                  onClick={() => setPreviewMode("desktop")}
-                  aria-pressed={previewMode === "desktop"}
-                  className="gap-1 text-xs h-7 px-2.5 cursor-pointer"
-                >
-                  <DeviceTablet className="h-3.5 w-3.5" /> Desktop
-                </Button>
-                <Button
-                  size="sm"
-                  variant={previewMode === "mobile" ? "default" : "ghost"}
-                  onClick={() => setPreviewMode("mobile")}
-                  aria-pressed={previewMode === "mobile"}
-                  className="gap-1 text-xs h-7 px-2.5 cursor-pointer"
-                >
-                  <DeviceMobile className="h-3.5 w-3.5" /> Mobile
-                </Button>
-              </div>
-              <div className="flex items-center gap-1.5">
-                {shopUrl && (
-                  <a
-                    href={shopUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-md hover:bg-muted text-foreground transition"
-                  >
-                    Open <ArrowSquareOut className="h-3 w-3" />
-                  </a>
-                )}
-                <button
-                  type="button"
-                  onClick={() => setShowPreview(false)}
-                  className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition cursor-pointer"
-                  title="Close preview"
-                >
-                  <X className="h-3.5 w-3.5" />
-                </button>
-              </div>
-            </div>
-            <div
-              className="mx-auto rounded-2xl border-2 overflow-hidden bg-card transition-[max-width] motion-reduce:transition-none shadow-md"
-              style={{ maxWidth: previewMode === "mobile" ? 390 : "100%" }}
-            >
-              {shopUrl ? (
-                <iframe
-                  key={shopUrl}
-                  title="Live preview of your shop"
-                  src={shopUrl}
-                  className="w-full h-[580px] bg-background"
-                  loading="lazy"
-                />
-              ) : (
-                <p className="p-8 text-sm text-muted-foreground font-medium text-center">
-                  Set a shop handle in Settings to preview your live page.
-                </p>
-              )}
-            </div>
-            <p className="text-xs text-muted-foreground font-medium text-center">
-              Preview renders your real shop page — publish to update what buyers see.
-            </p>
+          <div id="store-preview" className="xl:sticky xl:top-16 animate-in fade-in slide-in-from-right-3 duration-200">
+            <LivePreview
+              title="Live preview of your shop"
+              pageUrl={shopUrl}
+              emptyHint="Set a shop handle in Settings to preview your live page."
+              note="Preview renders your real shop page — publish to update what buyers see."
+              onClose={() => setShowPreview(false)}
+            />
           </div>
         )}
       </div>
