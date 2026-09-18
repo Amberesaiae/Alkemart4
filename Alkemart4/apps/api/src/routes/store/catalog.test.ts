@@ -47,6 +47,16 @@ describe("GET /store/catalog", () => {
   })
 })
 
+describe("GET /store/catalog/popular", () => {
+  it("returns an empty shelf rather than 500 when nothing has sold", async () => {
+    const res = await appFromDemo().request("/store/catalog/popular")
+    expect(res.status).toBe(200)
+    const body = (await res.json()) as { items: unknown[]; total: number }
+    expect(body.items).toEqual([])
+    expect(body.total).toBe(0)
+  })
+})
+
 describe("GET /store/categories", () => {
   it("returns a nav tree rooted at Ghana departments", async () => {
     const res = await appFromDemo().request("/store/categories")

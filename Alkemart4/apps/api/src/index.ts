@@ -184,7 +184,7 @@ export function createApp(
     }
     if (options.paystackSecretKey !== undefined) {
       c.set("paystackSecretKey", options.paystackSecretKey)
-    } else if (!options.checkoutRepo) {
+    } else if (!options.checkoutRepo && !(options.repo instanceof InMemoryCatalogRepository)) {
       const env = parseEnv(c.env as unknown as Record<string, unknown>)
       c.set("paystackSecretKey", env.PAYSTACK_SECRET_KEY)
     }
@@ -248,7 +248,7 @@ export function createApp(
   const store = new Hono<AppEnv>()
   store.route("/auth", withBind(bindAuth, storeAuth))
   store.route("/categories", withBind(bindCatalog, categories))
-  store.route("/catalog", withBind(bindCatalog, catalog))
+  store.route("/catalog", withBind(bindCatalog, withBind(bindCheckout, catalog)))
   store.route("/products", withBind(bindCatalog, withBind(bindCheckout, products)))
   store.route("/sellers", withBind(bindAuth, withBind(bindCatalog, withBind(bindCheckout, sellers))))
   store.route("/homepage", withBind(bindCatalog, storeHomepage))
