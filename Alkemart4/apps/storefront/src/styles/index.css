@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "../../../../packages/ui/src/merchandising.css";
 @source "../";
 /* Shared primitives live outside this app; without this their
    Tailwind utilities are silently never generated. */
@@ -490,56 +491,9 @@ html {
   );
 }
 
-/* ─── Category mosaic — aspect-ratio tiles (no fixed 420px height towers) ─── */
-.mosaic-tile {
-  min-height: 0;
-}
-/* Mobile / tablet: equal 2×2 — landscape-ish, not skyscraper */
-.mosaic-tile-tall,
-.mosaic-tile-short {
-  aspect-ratio: 5 / 4;
-}
-@media (min-width: 640px) {
-  .mosaic-tile-tall,
-  .mosaic-tile-short {
-    aspect-ratio: 4 / 3;
-  }
-}
-/* Desktop bento: tall columns share row height; short tiles half */
-@media (min-width: 1024px) {
-  .mosaic-grid {
-    height: min(440px, 50vw);
-    min-height: 420px;
-  }
-  .mosaic-tile-tall {
-    aspect-ratio: auto;
-    height: 100%;
-    min-height: 0;
-  }
-  .mosaic-tile-short {
-    aspect-ratio: auto;
-    min-height: 0;
-    height: 100%;
-  }
-}
-
-/* Mosaic photo scrims (CSS only — no style={}) */
-.mosaic-scrim-tall {
-  background: linear-gradient(
-    180deg,
-    transparent 40%,
-    color-mix(in srgb, var(--ink) 15%, transparent) 65%,
-    color-mix(in srgb, var(--ink) 45%, transparent) 100%
-  );
-}
-.mosaic-scrim-short {
-  background: linear-gradient(
-    180deg,
-    transparent 35%,
-    color-mix(in srgb, var(--ink) 20%, transparent) 70%,
-    color-mix(in srgb, var(--ink) 48%, transparent) 100%
-  );
-}
+/* Category banner sizing now lives with the shared merchandising primitives
+   (packages/ui/src/merchandising.tsx), so the storefront and Homepage Studio
+   cannot drift. The old .mosaic-* rules were removed with that move. */
 
 /* Compact home bands */
 .home-band-dark {

@@ -324,6 +324,14 @@ export function useUpdateDisplay() {
   })
 }
 
+export function useUpdateDelivery() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (minutes: number | null) => seller.updateDelivery(minutes),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["vendor", "profile"] }),
+  })
+}
+
 export function useUpdateContact() {
   const qc = useQueryClient()
   return useMutation({

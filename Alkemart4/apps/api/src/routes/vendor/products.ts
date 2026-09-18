@@ -8,6 +8,11 @@ import {
 import type { AppEnv } from "../../context"
 import { readJsonBody } from "../../lib/session"
 import { requireSeller } from "../../middleware/auth"
+import { MAX_ATTRIBUTES, parseProductAttributes } from "@alkemart/shared/product-attributes"
+
+const AttributeBody = z.array(
+  z.object({ label: z.string(), value: z.string() }),
+).max(MAX_ATTRIBUTES)
 
 const PesewasString = z.string().regex(/^\d+$/)
 
@@ -42,6 +47,7 @@ const CreateBody = z.object({
   sku: z.string().trim().min(1).max(64).optional().nullable(),
   variantTitle: z.string().trim().min(1).max(120).optional().nullable(),
   imageUrl: ImageUrl.optional().nullable(),
+  attributes: AttributeBody.optional(),
   variant_options: z.array(VariantOptionBody).max(2).optional(),
   variant_entries: z.array(VariantEntryBody).max(30).optional(),
 })
@@ -72,8 +78,23 @@ const PatchBody = z
     sku: z.string().trim().min(1).max(64).optional().nullable(),
     variantTitle: z.string().trim().min(1).max(120).optional().nullable(),
     imageUrl: ImageUrl.optional().nullable(),
+    attributes: AttributeBody.optional(),
   })
   .refine((v) => Object.keys(v).length > 0, { message: "empty patch" })
+
+/**
+ * Normalise labels on write so the same fact keeps the same name across
+ * shops. A validation failure is a 400 with the vendor-facing reason, not a
+ * silently dropped field.
+ */
+function normalizeAttributes(
+  raw: { label: string; value: string }[] | undefined,
+): { label: string; value: string }[] | undefined {
+  if (raw === undefined) return undefined
+  const parsed = parseProductAttributes(raw)
+  if (!parsed.ok) throw new HTTPException(400, { message: parsed.error })
+  return parsed.attributes
+}
 
 function sellerIdOrThrow(c: { get: (k: "auth") => { sellerId?: string } }) {
   const sellerId = c.get("auth").sellerId
@@ -113,6 +134,7 @@ export const vendorProducts = new Hono<AppEnv>()
         sku: parsed.data.sku ?? null,
         variantTitle: parsed.data.variantTitle ?? null,
         imageUrl: parsed.data.imageUrl ?? null,
+        attributes: normalizeAttributes(parsed.data.attributes),
         variantOptions: parsed.data.variant_options?.map((o) => ({ name: o.name, values: o.values })),
         variantEntries: parsed.data.variant_entries?.map((e) => ({
           options: e.options,
@@ -133,6 +155,10 @@ export const vendorProducts = new Hono<AppEnv>()
     try {
       const updated = await c.get("repo").updateVendorProduct(sellerId, c.req.param("id"), {
         ...parsed.data,
+        attributes:
+          parsed.data.attributes !== undefined
+            ? normalizeAttributes(parsed.data.attributes)
+            : undefined,
         pricePesewas:
           parsed.data.pricePesewas !== undefined
             ? BigInt(parsed.data.pricePesewas)

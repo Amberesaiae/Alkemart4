@@ -2,6 +2,7 @@ import { Link, useNavigate, useRouterState } from "@tanstack/react-router"
 import { useState, type FormEvent, type ReactNode } from "react"
 import { IconSafe } from "@/design/icons"
 import { BrandLogo } from "@/components/shell/BrandLogo"
+import { DeliverToPicker } from "@/components/shell/DeliverToPicker"
 import {
   Avatar,
   AvatarFallback,
@@ -72,6 +73,10 @@ export function AppHeader({
         {/* Primary commerce row: Logo · Search · Account · Cart */}
         <div className="flex h-14 items-center gap-3 sm:h-16 sm:gap-4">
           <BrandLogo size="md" className="min-w-0 shrink-0" />
+
+          {/* Where it is going changes what is worth showing, so the area sits
+              before search rather than buried in checkout. */}
+          <DeliverToPicker />
 
           {/* Search — center flex (md+). Traditional marketplace pattern. */}
           <form

@@ -56,6 +56,8 @@ export type ProductDetailDto = {
   ratingAvg: number | null
   ratingCount: number
   reviews: ProductReviewDto[]
+  /** Structured facts about the item — what it is, not what you pick. */
+  attributes: { label: string; value: string }[]
 }
 
 export type ProductCardInput = {
@@ -74,6 +76,7 @@ export type ProductDetailInput = {
   categoryHandle: string
   categoryName: string
   imageUrls: string[]
+  attributes?: { label: string; value: string }[]
 }
 
 /** Card-level offer facts; satisfied by PeerOfferInput and by test fixtures. */
@@ -131,6 +134,7 @@ export function toProductDetail(
     categoryHandle: product.categoryHandle,
     categoryName: product.categoryName,
     imageUrls: product.imageUrls,
+    attributes: product.attributes ?? [],
     offers: sortPeerOffers(sellableOffers).map(toPeerOffer),
     optionTypes: extras?.optionTypes ?? [],
     combos: extras?.combos ?? [],

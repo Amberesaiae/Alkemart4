@@ -23,7 +23,7 @@ import {
   type OrderFulfillmentStatus,
   type PaymentIntentStatus,
 } from "@alkemart/domain"
-import { and, desc, eq, inArray, isNull, sql } from "drizzle-orm"
+import { and, desc, eq, gte, inArray, isNull, sql } from "drizzle-orm"
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js"
 import type {
   CartItemRow,
@@ -921,6 +921,44 @@ export class PostgresCheckoutRepository implements CheckoutRepository {
       .where(eq(reviews.sellerId, sellerId))
       .orderBy(desc(reviews.createdAt))
     return rows.map((r) => this.toReviewRow(r))
+  }
+
+  async productOrderCounts(since?: Date) {
+    const rows = await this.db
+      .select({
+        productId: orderItems.productId,
+        units: sql<string | number>`sum(${orderItems.qty})`,
+      })
+      .from(orderItems)
+      .innerJoin(orders, eq(orders.id, orderItems.orderId))
+      .innerJoin(orderGroups, eq(orderGroups.id, orders.orderGroupId))
+      .where(since ? gte(orderGroups.createdAt, since) : undefined)
+      .groupBy(orderItems.productId)
+    const out = new Map<string, number>()
+    for (const r of rows) out.set(r.productId, Number(r.units))
+    return out
+  }
+
+  async reviewTotalsBySeller() {
+    const rows = await this.db
+      .select({
+        sellerId: reviews.sellerId,
+        count: sql<number>`count(*)`,
+        avg: sql<string | number>`avg(${reviews.rating})`,
+      })
+      .from(reviews)
+      .where(eq(reviews.status, "published"))
+      .groupBy(reviews.sellerId)
+    const out = new Map<string, { count: number; avg: number }>()
+    for (const r of rows) {
+      const count = Number(r.count)
+      if (count <= 0) continue
+      out.set(r.sellerId, {
+        count,
+        avg: Math.round(Number(r.avg) * 10) / 10,
+      })
+    }
+    return out
   }
 
   async listPublishedReviewsByProduct(productId: string) {

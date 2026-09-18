@@ -7,6 +7,7 @@ import { AuthConflictError } from "../../auth-repository"
 import type { AppEnv } from "../../context"
 import { readJsonBody } from "../../lib/session"
 import { requireSeller } from "../../middleware/auth"
+import { DELIVERY_MINUTE_BANDS, isDeliveryBand } from "@alkemart/shared/storefront-badges"
 
 const HANDLE_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 
@@ -68,6 +69,15 @@ const DisplayBody = z
     stockMode: z.enum(["exact", "bands"]).optional(),
   })
   .refine((v) => Object.keys(v).length > 0, { message: "empty patch" })
+
+const DeliveryBody = z.object({
+  /** Null clears the declaration; a shop may honestly stop promising a band. */
+  minutes: z
+    .union([z.literal(null), z.number().int()])
+    .refine((v) => v === null || isDeliveryBand(v), {
+      message: `minutes must be one of ${DELIVERY_MINUTE_BANDS.join(", ")}`,
+    }),
+})
 
 const ContactBody = z
   .object({
@@ -181,6 +191,22 @@ export function displayFromMetadata(meta: Record<string, unknown> | null): Displ
   }
 }
 
+export type DeliveryBlock = {
+  /** One of the published bands, or null when the shop has not declared one. */
+  minutes: number | null
+}
+
+/**
+ * How long this shop takes, as a coarse band.
+ *
+ * Unset stays unset: a shop that has never declared a band shows no delivery
+ * time at all rather than inheriting a platform default that nobody promised.
+ */
+export function deliveryFromMetadata(meta: Record<string, unknown> | null): DeliveryBlock {
+  const raw = (meta?.delivery ?? null) as { minutes?: unknown } | null
+  return { minutes: isDeliveryBand(raw?.minutes) ? raw.minutes : null }
+}
+
 export type ContactBlock = {
   phone: string | null
   hours: { days: string; open: string; close: string } | null
@@ -271,6 +297,7 @@ async function sellerView(c: Context<AppEnv>, sellerId: string) {
       },
       storefront: storefrontFromMetadata(meta),
       display: displayFromMetadata(meta),
+      delivery: deliveryFromMetadata(meta),
       contact: contactFromMetadata(meta),
       address: hasAddress
         ? {
@@ -555,6 +582,21 @@ export const vendorSellers = new Hono<AppEnv>()
       ...(stockMode !== undefined ? { stockMode } : {}),
     }
     await c.get("authRepo").patchSellerMetadata(sellerId, { display: merged })
+    return c.json(await sellerView(c, sellerId))
+  })
+  .patch("/me/delivery", async (c) => {
+    const parsed = DeliveryBody.safeParse(await readJsonBody(c))
+    if (!parsed.success) {
+      throw new HTTPException(400, {
+        message: parsed.error.issues[0]?.message ?? "invalid body",
+      })
+    }
+    const sellerId = sellerIdOrThrow(c)
+    const seller = await c.get("authRepo").findSellerById(sellerId)
+    if (!seller) throw new HTTPException(404, { message: "seller not found" })
+    await c
+      .get("authRepo")
+      .patchSellerMetadata(sellerId, { delivery: { minutes: parsed.data.minutes } })
     return c.json(await sellerView(c, sellerId))
   })
   .patch("/me/contact", async (c) => {

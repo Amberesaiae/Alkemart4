@@ -64,7 +64,7 @@ import { vendorSellers } from "./routes/vendor/sellers"
 import { vendorShopStats } from "./routes/vendor/stats"
 import { vendorReviews } from "./routes/vendor/reviews"
 import { vendorTasks } from "./routes/vendor/tasks"
-import { serveMedia, vendorUploads } from "./routes/vendor/uploads"
+import { adminUploads, serveMedia, vendorUploads } from "./routes/vendor/uploads"
 import { runPaymentIntentExpiry } from "./payment-intent-expiry"
 import { runNotificationDispatch } from "./notifications-dispatch"
 
@@ -287,6 +287,7 @@ export function createApp(
   admin.route("/orders", withBind(bindCheckout, adminOrders))
   admin.route("/migrate", adminMigrate)
   admin.route("/actions", adminActions)
+  admin.route("/uploads", adminUploads)
   admin.route("/homepage", withBind(bindCatalog, adminHomepage))
   admin.route("/appeals", withBind(bindCatalog, adminAppeals))
   admin.route("/reviews", withBind(bindAuth, withBind(bindCheckout, adminReviews)))

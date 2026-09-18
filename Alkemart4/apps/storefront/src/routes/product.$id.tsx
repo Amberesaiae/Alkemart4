@@ -10,6 +10,7 @@ import { Skeleton, ProductGridSkeleton } from "@/components/skeleton"
 import { QtyStepper } from "@/components/qty-stepper"
 import { PeerOffersList } from "@/components/product/PeerOffersList"
 import { ProductBuyPanel } from "@/components/product/ProductBuyPanel"
+import { ProductAttributes } from "@/components/product/ProductAttributes"
 import { SectionHeader } from "@/components/shell/SectionHeader"
 import { Breadcrumbs } from "@/components/shell/Breadcrumbs"
 import { BottomBar } from "@/components/bottom-bar"
@@ -425,6 +426,13 @@ function ProductDetailPage() {
               activeOfferId={activeOfferId}
               onSelect={setSelectedOfferId}
             />
+
+            {(p.attributes?.length ?? 0) > 0 ? (
+              <div className="space-y-2">
+                <h2 className="text-sm font-bold">Details</h2>
+                <ProductAttributes attributes={p.attributes} variant="list" />
+              </div>
+            ) : null}
 
             {p.description ? (
               <div className="space-y-2">

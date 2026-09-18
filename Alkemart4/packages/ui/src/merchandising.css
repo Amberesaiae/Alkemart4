@@ -1,0 +1,64 @@
+/**
+ * Motion for shared merchandising primitives.
+ *
+ * Lives here, imported by every app's stylesheet, so the storefront and the
+ * Homepage Studio preview animate identically. Tailwind's @source scanning
+ * only generates utilities it finds in markup — it cannot supply keyframes.
+ */
+@keyframes merch-marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+.merch-marquee-track {
+  width: max-content;
+  animation: merch-marquee 30s linear infinite;
+}
+
+.merch-marquee-slow {
+  animation-duration: 55s;
+}
+
+.merch-marquee-paused {
+  animation-play-state: paused;
+}
+
+/* Motion is never required to read the strip: reduced-motion users get the
+   same content, standing still. */
+@media (prefers-reduced-motion: reduce) {
+  .merch-marquee-track {
+    animation: none;
+    width: auto;
+    flex-wrap: wrap;
+  }
+}
+
+/**
+ * Category / store art placeholder.
+ *
+ * Art-only tiles carry no label, so an unresolved image would otherwise be a
+ * silent empty box. The shimmer occupies the tile at its true aspect ratio
+ * until the art decodes, which also means nothing shifts when it lands.
+ */
+@keyframes merch-shimmer {
+  from { background-position: -180% 0; }
+  to   { background-position: 180% 0; }
+}
+
+.merch-shimmer {
+  background-image: linear-gradient(
+    100deg,
+    rgb(0 0 0 / 0.06) 30%,
+    rgb(0 0 0 / 0.02) 48%,
+    rgb(0 0 0 / 0.06) 66%
+  );
+  background-size: 280% 100%;
+  animation: merch-shimmer 1.5s linear infinite;
+}
+
+/* A still placeholder is still a placeholder — motion is decoration here. */
+@media (prefers-reduced-motion: reduce) {
+  .merch-shimmer {
+    animation: none;
+  }
+}

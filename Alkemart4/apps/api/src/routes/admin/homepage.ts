@@ -24,6 +24,15 @@ const tile = z.object({
   imageUrl,
   href,
 })
+const categoryTile = z.object({
+  categoryId: z.string().trim().min(1).max(100),
+  imageUrl,
+  focalPoint: z.string().trim().max(40).optional(),
+  label: z.string().trim().max(60).optional(),
+  eyebrow: z.string().trim().max(40).optional(),
+  badge: z.string().trim().max(20).optional(),
+  slot: z.enum(["feature", "standard"]).optional(),
+})
 const link = z.object({ label: z.string().trim().min(1).max(40), href })
 const section = z.discriminatedUnion("type", [
   z.object({
@@ -56,9 +65,12 @@ const section = z.discriminatedUnion("type", [
     title: z.string().trim().min(1).max(100),
     subtitle,
     columns: z.union([z.literal(4), z.literal(6), z.literal(8)]),
-    variant: z.enum(["tiles", "mosaic", "rail"]).optional(),
+    variant: z.enum(["tiles", "mosaic", "rail", "banner"]).optional(),
+    ratio: z.enum(["square", "landscape", "wide", "ultrawide"]).optional(),
     showAllLink: z.boolean().optional(),
-    categoryIds: z.array(z.string().trim().min(1).max(100)).max(16),
+    tiles: z.array(categoryTile).max(16).default([]),
+    // Accepted for editors still on the pre-banner payload; migrated on read.
+    categoryIds: z.array(z.string().trim().min(1).max(100)).max(16).optional(),
     ...visibility,
   }),
   z.object({
@@ -66,9 +78,17 @@ const section = z.discriminatedUnion("type", [
     type: z.literal("product_shelf"),
     title: z.string().trim().min(1).max(100),
     subtitle,
-    source: z.enum(["featured", "latest", "category", "manual"]),
+    source: z.enum(["featured", "latest", "category", "manual", "most_ordered", "trending", "daypart", "near_me"]),
     categoryId: z.string().trim().max(100).optional(),
     productIds: z.array(z.string().trim().min(1).max(100)).max(12).optional(),
+    daypartCategoryIds: z
+      .object({
+        breakfast: z.string().trim().max(100).optional(),
+        lunch: z.string().trim().max(100).optional(),
+        supper: z.string().trim().max(100).optional(),
+        late: z.string().trim().max(100).optional(),
+      })
+      .optional(),
     limit: z.union([z.literal(4), z.literal(8), z.literal(12)]),
     layout: z.enum(["grid", "carousel"]).optional(),
     ...visibility,
@@ -87,10 +107,61 @@ const section = z.discriminatedUnion("type", [
   }),
   z.object({
     id,
+    type: z.literal("countdown_banner"),
+    eyebrow: z.string().trim().max(40).optional(),
+    title: z.string().trim().min(1).max(100),
+    body: optionalText,
+    countdownTo: z.string().datetime(),
+    expiredLabel: z.string().trim().max(60).optional(),
+    imageUrl,
+    action: link.optional(),
+    theme: z.enum(["white", "gold", "black"]),
+    ...visibility,
+  }),
+  z.object({
+    id,
+    type: z.literal("marquee"),
+    items: z.array(z.object({
+      id,
+      label: z.string().trim().min(1).max(80),
+      href: href.optional(),
+    })).min(1).max(8),
+    theme: z.enum(["white", "gold", "black"]),
+    animated: z.boolean().optional(),
+    speed: z.enum(["slow", "normal"]).optional(),
+    ...visibility,
+  }),
+  z.object({
+    id,
+    type: z.literal("deal_rail"),
+    title: z.string().trim().min(1).max(100),
+    subtitle,
+    eyebrow: z.string().trim().max(40).optional(),
+    badge: z.string().trim().max(20).optional(),
+    source: z.enum(["featured", "latest", "category", "manual", "most_ordered", "trending", "daypart", "near_me"]),
+    categoryId: z.string().trim().max(100).optional(),
+    productIds: z.array(z.string().trim().min(1).max(100)).max(12).optional(),
+    limit: z.union([z.literal(4), z.literal(8), z.literal(12)]),
+    countdownTo: z.string().datetime().optional(),
+    ...visibility,
+  }),
+  z.object({
+    id,
     type: z.literal("value_grid"),
     title: z.string().trim().max(100).optional(),
     subtitle,
     items: z.array(z.object({ id, title: z.string().trim().min(1).max(80), body: z.string().trim().min(1).max(180) })).min(2).max(4),
+    ...visibility,
+  }),
+  z.object({
+    id,
+    type: z.literal("store_rail"),
+    title: z.string().trim().min(1).max(100),
+    subtitle,
+    source: z.enum(["top_rated", "fastest", "newest", "near_me", "manual"]),
+    sellerHandles: z.array(z.string().trim().min(1).max(100)).max(12).optional(),
+    limit: z.union([z.literal(4), z.literal(8), z.literal(12)]),
+    layout: z.enum(["grid", "carousel"]).optional(),
     ...visibility,
   }),
 ])
@@ -98,11 +169,23 @@ const saveBody = z.object({ revision: z.number().int().positive(), sections: z.a
   const ids = value.sections.map((item) => item.id)
   if (new Set(ids).size !== ids.length) context.addIssue({ code: z.ZodIssueCode.custom, message: "section IDs must be unique", path: ["sections"] })
   value.sections.forEach((item, index) => {
-    if (item.type === "product_shelf" && item.source === "category" && !item.categoryId) {
+    if ((item.type === "product_shelf" || item.type === "deal_rail") && item.source === "category" && !item.categoryId) {
       context.addIssue({ code: z.ZodIssueCode.custom, message: "categoryId is required for a category shelf", path: ["sections", index, "categoryId"] })
     }
-    if (item.type === "product_shelf" && item.source === "manual" && !(item.productIds ?? []).length) {
+    if ((item.type === "product_shelf" || item.type === "deal_rail") && item.source === "manual" && !(item.productIds ?? []).length) {
       context.addIssue({ code: z.ZodIssueCode.custom, message: "add at least one product ID for a manual shelf", path: ["sections", index, "productIds"] })
+    }
+    if ((item.type === "product_shelf" || item.type === "deal_rail") && item.source === "daypart") {
+      const parts = item.type === "product_shelf" ? (item.daypartCategoryIds ?? {}) : {}
+      if (Object.values(parts).filter(Boolean).length === 0) {
+        context.addIssue({ code: z.ZodIssueCode.custom, message: "pick a category for at least one part of the day", path: ["sections", index, "daypartCategoryIds"] })
+      }
+    }
+    if (item.type === "store_rail" && item.source === "manual" && !(item.sellerHandles ?? []).length) {
+      context.addIssue({ code: z.ZodIssueCode.custom, message: "add at least one shop for a manual store rail", path: ["sections", index, "sellerHandles"] })
+    }
+    if (item.type === "category_grid" && !(item.tiles ?? []).length && !(item.categoryIds ?? []).length) {
+      context.addIssue({ code: z.ZodIssueCode.custom, message: "pick at least one category", path: ["sections", index, "tiles"] })
     }
     if (item.startsAt && item.endsAt && item.startsAt >= item.endsAt) {
       context.addIssue({ code: z.ZodIssueCode.custom, message: "section end must be after section start", path: ["sections", index, "endsAt"] })

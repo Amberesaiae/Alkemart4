@@ -6,12 +6,15 @@ import { SellerChip } from "@/components/seller-chip"
 import { AddToCartControl } from "@/components/product/AddToCartControl"
 import { WishlistButton } from "@/components/product/WishlistButton"
 import { Icon } from "@/design/icons"
+import { brand } from "@/design/brand"
 import { Badge } from "@workspace/ui"
 import { deptThemeClass } from "@/lib/category-theme"
 import { iconForCategory } from "@/lib/catalog-nav"
 import type { StoreProductCard } from "@/lib/products"
 import { addOfferToCart } from "@/lib/cart"
 import { sellersHintText } from "@/lib/sellers-hint"
+import { cardRating } from "@/lib/product-rating"
+import { QuickBuyDialog } from "@/components/product/QuickBuyDialog"
 import { cn } from "@/lib/utils"
 
 /**
@@ -51,10 +54,12 @@ function stockState(product: StoreProductCard): "in" | "low" | "out" | "unknown"
 }
 
 /**
- * Concise retail card: category line · image · title (2 lines) · seller ·
- * price + cart. Surfaces the facts a Ghana marketplace buyer needs before
- * clicking: which shop sells it, how many sellers compete, what stock is
- * left, and the "from" price when peer sellers exist.
+ * Concise retail card: image · title (2 lines) · seller · price · trust.
+ *
+ * Surfaces the facts a Ghana marketplace buyer needs before clicking: which
+ * shop sells it, what it costs, whether anyone has rated it, how many sellers
+ * compete, what stock is left, and the "from" price when peer sellers exist.
+ * Add-to-cart floats on the artwork, so the price never shares its row.
  */
 export function ProductCard({
   product,
@@ -67,6 +72,7 @@ export function ProductCard({
   const [pending, setPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [ok, setOk] = useState(false)
+  const [quickBuy, setQuickBuy] = useState(false)
 
   const stock = stockState(product)
   const soldOut = stock === "out"
@@ -120,8 +126,8 @@ export function ProductCard({
           <Title product={product} detailId={detailId} />
           <div className="flex min-w-0 items-center gap-1.5">
             <SellerChip seller={product.seller} short className="line-clamp-1" />
-            <SellersHint offerCount={product.offerCount} />
           </div>
+          <TrustRow product={product} />
           <div className="flex items-center justify-between gap-2">
             <Price
               amount={product.amount}
@@ -141,7 +147,10 @@ export function ProductCard({
     )
   }
 
-  /* Default tile — 4-up grid */
+  /* Default tile — 4-up grid.
+     Four facts, in the order a marketplace buyer needs them: what it is,
+     who sells it, what it costs, whether anyone trusts them. Add-to-cart
+     floats on the image so the price row never has to share its width. */
   return (
     <article className={cn(shell, "flex h-full flex-col", className)}>
       <Media
@@ -150,9 +159,10 @@ export function ProductCard({
         className="aspect-square w-full shrink-0"
         showWish
         stock={stock}
+        cart={cart}
+        onQuickView={() => setQuickBuy(true)}
       />
       <div className="flex flex-1 flex-col gap-1 p-2 sm:p-2.5">
-        <CategoryLabel label={product.categoryLabel} />
         <Title product={product} detailId={detailId} />
         <div className="flex min-w-0 items-center gap-1.5">
           <SellerChip
@@ -161,8 +171,7 @@ export function ProductCard({
             className="line-clamp-1 type-sm"
           />
         </div>
-        <SellersHint offerCount={product.offerCount} />
-        <div className="mt-auto flex items-center justify-between gap-1.5 pt-1">
+        <div className="mt-auto flex flex-col gap-0.5 pt-1">
           <Price
             amount={product.amount}
             currencyCode={product.currencyCode}
@@ -170,10 +179,15 @@ export function ProductCard({
             from={multiSeller}
             className="min-w-0 truncate font-bold tabular-nums"
           />
-          <AddToCartControl variant="icon" {...cart} />
+          <TrustRow product={product} />
         </div>
         {error ? <ErrorLine message={error} /> : null}
       </div>
+      <QuickBuyDialog
+        product={product}
+        open={quickBuy}
+        onClose={() => setQuickBuy(false)}
+      />
     </article>
   )
 }
@@ -197,14 +211,26 @@ function StockBadge({ stock }: { stock: ReturnType<typeof stockState> }) {
   return null
 }
 
+type CartControl = {
+  pending: boolean
+  ok: boolean
+  disabled: boolean
+  onClick: () => void
+  title: string
+}
+
 function Media(props: {
   product: StoreProductCard
   detailId: string
   className?: string
   showWish?: boolean
   stock?: ReturnType<typeof stockState>
+  /** Floating add-to-cart on the artwork (tile only). */
+  cart?: CartControl
+  /** When set, the artwork opens quick buy instead of navigating. */
+  onQuickView?: () => void
 }) {
-  const { product, detailId, className, showWish, stock } = props
+  const { product, detailId, className, showWish, stock, cart, onQuickView } = props
   const [broken, setBroken] = useState(false)
   const title = (product.title || "Product").trim()
   // Prefer processed webp derivatives; fall back to raw thumbnail/images/original
@@ -248,28 +274,51 @@ function Media(props: {
     </div>
   )
 
+  /* The link fills the frame; the controls are siblings, not children.
+     Nesting a button inside an anchor is invalid and leaves screen-reader
+     and keyboard users with an ambiguous target. */
+  /* The artwork opens quick buy; the card title stays a real anchor to the
+     product page, so deep links, new-tab opens and crawlers all still work.
+     Browsing a marketplace is many small decisions, and a full page load
+     between each one is the tax that stops it. */
   return (
-    <Link
-      to="/product/$id"
-      params={{ id: detailId }}
-      className={cn(
-        "relative block w-full overflow-hidden bg-muted/30 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-        className,
+    <div className={cn("relative w-full overflow-hidden bg-muted/30", className)}>
+      {onQuickView ? (
+        <button
+          type="button"
+          onClick={onQuickView}
+          aria-haspopup="dialog"
+          aria-label={`Quick view: ${title}`}
+          className="block h-full w-full cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+        >
+          {inner}
+        </button>
+      ) : (
+        <Link
+          to="/product/$id"
+          params={{ id: detailId }}
+          className="block h-full w-full focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          aria-label={title}
+        >
+          {inner}
+        </Link>
       )}
-      aria-label={title}
-    >
-      {inner}
       {stock && stock !== "in" && stock !== "unknown" ? (
-        <span className="absolute left-2 top-2 z-10">
+        <span className="pointer-events-none absolute bottom-2 left-2 z-10">
           <StockBadge stock={stock} />
         </span>
       ) : null}
       {showWish ? (
-        <span className="absolute right-2 top-2 z-10">
+        <span className="absolute left-2 top-2 z-10">
           <WishlistButton productId={product.id} onMedia size={13} />
         </span>
       ) : null}
-    </Link>
+      {cart ? (
+        <span className="absolute right-2 top-2 z-10">
+          <AddToCartControl variant="icon" {...cart} />
+        </span>
+      ) : null}
+    </div>
   )
 }
 
@@ -285,13 +334,54 @@ function CategoryLabel({ label }: { label?: string | null }) {
   )
 }
 
-function SellersHint({ offerCount }: { offerCount?: number | null }) {
-  const text = sellersHintText(offerCount)
-  if (!text) return null
+/**
+ * Rating on the left, peer-seller count on the right.
+ *
+ * A product with no published reviews renders no rating at all — not a
+ * zero, not a greyed-out star row. An unearned score is worse than a
+ * missing one, because it teaches buyers to discount every score on the
+ * page. The whole row disappears when neither fact exists.
+ */
+function TrustRow({ product }: { product: StoreProductCard }) {
+  const rating = cardRating(product.ratingAvg, product.ratingCount)
+  const hint = sellersHintText(product.offerCount)
+  if (!rating && !hint) return null
+
   return (
-    <p className="type-sm text-muted-foreground" data-testid="sellers-hint">
-      {text}
-    </p>
+    <div className="flex min-w-0 items-center justify-between gap-2">
+      {rating ? (
+        <span
+          className="inline-flex shrink-0 items-center gap-1 type-sm tabular-nums text-muted-foreground"
+          aria-label={rating.label}
+        >
+          <StarGlyph />
+          <span className="font-semibold text-foreground">{rating.value}</span>
+          <span aria-hidden>({rating.count})</span>
+        </span>
+      ) : (
+        <span />
+      )}
+      {hint ? (
+        <span
+          className="truncate type-sm text-muted-foreground"
+          data-testid="sellers-hint"
+        >
+          {hint}
+        </span>
+      ) : null}
+    </div>
+  )
+}
+
+/** Inline so the star never depends on an icon asset resolving. */
+function StarGlyph() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" aria-hidden className="shrink-0">
+      <path
+        d="M12 2.5l2.85 5.78 6.38.93-4.62 4.5 1.09 6.35L12 16.98 6.3 20.06l1.09-6.35-4.62-4.5 6.38-.93L12 2.5z"
+        fill={brand.primary}
+      />
+    </svg>
   )
 }
 

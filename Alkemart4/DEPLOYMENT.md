@@ -50,7 +50,8 @@ npx wrangler deploy
 ```
 
 Media endpoints: `POST /vendor/uploads` (seller auth, multipart `files`,
-optional `kind` in products|logos|banners) → `{ files: [{ url, variants }] }`;
+optional `kind` in products|logos|banners) and `POST /admin/uploads` (admin
+auth, merch art for Homepage Studio) → `{ files: [{ url, variants }] }`;
 public `GET /media/*` with immutable caching.
 
 Secrets (Wrangler):

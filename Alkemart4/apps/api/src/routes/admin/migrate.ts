@@ -36,6 +36,7 @@ export const adminMigrate = new Hono<AppEnv>()
     const db = primaryDb(env)
     await db.execute(sql`ALTER TABLE payment_intents ADD COLUMN IF NOT EXISTS shipping_address jsonb`)
     await db.execute(sql`ALTER TABLE products ADD COLUMN IF NOT EXISTS image_url text`)
+    await db.execute(sql`ALTER TABLE products ADD COLUMN IF NOT EXISTS attributes jsonb`)
     await db.execute(
       sql`ALTER TABLE products ADD COLUMN IF NOT EXISTS created_at timestamptz NOT NULL DEFAULT now()`,
     )
@@ -77,6 +78,7 @@ export const adminMigrate = new Hono<AppEnv>()
       applied: [
         "payment_intents.shipping_address",
         "products.image_url",
+        "products.attributes",
         "products.created_at",
         "sellers.description",
         "sellers.logo",

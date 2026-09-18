@@ -12,6 +12,11 @@ export interface ShopFeaturedStore {
    * Throws on >8 items or duplicates.
    */
   setFeatured(sellerId: string, productIds: string[]): Promise<string[]>
+  /**
+   * Picks for many shops at once — the stores index renders every open shop's
+   * shelf, so reading them one at a time would be a query per card.
+   */
+  listFeaturedForShops(sellerIds: string[]): Promise<Map<string, string[]>>
 }
 
 export class PostgresShopFeaturedStore implements ShopFeaturedStore {

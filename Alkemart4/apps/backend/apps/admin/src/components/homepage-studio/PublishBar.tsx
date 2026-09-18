@@ -8,12 +8,19 @@ import {
   PopoverContent,
   PopoverTrigger,
   SchedulePicker,
+  cn,
   formatSchedule,
 } from "@workspace/ui"
 
-export function PublishBar({ status, hiddenCount, saving, publishing, publishAt, unpublishAt, onPublishAt, onUnpublishAt, onSave, onPublish }: {
+/**
+ * Studio command-bar actions: one status cluster plus Save / Timing /
+ * Publish. Lives in the sticky shell header so publishing is reachable
+ * without scrolling past the canvas.
+ */
+export function PublishBar({ status, hiddenCount, issueCount, saving, publishing, publishAt, unpublishAt, onPublishAt, onUnpublishAt, onSave, onPublish }: {
   status: string
   hiddenCount: number
+  issueCount: number
   saving: boolean
   publishing: boolean
   publishAt: string | null
@@ -24,19 +31,35 @@ export function PublishBar({ status, hiddenCount, saving, publishing, publishAt,
   onPublish: () => void
 }) {
   const [open, setOpen] = useState(false)
+  const statusDot = status === "published"
+    ? "bg-tone-success"
+    : status === "scheduled"
+      ? "bg-tone-warning"
+      : "bg-tone-neutral"
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <Badge variant="secondary" className="px-3 py-1.5 capitalize">{status}</Badge>
-      {hiddenCount ? <Badge variant="warning" className="px-3 py-1.5">{hiddenCount} hidden / scheduled</Badge> : null}
-      <Button variant="outline" onClick={onSave} isLoading={saving}>
-        {!saving && <FloppyDisk className="mr-2 h-4 w-4" aria-hidden="true" />}
+    <div className="flex flex-wrap items-center gap-x-2 gap-y-2">
+      <span className="inline-flex items-center gap-2 rounded-full border border-border bg-white py-1.5 pl-3 pr-3 text-xs font-semibold">
+        <span className={cn("size-1.5 rounded-full", statusDot)} aria-hidden="true" />
+        <span className="capitalize">{status}</span>
+        {hiddenCount ? (
+          <span className="font-normal text-muted-foreground">· {hiddenCount} hidden</span>
+        ) : null}
+      </span>
+      {issueCount ? (
+        <Badge variant="destructive" className="px-2.5 py-1" title="Fix the flagged sections before saving">
+          {issueCount} to fix
+        </Badge>
+      ) : null}
+      <span className="mx-1 hidden h-5 w-px bg-border sm:block" aria-hidden="true" />
+      <Button variant="outline" size="sm" onClick={onSave} isLoading={saving}>
+        {!saving && <FloppyDisk className="mr-1.5 h-4 w-4" aria-hidden="true" />}
         Save draft
       </Button>
       <Popover open={open} onOpenChange={setOpen}>
-            <PopoverTrigger asChild>
-              <Button variant="outline" aria-label={publishAt ? `Publishing options. Scheduled for ${formatSchedule(publishAt)}` : undefined}>
-            <CalendarBlank className="mr-2 h-4 w-4" aria-hidden="true" />
-            {publishAt ? formatSchedule(publishAt) : "Schedule"}
+        <PopoverTrigger asChild>
+          <Button variant="ghost" size="sm" aria-label={publishAt ? `Publishing timing. Scheduled for ${formatSchedule(publishAt)}` : "Publishing timing"}>
+            <CalendarBlank className="mr-1.5 h-4 w-4" aria-hidden="true" />
+            {publishAt ? formatSchedule(publishAt) : "Timing"}
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-80 p-4" align="end">
@@ -65,8 +88,8 @@ export function PublishBar({ status, hiddenCount, saving, publishing, publishAt,
         </PopoverContent>
       </Popover>
       <Button onClick={onPublish} isLoading={publishing}>
-        {!publishing && <RocketLaunch className="mr-2 h-4 w-4" aria-hidden="true" />}
-        {publishAt ? "Schedule" : "Publish"}
+        {!publishing && <RocketLaunch className="mr-1.5 h-4 w-4" aria-hidden="true" />}
+        {publishAt ? "Schedule publish" : "Publish"}
       </Button>
     </div>
   )

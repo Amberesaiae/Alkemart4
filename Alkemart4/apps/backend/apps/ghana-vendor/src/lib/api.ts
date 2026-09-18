@@ -224,6 +224,11 @@ export type SellerStorefront = {
   seoDescription: string | null
 }
 
+export type SellerDelivery = {
+  /** One of the published bands; null when the shop has not declared one. */
+  minutes: number | null
+}
+
 export type SellerDisplay = {
   categoryOrder: string[]
   featuredCategoryId: string | null
@@ -274,6 +279,7 @@ export type Seller = {
   storefront?: SellerStorefront | null
   availability?: SellerAvailability | null
   display?: SellerDisplay | null
+  delivery?: SellerDelivery | null
   contact?: SellerContact | null
 }
 
@@ -310,6 +316,8 @@ export type Product = {
   /** All combinations (V1 matrix); empty/undefined for legacy products. */
   combos?: ProductCombo[]
   productOptions?: { id: string; name: string; values: ProductOptionValue[] }[]
+  /** Structured facts about the item — what it is, not what a buyer chooses. */
+  attributes?: { label: string; value: string }[]
 }
 
 export type ProductVariant = {
@@ -503,6 +511,7 @@ type WorkersProductItem = {
     primaryCategoryId: string
     sellerId: string | null
     imageUrl?: string | null
+    attributes?: { label: string; value: string }[]
   }
   variant: { id: string; sku: string | null; title: string | null }
   offer: {
@@ -578,6 +587,7 @@ function mapWorkersProduct(item: WorkersProductItem): Product {
       active: c.offer.active,
     })),
     productOptions: item.options ?? [],
+    attributes: item.product.attributes ?? [],
     metadata: {
       onHand: item.offer.onHand,
       offerId: item.offer.id,
@@ -786,6 +796,14 @@ export const seller = {
     return patchJson<{ seller: Seller }>("/vendor/sellers/me/display", patch)
   },
 
+  /**
+   * PATCH /vendor/sellers/me/delivery — the shop's delivery band.
+   * `null` clears it: a shop may honestly stop promising a time.
+   */
+  updateDelivery: (minutes: number | null) => {
+    return patchJson<{ seller: Seller }>("/vendor/sellers/me/delivery", { minutes })
+  },
+
   /** PATCH /vendor/sellers/me/contact — phone, hours, social links. */
   updateContact: (patch: {
     phone?: string | null
@@ -871,6 +889,7 @@ export const products = {
       pricePesewas?: string
       onHand?: number
       primaryCategoryId?: string
+      attributes?: { label: string; value: string }[]
     },
   ) => {
     const body: Record<string, unknown> = {}
@@ -881,6 +900,7 @@ export const products = {
       if (data.onHand !== undefined) body.onHand = data.onHand
       if (data.primaryCategoryId !== undefined) body.primaryCategoryId = data.primaryCategoryId
       else if (data.categories?.[0]?.id) body.primaryCategoryId = data.categories[0].id
+      if (data.attributes !== undefined) body.attributes = data.attributes
       const updated = await apiFetch<WorkersProductItem>(`/vendor/products/${id}`, {
         method: "PATCH",
         body: JSON.stringify(body),

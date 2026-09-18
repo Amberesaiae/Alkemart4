@@ -1,5 +1,7 @@
 import { getAlkemartApiUrl, getBackendUrl, getPublishableKey } from "./env"
 import { getSellerShop, setBaseUrl } from "./api-client"
+import type { StorefrontBadge } from "@alkemart/shared/storefront-badges"
+import type { StoreCardFeatured } from "@workspace/ui"
 
 function ensureWorkersBaseUrl() {
   const url = getAlkemartApiUrl()
@@ -12,6 +14,76 @@ export type StoreVendor = {
   name: string
   slug: string
   bio?: string | null
+  logo?: string | null
+  banner?: string | null
+  tagline?: string | null
+  location?: string | null
+  availability?: "open" | "paused"
+  ratingAvg?: number | null
+  ratingCount?: number
+  salesCount?: number
+  deliveryMinutes?: number | null
+  badges?: StorefrontBadge[]
+  featured?: StoreCardFeatured[]
+}
+
+/**
+ * Map one store-card row.
+ *
+ * Every trust field is optional on the wire and stays optional here: an older
+ * API that still returns `{id, handle, name}` yields a card with no rating,
+ * no delivery band and no badges rather than a card full of zeroes.
+ */
+function toStoreVendor(v: Record<string, unknown>): StoreVendor | null {
+  const id = String(v.id ?? "")
+  const name = typeof v.name === "string" ? v.name.trim() : ""
+  const slug =
+    typeof v.handle === "string" ? v.handle : typeof v.slug === "string" ? v.slug : ""
+  if (!id || !name || !slug) return null
+
+  const num = (x: unknown): number | null =>
+    typeof x === "number" && Number.isFinite(x) ? x : null
+  const str = (x: unknown): string | null => (typeof x === "string" && x ? x : null)
+
+  const badges = Array.isArray(v.badges)
+    ? (v.badges as Record<string, unknown>[])
+        .filter(
+          (b) =>
+            typeof b?.id === "string" &&
+            typeof b?.label === "string" &&
+            typeof b?.tone === "string",
+        )
+        .map((b) => b as unknown as StorefrontBadge)
+    : []
+
+  const featured = Array.isArray(v.featured)
+    ? (v.featured as Record<string, unknown>[])
+        .filter((p) => typeof p?.productId === "string" && typeof p?.title === "string")
+        .map((p) => ({
+          productId: String(p.productId),
+          title: String(p.title),
+          imageUrl: str(p.imageUrl),
+          fromPricePesewas: String(p.fromPricePesewas ?? "0"),
+        }))
+    : []
+
+  return {
+    id,
+    name,
+    slug,
+    bio: str(v.bio) ?? str(v.description),
+    logo: str(v.logo),
+    banner: str(v.banner),
+    tagline: str(v.tagline),
+    location: str(v.location),
+    availability: v.availability === "paused" ? "paused" : "open",
+    ratingAvg: num(v.ratingAvg),
+    ratingCount: num(v.ratingCount) ?? 0,
+    salesCount: num(v.salesCount) ?? 0,
+    deliveryMinutes: num(v.deliveryMinutes),
+    badges,
+    featured,
+  }
 }
 
 function useWorkersVendors(): boolean {
@@ -38,16 +110,8 @@ export async function listStoreVendors(): Promise<StoreVendor[]> {
         []
       const mapped: StoreVendor[] = []
       for (const v of raw) {
-        const id = String(v.id ?? "")
-        const name = typeof v.name === "string" ? v.name.trim() : ""
-        const slug =
-          typeof v.handle === "string"
-            ? v.handle
-            : typeof v.slug === "string"
-              ? v.slug
-              : ""
-        if (!id || !name || !slug) continue
-        mapped.push({ id, name, slug, bio: null })
+        const card = toStoreVendor(v)
+        if (card) mapped.push(card)
       }
       return mapped
     } catch {
@@ -78,21 +142,8 @@ export async function listStoreVendors(): Promise<StoreVendor[]> {
         (Array.isArray(data) ? (data as Record<string, unknown>[]) : [])
       const mapped: StoreVendor[] = []
       for (const v of raw) {
-        const id = String(v.id ?? "")
-        const name = typeof v.name === "string" ? v.name.trim() : ""
-        const slug =
-          typeof v.slug === "string"
-            ? v.slug
-            : typeof v.handle === "string"
-              ? v.handle
-              : ""
-        if (!id || !name || !slug) continue
-        mapped.push({
-          id,
-          name,
-          slug,
-          bio: typeof v.bio === "string" ? v.bio : null,
-        })
+        const card = toStoreVendor(v)
+        if (card) mapped.push(card)
       }
       if (mapped.length) return mapped
     } catch {
@@ -117,6 +168,10 @@ export type StoreVendorDetail = {
   ratingCount?: number
   badgeTopSeller?: boolean
   badgeFastShipper?: boolean
+  /** Declared delivery band in minutes; null when the shop has not set one. */
+  deliveryMinutes?: number | null
+  /** Computed, never vendor-typed. */
+  badges?: StorefrontBadge[]
   status?: string
   availability?: { state: "open" | "paused"; pausedUntil: string | null; note: string | null }
   trust?: {

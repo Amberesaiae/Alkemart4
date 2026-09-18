@@ -3,6 +3,7 @@ import { useRef, useState } from "react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { useProduct, useUpdateProduct, useDeleteProduct, useCategories, useProposeProduct, useUploadImage, useUpdateVariant, useAddOptionValue, useSetOptionValueImage } from "../../lib/hooks"
 import { type ProductStatus, type ProductCombo, products as productsApi } from "../../lib/api"
+import { ATTRIBUTE_SUGGESTIONS, MAX_ATTRIBUTES, parseProductAttributes } from "@alkemart/shared/product-attributes"
 import { toast } from "sonner"
 import { Card, Button, Input, Label, Textarea, Skeleton, Badge, Tabs, TabsList, TabsTrigger, TabsContent, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui"
 import {
@@ -20,6 +21,7 @@ import {
   CurrencyCircleDollar,
   X,
   Tag,
+  Plus,
 } from "@phosphor-icons/react"
 import { PageShell } from "../../components/page-shell"
 function storefrontBase(): string {
@@ -38,6 +40,7 @@ interface ProductFormData {
   imageUrl: string
   priceGhs: string
   stockQty: string
+  attributes: { label: string; value: string }[]
 }
 
 function ProductDetailPage() {
@@ -87,6 +90,7 @@ function ProductDetailPage() {
     imageUrl: "",
     priceGhs: "",
     stockQty: "",
+    attributes: [],
   })
 
   const { data: appealsData } = useQuery({
@@ -133,6 +137,9 @@ function ProductDetailPage() {
       imageUrl: product.thumbnail || "",
       priceGhs: currentPriceGhs > 0 ? String(currentPriceGhs) : "",
       stockQty: String(currentStock),
+      attributes: product.attributes?.length
+        ? product.attributes.map((a) => ({ label: a.label, value: a.value }))
+        : [{ label: "", value: "" }],
     })
     setShowUrlInput(false)
     setEditing(true)
@@ -173,6 +180,12 @@ function ProductDetailPage() {
     }
 
     // Prepare patch
+    const parsedAttrs = parseProductAttributes(form.attributes)
+    if (!parsedAttrs.ok) {
+      toast.error(parsedAttrs.error)
+      return
+    }
+
     const patch: {
       title: string
       description?: string
@@ -180,10 +193,12 @@ function ProductDetailPage() {
       thumbnail?: string
       pricePesewas?: string
       onHand?: number
+      attributes: { label: string; value: string }[]
     } = {
       title: form.title.trim(),
       description: form.description.trim() || undefined,
       categories: form.categoryId ? [{ id: form.categoryId }] : [],
+      attributes: parsedAttrs.attributes,
       ...(imageUrl ? { thumbnail: imageUrl } : {}),
     }
 
@@ -536,12 +551,83 @@ function ProductDetailPage() {
                   </SelectContent>
                 </Select>
               </div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <Label className="text-sm font-semibold">Product stats</Label>
+                  <span className="text-xs text-muted-foreground">Facts buyers scan — volume, pack, origin. Not variants.</span>
+                </div>
+                <div className="flex flex-col gap-2">
+                  {form.attributes.map((row, index) => (
+                    <div key={index} className="flex gap-2">
+                      <Input
+                        list="attr-suggestions"
+                        aria-label={`Attribute ${index + 1} label`}
+                        placeholder="Label"
+                        value={row.label}
+                        maxLength={40}
+                        onChange={(e) => setForm((p) => ({
+                          ...p,
+                          attributes: p.attributes.map((a, i) => i === index ? { ...a, label: e.target.value } : a),
+                        }))}
+                      />
+                      <Input
+                        aria-label={`Attribute ${index + 1} value`}
+                        placeholder="Value"
+                        value={row.value}
+                        maxLength={120}
+                        onChange={(e) => setForm((p) => ({
+                          ...p,
+                          attributes: p.attributes.map((a, i) => i === index ? { ...a, value: e.target.value } : a),
+                        }))}
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="shrink-0"
+                        aria-label={`Remove attribute ${index + 1}`}
+                        onClick={() => setForm((p) => ({ ...p, attributes: p.attributes.filter((_, i) => i !== index) }))}
+                      >
+                        <Trash className="h-4 w-4" aria-hidden />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+                <datalist id="attr-suggestions">
+                  {(ATTRIBUTE_SUGGESTIONS["food-groceries"] ?? []).map((label) => (
+                    <option key={label} value={label} />
+                  ))}
+                </datalist>
+                {form.attributes.length < MAX_ATTRIBUTES ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setForm((p) => ({ ...p, attributes: [...p.attributes, { label: "", value: "" }] }))}
+                  >
+                    <Plus className="mr-1.5 h-4 w-4" aria-hidden />
+                    Add fact
+                  </Button>
+                ) : null}
+              </div>
             </Card>
           ) : (
             <Card className="p-6 space-y-4 border border-border/80 shadow-xs rounded-2xl bg-card">
               <p className="text-sm text-foreground/90 whitespace-pre-wrap leading-relaxed">
                 {product.description || "No description yet — add one so shoppers know what they're buying."}
               </p>
+              {(product.attributes ?? []).length ? (
+                <p className="text-sm text-muted-foreground">
+                  {(product.attributes ?? []).map((a, i) => (
+                    <span key={a.label}>
+                      {i > 0 ? " · " : null}
+                      <span className="font-semibold text-foreground">{a.label}:</span> {a.value}
+                    </span>
+                  ))}
+                </p>
+              ) : (
+                <p className="text-xs text-muted-foreground">No product stats yet — add volume, pack size, origin so buyers can confirm they have the right item.</p>
+              )}
               <dl className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-3 border-t border-border/60">
                 <div>
                   <dt className="text-xs font-bold uppercase tracking-wider text-muted-foreground block mb-1">Category</dt>

@@ -4,6 +4,7 @@
  * Display names come from the API (`NavCategory.name`). CATEGORY_META may
  * only supply icon + mosaic art — never a parallel rename table for labels.
  */
+import { categoryArtFor } from "@alkemart/shared/category-art"
 import { categoryIconId, type IconId } from "@/design/icons"
 
 export type NavCategory = {
@@ -24,42 +25,36 @@ export type CategoryMeta = {
   }
 }
 
+/**
+ * Mosaic art comes from `@alkemart/shared/category-art` (single source of
+ * truth, also used by the admin studio canvas); only the icon and the tall
+ * slot flag stay storefront-local.
+ */
+function mosaic(handle: string, tall: boolean): CategoryMeta["mosaic"] {
+  const art = categoryArtFor(handle)
+  return art ? { ...art, tall } : undefined
+}
+
 /** Handle → icon/mosaic only. Labels always come from the API name. */
 export const CATEGORY_META: Readonly<Record<string, CategoryMeta>> = {
   "phones-electronics": {
     icon: "cat-electronics",
-    mosaic: {
-      photo: "/images/categories/electronics.webp",
-      objectPos: "object-center",
-      tall: false,
-    },
+    mosaic: mosaic("phones-electronics", false),
   },
   "food-groceries": {
     icon: "cat-food",
-    mosaic: {
-      photo: "/images/categories/food.webp",
-      objectPos: "object-center",
-      tall: true,
-    },
+    mosaic: mosaic("food-groceries", true),
   },
   beverages: {
     icon: "cat-beverages",
   },
   "health-beauty": {
     icon: "cat-personal-care",
-    mosaic: {
-      photo: "/images/categories/cosmetics.webp",
-      objectPos: "object-[center_20%]",
-      tall: false,
-    },
+    mosaic: mosaic("health-beauty", false),
   },
   "pet-care": {
     icon: "cat-pet-care",
-    mosaic: {
-      photo: "/images/categories/pets.webp",
-      objectPos: "object-[center_15%]",
-      tall: true,
-    },
+    mosaic: mosaic("pet-care", true),
   },
   "baby-kids": {
     icon: "cat-baby",

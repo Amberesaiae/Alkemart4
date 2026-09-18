@@ -42,6 +42,11 @@ export type StoreProductCard = {
   seller?: SellerRef | null
   /** Variant option types in display order (V1 matrix; empty for legacy). */
   optionTypes?: { name: string; values: { value: string; imageUrl: string | null }[] }[]
+  /**
+   * Structured facts about the item — what it *is* (1ltr, glass bottle),
+   * as opposed to optionTypes, which is what a buyer *chooses*.
+   */
+  attributes?: { label: string; value: string }[]
   /** Aggregate of published reviews. */
   ratingAvg?: number | null
   ratingCount?: number
@@ -118,6 +123,18 @@ function mapCfProductCard(c: CfProductCard): StoreProductCard {
   }
 }
 
+function readAttributes(d: unknown): { label: string; value: string }[] {
+  const raw = (d as { attributes?: unknown } | null)?.attributes
+  if (!Array.isArray(raw)) return []
+  return raw.filter(
+    (a): a is { label: string; value: string } =>
+      a != null &&
+      typeof a === "object" &&
+      typeof (a as { label?: unknown }).label === "string" &&
+      typeof (a as { value?: unknown }).value === "string",
+  )
+}
+
 function mapCfDetail(d: CfProductDetail): StoreProductCard {
   const best = d.offers[0]
   return {
@@ -133,6 +150,10 @@ function mapCfDetail(d: CfProductDetail): StoreProductCard {
     currencyCode: best?.currency === "ghs" ? "ghs" : best?.currency ?? "ghs",
     categoryLabel: d.categoryName,
     categoryHandles: d.categoryHandle ? [d.categoryHandle] : null,
+    // `attributes` ships on the API response but is not yet in the generated
+    // OpenAPI client type, so it is read defensively here. Regenerating
+    // packages/api-client from the spec removes the cast.
+    attributes: readAttributes(d),
     seller: best
       ? {
           id: best.sellerId,
@@ -446,6 +467,40 @@ async function listFromAlkemartCatalog(opts: CatalogQuery): Promise<{
  * Optional categoryId from product-categories API — never invent category ids.
  * sellerHandle / categoryHandle use server catalog filters (no client invent).
  */
+/**
+ * Popularity shelves, from real orders only.
+ *
+ * `window: "7d"` ranks by the last week ("Trending"); omitted ranks all time
+ * ("Most ordered"). Returns an empty list when nothing has been ordered — a
+ * popularity shelf on a young catalogue renders empty rather than quietly
+ * degrading into "newest" dressed up as popular.
+ */
+export async function listPopularProducts(opts?: {
+  limit?: number
+  window?: "7d" | "30d"
+}): Promise<{ products: StoreProductCard[] }> {
+  if (!useCloudflareCatalog()) return { products: [] }
+  ensureCloudflareBaseUrl()
+  const base = getAlkemartApiUrl()
+  const params = new URLSearchParams()
+  params.set("limit", String(opts?.limit ?? 12))
+  if (opts?.window) params.set("window", opts.window)
+  try {
+    const res = await fetch(`${base}/store/catalog/popular?${params.toString()}`, {
+      headers: { Accept: "application/json" },
+    })
+    if (!res.ok) return { products: [] }
+    const data = (await res.json()) as { items?: unknown[] }
+    return {
+      products: (data.items ?? []).map((item) =>
+        mapCfProductCard(item as Parameters<typeof mapCfProductCard>[0]),
+      ),
+    }
+  } catch {
+    return { products: [] }
+  }
+}
+
 export async function listStoreProducts(opts?: {
   limit?: number
   offset?: number

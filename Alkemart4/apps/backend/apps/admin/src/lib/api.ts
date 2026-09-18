@@ -237,7 +237,7 @@ function setToken(t: string | null) {
   } catch { /* storage may be unavailable */ }
 }
 
-async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
+export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
   const extraHeaders: Record<string, string> = {}
   if (init.body !== undefined && typeof init.body === "string") {
     extraHeaders["Content-Type"] = "application/json"
@@ -317,6 +317,15 @@ export const homepageStudio = {
       body: JSON.stringify({ revision, publishAt, unpublishAt: unpublishAt || null }),
     }),
   categories: () => apiFetch<{ categories: Array<{ id: string; name: string; handle?: string | null; children?: Array<{ id: string; name: string; handle?: string | null }> }> }>("/store/categories"),
+  upload: async (file: File) => {
+    const form = new FormData()
+    form.append("files", file)
+    form.append("kind", "merch")
+    const data = await apiFetch<{ files: { url: string }[] }>("/admin/uploads", { method: "POST", body: form })
+    const url = data.files?.[0]?.url
+    if (!url) throw new ApiError(500, "Upload returned no URL")
+    return url
+  },
 }
 
 // Stats

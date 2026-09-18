@@ -1,7 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router"
 import { useEffect, useMemo, useState } from "react"
 import { useBlocker } from "@tanstack/react-router"
-import { useSellerProfile, useUpdateStorefront, usePauseShop, useUnpauseShop, useShopPolicies, useSavePolicy, useCategories, useProducts, useUpdateDisplay, useUpdateContact, useFeatured, useSetFeatured } from "../lib/hooks"
+import { useSellerProfile, useUpdateStorefront, usePauseShop, useUnpauseShop, useShopPolicies, useSavePolicy, useCategories, useProducts, useUpdateDisplay, useUpdateContact, useUpdateDelivery, useFeatured, useSetFeatured } from "../lib/hooks"
+import { DELIVERY_MINUTE_BANDS } from "@alkemart/shared/storefront-badges"
 import type { StorefrontPatch } from "../lib/api"
 import { Card, Button, Input, Label, LivePreview, Textarea, Skeleton, DatePicker, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui"
 import { format } from "date-fns"
@@ -562,6 +563,7 @@ function StorePage() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
               <DisplayCard />
               <FeaturedCard />
+              <DeliveryCard />
             </div>
           )}
 
@@ -952,6 +954,82 @@ function DisplayCard() {  const { data: profile } = useSellerProfile()
       </div>
       <Button onClick={() => { void handleSave() }} disabled={!dirty || update.isPending} isLoading={update.isPending}>
         Save display
+      </Button>
+    </Card>
+  )
+}
+
+/**
+ * The shop's delivery band.
+ *
+ * Coarse bands only, and unset stays unset: a shop that has never declared
+ * one shows no delivery time to buyers rather than inheriting a platform
+ * default nobody promised. Shops at or under 30 minutes earn the "Fast
+ * delivery" badge — which is why the band is a claim, not a decoration.
+ */
+function DeliveryCard() {
+  const { data } = useSellerProfile()
+  const saved = data?.seller?.delivery?.minutes ?? null
+  const update = useUpdateDelivery()
+  const [value, setValue] = useState<number | null | undefined>(undefined)
+  const current = value === undefined ? saved : value
+  const dirty = value !== undefined && value !== saved
+
+  const handleSave = async () => {
+    try {
+      await update.mutateAsync(current ?? null)
+      setValue(undefined)
+      toast.success(
+        current == null
+          ? "Delivery time cleared — buyers will not see a time."
+          : `Delivery time set to ${current} minutes.`,
+      )
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not save delivery time.")
+    }
+  }
+
+  return (
+    <Card id="store-delivery" className="p-6 space-y-4 scroll-mt-24">
+      <h2 className="font-black flex items-center gap-2">
+        <Clock className="h-5 w-5 text-primary" /> Delivery time
+      </h2>
+      <p className="text-sm text-muted-foreground font-medium">
+        How long a typical order takes to reach a buyer. Shown on your shop card
+        and in search. Pick the band you can keep on a busy day, not your best day.
+      </p>
+      <div className="flex flex-wrap gap-2" role="group" aria-label="Delivery time band">
+        <button
+          type="button"
+          onClick={() => setValue(null)}
+          aria-pressed={current == null}
+          className={`h-10 rounded-xl border px-3.5 text-sm font-bold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
+            current == null ? "border-foreground bg-foreground text-background" : "border-border text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          Not set
+        </button>
+        {DELIVERY_MINUTE_BANDS.map((band) => (
+          <button
+            key={band}
+            type="button"
+            onClick={() => setValue(band)}
+            aria-pressed={current === band}
+            className={`h-10 rounded-xl border px-3.5 text-sm font-bold tabular-nums transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
+              current === band ? "border-primary bg-primary text-primary-foreground" : "border-border text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {band} min
+          </button>
+        ))}
+      </div>
+      {current != null && current <= 30 ? (
+        <p className="text-sm font-bold text-success flex items-center gap-2">
+          <CheckCircle className="h-4 w-4" /> This band earns the “Fast delivery” badge.
+        </p>
+      ) : null}
+      <Button onClick={() => void handleSave()} disabled={!dirty || update.isPending}>
+        {update.isPending ? "Saving…" : "Save delivery time"}
       </Button>
     </Card>
   )

@@ -186,6 +186,21 @@ export interface CheckoutRepository {
   }): Promise<ReviewRow | null>
   getReview(id: string): Promise<ReviewRow | null>
   listReviewsBySeller(sellerId: string): Promise<ReviewRow[]>
+  /**
+   * Published-review count and mean per seller, in one pass.
+   *
+   * The stores index shows a rating on every card, so doing this per seller
+   * would be one query per shop on a page that lists all of them.
+   */
+  reviewTotalsBySeller(): Promise<Map<string, { count: number; avg: number }>>
+  /**
+   * Units sold per product, optionally limited to orders since a date.
+   *
+   * Powers the "Most ordered" and "Trending" shelves. Real order data or
+   * nothing: a popularity shelf with no orders behind it renders empty
+   * rather than falling back to an arbitrary slice of the catalogue.
+   */
+  productOrderCounts(since?: Date): Promise<Map<string, number>>
   listPublishedReviewsByProduct(productId: string): Promise<ReviewRow[]>
   listPendingReviews(): Promise<ReviewRow[]>
   updateReviewStatus(id: string, status: "published" | "hidden"): Promise<ReviewRow | null>
@@ -734,6 +749,38 @@ export class InMemoryCheckoutRepository implements CheckoutRepository {
     return [...this.reviewsById.values()]
       .filter((r) => r.sellerId === sellerId)
       .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+  }
+
+  async productOrderCounts(_since?: Date) {
+    // The in-memory store keeps no order timestamps, so the window is
+    // ignored here; Postgres applies it. Tests that care about recency use
+    // the Postgres repository.
+    const counts = new Map<string, number>()
+    for (const items of this.orderItems.values()) {
+      for (const item of items) {
+        counts.set(item.productId, (counts.get(item.productId) ?? 0) + item.qty)
+      }
+    }
+    return counts
+  }
+
+  async reviewTotalsBySeller() {
+    const sums = new Map<string, { count: number; total: number }>()
+    for (const r of this.reviewsById.values()) {
+      if (r.status !== "published") continue
+      const acc = sums.get(r.sellerId) ?? { count: 0, total: 0 }
+      acc.count += 1
+      acc.total += r.rating
+      sums.set(r.sellerId, acc)
+    }
+    const out = new Map<string, { count: number; avg: number }>()
+    for (const [sellerId, acc] of sums) {
+      out.set(sellerId, {
+        count: acc.count,
+        avg: Math.round((acc.total / acc.count) * 10) / 10,
+      })
+    }
+    return out
   }
 
   async listPublishedReviewsByProduct(productId: string) {

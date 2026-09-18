@@ -19,6 +19,8 @@ export type CatalogProduct = {
   id: string
   title: string
   description: string | null
+  /** Structured facts ({label,value}[]); absent on rows that predate the column. */
+  attributes?: { label: string; value: string }[]
   status: ProductStatus
   primaryCategoryId: string
   sellerId: string | null

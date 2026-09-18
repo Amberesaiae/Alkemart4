@@ -1,13 +1,13 @@
 import { Hono } from "hono"
 import { HTTPException } from "hono/http-exception"
 import type { AppEnv } from "../../context"
-import { requireSeller } from "../../middleware/auth"
+import { requireAdmin, requireSeller } from "../../middleware/auth"
 
 /** Vendor product/seller images. 5 MB cap matches the vendor UI validator. */
 export const MAX_UPLOAD_BYTES = 5 * 1024 * 1024
 
-/** Upload namespaces. Keys are always `{kind}/{sellerId}/{uuid}[.thumb].{ext}`. */
-const KINDS = ["products", "logos", "banners"] as const
+/** Upload namespaces. Keys are always `{kind}/{ownerId}/{uuid}[.thumb].{ext}`. */
+const KINDS = ["products", "logos", "banners", "merch"] as const
 type MediaKind = (typeof KINDS)[number]
 
 const ALLOWED: Record<string, { ext: string; magic: (b: Uint8Array) => boolean }> = {
@@ -86,11 +86,13 @@ async function convert(
  * URLs are same-origin (`/media/<key>`) so they pass the product imageUrl
  * validator and need no extra public-bucket wiring.
  */
-export const vendorUploads = new Hono<AppEnv>().use("*", requireSeller).post("/", async (c) => {
+async function storeUploadedImage(
+  c: { req: { formData: () => Promise<FormData>; url: string }; env: AppEnv["Bindings"]; json: (body: unknown, status?: number) => Response },
+  ownerId: string,
+  defaultKind: MediaKind,
+) {
   const bucket = bucketOrThrow(c)
-  const auth = c.get("auth")
-  const sellerId = auth.sellerId ?? ""
-  if (!/^[A-Za-z0-9_-]+$/.test(sellerId)) throw new HTTPException(403, { message: "forbidden" })
+  if (!/^[A-Za-z0-9_-]+$/.test(ownerId)) throw new HTTPException(403, { message: "forbidden" })
 
   let form: FormData
   try {
@@ -109,7 +111,7 @@ export const vendorUploads = new Hono<AppEnv>().use("*", requireSeller).post("/"
   const kind: MediaKind =
     typeof kindRaw === "string" && (KINDS as readonly string[]).includes(kindRaw)
       ? (kindRaw as MediaKind)
-      : "products"
+      : defaultKind
 
   const spec = ALLOWED[file.type]
   if (!spec) throw new HTTPException(415, { message: "only PNG, JPG, WebP, or GIF images are accepted" })
@@ -120,12 +122,11 @@ export const vendorUploads = new Hono<AppEnv>().use("*", requireSeller).post("/"
   if (!spec.magic(bytes)) throw new HTTPException(415, { message: "file content does not match its type" })
 
   const origin = new URL(c.req.url).origin
-  const base = `${kind}/${sellerId}/${crypto.randomUUID()}`
+  const base = `${kind}/${ownerId}/${crypto.randomUUID()}`
   const originalKey = `${base}.${spec.ext}`
   await bucket.put(originalKey, bytes, { httpMetadata: { contentType: file.type } })
   const original: Variant = { url: `${origin}/media/${originalKey}`, key: originalKey }
 
-  // Conversion pipeline: WebP full + thumb. Falls back to original-only.
   const [webBytes, thumbBytes] = await Promise.all([
     convert(c.env.IMAGES, bytes, 1600, 82),
     convert(c.env.IMAGES, bytes, 400, 78),
@@ -152,20 +153,28 @@ export const vendorUploads = new Hono<AppEnv>().use("*", requireSeller).post("/"
           key: primary.key,
           contentType: web ? "image/webp" : file.type,
           size: file.size,
-          variants: {
-            original,
-            web,
-            thumb,
-          },
+          variants: { original, web, thumb },
         },
       ],
     },
     201,
   )
+}
+
+export const vendorUploads = new Hono<AppEnv>().use("*", requireSeller).post("/", async (c) => {
+  return storeUploadedImage(c, c.get("auth").sellerId ?? "", "products")
+})
+
+/**
+ * POST /admin/uploads — merchandising art (heroes, category banners) on the
+ * same R2 pipeline as vendor product photos. Keys live under `merch/`.
+ */
+export const adminUploads = new Hono<AppEnv>().use("*", requireAdmin).post("/", async (c) => {
+  return storeUploadedImage(c, c.get("auth").userId, "merch")
 })
 
 const KEY_PATTERN =
-  /^(products|logos|banners)\/[A-Za-z0-9_-]+\/[A-Za-z0-9_-]+(?:\.thumb)?\.(jpg|png|webp|gif)$/
+  /^(products|logos|banners|merch)\/[A-Za-z0-9_-]+\/[A-Za-z0-9_-]+(?:\.thumb)?\.(jpg|png|webp|gif)$/
 
 /** GET /media/* — serve R2 images with immutable caching. Public, no auth. */
 export async function serveMedia(c: {

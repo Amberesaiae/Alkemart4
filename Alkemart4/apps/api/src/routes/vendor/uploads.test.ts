@@ -1,3 +1,4 @@
+import { hashPassword } from "@alkemart/domain"
 import { describe, expect, it } from "vitest"
 import { InMemoryAuthRepository } from "../../auth-repository"
 import type { ApiEnv, ImagesBindingLike } from "../../env"
@@ -266,6 +267,53 @@ describe("POST /vendor/uploads", () => {
       testEnv(),
     )
     expect(noBucket.status).toBe(501)
+  })
+})
+
+describe("POST /admin/uploads", () => {
+  it("stores merch art under merch/ and serves it from /media", async () => {
+    const { bucket, store } = fakeBucket()
+    const authRepo = new InMemoryAuthRepository()
+    await authRepo.createUser({
+      id: "admin-1",
+      email: "admin@alkemart.test",
+      passwordHash: await hashPassword("AdminPass1"),
+      role: "admin",
+    })
+    const app = createApp({ authRepo, jwtSecret: JWT_SECRET })
+    const login = await app.request("/admin/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: "admin@alkemart.test", password: "AdminPass1" }),
+    }, testEnv(bucket))
+    expect(login.status).toBe(200)
+    const token = ((await login.json()) as { token: string }).token
+
+    const res = await app.request(
+      "/admin/uploads",
+      uploadInit(token, new File([PNG], "hero.png", { type: "image/png" })),
+      testEnv(bucket),
+    )
+    expect(res.status).toBe(201)
+    const body = (await res.json()) as { files: { url: string; key: string }[] }
+    expect(body.files[0]?.key).toMatch(/^merch\/admin-1\/.+\.png$/)
+    expect(body.files[0]?.url).toMatch(/^https?:\/\/.+\/media\/merch\//)
+    expect(store.has(body.files[0]!.key)).toBe(true)
+
+    const served = await app.request(new URL(body.files[0]!.url).pathname, {}, testEnv(bucket))
+    expect(served.status).toBe(200)
+  })
+
+  it("rejects a seller token", async () => {
+    const { bucket } = fakeBucket()
+    const app = createApp({ authRepo: new InMemoryAuthRepository(), jwtSecret: JWT_SECRET })
+    const token = await sellerToken(app)
+    const res = await app.request(
+      "/admin/uploads",
+      uploadInit(token, new File([PNG], "hero.png", { type: "image/png" })),
+      testEnv(bucket),
+    )
+    expect(res.status).toBe(403)
   })
 })
 

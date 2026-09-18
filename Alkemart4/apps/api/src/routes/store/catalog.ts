@@ -50,3 +50,42 @@ export const catalog = new Hono<AppEnv>().get("/", async (c) => {
   }
   return c.json(body)
 })
+
+/**
+ * Popularity shelves, from real orders only.
+ *
+ * `window=7d` ranks by units sold in the last week ("Trending"); no window
+ * ranks all time ("Most ordered"). Products with no orders never appear, so
+ * an empty shelf on a young catalogue renders empty rather than silently
+ * degrading into an arbitrary slice of the catalogue dressed up as popular.
+ */
+catalog.get("/popular", async (c) => {
+  const rawLimit = Number(c.req.query("limit") ?? 12)
+  const limit = Number.isFinite(rawLimit) ? Math.min(48, Math.max(1, Math.trunc(rawLimit))) : 12
+  const window = c.req.query("window")
+  const since =
+    window === "7d"
+      ? new Date(Date.now() - 7 * 86_400_000)
+      : window === "30d"
+        ? new Date(Date.now() - 30 * 86_400_000)
+        : undefined
+
+  const counts = await c
+    .get("checkoutRepo")
+    .productOrderCounts(since)
+    .catch(() => new Map<string, number>())
+  if (counts.size === 0) return c.json({ items: [], total: 0 })
+
+  const ranked = [...counts.entries()].sort((a, b) => b[1] - a[1])
+  // Over-fetch: some ranked products may no longer have a sellable offer.
+  const candidates = ranked.slice(0, limit * 3).map(([productId]) => productId)
+  const cards = await c.get("repo").productCardsByIds(candidates)
+
+  const items = candidates
+    .map((id) => cards.get(id))
+    .filter((card): card is NonNullable<typeof card> => card != null)
+    .slice(0, limit)
+
+  return c.json({ items, total: items.length })
+})
+

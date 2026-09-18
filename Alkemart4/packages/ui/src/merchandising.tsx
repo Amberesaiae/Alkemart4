@@ -1,5 +1,6 @@
-import type { ReactNode } from "react"
-import { ArrowRight } from "@phosphor-icons/react"
+import { useEffect, useState, type ReactNode } from "react"
+import { ArrowRight, Pause, Play } from "@phosphor-icons/react"
+import { countdownParts, timeRemaining } from "@alkemart/shared/homepage"
 import { cn } from "./cn"
 
 export type MerchTheme = "white" | "gold" | "black"
@@ -166,13 +167,152 @@ export function MerchPromoBand({ eyebrow, title, body, imageUrl, action, seconda
   )
 }
 
+export type MerchCategoryVariant = "tiles" | "mosaic" | "rail" | "banner"
+export type MerchCategoryRatio = "square" | "landscape" | "wide" | "ultrawide"
+
+/**
+ * Banner proportions. Sizing is always a ratio — never a fixed height — so a
+ * category banner stays a banner instead of growing into an oversized card.
+ * On desktop the mosaic overrides these: tiles stretch to share the row.
+ */
+export const merchRatioClass: Record<MerchCategoryRatio, string> = {
+  square: "aspect-square",
+  landscape: "aspect-[5/4] sm:aspect-[4/3]",
+  wide: "aspect-[3/2]",
+  ultrawide: "aspect-[16/9] sm:aspect-[16/5]",
+}
+
+/**
+ * Layout for one category tile — the wrapper that stacks art over caption.
+ * Returned as a class string so each surface supplies its own element: the
+ * storefront a router `Link`, the Studio preview an inert `div`.
+ *
+ * Proportion is no longer set here. The caption sits outside the art, so the
+ * aspect ratio belongs to the art frame inside `MerchCategoryTileBody`, which
+ * takes `ratio` directly.
+ */
+export function merchCategoryTileClass({ variant = "tiles", feature = false, className }: {
+  variant?: MerchCategoryVariant
+  /** @deprecated pass `ratio` to MerchCategoryTileBody — it sizes the art. */
+  ratio?: MerchCategoryRatio
+  feature?: boolean
+  className?: string
+}) {
+  return cn(
+    "group flex flex-col gap-2 rounded-2xl",
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black focus-visible:ring-offset-2",
+    variant === "rail" && "w-36 shrink-0 snap-start sm:w-44",
+    // Desktop mosaic: feature tiles claim both rows and every tile fills its
+    // cell, which is what restores the two-large / two-small composition.
+    variant === "mosaic" && "lg:h-full",
+    variant === "mosaic" && feature && "lg:row-span-2",
+    variant === "banner" && feature && "lg:col-span-2",
+    className,
+  )
+}
+
+/**
+ * A category tile is its artwork, and nothing else.
+ *
+ * The old tile burned a 65%-black scrim, an uppercase label, an eyebrow and a
+ * badge over every upload, so no photograph could ever be seen and every tile
+ * fought its own art. Here the art fills the frame untouched and the wording
+ * sits underneath in the page's own type — which is also more accessible,
+ * because the caption becomes the link's accessible name instead of being
+ * decorative text over an unlabelled image.
+ *
+ * Until the art decodes the frame holds a shimmer at its true aspect ratio,
+ * so an art-only tile is never a silent empty box and nothing shifts on load.
+ * `fallback` still renders when no art is configured at all.
+ */
+export function MerchCategoryTileBody({ label, badge, imageUrl, focalPoint, imageClassName, fallback, variant = "tiles", ratio = "square" }: {
+  label: string
+  /** @deprecated art carries no text; kept out of the frame entirely. */
+  eyebrow?: string
+  /** Rendered beside the caption, never over the art. */
+  badge?: string
+  imageUrl?: string
+  /** CSS object-position from the Studio, e.g. "center" or "50% 30%". */
+  focalPoint?: string
+  /** Crop class from canonical category art, e.g. "object-[center_20%]". */
+  imageClassName?: string
+  /** @deprecated size comes from the tile's grid cell; captions stay uniform. */
+  feature?: boolean
+  fallback?: ReactNode
+  variant?: MerchCategoryVariant
+  ratio?: MerchCategoryRatio
+}) {
+  const [loaded, setLoaded] = useState(false)
+
+  return (
+    <>
+      <span
+        className={cn(
+          "relative block w-full overflow-hidden rounded-2xl bg-black/5",
+          "ring-1 ring-black/[0.06] shadow-sm transition duration-200",
+          "group-hover:shadow-md motion-reduce:transition-none",
+          merchRatioClass[ratio],
+          // Desktop mosaic sizes by the grid row, not by ratio.
+          variant === "mosaic" && "lg:aspect-auto lg:min-h-0 lg:flex-1",
+        )}
+      >
+        {imageUrl ? (
+          <>
+            {!loaded ? (
+              <span className="merch-shimmer absolute inset-0 z-0 block" aria-hidden="true" />
+            ) : null}
+            <img
+              src={imageUrl}
+              alt=""
+              width={1400}
+              height={1400}
+              decoding="async"
+              loading="lazy"
+              draggable={false}
+              onLoad={() => setLoaded(true)}
+              onError={() => setLoaded(true)}
+              style={focalPoint ? { objectPosition: focalPoint } : undefined}
+              className={cn(
+                "absolute inset-0 z-[1] h-full w-full object-cover",
+                "transition duration-500 group-hover:scale-[1.03]",
+                "motion-reduce:transition-none motion-reduce:group-hover:scale-100",
+                loaded ? "opacity-100" : "opacity-0",
+                focalPoint ? undefined : imageClassName,
+              )}
+            />
+          </>
+        ) : (
+          <span className="absolute inset-0 z-0 flex items-center justify-center opacity-40" aria-hidden="true">
+            {fallback}
+          </span>
+        )}
+      </span>
+
+      {/* One caption size for every tile in a grid. Varying it by `feature`
+          changes the caption's height, which steals height from the art frame
+          and leaves neighbouring tiles misaligned by a couple of pixels. Size
+          is already how a feature tile reads as a feature. */}
+      <span className="flex min-w-0 shrink-0 items-center gap-2 px-0.5">
+        <span className="min-w-0 flex-1 truncate text-[13px] font-semibold leading-snug sm:text-sm">
+          {label}
+        </span>
+        {badge ? (
+          <span className="shrink-0 rounded-full bg-primary px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-black">
+            {badge}
+          </span>
+        ) : null}
+      </span>
+    </>
+  )
+}
+
 export function MerchGridSection({ title, subtitle, eyebrow, action, columns, variant = "tiles", children, className }: {
   title: string
   subtitle?: string
   eyebrow?: string
   action?: ReactNode
   columns: 4 | 6 | 8
-  variant?: "tiles" | "mosaic" | "rail"
+  variant?: MerchCategoryVariant
   children: ReactNode
   className?: string
 }) {
@@ -180,7 +320,7 @@ export function MerchGridSection({ title, subtitle, eyebrow, action, columns, va
     return (
       <section className={cn("space-y-4", className)}>
         <MerchSectionHeader eyebrow={eyebrow} title={title} subtitle={subtitle} action={action} />
-        <div className="flex gap-3 overflow-x-auto pb-2" role="list">{children}</div>
+        <div className="flex gap-3 overflow-x-auto pb-2 [scroll-snap-type:x_mandatory]" role="list">{children}</div>
       </section>
     )
   }
@@ -188,13 +328,15 @@ export function MerchGridSection({ title, subtitle, eyebrow, action, columns, va
     <section className={cn("space-y-4", className)}>
       <MerchSectionHeader eyebrow={eyebrow} title={title} subtitle={subtitle} action={action} />
       <div className={cn(
-        "grid gap-3",
-        // Mosaic restores the editorial hierarchy: the first two tiles feature
-        // large (tall on desktop), the rest fill the remaining cells. Bento
-        // belongs on editorial/homepage surfaces — never product listings.
+        "grid gap-2.5 sm:gap-3 lg:gap-4",
+        // Mosaic is the editorial hierarchy: two feature tiles stand tall beside
+        // a stack of standard ones, the row capped so it never becomes a tower.
+        // Bento belongs on editorial surfaces — never product listings.
         variant === "mosaic"
-          ? "grid-cols-2 lg:grid-cols-3 lg:grid-rows-2 [&>*:nth-child(-n+2)]:lg:row-span-2"
-          : columns === 4 ? "grid-cols-2 sm:grid-cols-4" : columns === 6 ? "grid-cols-3 sm:grid-cols-6" : "grid-cols-4 sm:grid-cols-8",
+          ? "grid-cols-2 lg:grid-cols-3 lg:grid-rows-2 lg:h-[min(440px,50vw)] lg:min-h-[420px]"
+          : variant === "banner"
+            ? "grid-cols-1 lg:grid-cols-2"
+            : columns === 4 ? "grid-cols-2 sm:grid-cols-4" : columns === 6 ? "grid-cols-3 sm:grid-cols-6" : "grid-cols-4 sm:grid-cols-8",
       )}>{children}</div>
     </section>
   )
@@ -216,6 +358,203 @@ export function MerchShelf({ title, subtitle, eyebrow, action, layout = "grid", 
         ? <div className="flex gap-3 overflow-x-auto pb-2 [scroll-snap-type:x_mandatory]">{children}</div>
         : <>{children}</>}
     </section>
+  )
+}
+
+/**
+ * Live countdown. Ticks once a second while mounted and stops at zero.
+ * Rendered as a single `time` element with a readable `dateTime`, so assistive
+ * tech gets the deadline itself rather than a stream of changing digits.
+ */
+export function MerchCountdown({ to, expiredLabel = "Offer ended", compact = false, className }: {
+  to: string
+  expiredLabel?: string
+  compact?: boolean
+  className?: string
+}) {
+  const [remaining, setRemaining] = useState(() => timeRemaining(to))
+
+  useEffect(() => {
+    setRemaining(timeRemaining(to))
+    const timer = setInterval(() => setRemaining(timeRemaining(to)), 1000)
+    return () => clearInterval(timer)
+  }, [to])
+
+  if (remaining === null) return null
+  if (remaining === 0) {
+    return <p className={cn("text-sm font-bold opacity-70", className)}>{expiredLabel}</p>
+  }
+
+  const parts = countdownParts(remaining)
+  const cells: Array<[number, string]> = [
+    [parts.days, "days"],
+    [parts.hours, "hrs"],
+    [parts.minutes, "min"],
+    [parts.seconds, "sec"],
+  ]
+  const shown = parts.days > 0 ? cells.slice(0, 3) : cells.slice(1)
+
+  return (
+    <time
+      dateTime={to}
+      // The ticking digits are decorative; the deadline is the fact.
+      aria-label={`Ends in ${shown.map(([value, unit]) => `${value} ${unit}`).join(", ")}`}
+      className={cn("flex items-center gap-1.5", className)}
+    >
+      {shown.map(([value, unit]) => (
+        <span
+          key={unit}
+          aria-hidden="true"
+          className={cn(
+            "flex min-w-11 flex-col items-center rounded-lg bg-black/85 px-2 py-1 text-white",
+            compact && "min-w-9 px-1.5 py-0.5",
+          )}
+        >
+          <span className={cn("font-black tabular-nums leading-none", compact ? "text-sm" : "text-lg")}>
+            {String(value).padStart(2, "0")}
+          </span>
+          <span className="text-[9px] font-bold uppercase tracking-wider opacity-70">{unit}</span>
+        </span>
+      ))}
+    </time>
+  )
+}
+
+/**
+ * Countdown banner — a deal with a deadline. The clock is the point, so it
+ * leads the layout rather than hiding beside the copy.
+ */
+export function MerchCountdownBanner({ eyebrow, title, body, countdownTo, expiredLabel, imageUrl, action, theme, interactive = true, compact = false, className }: {
+  eyebrow?: string
+  title: string
+  body?: string
+  countdownTo: string
+  expiredLabel?: string
+  imageUrl?: string
+  action?: { label: string; href: string }
+  theme: MerchTheme
+  interactive?: boolean
+  compact?: boolean
+  className?: string
+}) {
+  const cta = action ? (
+    <span className={cn("inline-flex min-h-11 items-center justify-center rounded-full px-5 text-sm font-bold", theme === "gold" ? "bg-black text-white" : "bg-primary text-black")}>
+      {action.label}<ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
+    </span>
+  ) : null
+  return (
+    <section className={cn("relative overflow-hidden rounded-2xl", themeClass(theme), compact ? "px-5 py-5" : "px-6 py-7 sm:px-8", className)} aria-label={title}>
+      {imageUrl ? (
+        <img src={imageUrl} alt="" loading="lazy" decoding="async" className="absolute inset-0 h-full w-full object-cover opacity-20" />
+      ) : null}
+      <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
+        <div className="min-w-0 space-y-1">
+          {eyebrow ? <p className="text-xs font-black uppercase tracking-[0.18em] opacity-65">{eyebrow}</p> : null}
+          <h2 className={cn("font-black tracking-tight", compact ? "text-xl" : "text-2xl sm:text-3xl")}>{title}</h2>
+          {body ? <p className="max-w-xl text-sm leading-6 opacity-75">{body}</p> : null}
+        </div>
+        <div className="flex shrink-0 flex-col items-start gap-3 sm:items-end">
+          <MerchCountdown to={countdownTo} expiredLabel={expiredLabel} compact={compact} />
+          {cta && interactive && action ? <a href={action.href}>{cta}</a> : cta}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+/**
+ * Announcement marquee.
+ *
+ * Motion is opt-in and always pausable: WCAG 2.2.2 requires a stop control for
+ * anything that moves for more than five seconds, and `prefers-reduced-motion`
+ * drops it to a static strip. Without motion it is simply a list of links,
+ * which is what screen readers and reduced-motion users get either way.
+ */
+export function MerchMarquee({ items, theme, animated = true, speed = "normal", interactive = true, className }: {
+  items: Array<{ id: string; label: string; href?: string }>
+  theme: MerchTheme
+  animated?: boolean
+  speed?: "slow" | "normal"
+  interactive?: boolean
+  className?: string
+}) {
+  const [paused, setPaused] = useState(false)
+  if (!items.length) return null
+  const moving = animated && interactive
+  const content = items.map((item) => (
+    <span key={item.id} className="flex shrink-0 items-center gap-2 whitespace-nowrap px-4 text-sm font-bold">
+      <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-current opacity-40" />
+      {item.href && interactive ? <a href={item.href} className="underline-offset-2 hover:underline">{item.label}</a> : item.label}
+    </span>
+  ))
+  return (
+    <section className={cn("relative overflow-hidden rounded-xl py-2.5", themeClass(theme), className)} aria-label="Announcements">
+      <div className="flex items-center">
+        <div
+          className={cn(
+            "flex min-w-0 flex-1 items-center",
+            moving ? "merch-marquee-track" : "flex-wrap gap-y-1",
+            moving && speed === "slow" && "merch-marquee-slow",
+            paused && "merch-marquee-paused",
+          )}
+        >
+          {content}
+          {moving ? <span aria-hidden="true" className="flex">{content}</span> : null}
+        </div>
+        {moving ? (
+          <button
+            type="button"
+            onClick={() => setPaused((value) => !value)}
+            aria-pressed={paused}
+            aria-label={paused ? "Resume scrolling announcements" : "Pause scrolling announcements"}
+            className="mr-2 flex size-8 shrink-0 items-center justify-center rounded-full bg-black/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black"
+          >
+            {paused ? <Play className="h-3.5 w-3.5" aria-hidden="true" /> : <Pause className="h-3.5 w-3.5" aria-hidden="true" />}
+          </button>
+        ) : null}
+      </div>
+    </section>
+  )
+}
+
+/**
+ * Deal rail — a shelf with campaign framing: eyebrow, per-card badge and an
+ * optional clock. Products are the caller's; this only supplies the frame,
+ * and it never claims a discount the catalogue cannot substantiate.
+ */
+export function MerchDealRail({ title, subtitle, eyebrow, countdownTo, action, children, className }: {
+  title: string
+  subtitle?: string
+  eyebrow?: string
+  countdownTo?: string
+  action?: ReactNode
+  children: ReactNode
+  className?: string
+}) {
+  return (
+    <section className={cn("space-y-4 rounded-2xl bg-black/[0.03] p-4 sm:p-5", className)}>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div className="min-w-0 space-y-1">
+          {eyebrow ? <p className="text-xs font-black uppercase tracking-[0.18em] opacity-60">{eyebrow}</p> : null}
+          <h2 className="text-2xl font-black tracking-tight">{title}</h2>
+          {subtitle ? <p className="max-w-2xl text-sm leading-6 opacity-70">{subtitle}</p> : null}
+        </div>
+        <div className="flex shrink-0 items-center gap-3">
+          {countdownTo ? <MerchCountdown to={countdownTo} compact /> : null}
+          {action}
+        </div>
+      </div>
+      <div className="flex gap-3 overflow-x-auto pb-2 [scroll-snap-type:x_mandatory]">{children}</div>
+    </section>
+  )
+}
+
+/** Corner flag for a deal card, e.g. "Flash deal". */
+export function MerchDealBadge({ label, className }: { label: string; className?: string }) {
+  return (
+    <span className={cn("absolute left-2 top-2 z-10 rounded-full bg-primary px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-black shadow-sm", className)}>
+      {label}
+    </span>
   )
 }
 

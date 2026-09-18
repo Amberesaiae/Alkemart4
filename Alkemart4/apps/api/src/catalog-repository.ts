@@ -41,6 +41,7 @@ import {
   normalizeOptionSpecs,
   type OptionSpec,
 } from "./variant-matrix"
+import { attributesFromJson } from "@alkemart/shared/product-attributes"
 import type {
   CatalogOffer,
   CatalogProduct,
@@ -144,6 +145,7 @@ export type VendorProductDto = {
     primaryCategoryId: string
     sellerId: string | null
     imageUrl: string | null
+    attributes: { label: string; value: string }[]
   }
   variant: {
     id: string
@@ -182,6 +184,7 @@ export type CreateVendorProductInput = {
   imageUrl?: string | null
   variantOptions?: VariantOptionInput[]
   variantEntries?: VariantEntryInput[]
+  attributes?: { label: string; value: string }[]
 }
 
 export type UpdateProductVariantInput = {
@@ -208,6 +211,8 @@ export type UpdateVendorProductInput = {
   sku?: string | null
   variantTitle?: string | null
   imageUrl?: string | null
+  /** Structured facts; an empty list clears them. */
+  attributes?: { label: string; value: string }[]
 }
 
 export type AdminProductDto = {
@@ -261,6 +266,8 @@ export interface CatalogRepository {
   ): Promise<ProductDetailDto | null>
   getSellerShop(handle: string): Promise<SellerShopDto | null>
   listOpenSellers(): Promise<Array<{ id: string; handle: string; name: string }>>
+  /** Cards for an explicit id set (shop featured picks, manual shelves). */
+  productCardsByIds(ids: readonly string[]): Promise<Map<string, ProductCardDto>>
   createVendorProduct(input: CreateVendorProductInput): Promise<VendorProductDto>
   updateVendorProduct(
     sellerId: string,
@@ -411,6 +418,7 @@ function toVendorProductDto(
       primaryCategoryId: product.primaryCategoryId,
       sellerId: product.sellerId,
       imageUrl: product.imageUrl ?? null,
+      attributes: attributesFromJson(product.attributes),
     },
     variant: baseVariant,
     offer: baseOffer,
@@ -704,6 +712,7 @@ export function getProductFrom(
       categoryHandle: cat?.handle ?? product.primaryCategoryId,
       categoryName: cat?.name ?? product.primaryCategoryId,
       imageUrls: product.imageUrl ? [product.imageUrl] : [],
+      attributes: attributesFromJson(product.attributes),
     },
     offersForProduct,
     {
@@ -755,6 +764,32 @@ export function getSellerShopFrom(data: CatalogSnapshot, handle: string): Seller
   }
 }
 
+/**
+ * Cards for an explicit set of product ids, in one pass.
+ *
+ * The stores index shows each shop's hand-picked items, so it needs cards for
+ * a scattered handful of ids across many sellers. Fetching them shop by shop
+ * would be a query per card; this reuses the same `cardsFor` projection the
+ * listing endpoints use, so a featured tile and a grid tile cannot disagree.
+ *
+ * Products with no sellable offer are simply absent — a shop's pick that has
+ * gone out of stock drops off the card rather than rendering as a dead tile.
+ */
+export function productCardsByIdsFrom(
+  data: CatalogSnapshot,
+  ids: readonly string[],
+): Map<string, ProductCardDto> {
+  const wanted = new Set(ids)
+  if (wanted.size === 0) return new Map()
+  const offers = sellablePeerOffers(data, () => true)
+  const rows = data.products.filter((p) => wanted.has(p.id) && offers.has(p.id))
+  const out = new Map<string, ProductCardDto>()
+  for (const card of cardsFor(rows, data, offers)) {
+    out.set(card.productId, card)
+  }
+  return out
+}
+
 export function listOpenSellersFrom(
   data: CatalogSnapshot,
 ): Array<{ id: string; handle: string; name: string }> {
@@ -795,6 +830,10 @@ export class InMemoryCatalogRepository implements CatalogRepository {
     return listOpenSellersFrom(this.data)
   }
 
+  async productCardsByIds(ids: readonly string[]) {
+    return productCardsByIdsFrom(this.data, ids)
+  }
+
   async createVendorProduct(input: CreateVendorProductInput): Promise<VendorProductDto> {
     assertLeafCategoryId(this.data.categories, input.primaryCategoryId)
     const specs = matrixError(() =>
@@ -821,6 +860,7 @@ export class InMemoryCatalogRepository implements CatalogRepository {
       status: "proposed",
       primaryCategoryId: input.primaryCategoryId,
       sellerId: input.sellerId,
+      attributes: input.attributes ?? [],
     }
     this.data.products.push(product)
     if (specs.length === 0) {
@@ -943,6 +983,7 @@ export class InMemoryCatalogRepository implements CatalogRepository {
     if (patch.title !== undefined) owned.product.title = patch.title
     if (patch.description !== undefined) owned.product.description = patch.description
     if (patch.imageUrl !== undefined) owned.product.imageUrl = patch.imageUrl
+    if (patch.attributes !== undefined) owned.product.attributes = patch.attributes
     if (patch.sku !== undefined) owned.variant.sku = patch.sku
     if (patch.variantTitle !== undefined) owned.variant.title = patch.variantTitle
     if (patch.pricePesewas !== undefined) owned.offer.pricePesewas = patch.pricePesewas
@@ -954,7 +995,8 @@ export class InMemoryCatalogRepository implements CatalogRepository {
       (patch.title !== undefined ||
         patch.description !== undefined ||
         patch.primaryCategoryId !== undefined ||
-        patch.imageUrl !== undefined)
+        patch.imageUrl !== undefined ||
+        patch.attributes !== undefined)
     ) {
       owned.product.status = "proposed"
     }
@@ -1348,6 +1390,7 @@ export class PostgresCatalogRepository implements CatalogRepository {
         primaryCategoryId: r.primaryCategoryId,
         sellerId: r.sellerId,
         imageUrl: r.imageUrl,
+        attributes: attributesFromJson(r.attributes),
         createdAt: r.createdAt ? r.createdAt.toISOString() : null,
       })),
       variants: variantRows.map((r) => ({
@@ -1408,6 +1451,10 @@ export class PostgresCatalogRepository implements CatalogRepository {
 
   async listOpenSellers() {
     return listOpenSellersFrom(await this.load())
+  }
+
+  async productCardsByIds(ids: readonly string[]) {
+    return productCardsByIdsFrom(await this.load(), ids)
   }
 
   private async requireLeafCategory(categoryId: string) {
@@ -1476,6 +1523,7 @@ export class PostgresCatalogRepository implements CatalogRepository {
           primaryCategoryId: input.primaryCategoryId,
           sellerId: input.sellerId,
           imageUrl: input.imageUrl ?? null,
+          attributes: input.attributes ?? null,
         })
         if (specs.length === 0) {
           const variantId = crypto.randomUUID()
@@ -1587,6 +1635,7 @@ export class PostgresCatalogRepository implements CatalogRepository {
         description: string | null
         primaryCategoryId: string
         imageUrl: string | null
+        attributes: { label: string; value: string }[] | null
       }> = {}
       if (patch.title !== undefined) productPatch.title = patch.title
       if (patch.description !== undefined) productPatch.description = patch.description
@@ -1594,6 +1643,7 @@ export class PostgresCatalogRepository implements CatalogRepository {
         productPatch.primaryCategoryId = patch.primaryCategoryId
       }
       if (patch.imageUrl !== undefined) productPatch.imageUrl = patch.imageUrl
+      if (patch.attributes !== undefined) productPatch.attributes = patch.attributes
       if (Object.keys(productPatch).length > 0) {
         await tx.update(products).set(productPatch).where(eq(products.id, productId))
       }

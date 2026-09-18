@@ -3,6 +3,7 @@ import {
   DEFAULT_HOMEPAGE_SECTIONS,
   type HomeSection,
   type HomepageDocument,
+  migrateSections,
 } from "@alkemart/shared/homepage"
 import { and, eq } from "drizzle-orm"
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js"
@@ -36,7 +37,7 @@ function editorDocument(row: StoredPage): HomepageDocument {
   return {
     key: "homepage",
     revision: row.revision,
-    sections: row.draftSections,
+    sections: migrateSections(row.draftSections),
     status: row.scheduledSections && row.publishAt ? "scheduled" : row.publishedSections.length ? "published" : "draft",
     publishAt: row.publishAt?.toISOString() ?? null,
     unpublishAt: row.unpublishAt?.toISOString() ?? null,
@@ -78,8 +79,8 @@ export class PostgresHomepageContentStore implements HomepageContentStore {
   async getPublished(now = new Date()) {
     const row = await this.read()
     if (row.unpublishAt && row.unpublishAt <= now) return []
-    if (row.scheduledSections && row.publishAt && row.publishAt <= now) return row.scheduledSections
-    return row.publishedSections
+    if (row.scheduledSections && row.publishAt && row.publishAt <= now) return migrateSections(row.scheduledSections)
+    return migrateSections(row.publishedSections)
   }
 
   private async update(expectedRevision: number, values: Partial<StoredPage>) {
@@ -93,7 +94,7 @@ export class PostgresHomepageContentStore implements HomepageContentStore {
   }
 
   saveDraft({ sections, expectedRevision }: { sections: HomeSection[]; expectedRevision: number }) {
-    return this.update(expectedRevision, { draftSections: sections })
+    return this.update(expectedRevision, { draftSections: migrateSections(sections) })
   }
 
   async publish({ expectedRevision, unpublishAt = null }: { expectedRevision: number; unpublishAt?: Date | null }) {
@@ -125,8 +126,8 @@ export class InMemoryHomepageContentStore implements HomepageContentStore {
 
   async getPublished(now = new Date()) {
     if (this.row.unpublishAt && this.row.unpublishAt <= now) return []
-    if (this.row.scheduledSections && this.row.publishAt && this.row.publishAt <= now) return this.row.scheduledSections
-    return this.row.publishedSections
+    if (this.row.scheduledSections && this.row.publishAt && this.row.publishAt <= now) return migrateSections(this.row.scheduledSections)
+    return migrateSections(this.row.publishedSections)
   }
 
   private mutate(expectedRevision: number, values: Partial<StoredPage>) {
@@ -136,7 +137,7 @@ export class InMemoryHomepageContentStore implements HomepageContentStore {
   }
 
   async saveDraft({ sections, expectedRevision }: { sections: HomeSection[]; expectedRevision: number }) {
-    return this.mutate(expectedRevision, { draftSections: sections })
+    return this.mutate(expectedRevision, { draftSections: migrateSections(sections) })
   }
 
   async publish({ expectedRevision, unpublishAt = null }: { expectedRevision: number; unpublishAt?: Date | null }) {

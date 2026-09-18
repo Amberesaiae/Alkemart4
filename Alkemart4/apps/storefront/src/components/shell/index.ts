@@ -1,4 +1,3 @@
-export { CategoryMosaic } from "./CategoryMosaic"
 export { HomeLastOffers } from "./HomeLastOffers"
 export { HomeHowItWorks } from "./HomeHowItWorks"
 export { HomeDeliveryBand } from "./HomeDeliveryBand"

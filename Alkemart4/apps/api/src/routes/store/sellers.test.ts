@@ -107,3 +107,48 @@ describe("GET /store/sellers/:handle", () => {
     expect(res.status).toBe(404)
   })
 })
+
+describe("GET /store/sellers (stores index cards)", () => {
+  it("returns a card per open shop with honest empty trust fields", async () => {
+    const res = await shopApp().request("/store/sellers", {}, testEnv())
+    expect(res.status).toBe(200)
+    const body = (await res.json()) as {
+      sellers: Array<{
+        handle: string
+        ratingAvg: number | null
+        ratingCount: number
+        deliveryMinutes: number | null
+        badges: { id: string }[]
+        featured: unknown[]
+      }>
+    }
+    expect(body.sellers.length).toBeGreaterThan(0)
+    const a = body.sellers.find((s) => s.handle === "seller-a")
+    expect(a).toBeDefined()
+    // Nothing reviewed, nothing declared: the card says so by omission
+    // rather than rendering a zero rating or a default delivery promise.
+    expect(a!.ratingAvg).toBeNull()
+    expect(a!.ratingCount).toBe(0)
+    expect(a!.deliveryMinutes).toBeNull()
+    expect(a!.featured).toEqual([])
+  })
+
+  it("never invents a rating or a delivery band", async () => {
+    const res = await shopApp().request("/store/sellers", {}, testEnv())
+    const body = (await res.json()) as {
+      sellers: Array<{ ratingAvg: number | null; deliveryMinutes: number | null; badges: { id: string }[] }>
+    }
+    for (const s of body.sellers) {
+      expect(s.ratingAvg).toBeNull()
+      expect(s.deliveryMinutes).toBeNull()
+      expect(s.badges.map((b) => b.id)).not.toContain("top_rated")
+      expect(s.badges.map((b) => b.id)).not.toContain("fast_delivery")
+    }
+  })
+
+  it("keeps the legacy items alias so existing clients keep working", async () => {
+    const res = await shopApp().request("/store/sellers", {}, testEnv())
+    const body = (await res.json()) as { sellers: unknown[]; items: unknown[] }
+    expect(body.items).toEqual(body.sellers)
+  })
+})
