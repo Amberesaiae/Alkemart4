@@ -1,4 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router"
+import { useQuery } from "@tanstack/react-query"
+import { MerchEmpty } from "@workspace/ui"
+import { ProductCard } from "@/components/product/ProductCard"
+import { listStoreProducts } from "@/lib/products"
 
 export type SearchRouteSearch = {
   q?: string
@@ -10,21 +14,49 @@ export const Route = createFileRoute("/search")({
     q: typeof search.q === "string" ? search.q : undefined,
     deals: typeof search.deals === "string" ? search.deals : undefined,
   }),
-  component: SearchStub,
+  component: SearchPage,
 })
 
-function SearchStub() {
+function SearchPage() {
   const { q, deals } = Route.useSearch()
+  const productsQ = useQuery({
+    queryKey: ["store", "search", q, deals],
+    queryFn: () =>
+      listStoreProducts({
+        limit: 24,
+        q: q?.trim() || undefined,
+        sort: deals === "1" ? "newest" : undefined,
+      }),
+  })
+  const products = productsQ.data?.products ?? []
+
   return (
-    <div className="space-y-2">
-      <h1 className="text-2xl font-bold tracking-tight">Search</h1>
-      <p className="text-sm text-muted-foreground">
-        {deals === "1"
-          ? "Deals of the day — listings load on this surface when catalog is wired."
-          : q
-            ? `Looking for “${q}”.`
-            : "Find products with the best price across sellers."}
-      </p>
+    <div className="space-y-5">
+      <header className="space-y-1">
+        <h1 className="text-2xl font-bold tracking-tight">
+          {deals === "1" ? "Best offers" : q ? `Results for “${q}”` : "Search"}
+        </h1>
+        <p className="text-sm text-muted-foreground">
+          Find products with the best price across Ghana sellers.
+        </p>
+      </header>
+
+      {productsQ.isLoading ? <p className="text-sm text-muted-foreground">Searching…</p> : null}
+
+      {!productsQ.isLoading && products.length === 0 ? (
+        <MerchEmpty
+          title="No matching products"
+          body="Try another search. We do not fill this grid with unrelated catalogue."
+        />
+      ) : null}
+
+      {products.length > 0 ? (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+          {products.map((p) => (
+            <ProductCard key={p.id} product={p} />
+          ))}
+        </div>
+      ) : null}
     </div>
   )
 }
