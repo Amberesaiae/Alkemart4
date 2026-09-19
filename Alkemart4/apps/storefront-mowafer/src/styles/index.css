@@ -76,3 +76,29 @@ body {
   color: var(--foreground);
   -webkit-font-smoothing: antialiased;
 }
+
+.site-footer {
+  background: #3c3c3b;
+  color: #ffffff;
+}
+
+.footer-copy {
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.footer-muted {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.footer-link {
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.footer-link:hover {
+  color: #ffffff;
+}
+
+.panel-brands {
+  background: #5a5a5a;
+  color: #ffffff;
+}
