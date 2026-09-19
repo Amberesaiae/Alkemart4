@@ -14,8 +14,8 @@ export function StickyBuyBar({ amount, currencyCode, canAdd, pending, onAdd, cla
   return (
     <div
       className={cn(
-        "fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card/95 p-3 backdrop-blur md:hidden",
-        "pb-[max(0.75rem,env(safe-area-inset-bottom))]",
+        "fixed inset-x-0 bottom-14 z-40 border-t border-border bg-card/95 p-3 backdrop-blur md:hidden",
+        "mb-[env(safe-area-inset-bottom)]",
         className,
       )}
     >

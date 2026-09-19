@@ -11,6 +11,7 @@ import { Toaster } from "sonner"
 import { AppHeader } from "@/components/shell/AppHeader"
 import { AppFooter } from "@/components/shell/AppFooter"
 import { CategoryIconRail } from "@/components/shell/CategoryIconRail"
+import { BottomTabBar } from "@/components/shell/BottomTabBar"
 import { retrieveCart } from "@/lib/cart"
 import { getSessionCustomer, logout } from "@/lib/auth"
 import { listStoreCategories } from "@/lib/products"
@@ -111,12 +112,13 @@ function Shell() {
         }
       />
       {hideRail ? null : <CategoryIconRail categories={railCategories} />}
-      <main className="mx-auto w-full max-w-[1200px] flex-1 px-4 py-6 sm:px-6 sm:py-8">
+      <main className="mx-auto w-full max-w-[1200px] flex-1 px-4 py-6 pb-20 sm:px-6 sm:py-8 md:pb-8">
         <Outlet />
       </main>
       {isCheckout ? null : (
         <AppFooter categories={railCategories} sellUrl={getVendorAppUrl()} />
       )}
+      {isCheckout ? null : <BottomTabBar />}
       <Toaster richColors position="top-center" />
       <p className="sr-only">{brand.tagline}</p>
     </div>

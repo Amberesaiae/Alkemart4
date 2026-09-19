@@ -83,7 +83,7 @@ function ProductDetailPage() {
   }
 
   return (
-    <div className="space-y-8 pb-24 md:pb-8">
+    <div className="space-y-8 pb-28 md:pb-8">
       <Breadcrumbs
         items={[
           { label: "Home", href: "/" },
