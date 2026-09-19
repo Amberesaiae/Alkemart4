@@ -7,6 +7,7 @@ import {
   DropdownMenuSeparator,
   TooltipProvider,
 } from "@workspace/ui"
+import { Toaster } from "sonner"
 import { AppHeader } from "@/components/shell/AppHeader"
 import { AppFooter } from "@/components/shell/AppFooter"
 import { CategoryIconRail } from "@/components/shell/CategoryIconRail"
@@ -116,6 +117,7 @@ function Shell() {
       {isCheckout ? null : (
         <AppFooter categories={railCategories} sellUrl={getVendorAppUrl()} />
       )}
+      <Toaster richColors position="top-center" />
       <p className="sr-only">{brand.tagline}</p>
     </div>
   )
