@@ -1,6 +1,6 @@
 # Mowafer Behance → Alkemart clone pack
 
-**Status:** APPROVED 2026-09-19. Spec review complete; next artifact is the implementation plan.  
+**Status:** APPROVED 2026-09-19. Spec review complete. Implementation plan: [2026-09-19-mowafer-storefront-rebuild.md](../../superpowers/plans/2026-09-19-mowafer-storefront-rebuild.md). Lab app: `apps/storefront-mowafer` (port 5176). **Phase 7 (production cutover) is pending** — see `apps/storefront-mowafer/CUTOVER.md`.  
 **Decision locked:** document atomically first, then rebuild a separate foundational storefront. Do not keep patching the buggy current storefront as the clone surface.  
 **Stack target:** Vite + React + Tailwind + **shadcn/ui (New York)** + **Radix primitives** (already in monorepo via `@workspace/ui` and `apps/storefront/components.json`).
 
@@ -59,7 +59,7 @@ Boards live in [`boards/`](./boards/).
 1. Scaffold a **separate** foundational storefront at `apps/storefront-mowafer` (shares `@workspace/ui`, shared packages, API client). Production `apps/storefront` stays untouched until cutover.
 2. Implement **in this order:** tokens → chrome → home → PLP → PDP → cart/checkout → mobile shell.
 3. Each section must pass its acceptance checklist in the matching file before the next section starts.
-4. Cutover = swap deploy target / route traffic only after phase 6 acceptance; do not mix “fix while cloning” inside the live app.
+4. Cutover = swap deploy target / route traffic only after phase 6 acceptance; do not mix “fix while cloning” inside the live app. **Phase 7 pending** — production `apps/storefront` is untouched; checklist lives in [`apps/storefront-mowafer/CUTOVER.md`](../../../apps/storefront-mowafer/CUTOVER.md).
 
 ---
 
