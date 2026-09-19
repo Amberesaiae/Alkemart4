@@ -1,0 +1,78 @@
+@import "tailwindcss";
+@import "../../../../packages/ui/src/merchandising.css";
+@source "../";
+@source "../../../../packages/ui/src";
+
+@custom-variant dark (&:is(.dark *));
+
+/**
+ * Design tokens — Mowafer (docs/research/mowafer-behance-clone/02-design-tokens-and-primitives.md)
+ * Contract: gold/yellow is CTA only; no bg-primary/N washes.
+ */
+
+@theme inline {
+  --font-sans: "Montserrat", ui-sans-serif, system-ui, sans-serif;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-ring: var(--ring);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-dept-electronics: var(--dept-electronics);
+  --color-dept-food: var(--dept-food);
+  --color-dept-home-pet: var(--dept-home-pet);
+  --color-dept-beverages: var(--dept-beverages);
+  --color-dept-health: var(--dept-health);
+  --color-dept-baby: var(--dept-baby);
+}
+
+:root {
+  --primary: #febf31;
+  --primary-foreground: #000000;
+  --foreground: #3c3c3b;
+  --background: #ffffff;
+  --card: #ffffff;
+  --card-foreground: #3c3c3b;
+  --border: #e8e8e6;
+  --muted: #f5f5f5;
+  --muted-foreground: #5c5c5c;
+  --accent: #f5f5f5;
+  --accent-foreground: #3c3c3b;
+  --secondary: #f5f5f5;
+  --secondary-foreground: #3c3c3b;
+  --destructive: #dc2626;
+  --ring: #febf31;
+  --dept-electronics: #50d1c8;
+  --dept-food: #febf31;
+  --dept-home-pet: #f0295a;
+  --dept-beverages: #9ac63b;
+  --dept-health: #3c3c3b;
+  --dept-baby: #f5f5f5;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  background: var(--background);
+  color: var(--foreground);
+  -webkit-font-smoothing: antialiased;
+}

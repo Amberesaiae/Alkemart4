@@ -16,7 +16,8 @@
     "deploy:api": "bash -lc 'export NODE_OPTIONS=\"--dns-result-order=ipv4first${NODE_OPTIONS:+ $NODE_OPTIONS}\"; cd apps/api && wrangler deploy'",
     "deploy:pages": "bash scripts/deploy-pages.sh",
     "typecheck": "bun run --filter './apps/storefront' --filter './apps/api' --filter './scripts' typecheck",
-    "setup": "bun install"
+    "setup": "bun install",
+    "dev:storefront-mowafer": "bun run --filter @workspace/storefront-mowafer dev"
   },
   "private": true,
   "devDependencies": {
@@ -34,6 +35,7 @@
     "apps/backend/apps/admin",
     "apps/backend/apps/ghana-vendor",
     "apps/storefront",
+    "apps/storefront-mowafer",
     "packages/api-client",
     "packages/api-spec",
     "packages/db",
