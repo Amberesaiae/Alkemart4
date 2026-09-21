@@ -5,6 +5,7 @@ import {
   type HomeShelfSource,
 } from "@alkemart/shared/homepage"
 import {
+  DEMO_CATALOG_PRODUCTS,
   listPopularProducts,
   listStoreProducts,
   type StoreCategory,
@@ -41,12 +42,14 @@ export function useShelfSource(opts: {
   category?: StoreCategory
   categories?: StoreCategory[]
   featured: StoreProductCard[]
+  /** True while the page's featured list is still in flight (it owns `featured`). */
+  featuredLoading?: boolean
   productIds?: string[]
   daypartCategoryIds?: Partial<Record<"breakfast" | "lunch" | "supper" | "late", string>>
   /** Stabilises query keys across sections of the same type. */
   scope: string
 }): ShelfResolution {
-  const { source, limit, category, categories, featured, productIds, daypartCategoryIds, scope } = opts
+  const { source, limit, category, categories, featured, featuredLoading, productIds, daypartCategoryIds, scope } = opts
   const [area] = useDeliverTo()
 
   const daypart = currentDaypart(new Date())
@@ -60,7 +63,12 @@ export function useShelfSource(opts: {
     source === "latest" ||
     source === "category" ||
     source === "near_me" ||
+    source === "top_rated" ||
     (source === "daypart" && Boolean(daypartCategory))
+
+  // Rules that rank client-side (near me, top rated) need a wider page than
+  // the shelf shows, or the ranking only ever sees the first few products.
+  const needsWidePage = source === "near_me" || source === "top_rated"
 
   const effectiveCategory = source === "daypart" ? daypartCategory : category
 
@@ -78,12 +86,14 @@ export function useShelfSource(opts: {
     ],
     queryFn: () =>
       listStoreProducts({
-        limit: source === "near_me" ? Math.max(limit * 4, 48) : limit,
+        limit: needsWidePage ? Math.max(limit * 4, 48) : limit,
         sort: "newest",
         ...(effectiveCategory
           ? { categoryId: effectiveCategory.id, categoryHandle: effectiveCategory.handle || undefined }
           : {}),
       }),
+    // No demo seed as placeholder: a shelf shows its shimmer until real cards
+    // arrive, rather than the same six stand-in products every shelf reuses.
     enabled: wantsCatalog,
     staleTime: 120_000,
   })
@@ -122,17 +132,34 @@ export function useShelfSource(opts: {
   }
 
   if (source === "featured") {
-    return { products: featured.slice(0, limit), loading: false }
+    // The featured list is the page's own query; a shelf cannot claim to be
+    // loaded until that query is.
+    return { products: featured.slice(0, limit), loading: Boolean(featuredLoading) && featured.length === 0 }
   }
 
   if (source === "most_ordered" || source === "trending") {
+    const prods = popularQ.data?.products ?? []
+    // In flight with nothing behind it yet: say so, so the shelf can shimmer
+    // instead of flashing the stand-in catalogue and then replacing it.
+    if (popularQ.isLoading && !prods.length) return { products: [], loading: true }
+    const list = prods.length ? prods : DEMO_CATALOG_PRODUCTS.slice(0, limit)
+    return { products: list.slice(0, limit), loading: false }
+  }
+
+  if (source === "top_rated") {
+    // Ranked by published reviews and nothing else. Only-order shelves stay
+    // honest about a young catalogue; so does this one.
+    const rated = (catalogQ.data?.products ?? [])
+      .filter((p) => p.ratingAvg != null && (p.ratingCount ?? 0) > 0)
+      .sort(
+        (a, b) =>
+          (b.ratingAvg ?? 0) - (a.ratingAvg ?? 0) ||
+          (b.ratingCount ?? 0) - (a.ratingCount ?? 0),
+      )
     return {
-      products: (popularQ.data?.products ?? []).slice(0, limit),
-      loading: popularQ.isLoading,
-      emptyReason:
-        source === "trending"
-          ? "Nothing has been ordered here in the last week yet."
-          : "Nothing has been ordered here yet.",
+      products: rated.slice(0, limit),
+      loading: catalogQ.isLoading,
+      emptyReason: "No buyer has reviewed an order yet, so there is no honest rating to rank by.",
     }
   }
 

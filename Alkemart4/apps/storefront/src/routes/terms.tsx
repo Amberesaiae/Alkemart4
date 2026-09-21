@@ -42,7 +42,7 @@ function TermsPage() {
             <p className="text-xs font-bold uppercase tracking-[0.16em] opacity-70">
               Legal
             </p>
-            <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl">
+            <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
               Terms &amp; Conditions
             </h1>
             <p className="max-w-xl text-sm leading-relaxed opacity-80 sm:text-base">
@@ -379,9 +379,9 @@ function TermsSection(props: {
     >
       <h2
         id={`terms-${props.id}-title`}
-        className="flex items-baseline gap-2.5 text-lg font-extrabold tracking-tight text-foreground"
+        className="flex items-baseline gap-2.5 text-lg font-bold tracking-tight text-foreground"
       >
-        <span className="font-black text-primary">{props.n}</span>
+        <span className="font-bold text-primary">{props.n}</span>
         {props.t}
       </h2>
       <div className="mt-2.5 space-y-2.5 text-sm leading-relaxed text-muted-foreground [&_strong]:text-foreground">

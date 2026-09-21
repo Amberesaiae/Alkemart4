@@ -18,6 +18,15 @@ export type ProductCardDto = {
   /** ISO timestamp of product creation; null when the row predates the column. */
   createdAt: string | null
   currency: "ghs"
+  /**
+   * Mean of published review ratings for this product, and how many there are.
+   *
+   * Optional because the catalogue itself stores no ratings — the route that
+   * serves cards joins them in. Null/absent means "nobody has rated it yet",
+   * which is different from a zero and must render as nothing at all.
+   */
+  ratingAvg?: number | null
+  ratingCount?: number
 }
 
 export type ProductOptionTypeDto = {

@@ -1,8 +1,21 @@
-import type { HomeSection } from "@alkemart/shared/homepage"
+import type { HomeSection, HomeSectionType } from "@alkemart/shared/homepage"
 import { ArrowLeft } from "@phosphor-icons/react"
 import { useState } from "react"
 import { Button, Modal, cn } from "@workspace/ui"
-import { SECTION_TYPES, sectionAccents, sectionHints, sectionLabels, sectionPresets } from "./model"
+import { sectionAccents, sectionHints, sectionLabels, sectionPresets } from "./model"
+
+const LIBRARY_GROUPS: { title: string; hint: string; types: HomeSectionType[] }[] = [
+  {
+    title: "Campaigns",
+    hint: "Seasonal strips that sit after the plot.",
+    types: ["promo_hero", "promo_band", "countdown_banner", "marquee", "promo_grid"],
+  },
+  {
+    title: "Extra shelves",
+    hint: "Only if the plot is not enough. Rules beat picks.",
+    types: ["product_shelf", "deal_rail", "store_rail", "category_grid", "value_grid"],
+  },
+]
 
 /**
  * Section library dialog: every registered type, then presets for types that offer a
@@ -54,35 +67,45 @@ export function SectionLibrary({ open, disabled, title, onClose, onPick }: {
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-          {SECTION_TYPES.map((type) => {
-            const accent = sectionAccents[type]
-            const AccentIcon = accent.icon
-            const presets = sectionPresets[type]
-            return (
-              <button
-                key={type}
-                type="button"
-                disabled={disabled}
-                onClick={() => {
-                  if (presets.length === 1) pick(presets[0].build())
-                  else setPendingType(type)
-                }}
-                className="flex items-start gap-2.5 rounded-2xl border border-border p-3.5 text-left transition-shadow hover:border-foreground/30 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
-              >
-                <span className={cn("flex size-8 shrink-0 items-center justify-center rounded-xl", accent.chip)} aria-hidden="true">
-                  <AccentIcon className="h-4 w-4" />
-                </span>
-                <span className="min-w-0">
-                  <span className="block text-sm font-semibold">
-                    {sectionLabels[type]}
-                    {presets.length > 1 ? <span className="ml-1.5 font-normal text-muted-foreground">· {presets.length} presets</span> : null}
-                  </span>
-                  <span className="block text-xs leading-relaxed text-muted-foreground">{sectionHints[type]}</span>
-                </span>
-              </button>
-            )
-          })}
+        <div className="flex flex-col gap-5">
+          {LIBRARY_GROUPS.map((group) => (
+            <div key={group.title} className="flex flex-col gap-2">
+              <div>
+                <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">{group.title}</p>
+                <p className="text-xs text-muted-foreground">{group.hint}</p>
+              </div>
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                {group.types.map((type) => {
+                  const accent = sectionAccents[type]
+                  const AccentIcon = accent.icon
+                  const presets = sectionPresets[type]
+                  return (
+                    <button
+                      key={type}
+                      type="button"
+                      disabled={disabled}
+                      onClick={() => {
+                        if (presets.length === 1) pick(presets[0].build())
+                        else setPendingType(type)
+                      }}
+                      className="flex items-start gap-2.5 rounded-2xl border border-border p-3.5 text-left transition-shadow hover:border-foreground/30 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
+                    >
+                      <span className={cn("flex size-8 shrink-0 items-center justify-center rounded-xl", accent.chip)} aria-hidden="true">
+                        <AccentIcon className="h-4 w-4" />
+                      </span>
+                      <span className="min-w-0">
+                        <span className="block text-sm font-semibold">
+                          {sectionLabels[type]}
+                          {presets.length > 1 ? <span className="ml-1.5 font-normal text-muted-foreground">· {presets.length} presets</span> : null}
+                        </span>
+                        <span className="block text-xs leading-relaxed text-muted-foreground">{sectionHints[type]}</span>
+                      </span>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          ))}
         </div>
       )}
     </Modal>

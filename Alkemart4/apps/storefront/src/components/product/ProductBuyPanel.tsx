@@ -15,6 +15,9 @@ type Props = {
   success?: boolean
   errorMessage?: string | null
   onAdd: () => void
+  /** Hubtel pattern: Add → cart, Buy Now → straight to checkout. */
+  onBuyNow?: () => void
+  buyNowPending?: boolean
   sellerName?: string | null
   sellerHandle?: string | null
   /** Shown instead of "Currently unavailable" (e.g. paused-shop reason). */
@@ -24,7 +27,8 @@ type Props = {
 }
 
 /**
- * Mowafer buy panel — price, qty, primary cart CTA.
+ * Hubtel-mall buy box — price, stock, qty, Add to cart, Buy Now,
+ * seller card, delivery + secure-payments (Paystack: MoMo + cards).
  * Reused on desktop column and compact mobile blocks.
  */
 export function ProductBuyPanel({
@@ -37,6 +41,8 @@ export function ProductBuyPanel({
   success,
   errorMessage,
   onAdd,
+  onBuyNow,
+  buyNowPending,
   sellerName,
   sellerHandle,
   unavailableReason,
@@ -58,12 +64,12 @@ export function ProductBuyPanel({
         amount={lineAmount}
         currencyCode={currencyCode}
         size="lg"
-        className="text-2xl font-extrabold text-foreground"
+        className="text-2xl font-bold text-tone-brand-ink"
       />
 
       {canAdd ? (
-        <div className="flex items-center gap-2 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
-          <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
+        <div className="flex items-center gap-2 text-xs font-semibold text-tone-success-ink">
+          <span className="size-2 rounded-full bg-tone-success animate-pulse" />
           <span>In Stock · Cash on Delivery available</span>
         </div>
       ) : (
@@ -98,7 +104,7 @@ export function ProductBuyPanel({
         type="button"
         size="lg"
         className="min-h-12 w-full font-bold shadow-sm"
-        disabled={!canAdd || pending}
+        disabled={!canAdd || pending || buyNowPending}
         onClick={onAdd}
       >
         {pending
@@ -107,6 +113,19 @@ export function ProductBuyPanel({
             ? `Add ${quantity} to cart`
             : "Add to cart"}
       </Button>
+
+      {onBuyNow ? (
+        <Button
+          type="button"
+          size="lg"
+          variant="secondary"
+          className="min-h-11 w-full font-bold"
+          disabled={!canAdd || pending || buyNowPending}
+          onClick={onBuyNow}
+        >
+          {buyNowPending ? "Processing…" : "Buy now"}
+        </Button>
+      ) : null}
 
       <Button
         asChild
@@ -118,20 +137,46 @@ export function ProductBuyPanel({
       </Button>
 
       {sellerHandle ? (
-        <div className="pt-1 text-center">
-          <Link
-            to="/shops/$slug"
-            params={{ slug: sellerHandle }}
-            className="text-xs font-semibold text-muted-foreground hover:text-foreground underline underline-offset-2 transition-colors"
-          >
-            Sold by <span className="text-foreground font-bold">{sellerName ?? "seller"}</span>
-          </Link>
+        <div className="rounded-xl border border-border/60 bg-muted/30 p-3">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Sold by
+          </p>
+          <div className="mt-1 flex items-center justify-between gap-2">
+            <span className="min-w-0 truncate text-sm font-bold text-foreground">
+              {sellerName ?? "seller"}
+            </span>
+            <Link
+              to="/shops/$slug"
+              params={{ slug: sellerHandle }}
+              className="shrink-0 text-xs font-semibold underline underline-offset-2 transition-colors hover:text-primary"
+            >
+              Visit shop
+            </Link>
+          </div>
         </div>
       ) : null}
 
+      <div className="space-y-1.5 rounded-xl border border-border/60 p-3">
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          Secure payments via Paystack
+        </p>
+        <ul className="flex flex-wrap gap-1.5" aria-label="Accepted payment methods">
+          {["MTN MoMo", "Telecel Cash", "AirtelTigo", "Visa", "Mastercard"].map(
+            (m) => (
+              <li
+                key={m}
+                className="rounded-full border border-border bg-background px-2.5 py-1 text-[11px] font-semibold text-muted-foreground"
+              >
+                {m}
+              </li>
+            ),
+          )}
+        </ul>
+      </div>
+
       {success ? (
         <div
-          className="rounded-xl bg-emerald-50 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/40 p-3 text-center text-sm font-medium"
+          className="rounded-xl bg-tone-success-soft text-tone-success-ink border border-tone-success/40 p-3 text-center text-sm font-medium"
           aria-live="polite"
         >
           <Check size={14} weight="bold" aria-hidden className="mr-1 inline" /> Added to your cart!{" "}

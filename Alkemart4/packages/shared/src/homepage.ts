@@ -89,7 +89,7 @@ export type HomeSection =
       subtitle?: string
       columns: 2 | 3 | 4
       theme: HomeTheme
-      variant?: "cards" | "bento"
+      variant?: "cards" | "bento" | "walmart" | "editorial"
       tiles: HomeTile[]
     } & HomeVisibility
   | {
@@ -122,6 +122,8 @@ export type HomeSection =
       daypartCategoryIds?: Partial<Record<Daypart, string>>
       limit: 4 | 8 | 12
       layout?: "grid" | "carousel"
+      /** Renders the shelf's "View more" link to the shelf's own destination. */
+      showAllLink?: boolean
     } & HomeVisibility
   | {
       id: string
@@ -133,6 +135,22 @@ export type HomeSection =
       action?: HomeLink
       secondaryAction?: HomeLink
       theme: HomeTheme
+      /**
+       * `split` — copy beside a faint art wash (default).
+       * `cover` — full-bleed band creative with scrimmed overlay copy,
+       * for art that was made to be a band (wide promo photography).
+       */
+      layout?: "split" | "cover"
+      /** CSS object-position for the cover crop, e.g. "center" or "bottom". */
+      focalPoint?: string
+      /** Compact cover: shorter band, smaller display title. */
+      compact?: boolean
+      /**
+       * Cover scrim: `strong` (default) for busy photography, `soft` for
+       * mostly-clean art, `none` when the creative already leaves flat
+       * negative space for the copy — text straight on the art, Walmart-style.
+       */
+      scrim?: "strong" | "soft" | "none"
     } & HomeVisibility
   | ({
       id: string
@@ -171,6 +189,16 @@ export type HomeSection =
       limit: 4 | 8 | 12
       /** Optional clock in the section header. */
       countdownTo?: string
+      /**
+       * `rail` — one horizontal scroll of deal cards (flash sales).
+       * `tabs` — a department tab strip over a grid; switching a tab narrows
+       * the same deal set. This is the "Deals of the day" hub shape.
+       */
+      variant?: "rail" | "tabs"
+      /** A single campaign tile placed inside the grid, never a floating banner. */
+      promoTile?: HomeTile
+      /** Renders the section's "View more" link. */
+      showAllLink?: boolean
     } & HomeVisibility)
   | {
       id: string
@@ -196,6 +224,8 @@ export type HomeSection =
       sellerHandles?: string[]
       limit: 4 | 8 | 12
       layout?: "grid" | "carousel"
+      /** Renders the section's "View more" link to the stores index. */
+      showAllLink?: boolean
     } & HomeVisibility
 
 export type HomepageDocument = {
@@ -229,13 +259,20 @@ export const HOME_SHELF_SOURCES = [
   "trending",
   "daypart",
   "near_me",
+  "top_rated",
 ] as const
 
 export type HomeShelfSource = (typeof HOME_SHELF_SOURCES)[number]
 
 /** Sources that resolve from a rule rather than a person's picks. */
 export function isRuleSource(source: HomeShelfSource): boolean {
-  return source === "most_ordered" || source === "trending" || source === "daypart" || source === "near_me"
+  return (
+    source === "most_ordered" ||
+    source === "trending" ||
+    source === "daypart" ||
+    source === "near_me" ||
+    source === "top_rated"
+  )
 }
 
 /**
@@ -355,24 +392,146 @@ export function visibleSections(sections: HomeSection[], now: Date = new Date())
   return sections.filter((section) => isSectionVisible(section, now))
 }
 
+/**
+ * Buyer-facing department order: goods first, groceries last.
+ * Header rail, mosaic fill, and course mosaic all share this.
+ */
+export const MARKET_DEPARTMENT_ORDER = [
+  "phones-electronics",
+  "fashion-apparel",
+  "home-living",
+  "health-beauty",
+  "baby-kids",
+  "food-groceries",
+] as const
+
+const CAMPAIGN_TYPES = new Set<HomeSection["type"]>([
+  "promo_hero",
+  "promo_grid",
+  "promo_band",
+  "countdown_banner",
+  "marquee",
+])
+
+/**
+ * The published homepage is a marketing course, not a CMS dump.
+ *
+ * Beat order is fixed, and each beat has one job:
+ *
+ *   departments  art-led entry into the catalogue (mosaic)
+ *   decision     one featured shelf or published deal rail
+ *   campaign     one conversion message, never an adjacent stack of banners
+ *   proof        one product shelf backed by buyer behaviour
+ *   shops        the vendors behind the marketplace
+ *
+ * Delivery trust and seller acquisition are fixed storefront bands rendered
+ * after these managed beats. Studio owns their content inputs, not the public
+ * information architecture.
+ */
 export const DEFAULT_HOMEPAGE_SECTIONS: HomeSection[] = [
   {
-    id: "categories",
+    id: "departments",
     type: "category_grid",
-    title: "Shop by category",
-    subtitle: "Browse the departments buyers use most.",
+    title: "Shop by department",
+    subtitle: "Start with what you need",
     columns: 4,
     variant: "mosaic",
-    showAllLink: true,
     tiles: [],
   },
   {
-    id: "fresh-picks",
+    id: "featured",
     type: "product_shelf",
-    title: "Fresh picks",
-    subtitle: "Just landed from our sellers.",
+    title: "Featured today",
+    subtitle: "A focused selection from sellers across Ghana",
     source: "featured",
     limit: 8,
-    layout: "grid",
+    layout: "carousel",
+    showAllLink: true,
+  },
+  {
+    id: "deals-band",
+    type: "promo_band",
+    layout: "cover",
+    compact: true,
+    scrim: "none",
+    eyebrow: "This week",
+    title: "Deals worth a closer look",
+    body: "A short edit across tech, grooming and home.",
+    imageUrl: "/images/promos/band-deals.jpg",
+    action: { label: "Explore deals", href: "/categories/all" },
+    theme: "black",
+  },
+  {
+    id: "top-rated",
+    type: "product_shelf",
+    title: "Rated by buyers",
+    subtitle: "Products with earned marketplace feedback",
+    source: "top_rated",
+    limit: 8,
+    layout: "carousel",
+    showAllLink: true,
+  },
+  {
+    id: "shops",
+    type: "store_rail",
+    title: "Top Rated Shops",
+    subtitle: "Verified shops with the strongest buyer ratings",
+    source: "top_rated",
+    limit: 8,
+    layout: "carousel",
+    showAllLink: true,
   },
 ]
+
+export function composeMarketCourse(published: HomeSection[], now: Date = new Date()): HomeSection[] {
+  const live = visibleSections(published, now)
+  if (!live.length) {
+    return DEFAULT_HOMEPAGE_SECTIONS
+  }
+
+  const fallback = (id: string): HomeSection => {
+    const section = DEFAULT_HOMEPAGE_SECTIONS.find((s) => s.id === id)
+    if (!section) throw new Error(`no default section ${id}`)
+    return section
+  }
+
+  const shelves = live.filter(
+    (s): s is Extract<HomeSection, { type: "product_shelf" }> => s.type === "product_shelf",
+  )
+  const shelf = (id: string, source: HomeShelfSource) =>
+    shelves.find((s) => s.id === id) ?? shelves.find((s) => s.source === source)
+
+  // 1. Departments — the art-led entry. An admin's configured tile art and
+  //    captions survive; only the placement is fixed.
+  const catGrid = live.find((s): s is Extract<HomeSection, { type: "category_grid" }> => s.type === "category_grid")
+  const departments: HomeSection = catGrid
+    ? { ...catGrid, id: "departments", variant: "mosaic", columns: 4, tiles: catGrid.tiles ?? [] }
+    : fallback("departments")
+
+  // 2. Decision area — a published deal hub may replace, never stack with,
+  // the standard featured shelf.
+  const decision: HomeSection =
+    live.find((s): s is Extract<HomeSection, { type: "deal_rail" }> => s.type === "deal_rail")
+    ?? shelf("featured", "featured")
+    ?? fallback("featured")
+
+  // 3. Campaign — one live message only. When Studio has no campaign, keep
+  // the restrained default band so the course still has a conversion beat.
+  const campaign = live.find((section) => CAMPAIGN_TYPES.has(section.type))
+    ?? fallback("deals-band")
+
+  // 4. Product proof — behaviour-backed and distinct from the decision area.
+  const topRated = shelf("top-rated", "top_rated") ?? fallback("top-rated")
+
+  // 5. Shops — proof, from shop ratings.
+  const shops = live.find((s): s is Extract<HomeSection, { type: "store_rail" }> => s.type === "store_rail")
+    ?? fallback("shops")
+
+  return [
+    departments,
+    decision,
+    campaign,
+    topRated,
+    shops,
+  ]
+}

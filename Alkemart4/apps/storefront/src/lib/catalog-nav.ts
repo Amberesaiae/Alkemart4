@@ -5,6 +5,7 @@
  * only supply icon + mosaic art — never a parallel rename table for labels.
  */
 import { categoryArtFor } from "@alkemart/shared/category-art"
+import { MARKET_DEPARTMENT_ORDER } from "@alkemart/shared/homepage"
 import { categoryIconId, type IconId } from "@/design/icons"
 
 export type NavCategory = {
@@ -61,6 +62,7 @@ export const CATEGORY_META: Readonly<Record<string, CategoryMeta>> = {
   },
   "fashion-apparel": {
     icon: "cat-fashion",
+    mosaic: mosaic("fashion-apparel", false),
   },
   "home-living": {
     icon: "cat-home",
@@ -102,35 +104,47 @@ export type RailCategory = {
   name: string
   handle?: string | null
   icon: IconId
+  /** Circular photo chip art (Hubtel rail) — absent means glyph fallback. */
+  art?: string | null
   /** Direct children for header popdown (empty = link-only chip). */
   children: RailChild[]
 }
 
 /**
- * Preferred header order for Ghana marketplace departments.
- * Subcategories appear in each chip’s popdown, not as top-level chips.
+ * Header rail order: goods-first departments, the rest of the taxonomy in
+ * seed rank, then shoppable L2s. Hubtel-style long scrollable chip row —
+ * photo chip where RAIL_ART has an honest photo, glyph chip otherwise.
  */
-/** Exactly six header departments (popdowns carry subcats). */
 export const RAIL_DEPARTMENT_ORDER: readonly string[] = [
-  "phones-electronics",
-  "food-groceries",
-  "fashion-apparel",
-  "health-beauty",
-  "home-living",
-  "baby-kids",
-] as const
-
-/** Hard cap — do not append extra top-level depts to the rail. */
-export const RAIL_MAX = 6
-
-/** Handles kept out of the header rail (still browsable via All / search). */
-const RAIL_EXCLUDED = new Set([
-  "pet-care",
+  ...MARKET_DEPARTMENT_ORDER,
   "beverages",
+  "pet-care",
   "agriculture",
   "automotive",
   "services",
   "other",
+  "kids",
+  "phones",
+  "computing",
+  "tvs-audio",
+  "accessories",
+  "men",
+  "women",
+  "shoes",
+  "bags",
+  "staples",
+  "cooking-oil",
+  "snacks",
+]
+
+/** Hard cap — the rail scrolls, so it fits departments + standout L2s. */
+export const RAIL_MAX = 24
+
+/** Global chrome stays deliberately quiet: six department entries at most. */
+export const HEADER_CATEGORY_MAX = 6
+
+/** Handles kept out of the header rail (still browsable via All / search). */
+const RAIL_EXCLUDED = new Set<string>([
 ])
 
 function childrenOf(api: NavCategory[], parentId: string): RailChild[] {
@@ -144,34 +158,47 @@ function childrenOf(api: NavCategory[], parentId: string): RailChild[] {
     }))
 }
 
+/** Rail chip photography — inventoried promo art, one file per handle, never
+ *  shared with the mosaic or grids. Handles without an entry get the glyph
+ *  chip fallback (e.g. phones-electronics: no honest unused tech photo). */
+const RAIL_ART: Readonly<Record<string, string>> = {
+  "food-groceries": "/images/categories/rail-grocery.jpg",
+  "health-beauty": "/images/categories/rail-starface.jpg",
+  "baby-kids": "/images/categories/rail-bentgo.jpg",
+  "home-living": "/images/categories/rail-containers.jpg",
+  "fashion-apparel": "/images/categories/rail-crocs.jpg",
+  "agriculture": "/images/categories/rail-pumpkins.jpg",
+  "kids": "/images/categories/rail-kids-tee.jpg",
+  "pet-care": "/images/categories/pets.webp",
+}
+
 function toRailItem(cat: NavCategory, api: NavCategory[]): RailCategory {
+  const handle = (cat.handle || "").toLowerCase()
   return {
     id: cat.id,
     name: cat.name,
     handle: cat.handle ?? null,
     icon: iconForCategory(cat.name, cat.handle),
+    art: RAIL_ART[handle] ?? null,
     children: childrenOf(api, cat.id),
   }
 }
 
 /**
- * Department rail — top-level only, curated order, short list + children for popdowns.
- * Name always from API; icon from CATEGORY_META when known.
+ * Department rail — curated order across top-level AND standout L2s (Kids),
+ * short list + children for popdowns. Name always from API; art from
+ * RAIL_ART when an honest photo exists, glyph fallback otherwise.
  */
 export function resolveRailCategories(api: NavCategory[]): RailCategory[] {
   if (!api.length) return []
 
-  // Cloudflare list flattens the tree; rail chips are top-level only.
-  const top = api.filter(
-    (c) => c.id && c.name && (c.parentCategoryId == null || c.parentCategoryId === ""),
-  )
-  if (!top.length) return []
-
+  // Cloudflare list flattens the tree; L2 chips (Kids) resolve by handle.
   const byHandle = new Map(
-    top
-      .filter((c) => c.handle)
+    api
+      .filter((c) => c.id && c.name && c.handle)
       .map((c) => [(c.handle || "").toLowerCase(), c] as const),
   )
+  if (!byHandle.size) return []
 
   const out: RailCategory[] = []
   const used = new Set<string>()
@@ -184,8 +211,12 @@ export function resolveRailCategories(api: NavCategory[]): RailCategory[] {
     out.push(toRailItem(cat, api))
   }
 
-  // Do not append leftover top-level depts — keep the header at RAIL_MAX.
   return out.slice(0, RAIL_MAX)
+}
+
+/** Header context navigation is a compact projection of the richer in-page rail. */
+export function resolveHeaderCategories(api: NavCategory[]): RailCategory[] {
+  return resolveRailCategories(api).slice(0, HEADER_CATEGORY_MAX)
 }
 
 export type MosaicTile = {
@@ -205,10 +236,11 @@ export type MosaicTile = {
 export function resolveMosaicTiles(
   api: NavCategory[],
   order: readonly string[] = [
-    "pet-care",
+    "fashion-apparel",
     "food-groceries",
-    "health-beauty",
     "phones-electronics",
+    "health-beauty",
+    "pet-care",
   ],
 ): MosaicTile[] {
   if (!api.length) return []

@@ -1,81 +1,82 @@
-import { Link } from "@tanstack/react-router"
-import deliveryArt from "@/assets/illustrations/ecommerce-delivery-service.png"
-import { cn } from "@/lib/utils"
+import { MapPin, ShieldCheck, Storefront, Wallet } from "@phosphor-icons/react";
+import { cn } from "@/lib/utils";
 
 type Props = {
-  className?: string
-  title?: string
-  titleAccent?: string
-  body?: string
-  ctaLabel?: string
-}
+  className?: string;
+  title?: string;
+  titleAccent?: string;
+  body?: string;
+  ctaLabel?: string;
+};
 
 /**
- * Delivery band — mobile: single compact row (art | copy + CTA).
- * sm+: slightly roomier two-column strip.
+ * A deliberately quiet trust strip. It appears after the content-led sections,
+ * so the homepage never stacks one large promotional band on another.
  */
 export function HomeDeliveryBand({
   className,
-  title = "Delivery",
-  titleAccent = "across Ghana",
-  body = "Cash on delivery. Options confirmed at checkout.",
-  ctaLabel = "Shop",
+  title = "Shopping made clearer",
+  titleAccent: _titleAccent,
+  body: _body,
+  ctaLabel: _ctaLabel,
 }: Props) {
   return (
     <section
       className={cn(
-        "home-band home-band-dark relative overflow-hidden rounded-xl",
-        "px-3 py-3 sm:px-6 sm:py-5",
+        "border-y border-black/[0.09] px-1 py-5 sm:px-2",
         className,
       )}
       aria-labelledby="delivery-band-title"
     >
-      <div className="relative flex items-center gap-3 sm:gap-6">
-        {/* Art — small on mobile so it sits inline, not a second stack */}
-        <div
-          className={cn(
-            "flex shrink-0 items-center justify-center rounded-lg bg-white/10",
-            "size-14 sm:size-28 sm:rounded-xl",
-          )}
-          aria-hidden="true"
-        >
-          <img
-            src={deliveryArt}
-            alt=""
-            width={112}
-            height={112}
-            className="size-10 object-contain opacity-90 sm:size-20"
-            decoding="async"
-            loading="lazy"
-          />
-        </div>
-
-        <div className="min-w-0 flex-1 space-y-1 sm:max-w-lg sm:space-y-2.5">
-          <h2
-            id="delivery-band-title"
-            className="text-base font-extrabold leading-snug tracking-tight text-background sm:type-band"
-          >
-            {title}{" "}
-            <span className="text-primary">{titleAccent}</span>
-          </h2>
-          <p className="text-xs leading-snug text-background/75 sm:type-sm sm:text-base sm:leading-relaxed">
-            {body}
-          </p>
-          <Link
-            to="/categories/$slug"
-            params={{ slug: "all" }}
-            className={cn(
-              "inline-flex items-center rounded-full bg-primary font-bold text-primary-foreground",
-              "mt-1 h-9 min-h-9 px-3.5 text-xs",
-              "sm:mt-0 sm:h-11 sm:min-h-11 sm:px-5 sm:text-sm",
-              "transition hover:opacity-90",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-foreground",
-            )}
-          >
-            {ctaLabel}
-          </Link>
-        </div>
-      </div>
+      <h2 id="delivery-band-title" className="sr-only">
+        {title}
+      </h2>
+      <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <AssuranceFact
+          icon={<MapPin size={19} weight="duotone" />}
+          title="Across Ghana"
+          detail="Delivery coverage depends on your location"
+        />
+        <AssuranceFact
+          icon={<Wallet size={19} weight="duotone" />}
+          title="Flexible payment"
+          detail="Available options are shown at checkout"
+        />
+        <AssuranceFact
+          icon={<ShieldCheck size={19} weight="duotone" />}
+          title="Buyer protection"
+          detail="Order details are confirmed before checkout"
+        />
+        <AssuranceFact
+          icon={<Storefront size={19} weight="duotone" />}
+          title="Verified sellers"
+          detail="Shop from independent Ghanaian businesses"
+        />
+      </ul>
     </section>
-  )
+  );
+}
+
+function AssuranceFact({
+  icon,
+  title,
+  detail,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  detail: string;
+}) {
+  return (
+    <li className="flex min-w-0 items-start gap-2.5 px-1 py-1.5 text-foreground">
+      <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full border border-primary/25 text-primary">
+        {icon}
+      </span>
+      <span className="min-w-0">
+        <span className="block text-sm font-bold leading-snug">{title}</span>
+        <span className="mt-0.5 block text-xs leading-snug text-muted-foreground">
+          {detail}
+        </span>
+      </span>
+    </li>
+  );
 }

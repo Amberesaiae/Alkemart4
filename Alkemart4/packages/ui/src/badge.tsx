@@ -44,7 +44,7 @@ const badgeVariants = cva(
         outline: "border bg-transparent",
       },
       size: {
-        sm: "px-1.5 py-0.5 text-[0.6875rem] leading-[1.1]", // 11px — dense tables
+        sm: "px-1.5 py-0.5 text-xs leading-[1.1]", // 12px — canonical floor
         md: "px-2 py-1 text-xs leading-[1.1]", // 12px — cards, detail pages
       },
     },

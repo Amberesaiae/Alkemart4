@@ -5,7 +5,7 @@
  *   brand  → who we are (name, mark, wordmark)
  *   tokens → color, space, radius, layout, category accents
  *   icons  → IconSafe + category icon map
- *   shell  → AppHeader / CategoryIconRail / AppFooter / Container
+ *   shell  → AppHeader / CategoryReel / AppFooter / Container
  *   home   → mosaic, last offers, delivery, advertise
  *   commerce → ProductCard, listing, cart, checkout atoms
  */

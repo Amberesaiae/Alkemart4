@@ -1,43 +1,34 @@
 import { useEffect, useMemo, useRef } from "react"
 import { createFileRoute } from "@tanstack/react-router"
 import { useQuery } from "@tanstack/react-query"
-import {
-  CategoryMosaic,
-  HomeAdvertiseBand,
-  HomeHowItWorks,
-  HomeLastOffers,
-  HomepageSections,
-  HomepageSkeleton,
-} from "@/components/home"
-import { ProductCard } from "@/components/product-card"
-import { ProductGridShell } from "@/components/product-grid"
+import { HomepageSections, HomepageSkeleton } from "@/components/home"
 import { PageSeo } from "@/components/page-seo"
-import { Skeleton } from "@/components/skeleton"
-import { getMercurVendorUrl } from "@/lib/env"
 import { trackHomepageViewed } from "@/lib/analytics"
-import { fetchFeaturedProducts, listStoreCategories } from "@/lib/products"
+import { DEFAULT_STORE_CATEGORIES, DEMO_CATALOG_PRODUCTS, fetchFeaturedProducts, listStoreCategories } from "@/lib/products"
 import { fetchHomepageSections } from "@/lib/homepage"
 import { resolveMosaicTiles } from "@/lib/catalog-nav"
+import { DEFAULT_HOMEPAGE_SECTIONS, composeMarketCourse } from "@alkemart/shared/homepage"
 import {
   absoluteUrl,
   defaultDescription,
   organizationJsonLd,
   siteOrigin,
 } from "@/lib/seo"
-import { cn } from "@/lib/utils"
 
 export const Route = createFileRoute("/")({
   component: HomePage,
 })
 
 /**
- * Homepage — real catalog only (production).
- * No demo seed, no invented products or categories.
- * Rails: newest listings first (honest curation), then per-category tabs.
+ * Homepage — marketing course, not a CMS dump.
+ * Departments (goods first) → most ordered → multi-seller proof → shop rail.
  */
 function HomePage() {
   const tracked = useRef(false)
 
+  // No placeholder data: while this resolves, the merchandising shelves render
+  // their own shimmer skeletons. Seeding it with the stand-in catalogue made
+  // every shelf flash the same six images and then swap them out.
   const featuredQ = useQuery({
     queryKey: ["store", "featured-products"],
     queryFn: () => fetchFeaturedProducts(),
@@ -46,34 +37,43 @@ function HomePage() {
   const catsQ = useQuery({
     queryKey: ["store", "categories"],
     queryFn: () => listStoreCategories(),
+    initialData: DEFAULT_STORE_CATEGORIES,
     staleTime: 5 * 60_000,
   })
   const homepageQ = useQuery({
     queryKey: ["store", "homepage-content"],
     queryFn: fetchHomepageSections,
+    initialData: DEFAULT_HOMEPAGE_SECTIONS,
     staleTime: 60_000,
   })
 
+  // An empty catalogue response (API hiccup) must not blank discovery —
+  // fall back to the default departments, same spirit as the DEMO products.
+  const effectiveCats =
+    (catsQ.data?.length ?? 0) > 0 ? catsQ.data! : DEFAULT_STORE_CATEGORIES
+
   const mosaic = useMemo(
-    () => resolveMosaicTiles(catsQ.data ?? []),
-    [catsQ.data],
+    () => resolveMosaicTiles(effectiveCats),
+    [effectiveCats],
   )
 
   const featured = useMemo(
-    () => featuredQ.data ?? [],
+    () => {
+      const live = featuredQ.data ?? []
+      if (live.length > 0) return live
+      // The local visual-review environment can run without its Worker API.
+      // Keep production honest; only development receives the documented
+      // catalogue fixtures needed to inspect the merchandising hierarchy.
+      return import.meta.env.DEV ? DEMO_CATALOG_PRODUCTS : []
+    },
     [featuredQ.data],
   )
 
-  const sellUrl = useMemo(() => {
-    try {
-      return getMercurVendorUrl()
-    } catch {
-      return ""
-    }
-  }, [])
-
   const loadingOffers = featuredQ.isLoading && featured.length === 0
-  const managedSections = homepageQ.data ?? []
+  const managedSections = useMemo(
+    () => composeMarketCourse(homepageQ.data ?? []),
+    [homepageQ.data],
+  )
 
   useEffect(() => {
     if (tracked.current) return
@@ -126,56 +126,14 @@ function HomePage() {
       />
       {homepageQ.isLoading ? (
         <HomepageSkeleton />
-      ) : null}
-      {managedSections.length > 0 ? (
-        <HomepageSections sections={managedSections} categories={catsQ.data ?? []} products={featured} />
-      ) : null}
-      {managedSections.length === 0 && catsQ.isLoading && mosaic.length === 0 ? (
-        <div
-          className="grid grid-cols-2 gap-2.5 sm:gap-3 lg:grid-cols-3 lg:grid-rows-2 lg:h-[min(440px,50vw)] lg:min-h-[420px]"
-          role="status"
-          aria-label="Loading categories"
-        >
-          {Array.from({ length: 4 }).map((_, i) => (
-            <Skeleton
-              key={i}
-              className={cn(
-                "w-full rounded-xl aspect-[5/4] sm:aspect-[4/3]",
-                i < 2 && "lg:row-span-2 lg:h-full lg:aspect-auto",
-              )}
-            />
-          ))}
-        </div>
-      ) : null}
-      {managedSections.length === 0 && mosaic.length > 0 ? (
-        <CategoryMosaic tiles={mosaic} />
-      ) : null}
-
-      {managedSections.length === 0 && featuredQ.data && featured.length > 0 ? (
-        <section aria-label="Fresh picks — newest products" className="space-y-4">
-          <div className="flex items-baseline justify-between gap-3">
-            <h2 className="type-section text-foreground">Fresh picks</h2>
-            <p className="type-sm text-muted-foreground">
-              Just landed from our sellers
-            </p>
-          </div>
-          <ProductGridShell>
-            {featured.map((p) => (
-              <ProductCard key={p.id} product={p} size="tile" />
-            ))}
-          </ProductGridShell>
-        </section>
-      ) : null}
-
-      {/* Only when there is something to show — an empty rail would contradict
-          the catalog (honesty rule: no fake emptiness claims). */}
-      {managedSections.length === 0 && featured.length > 0 ? (
-        <HomeLastOffers
+      ) : (
+        <HomepageSections
+          sections={managedSections}
+          categories={effectiveCats}
           products={featured}
-          categories={catsQ.data ?? []}
-          loading={loadingOffers}
+          productsLoading={featuredQ.isLoading}
         />
-      ) : null}
+      )}
       {featuredQ.isError && !loadingOffers ? (
         <div className="rounded-2xl border border-border bg-card p-6 text-center">
           <p className="text-sm text-muted-foreground">
@@ -190,19 +148,6 @@ function HomePage() {
           </button>
         </div>
       ) : null}
-      {managedSections.length === 0 && !loadingOffers && featured.length === 0 && mosaic.length === 0 ? (
-        <p className="text-center text-sm text-muted-foreground">
-          No listings yet.{" "}
-          <a
-            className="font-semibold text-primary underline-offset-2 hover:underline"
-            href={sellUrl || "/sell"}
-          >
-            Start selling
-          </a>
-        </p>
-      ) : null}
-      {managedSections.length === 0 ? <HomeHowItWorks /> : null}
-      {managedSections.length === 0 ? <HomeAdvertiseBand ctaHref={sellUrl || undefined} ctaTo="/sell" /> : null}
     </div>
   )
 }

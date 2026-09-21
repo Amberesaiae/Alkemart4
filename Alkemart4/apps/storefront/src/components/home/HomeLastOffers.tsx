@@ -3,14 +3,13 @@ import { ProductCard } from "@/components/product-card"
 import { EmptyState } from "@/components/empty-state"
 import { LastOffersSkeleton } from "@/components/skeleton"
 import { ProductGridShell } from "@/components/product-grid"
-import { ViewMore } from "@/components/shell/ViewMore"
 import {
   LastOffersTabs,
   type OfferSort,
   type OfferTabId,
   type OfferView,
 } from "@/components/home/LastOffersTabs"
-import { filterOffersByTab, availableOfferTabs, sortOffers, tabSlug } from "@/lib/offer-filter"
+import { filterOffersByTab, availableOfferTabs, sortOffers } from "@/lib/offer-filter"
 import type { StoreProductCard } from "@/lib/products"
 import { cn } from "@/lib/utils"
 
@@ -22,8 +21,10 @@ type Props = {
 }
 
 /**
- * Last Offers — same 4-up product grid as PLP / search / store.
- * Tabs + sort only; no oversized hero hierarchy.
+ * Last Offers is the comparison layer beneath the editorial category mosaic.
+ * Every product therefore keeps the same footprint and information hierarchy:
+ * image, product name, seller, price, and trust signals. Visual emphasis comes
+ * from the products themselves, not from arbitrary card sizing.
  */
 export function HomeLastOffers({ products, categories, loading, className }: Props) {
   const [tab, setTab] = useState<OfferTabId | "all">("all")
@@ -67,22 +68,28 @@ export function HomeLastOffers({ products, categories, loading, className }: Pro
           {view === "list" ? (
             <div className="grid gap-2.5 sm:grid-cols-2">
               {visible.map((p) => (
-                <ProductCard key={p.id} product={p} size="row" />
+                <ProductCard
+                  key={p.id}
+                  product={p}
+                  size="row"
+                  hideSellerCount
+                />
               ))}
             </div>
           ) : (
-            <ProductGridShell>
-              {visible.map((p) => (
-                <ProductCard key={p.id} product={p} size="tile" />
+            <ProductGridShell className="lg:grid-cols-5 lg:gap-3">
+              {visible.map((product) => (
+                <ProductCard
+                  key={product.id}
+                  product={product}
+                  size="tile"
+                  hideSellerCount
+                  className="max-w-none"
+                />
               ))}
             </ProductGridShell>
           )}
 
-          <ViewMore
-            to="/categories/$slug"
-            params={{ slug: tabSlug(tab) }}
-            label="View more"
-          />
         </div>
       ) : null}
 
@@ -99,7 +106,13 @@ export function HomeLastOffers({ products, categories, loading, className }: Pro
             actionParams={tab === "all" ? { slug: "all" } : undefined}
           />
           {tab !== "all" ? (
-            <ViewMore label="Show all" onClick={() => setTab("all")} />
+            <button
+              type="button"
+              className="text-sm font-semibold text-tone-brand-ink underline-offset-4 hover:underline"
+              onClick={() => setTab("all")}
+            >
+              Show all offers
+            </button>
           ) : null}
         </div>
       ) : null}

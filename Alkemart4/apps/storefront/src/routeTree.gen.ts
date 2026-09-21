@@ -20,6 +20,7 @@ import { Route as PartnersRouteImport } from './routes/partners'
 import { Route as OrdersRouteImport } from './routes/orders'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as HelpRouteImport } from './routes/help'
+import { Route as DesignFoundationRouteImport } from './routes/design-foundation'
 import { Route as DeliveryRouteImport } from './routes/delivery'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as CheckoutRouteImport } from './routes/checkout'
@@ -92,6 +93,11 @@ const LoginRoute = LoginRouteImport.update({
 const HelpRoute = HelpRouteImport.update({
   id: '/help',
   path: '/help',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DesignFoundationRoute = DesignFoundationRouteImport.update({
+  id: '/design-foundation',
+  path: '/design-foundation',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DeliveryRoute = DeliveryRouteImport.update({
@@ -193,6 +199,7 @@ export interface FileRoutesByFullPath {
   '/checkout': typeof CheckoutRouteWithChildren
   '/contact': typeof ContactRoute
   '/delivery': typeof DeliveryRoute
+  '/design-foundation': typeof DesignFoundationRoute
   '/help': typeof HelpRoute
   '/login': typeof LoginRoute
   '/orders': typeof OrdersRoute
@@ -224,6 +231,7 @@ export interface FileRoutesByTo {
   '/checkout': typeof CheckoutRouteWithChildren
   '/contact': typeof ContactRoute
   '/delivery': typeof DeliveryRoute
+  '/design-foundation': typeof DesignFoundationRoute
   '/help': typeof HelpRoute
   '/login': typeof LoginRoute
   '/orders': typeof OrdersRoute
@@ -255,6 +263,7 @@ export interface FileRoutesById {
   '/checkout': typeof CheckoutRouteWithChildren
   '/contact': typeof ContactRoute
   '/delivery': typeof DeliveryRoute
+  '/design-foundation': typeof DesignFoundationRoute
   '/help': typeof HelpRoute
   '/login': typeof LoginRoute
   '/orders': typeof OrdersRoute
@@ -288,6 +297,7 @@ export interface FileRouteTypes {
     | '/checkout'
     | '/contact'
     | '/delivery'
+    | '/design-foundation'
     | '/help'
     | '/login'
     | '/orders'
@@ -319,6 +329,7 @@ export interface FileRouteTypes {
     | '/checkout'
     | '/contact'
     | '/delivery'
+    | '/design-foundation'
     | '/help'
     | '/login'
     | '/orders'
@@ -349,6 +360,7 @@ export interface FileRouteTypes {
     | '/checkout'
     | '/contact'
     | '/delivery'
+    | '/design-foundation'
     | '/help'
     | '/login'
     | '/orders'
@@ -381,6 +393,7 @@ export interface RootRouteChildren {
   CheckoutRoute: typeof CheckoutRouteWithChildren
   ContactRoute: typeof ContactRoute
   DeliveryRoute: typeof DeliveryRoute
+  DesignFoundationRoute: typeof DesignFoundationRoute
   HelpRoute: typeof HelpRoute
   LoginRoute: typeof LoginRoute
   OrdersRoute: typeof OrdersRoute
@@ -476,6 +489,13 @@ declare module '@tanstack/react-router' {
       path: '/help'
       fullPath: '/help'
       preLoaderRoute: typeof HelpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/design-foundation': {
+      id: '/design-foundation'
+      path: '/design-foundation'
+      fullPath: '/design-foundation'
+      preLoaderRoute: typeof DesignFoundationRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/delivery': {
@@ -663,6 +683,7 @@ const rootRouteChildren: RootRouteChildren = {
   CheckoutRoute: CheckoutRouteWithChildren,
   ContactRoute: ContactRoute,
   DeliveryRoute: DeliveryRoute,
+  DesignFoundationRoute: DesignFoundationRoute,
   HelpRoute: HelpRoute,
   LoginRoute: LoginRoute,
   OrdersRoute: OrdersRoute,

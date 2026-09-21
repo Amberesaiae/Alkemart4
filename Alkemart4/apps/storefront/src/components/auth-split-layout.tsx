@@ -43,7 +43,7 @@ export function AuthSplitLayout({
         <div className="relative z-10 px-10 pt-10 lg:px-12 lg:pt-12">
           <Link
             to="/"
-            className="text-2xl font-extrabold tracking-tight text-foreground"
+            className="text-2xl font-bold tracking-tight text-foreground"
           >
             alkemart<span className="text-primary">.</span>
           </Link>

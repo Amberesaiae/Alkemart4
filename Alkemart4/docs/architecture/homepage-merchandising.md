@@ -1,5 +1,9 @@
 # Homepage merchandising
 
+The storefront homepage is a **marketing course**, not a CMS dump: departments (goods first) → most ordered → multi-seller `from ¢X` proof → shop rail. Studio campaigns (hero, band, countdown) append after those beats. `composeMarketCourse()` in `@alkemart/shared/homepage` is what the public home renders.
+
+The mosaic is the only department story on home. The old sticky chip bar under search is gone; that chip style is an in-page **category reel** on browse and search. Shop cards on the store rail show the vendor's featured goods, not only the banner.
+
 The homepage is a constrained composition of reusable sections, managed from Admin → Homepage Studio.
 Motion and keyframes for these primitives live in `packages/ui/src/merchandising.css`, imported by every app stylesheet so the storefront and Studio preview animate identically.
 

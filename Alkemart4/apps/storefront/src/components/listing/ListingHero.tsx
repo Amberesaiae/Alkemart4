@@ -33,7 +33,7 @@ export function ListingHero({
       aria-label="Department intro"
     >
       <div className="max-w-lg space-y-2">
-        <h1 className="text-xl font-extrabold leading-tight tracking-tight text-foreground sm:text-2xl lg:text-3xl">
+        <h1 className="text-xl font-bold leading-tight tracking-tight text-foreground sm:text-2xl lg:text-3xl">
           {title}
         </h1>
         {body ? (
@@ -86,7 +86,9 @@ export function listingHeroArt(slug: string): string | null {
   if (/food|groc|agricult|bever|kitchen/.test(s))
     return "/images/categories/food-source.jpg"
   if (/beauty|personal|cosmetic|health|skin/.test(s))
-    return "/images/categories/cosmetics-source.jpg"
+    // NOTE: cosmetics-source.jpg is misfiled pet photography — serve the
+    // real cosmetics art so beauty listings never show a dog.
+    return "/images/categories/cosmetics.webp"
   if (/electron|phone|tech|gadget|comput/.test(s))
     return "/images/categories/electronics-source.jpg"
   return "/images/categories/electronics-source.jpg"

@@ -1,4 +1,4 @@
-import { CaretDown, MapPin } from "@phosphor-icons/react"
+import { CaretDown } from "@phosphor-icons/react"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,8 +12,8 @@ import { cn } from "@/lib/utils"
 /**
  * "Deliver to" — the buyer's browsing context.
  *
- * Sits beside search because where something is going changes what is worth
- * showing: which shops are near, which arrive soonest, which shelves apply.
+ * Lives in the quiet context row below search. Location affects discovery,
+ * but it must not interrupt the logo-to-search path in primary commerce chrome.
  *
  * Unset is a valid, quiet state. A marketplace that demands an address before
  * showing a single product loses the people who were only browsing, so this
@@ -28,20 +28,23 @@ export function DeliverToPicker({ className }: { className?: string }) {
         <button
           type="button"
           className={cn(
-            "flex min-h-11 shrink-0 items-center gap-1.5 rounded-full px-2.5 text-start",
-            "hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            "flex min-h-10 min-w-0 shrink items-center gap-1.5 rounded-full border border-transparent px-3 py-1 text-start transition",
+            "hover:border-border hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
             className,
           )}
           aria-label={area ? `Delivering to ${area}. Change area` : "Choose delivery area"}
         >
-          <MapPin size={18} weight={area ? "fill" : "regular"} className="shrink-0 text-muted-foreground" aria-hidden />
-          <span className="hidden min-w-0 flex-col leading-tight sm:flex">
-            <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
-              Deliver to
+          <span className="flex min-w-0 flex-col leading-tight">
+            <span className="hidden text-[0.65rem] font-bold uppercase tracking-[0.08em] text-muted-foreground sm:block">
+              Delivery area
             </span>
-            <span className="truncate text-xs font-bold">{area ?? "Set area"}</span>
+            <span className="flex min-w-0 items-center gap-1">
+              <span className="truncate text-sm font-black text-foreground">
+                {area ?? "Accra Central"}
+              </span>
+              <CaretDown size={12} weight="bold" className="shrink-0 text-muted-foreground" aria-hidden />
+            </span>
           </span>
-          <CaretDown size={12} weight="bold" className="hidden shrink-0 text-muted-foreground sm:block" aria-hidden />
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="max-h-80 min-w-[14rem] overflow-y-auto">

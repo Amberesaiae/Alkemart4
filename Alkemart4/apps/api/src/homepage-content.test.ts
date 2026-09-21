@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { categoryRatioOf, categoryTilesOf, currentDaypart, isRuleSource, migrateSections, visibleSections } from "@alkemart/shared/homepage"
+import { categoryRatioOf, categoryTilesOf, composeMarketCourse, currentDaypart, DEFAULT_HOMEPAGE_SECTIONS, isRuleSource, migrateSections, visibleSections } from "@alkemart/shared/homepage"
 import { ContentRevisionConflict, InMemoryHomepageContentStore } from "./homepage-content"
 
 describe("homepage content", () => {
@@ -66,6 +66,69 @@ describe("homepage content", () => {
       tiles: [{ categoryId: "food", imageUrl: "https://cdn.example/food.jpg", slot: "feature" as const }],
     }
     expect(categoryTilesOf(section).map((tile) => tile.categoryId)).toEqual(["food"])
+  })
+
+  it("composes the marketing course even when Studio published a CMS dump", () => {
+    const composed = composeMarketCourse([
+      { id: "categories", type: "category_grid", title: "Shop by category", columns: 4, variant: "mosaic", tiles: [] },
+      { id: "fresh-picks", type: "product_shelf", title: "Fresh picks", source: "featured", limit: 8 },
+      { id: "hero", type: "promo_hero", title: "Season", theme: "gold" },
+    ])
+    expect(composed.map((section) => section.id)).toEqual([
+      "departments",
+      "fresh-picks",
+      "hero",
+      "top-rated",
+      "shops",
+    ])
+    expect(composed[0]).toMatchObject({ id: "departments", tiles: [] })
+    // The published shelf becomes the featured beat rather than being dropped.
+    expect(composed[1]).toMatchObject({ id: "fresh-picks", source: "featured" })
+    // A campaign never leads the page: it sits after the decision area, and
+    // both proof beats still close it.
+    expect(composed[2]).toMatchObject({ type: "promo_hero" })
+    expect(composed[3]).toMatchObject({ source: "top_rated" })
+    expect(composed[4]).toMatchObject({ type: "store_rail" })
+  })
+
+  it("keeps the course beats in DEFAULT_HOMEPAGE_SECTIONS", () => {
+    expect(DEFAULT_HOMEPAGE_SECTIONS.map((section) => section.id)).toEqual([
+      "departments",
+      "featured",
+      "deals-band",
+      "top-rated",
+      "shops",
+    ])
+    const campaign = DEFAULT_HOMEPAGE_SECTIONS.find((section) => section.id === "deals-band")
+    expect(campaign).toMatchObject({ type: "promo_band", compact: true })
+  })
+
+  it("places a published deal rail and shop rail in their own beats", () => {
+    const composed = composeMarketCourse([
+      { id: "flash", type: "deal_rail", title: "Flash deal", source: "manual", limit: 4, variant: "rail" },
+      { id: "our-shops", type: "store_rail", title: "Our shops", source: "fastest", limit: 4 },
+    ])
+    expect(composed.map((section) => section.id)).toEqual([
+      "departments",
+      "flash",
+      "deals-band",
+      "top-rated",
+      "our-shops",
+    ])
+  })
+
+  it("does not let an extra Studio shelf escape the locked public course", () => {
+    const composed = composeMarketCourse([
+      { id: "second-shelf", type: "product_shelf", title: "Also good", source: "latest", limit: 8 },
+    ])
+    expect(composed.map((section) => section.id)).not.toContain("second-shelf")
+    expect(composed.map((section) => section.id)).toEqual([
+      "departments",
+      "featured",
+      "deals-band",
+      "top-rated",
+      "shops",
+    ])
   })
 
   it("classifies rule sources separately from curated picks", () => {

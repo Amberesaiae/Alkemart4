@@ -131,15 +131,21 @@ function StarGlyph() {
  * silent grey box; the shimmer says "coming" and holds the layout so nothing
  * shifts when the image lands.
  */
-export function StoreCardArt({ src, alt = "", fallback, className }: {
+export function StoreCardArt({ src, alt = "", fallback, className, shopName, categoryLabel }: {
   src?: string | null
   alt?: string
+  /** @deprecated pass `shopName` — a bare glyph reads as a broken image. */
   fallback?: ReactNode
   className?: string
+  /** Shop display name — drives the monogram when no art exists. */
+  shopName?: string | null
+  /** What the shop sells — grounded in a real fact, never invented. */
+  categoryLabel?: string | null
 }) {
   const [loaded, setLoaded] = useState(false)
+  const hasArt = Boolean(src)
   return (
-    <span className={cn("relative block w-full overflow-hidden bg-muted", className)}>
+    <span className={cn("relative block w-full overflow-hidden", !hasArt ? "shop-art-fallback" : "bg-muted", className)}>
       {src ? (
         <>
           {!loaded ? <span className="merch-shimmer absolute inset-0 z-0 block" aria-hidden /> : null}
@@ -159,12 +165,27 @@ export function StoreCardArt({ src, alt = "", fallback, className }: {
           />
         </>
       ) : (
-        <span className="absolute inset-0 z-0 flex items-center justify-center opacity-40" aria-hidden>
-          {fallback}
+        /* Designed fallback, same language as the product card's no-photo
+           tile: department tint, monogram, what the shop sells. A blank card
+           with a tiny glyph reads as broken; this reads as art direction. */
+        <span className="absolute inset-0 z-0 flex flex-col items-center justify-center gap-2 p-4 text-center" aria-hidden>
+          <span className="shop-art-monogram">{monogramOf(shopName)}</span>
+          {categoryLabel ? (
+            <span className="shop-art-word">{categoryLabel}</span>
+          ) : fallback ? (
+            <span className="opacity-40">{fallback}</span>
+          ) : null}
         </span>
       )}
     </span>
   )
+}
+
+function monogramOf(name?: string | null): string {
+  const clean = (name ?? "").trim()
+  if (!clean) return "#"
+  const words = clean.split(/\s+/).filter(Boolean).slice(0, 2)
+  return words.map((w) => w[0]!.toUpperCase()).join("")
 }
 
 /**

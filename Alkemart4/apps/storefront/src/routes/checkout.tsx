@@ -687,7 +687,7 @@ function CheckoutPage() {
                             Select MoMo Network
                           </span>
                           {autoDetectedProvider && (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-500/10 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-tone-success-soft text-xs font-semibold text-tone-success-ink border border-tone-success/40">
                               <Lightning className="h-3.5 w-3.5" /> Auto-detected
                             </span>
                           )}
@@ -739,8 +739,8 @@ function CheckoutPage() {
                                   <img src={net.logo} alt={net.name} className="h-12 w-auto max-w-full object-contain" />
                                 </div>
                                 <div className="space-y-0.5">
-                                  <span className="font-extrabold text-xs block text-foreground">{net.name}</span>
-                                  <span className="text-[10px] text-muted-foreground block font-mono">{net.prefixes}</span>
+                                  <span className="font-bold text-sm block text-foreground">{net.name}</span>
+                                  <span className="text-xs text-muted-foreground block font-mono">{net.prefixes}</span>
                                 </div>
                               </button>
                             )

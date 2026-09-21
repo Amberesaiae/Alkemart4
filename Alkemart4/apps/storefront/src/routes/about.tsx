@@ -93,7 +93,7 @@ function AboutPage() {
               <p className="text-xs font-bold uppercase tracking-[0.16em] text-muted-foreground">
                 About {brand.name}
               </p>
-              <h1 className="text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl lg:text-[2.75rem] lg:leading-[1.1]">
+              <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl lg:text-[2.75rem] lg:leading-[1.1]">
                 One market.
                 <span className="mt-1 block text-foreground">
                   Many sellers.{" "}
@@ -155,7 +155,7 @@ function AboutPage() {
         <section aria-labelledby="pillars-heading" className="space-y-6">
           <h2
             id="pillars-heading"
-            className="text-center text-xl font-extrabold tracking-tight sm:text-2xl"
+            className="text-center text-xl font-bold tracking-tight sm:text-2xl"
           >
             What makes alkemart different
           </h2>
@@ -188,7 +188,7 @@ function AboutPage() {
         >
           <h2
             id="how-heading"
-            className="text-xl font-extrabold tracking-tight sm:text-2xl"
+            className="text-xl font-bold tracking-tight sm:text-2xl"
           >
             How shopping works
           </h2>

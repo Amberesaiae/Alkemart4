@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 import { createApp } from "../../index"
 import { InMemoryCatalogRepository } from "../../catalog-repository"
+import { InMemoryCheckoutRepository } from "../../checkout-repository"
 import { snapshotFromJson, type JsonCatalogSnapshot } from "../../demo-seed"
 import fixture from "../../fixtures/multivendor-demo.json"
 
@@ -27,6 +28,37 @@ describe("GET /store/catalog", () => {
     expect(card.currency).toBe("ghs")
     expect(card).not.toHaveProperty("price")
     expect(card).not.toHaveProperty("pricePesewas")
+  })
+
+  it("joins published ratings onto cards and leaves unrated cards bare", async () => {
+    const data = snapshotFromJson(fixture as JsonCatalogSnapshot)
+    const checkoutRepo = new InMemoryCheckoutRepository()
+    const app = createApp({ repo: new InMemoryCatalogRepository(data), checkoutRepo })
+
+    const review = await checkoutRepo.createReview({
+      orderId: "order-1",
+      productId: "prod-tecno-spark",
+      sellerId: "seller-a",
+      buyerEmail: "buyer@example.com",
+      rating: 4,
+      title: null,
+      body: "Solid phone for the price.",
+    })
+    expect(review).not.toBeNull()
+    await checkoutRepo.updateReviewStatus(review!.id, "published")
+
+    const res = await app.request("/store/catalog")
+    const body = (await res.json()) as { items: Array<Record<string, unknown>> }
+    expect(body.items[0]).toMatchObject({ productId: "prod-tecno-spark", ratingAvg: 4, ratingCount: 1 })
+
+    // A hidden review is not a rating, and an unrated card carries no fields at
+    // all — never a zero, which buyers would read as a bad score.
+    await checkoutRepo.updateReviewStatus(review!.id, "hidden")
+    const again = (await (await app.request("/store/catalog")).json()) as {
+      items: Array<Record<string, unknown>>
+    }
+    expect(again.items[0]).not.toHaveProperty("ratingAvg")
+    expect(again.items[0]).not.toHaveProperty("ratingCount")
   })
 
   it("filters by category handle including descendants", async () => {

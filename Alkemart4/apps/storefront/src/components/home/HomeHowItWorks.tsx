@@ -84,7 +84,7 @@ export function HomeHowItWorks({
               <span
                 className={cn(
                   "absolute -left-1.5 -top-1.5 flex items-center justify-center rounded-full bg-primary",
-                  "size-6 text-xs font-extrabold text-primary-foreground sm:size-7 sm:text-sm",
+                  "size-6 text-xs font-bold text-primary-foreground sm:size-7 sm:text-sm",
                 )}
                 aria-hidden="true"
               >

@@ -126,7 +126,7 @@ export const SECTION_REGISTRY: Record<HomeSectionType, SectionModule> = {
     build: (id) => ({
       ...base(id),
       type: "category_grid",
-      title: "Shop by category",
+      title: "Shop the market",
       subtitle: "Browse the departments buyers use most.",
       columns: 4,
       variant: "mosaic",
@@ -180,9 +180,9 @@ export const SECTION_REGISTRY: Record<HomeSectionType, SectionModule> = {
     build: (id) => ({
       ...base(id),
       type: "product_shelf",
-      title: "Fresh picks",
-      subtitle: "Just landed from our sellers.",
-      source: "featured",
+      title: "Most ordered this week",
+      subtitle: "What buyers actually take home.",
+      source: "most_ordered",
       limit: 8,
       layout: "grid",
     }),

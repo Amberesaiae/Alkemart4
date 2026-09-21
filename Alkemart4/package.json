@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "bun run dev:workers",
     "dev:workers": "bash scripts/dev-workers.sh",
+    "restart": "bash scripts/restart-local.sh",
     "dev:api": "bun run --filter @alkemart/api dev",
     "dev:storefront": "bun run --filter @workspace/storefront dev",
     "dev:vendor": "bun run --filter @alkemart/ghana-vendor dev",

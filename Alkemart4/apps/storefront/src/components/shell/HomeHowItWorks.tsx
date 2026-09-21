@@ -73,7 +73,7 @@ export function HomeHowItWorks({
           >
             <div className="relative flex h-28 items-center justify-center bg-muted/50 sm:h-32">
               <span
-                className="absolute left-3 top-3 flex h-7 w-7 items-center justify-center rounded-full bg-primary text-sm font-extrabold text-primary-foreground"
+                className="absolute left-3 top-3 flex h-7 w-7 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground"
                 aria-hidden
               >
                 {i + 1}

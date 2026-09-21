@@ -27,6 +27,7 @@ export type ProductCardSize =
   | "hero"
   | "feature"
   | "row"
+  | "store"
   | "tile"
   | "md"
   | "sm"
@@ -39,10 +40,14 @@ type ProductCardProps = {
   className?: string
   density?: ProductCardDensity
   size?: ProductCardSize
+  /** Seller identity may be omitted when the surrounding section already names one shop. */
+  hideSeller?: boolean
+  /** Home editorial rails can suppress comparison metadata to keep cards quiet. */
+  hideSellerCount?: boolean
 }
 
 const shell =
-  "group overflow-hidden rounded-xl border border-border bg-card shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/45 hover:shadow-md"
+  "group overflow-hidden rounded-xl border border-black/[0.08] bg-card shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
 
 /** Stock states surfaced on the card — fewer dead-end add-to-cart clicks. */
 function stockState(product: StoreProductCard): "in" | "low" | "out" | "unknown" {
@@ -58,14 +63,16 @@ function stockState(product: StoreProductCard): "in" | "low" | "out" | "unknown"
  *
  * Surfaces the facts a Ghana marketplace buyer needs before clicking: which
  * shop sells it, what it costs, whether anyone has rated it, how many sellers
- * compete, what stock is left, and the "from" price when peer sellers exist.
- * Add-to-cart floats on the artwork, so the price never shares its row.
+ * compete, and what stock is left. Add-to-cart floats on the artwork, so the
+ * price never shares its row.
  */
 export function ProductCard({
   product,
   className,
   density = "comfortable",
   size = "tile",
+  hideSeller = false,
+  hideSellerCount = false,
 }: ProductCardProps) {
   const row = size === "row"
   const queryClient = useQueryClient()
@@ -78,7 +85,6 @@ export function ProductCard({
   const soldOut = stock === "out"
   const canAdd = Boolean(product.offerId) && !soldOut
   const detailId = product.handle?.trim() || product.id
-  const multiSeller = (product.offerCount ?? 0) > 1
 
   async function onAdd() {
     if (!product.offerId) {
@@ -122,24 +128,81 @@ export function ProductCard({
           className="aspect-square w-[30%] max-w-[112px] shrink-0"
         />
         <div className="flex min-w-0 flex-1 flex-col justify-center gap-1 p-2.5">
-          <CategoryLabel label={product.categoryLabel} />
           <Title product={product} detailId={detailId} />
-          <div className="flex min-w-0 items-center gap-1.5">
-            <SellerChip seller={product.seller} short className="line-clamp-1" />
-          </div>
-          <TrustRow product={product} />
+          {!hideSeller ? (
+            <div className="flex min-w-0 items-center gap-1.5">
+              <SellerChip seller={product.seller} short className="line-clamp-1" />
+            </div>
+          ) : null}
+          <TrustRow product={product} hideSellerCount={hideSellerCount} />
           <div className="flex items-center justify-between gap-2">
             <Price
               amount={product.amount}
               currencyCode={product.currencyCode}
               size="sm"
-              from={multiSeller}
-              className="font-bold"
+              className="min-w-0 truncate whitespace-nowrap font-bold"
             />
-            <div className="flex items-center gap-0.5">
+            <div className="flex shrink-0 items-center gap-0.5">
               <WishlistButton productId={product.id} size={14} />
               <AddToCartControl variant="icon" {...cart} />
             </div>
+          </div>
+          {error ? <ErrorLine message={error} /> : null}
+        </div>
+      </article>
+    )
+  }
+
+  if (size === "store") {
+    const rating = cardRating(product.ratingAvg, product.ratingCount)
+    return (
+      <article
+        className={cn(
+          "group flex h-full w-full flex-col transition-all duration-200 hover:-translate-y-0.5",
+          className,
+        )}
+      >
+        <Media
+          product={product}
+          detailId={detailId}
+          className="aspect-square w-full shrink-0 rounded-2xl overflow-hidden bg-[#F2F4F7] dark:bg-muted/40 ring-1 ring-black/[0.04]"
+          imageFit="cover"
+          stock={stock}
+          cart={cart}
+        />
+        <div className="flex flex-1 flex-col pt-2 pb-0.5 gap-[2px]">
+          <Link
+            to="/product/$id"
+            params={{ id: detailId }}
+            className="rounded-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1"
+          >
+            <p
+              title={product.title}
+              className="truncate text-sm font-semibold text-foreground transition-colors hover:underline dark:text-foreground"
+            >
+              {product.title}
+            </p>
+          </Link>
+          {!hideSeller && product.seller ? (
+            <p className="truncate text-xs text-muted-foreground">
+              {product.seller.name || product.seller.handle}
+            </p>
+          ) : null}
+          <div className="flex min-w-0 items-center justify-between gap-1">
+            <Price
+              amount={product.amount}
+              currencyCode={product.currencyCode}
+              size="sm"
+              className="min-w-0 truncate whitespace-nowrap text-sm font-bold tabular-nums text-tone-brand-ink"
+            />
+            {rating ? (
+              <span
+                className="inline-flex shrink-0 items-center gap-0.5 whitespace-nowrap text-xs tabular-nums text-muted-foreground"
+                aria-label={rating.label}
+              >
+                <span>★</span> <span className="font-bold text-foreground">{rating.value}</span> ({rating.count})
+              </span>
+            ) : null}
           </div>
           {error ? <ErrorLine message={error} /> : null}
         </div>
@@ -152,34 +215,34 @@ export function ProductCard({
      who sells it, what it costs, whether anyone trusts them. Add-to-cart
      floats on the image so the price row never has to share its width. */
   return (
-    <article className={cn(shell, "flex h-full flex-col", className)}>
+    <article className={cn(shell, "flex h-full w-full max-w-[240px] flex-col", className)}>
       <Media
         product={product}
         detailId={detailId}
         className="aspect-square w-full shrink-0"
-        showWish
         stock={stock}
         cart={cart}
         onQuickView={() => setQuickBuy(true)}
       />
       <div className="flex flex-1 flex-col gap-1 p-2 sm:p-2.5">
         <Title product={product} detailId={detailId} />
-        <div className="flex min-w-0 items-center gap-1.5">
-          <SellerChip
-            seller={product.seller}
-            short
-            className="line-clamp-1 type-sm"
-          />
-        </div>
+        {!hideSeller ? (
+          <div className="flex min-w-0 items-center gap-1.5">
+            <SellerChip
+              seller={product.seller}
+              short
+              className="line-clamp-1 type-sm"
+            />
+          </div>
+        ) : null}
         <div className="mt-auto flex flex-col gap-0.5 pt-1">
           <Price
             amount={product.amount}
             currencyCode={product.currencyCode}
             size="sm"
-            from={multiSeller}
-            className="min-w-0 truncate font-bold tabular-nums"
+            className="min-w-0 truncate font-bold tabular-nums text-tone-brand-ink"
           />
-          <TrustRow product={product} />
+          <TrustRow product={product} hideSellerCount={hideSellerCount} />
         </div>
         {error ? <ErrorLine message={error} /> : null}
       </div>
@@ -229,9 +292,11 @@ function Media(props: {
   cart?: CartControl
   /** When set, the artwork opens quick buy instead of navigating. */
   onQuickView?: () => void
+  imageFit?: "contain" | "cover"
 }) {
-  const { product, detailId, className, showWish, stock, cart, onQuickView } = props
+  const { product, detailId, className, showWish, stock, cart, onQuickView, imageFit } = props
   const [broken, setBroken] = useState(false)
+  const [loaded, setLoaded] = useState(false)
   const title = (product.title || "Product").trim()
   // Prefer processed webp derivatives; fall back to raw thumbnail/images/original
   const web = product.webUrl
@@ -242,22 +307,29 @@ function Media(props: {
     undefined
   const src = !broken ? (web ?? thumb ?? fallback) : undefined
   const inner = src ? (
-    <img
-      src={src}
-      srcSet={buildSrcSet(web, thumb, fallback)}
-      sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-      alt=""
-      onError={() => setBroken(true)}
-      className="h-full w-full object-contain p-2 transition duration-200 group-hover:scale-[1.03] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
-      loading="lazy"
-      decoding="async"
-    />
+    <>
+      {!loaded ? <span className="merch-shimmer absolute inset-0 z-0 block" aria-hidden /> : null}
+      <img
+        src={src}
+        srcSet={buildSrcSet(web, thumb, fallback)}
+        sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+        alt=""
+        onLoad={() => setLoaded(true)}
+        onError={() => setBroken(true)}
+        className={cn(
+          "relative z-[1] h-full w-full transition duration-200 group-hover:scale-[1.03] motion-reduce:transition-none motion-reduce:group-hover:scale-100",
+          imageFit === "contain" ? "object-contain" : "object-cover",
+          loaded ? "opacity-100" : "opacity-0",
+        )}
+        loading="lazy"
+        decoding="async"
+      />
+    </>
   ) : (
-    /* Designed no-photo tile: department tint + category glyph. Reads as
-       intentional art direction, never as a broken image. */
+    /* No photo: department glyph only. Caption lives under the art. */
     <div
       className={cn(
-        "cat-fallback flex h-full w-full flex-col items-center justify-center gap-1.5 p-3 text-center",
+        "cat-fallback flex h-full w-full items-center justify-center p-3",
         deptThemeClass(product.categoryLabel ?? "", product.categoryHandles?.[0]),
       )}
       aria-hidden="true"
@@ -265,11 +337,8 @@ function Media(props: {
       <span className="cat-fallback-glyph">
         <Icon
           name={iconForCategory(product.categoryLabel ?? "", product.categoryHandles?.[0])}
-          size={26}
+          size={28}
         />
-      </span>
-      <span className="cat-fallback-word line-clamp-2 font-semibold uppercase tracking-[0.14em]">
-        {product.categoryLabel?.trim() || title}
       </span>
     </div>
   )
@@ -282,7 +351,7 @@ function Media(props: {
      Browsing a marketplace is many small decisions, and a full page load
      between each one is the tax that stops it. */
   return (
-    <div className={cn("relative w-full overflow-hidden bg-muted/30", className)}>
+    <div className={cn("relative w-full overflow-hidden bg-white", className)}>
       {onQuickView ? (
         <button
           type="button"
@@ -308,29 +377,12 @@ function Media(props: {
           <StockBadge stock={stock} />
         </span>
       ) : null}
-      {showWish ? (
-        <span className="absolute left-2 top-2 z-10">
-          <WishlistButton productId={product.id} onMedia size={13} />
-        </span>
-      ) : null}
       {cart ? (
         <span className="absolute right-2 top-2 z-10">
           <AddToCartControl variant="icon" {...cart} />
         </span>
       ) : null}
     </div>
-  )
-}
-
-function CategoryLabel({ label }: { label?: string | null }) {
-  if (!label?.trim()) return null
-  return (
-    <p
-      className="eyebrow line-clamp-1 text-muted-foreground"
-      aria-label={`Category: ${label.trim()}`}
-    >
-      {label.trim()}
-    </p>
   )
 }
 
@@ -342,16 +394,22 @@ function CategoryLabel({ label }: { label?: string | null }) {
  * missing one, because it teaches buyers to discount every score on the
  * page. The whole row disappears when neither fact exists.
  */
-function TrustRow({ product }: { product: StoreProductCard }) {
+function TrustRow({
+  product,
+  hideSellerCount = false,
+}: {
+  product: StoreProductCard
+  hideSellerCount?: boolean
+}) {
   const rating = cardRating(product.ratingAvg, product.ratingCount)
-  const hint = sellersHintText(product.offerCount)
+  const hint = hideSellerCount ? null : sellersHintText(product.offerCount)
   if (!rating && !hint) return null
 
   return (
     <div className="flex min-w-0 items-center justify-between gap-2">
       {rating ? (
         <span
-          className="inline-flex shrink-0 items-center gap-1 type-sm tabular-nums text-muted-foreground"
+          className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap type-sm tabular-nums text-muted-foreground"
           aria-label={rating.label}
         >
           <StarGlyph />
@@ -398,7 +456,7 @@ function Title(props: {
     >
       <h3
         className={cn(
-          "line-clamp-2 min-h-[2.5rem] text-sm font-semibold leading-snug text-foreground",
+          "line-clamp-2 min-h-[2.75rem] text-[0.95rem] font-bold leading-snug text-foreground",
           props.className,
         )}
       >

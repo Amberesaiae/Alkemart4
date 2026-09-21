@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
+import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { useQuery } from "@tanstack/react-query"
 import { ProductCard } from "@/components/product-card"
 import { ProductGridShell } from "@/components/product-grid"
@@ -9,18 +9,13 @@ import { LoadMore } from "@/components/load-more"
 import { ProductGridSkeleton } from "@/components/skeleton"
 import {
   ListingAppliedFacets,
+  ListingFilterDropdown,
   ListingFilters,
-  ListingFilterStrip,
-  ListingHero,
   ListingLayout,
   appliedFacets,
   filterListingByPrice,
   filterListingByRating,
   filterListingBySellers,
-  listingHeroArt,
-  listingHeroTitle,
-  listingHeroAccent,
-  listingHeroBody,
   resetFacets,
   sortListingProducts,
   type ListingFacetState,
@@ -31,12 +26,7 @@ import { PageSeo } from "@/components/page-seo"
 import { listStoreCategories, listStoreProducts } from "@/lib/products"
 import { searchCatalog } from "@/lib/search"
 import { useCloudflareCatalog } from "@/lib/env"
-import {
-  resolveBrowseCategory,
-  resolveRailCategories,
-} from "@/lib/catalog-nav"
-import { deptThemeClass } from "@/lib/category-theme"
-import { cn } from "@/lib/utils"
+import { resolveBrowseCategory } from "@/lib/catalog-nav"
 
 export const Route = createFileRoute("/categories/$slug")({
   /**
@@ -126,8 +116,11 @@ function subCategoriesFor(category: {
 }
 
 /**
- * PLP — Mowafer imgi_11/12 composition.
- * Modules only: ListingHero · ListingFilterStrip · ListingFilters · ProductCard.
+ * PLP — foundational composition (MOWAFER reference).
+ * No hero image card, no category rail, no big filter bar.
+ * Left sidebar (Category + Sub-category + Sellers) on desktop;
+ * compact Filters dropdown on mobile. One URL-owned facet state.
+ * Modules only: ListingLayout · ListingFilters · ListingFilterDropdown · ProductCard.
  * No inline CSS.
  */
 function BrowsePage() {
@@ -136,22 +129,10 @@ function BrowsePage() {
   const search = Route.useSearch()
   const isAll = slug === "all" || slug === ""
   const [limit, setLimit] = useState(PAGE)
-  /** Collapsible PLP filters: open on desktop by default, closed on mobile; remember choice. */
-  const [filtersOpen, setFiltersOpen] = useState(() => {
-    if (typeof window === "undefined") return true
-    try {
-      const stored = sessionStorage.getItem("alkemart.plp.filtersOpen")
-      if (stored === "0") return false
-      if (stored === "1") return true
-    } catch {
-      /* private mode */
-    }
-    return window.matchMedia("(min-width: 1024px)").matches
-  })
   /** View mode is a presentation preference, not a facet — stays local. */
   const [viewMode, setViewMode] = useState<ListingViewMode>("grid")
 
-  /** The one facet state. Sidebar and strip both read and write this. */
+  /** The one facet state. Sidebar and dropdown both read and write this. */
   const facets: ListingFacetState = useMemo(
     () => ({
       sellerHandles: search.seller ?? [],
@@ -292,21 +273,12 @@ function BrowsePage() {
     ? (discoveryQ.data?.products ?? [])
     : (productsQ.data?.products ?? [])
 
-  /** Everything except rating — the base the rating counts are computed from. */
+  /** Everything except rating — the base the grid is computed from. */
   const beforeRating = useMemo(() => {
     let list = rawProducts
     if (!useMeili) list = filterListingBySellers(list, facets.sellerHandles)
     return filterListingByPrice(list, facets.priceMin, facets.priceMax)
   }, [rawProducts, useMeili, facets.sellerHandles, facets.priceMin, facets.priceMax])
-
-  /** Live per-bucket counts so the rating facet can hide dead ends. */
-  const ratingCounts = useMemo(() => {
-    const out: Record<number, number> = {}
-    for (const n of [1, 2, 3, 4, 5]) {
-      out[n] = filterListingByRating(beforeRating, n).length
-    }
-    return out
-  }, [beforeRating])
 
   const products = useMemo(
     () =>
@@ -345,18 +317,6 @@ function BrowsePage() {
     return [...map.values()].sort((a, b) => b.count - a.count)
   }, [rawProducts])
 
-  function toggleFilters() {
-    setFiltersOpen((v) => {
-      const next = !v
-      try {
-        sessionStorage.setItem("alkemart.plp.filtersOpen", next ? "1" : "0")
-      } catch {
-        /* private mode */
-      }
-      return next
-    })
-  }
-
   function applySort(next: ListingSort) {
     applyFacets({ ...facets, sort: next })
   }
@@ -377,10 +337,21 @@ function BrowsePage() {
   )
   const activeFilterCount = applied.length
 
-  const categories = resolveRailCategories(categoriesQ.data ?? [])
+  /**
+   * Sidebar departments — full top-level taxonomy from the API, rank-ordered.
+   * Deliberately NOT the 6-chip header rail (capped + excluded depts);
+   * the sidebar is the complete wayfinding surface like the reference.
+   */
+  const sidebarCategories = useMemo(
+    () =>
+      (categoriesQ.data ?? [])
+        .filter((c) => c.id && c.name && (c.parentCategoryId == null || c.parentCategoryId === ""))
+        .sort((a, b) => (a.rank ?? 0) - (b.rank ?? 0))
+        .map((c) => ({ id: c.id, name: c.name, handle: c.handle ?? null })),
+    [categoriesQ.data],
+  )
+
   const showMissing = missingCategory && !category
-  const heroSlug = isAll ? "all" : slug
-  const art = listingHeroArt(heroSlug)
 
   return (
     <>
@@ -412,29 +383,17 @@ function BrowsePage() {
             { label: "Home", to: "/" },
             { label: title },
           ]}
-          hero={
-            <ListingHero
-              title={listingHeroTitle(title, isAll)}
-              accent={listingHeroAccent(isAll)}
-              body={listingHeroBody(isAll, title)}
-              imageSrc={art}
-              imageAlt=""
-            />
-          }
-          filterStrip={
-            <ListingFilterStrip
+          filterDropdown={
+            <ListingFilterDropdown
               departmentLabel={isAll ? "Catalog" : title}
               subCategories={subCats}
-              className={deptThemeClass(isAll ? "All" : title, isAll ? null : slug)}
-              ratingCounts={ratingCounts}
+              sellers={sellerOpts}
               state={facets}
               onChange={applyFacets}
-              locationEnabled={false}
+              onClearAll={clearAllFacets}
+              activeCount={activeFilterCount}
             />
           }
-          filtersOpen={filtersOpen}
-          onToggleFilters={toggleFilters}
-          activeFilterCount={activeFilterCount}
           applied={
             <ListingAppliedFacets
               facets={applied}
@@ -449,37 +408,11 @@ function BrowsePage() {
           onSortChange={applySort}
           viewMode={viewMode}
           onViewModeChange={setViewMode}
-          toolbar={
-            categories.length > 0 ? (
-              <div className="scrollbar-none -mx-1 flex gap-2 overflow-x-auto px-1 pb-1 lg:hidden">
-                <Chip
-                  to="/categories/$slug"
-                  params={{ slug: "all" }}
-                  active={isAll}
-                >
-                  All
-                </Chip>
-                {categories.map((c) => {
-                  const s = c.handle || c.id
-                  return (
-                    <Chip
-                      key={c.id}
-                      to="/categories/$slug"
-                      params={{ slug: s }}
-                      active={slug === s}
-                    >
-                      {c.name}
-                    </Chip>
-                  )
-                })}
-              </div>
-            ) : null
-          }
           sidebar={
             <ListingFilters
               activeCategorySlug={isAll ? "all" : slug}
               departmentName={isAll ? "All" : title}
-              categories={categories}
+              categories={sidebarCategories}
               subCategories={subCats}
               sellers={sellerOpts}
               state={facets}
@@ -535,27 +468,5 @@ function BrowsePage() {
         </ListingLayout>
       )}
     </>
-  )
-}
-
-function Chip(props: {
-  to: "/categories/$slug"
-  params: { slug: string }
-  active?: boolean
-  children: React.ReactNode
-}) {
-  return (
-    <Link
-      to={props.to}
-      params={props.params}
-      className={cn(
-        "shrink-0 rounded-full px-3 py-1.5 type-sm font-semibold transition",
-        props.active
-          ? "bg-foreground text-background"
-          : "border border-border bg-card hover:border-primary",
-      )}
-    >
-      {props.children}
-    </Link>
   )
 }

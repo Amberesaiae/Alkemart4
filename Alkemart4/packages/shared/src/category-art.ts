@@ -17,20 +17,24 @@ export type CategoryArt = {
 
 export const CATEGORY_ART: Readonly<Record<string, CategoryArt>> = {
   "phones-electronics": {
-    photo: "/images/categories/electronics.webp",
+    photo: "/images/categories/generated/electronics-v3.webp",
     objectPos: "object-center",
   },
   "food-groceries": {
-    photo: "/images/categories/food.webp",
+    photo: "/images/categories/generated/groceries-v3.webp",
     objectPos: "object-center",
   },
   "health-beauty": {
-    photo: "/images/categories/cosmetics.webp",
-    objectPos: "object-[center_20%]",
+    photo: "/images/categories/generated/beauty-v3.webp",
+    objectPos: "object-center",
   },
   "pet-care": {
     photo: "/images/categories/pets.webp",
     objectPos: "object-[center_15%]",
+  },
+  "fashion-apparel": {
+    photo: "/images/categories/generated/fashion-v3.webp",
+    objectPos: "object-center",
   },
 }
 

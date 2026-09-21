@@ -44,13 +44,13 @@
 
   --font-sans: "Montserrat", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
     "Segoe UI", sans-serif;
-  /* Soft, modern radii */
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
-  --radius-xl: 20px;
-  --radius-2xl: 24px;
-  --radius-3xl: 32px;
+  /* Commerce radii: restrained by default; campaign art may opt into xl/2xl. */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 20px;
+  --radius-3xl: 24px;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -69,11 +69,11 @@
   --color-warning: #e89b00;
   --color-warning-fg: #8a5a00;
   --color-warning-foreground: #1f1e1b;
-  /* Warm-tinted shadow scale — depth with the ink's own hue, never gray-black */
-  --shadow-xs: 0 1px 2px 0 rgb(28 27 24 / 0.05);
-  --shadow-sm: 0 1px 3px 0 rgb(28 27 24 / 0.07), 0 1px 2px -1px rgb(28 27 24 / 0.06);
-  --shadow-md: 0 6px 16px -6px rgb(28 27 24 / 0.14), 0 2px 6px -2px rgb(28 27 24 / 0.08);
-  --shadow-lg: 0 16px 40px -16px rgb(28 27 24 / 0.22), 0 4px 12px -4px rgb(28 27 24 / 0.1);
+  /* Neutral ink-derived elevation. Cards stay quiet; menus and sticky panels lift. */
+  --shadow-xs: 0 1px 2px 0 rgb(60 60 59 / 0.05);
+  --shadow-sm: 0 2px 8px -3px rgb(60 60 59 / 0.14);
+  --shadow-md: 0 10px 28px -12px rgb(60 60 59 / 0.24), 0 2px 8px -4px rgb(60 60 59 / 0.12);
+  --shadow-lg: 0 22px 52px -22px rgb(60 60 59 / 0.32), 0 8px 18px -10px rgb(60 60 59 / 0.16);
 }
 
 :root {
@@ -121,26 +121,34 @@
    * Charcoal ink + premium-white paper + hero gold + neutral stone.
    * Every dark surface shares the ink's warm undertone so gold sits in
    * harmony instead of fighting a blue-slate cast. */
-  --primary: #ffc400;
+  --primary: #febf31;
   --primary-foreground: #000000;
-  --primary-strong: #e5a900;
+  --primary-strong: #d99a00;
   /* Charcoal ink — headings, dark bands, footer, sidebars */
-  --ink: #000000;
-  --ink-soft: #111111;
+  --ink: #3c3c3b;
+  --ink-soft: #292928;
   /* Premium white — a whisper of warmth at near-zero chroma, so it reads
    * as white paper, never as cream. */
   --background: #ffffff;
-  --foreground: #000000;
+  --foreground: #3c3c3b;
   /* Cards go pure white above the paper for crisp product presentation */
   --card: #ffffff;
-  --card-foreground: #000000;
-  --muted: #ffffff;
-  --muted-foreground: #666666;
-  --border: #e5e5e5;
+  --card-foreground: #3c3c3b;
+  --muted: #f5f5f3;
+  --muted-foreground: #666663;
+  --border: #e4e4e0;
   --destructive: #d64545;
   --ring: #e89b00;
-  --surface-soft: #ffffff;
-  --footer-bg: #000000;
+  --surface-soft: #f7f7f5;
+  --footer-bg: #292928;
+
+  /* Canonical composition rhythm. Components consume Tailwind equivalents;
+     these tokens document and support CSS-owned layouts. */
+  --space-control: 0.5rem;
+  --space-component: 1rem;
+  --space-section: 1.5rem;
+  --space-page-mobile: 2rem;
+  --space-page-desktop: 3rem;
 }
 
 ::selection {
@@ -181,9 +189,27 @@ body {
 }
 
 /**
- * Mowafer type roles (prefer these over ad-hoc text-xs / text-[10px]).
- * Floor is 14px (.type-sm).
+ * Canonical marketplace type scale — Montserrat throughout.
+ *  micro  10px/500/14px — ONE exception: the "Deliver to" kicker.
+ *  meta   12px/400/16px — ratings, counts, eyebrows, badges. The floor.
+ *  content 14px/400·500/20px — card titles, store names, prices, nav, body.
+ *  base   16px/400/24px — body.
+ *  h6     14px/700/20px — kickers, group labels.
+ *  h5     24px/700/36px — section titles.
+ *  h2     32px/700/48px — PDP / store titles (24px on small screens).
+ * Weights stop at 700 — Montserrat ships 400·500·600·700, anything heavier
+ * fakes it. Letter-spacing stays normal (no tight tracking).
+ * Never go below 12px except .deliver-to-kicker.
  */
+.type-meta {
+  font-size: 0.75rem; /* 12 */
+  line-height: 1.35;
+}
+.type-h6 {
+  font-size: 0.875rem; /* 14 */
+  line-height: 1.45;
+  font-weight: 700;
+}
 .type-sm {
   font-size: 0.875rem; /* 14 */
   line-height: 1.45;
@@ -197,25 +223,28 @@ body {
   line-height: 1.4;
 }
 .type-section {
-  font-size: 1.25rem;
-  line-height: 1.25;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-}
-@media (min-width: 640px) {
-  .type-section {
-    font-size: 1.5rem;
-  }
+  font-size: 1.5rem; /* 24 */
+  line-height: 1.5;
+  font-weight: 700;
+  letter-spacing: normal;
 }
 .type-band {
-  font-size: 1.25rem;
-  line-height: 1.2;
-  font-weight: 800;
+  font-size: 1.5rem; /* 24 */
+  line-height: 1.5;
+  font-weight: 700;
+  letter-spacing: normal;
+}
+/* PDP / store title: 32px/700/48px (24px on phones). */
+.type-pdp-title {
+  font-size: 1.75rem;
+  line-height: 1.25;
+  font-weight: 700;
   letter-spacing: -0.02em;
 }
 @media (min-width: 640px) {
-  .type-band {
-    font-size: 1.5rem;
+  .type-pdp-title {
+    font-size: 2.25rem;
+    line-height: 1.2;
   }
 }
 
@@ -332,28 +361,28 @@ html {
  * Never set backgroundColor via style={} in components.
  */
 .theme-dept-electronics {
-  --dept-bg: #2f8fbb;
-  --dept-fg: #ffffff;
-  --dept-soft: #eaf4f6;
-  --dept-ink: #287a9f;
+  --dept-bg: #66d1c8;
+  --dept-fg: #3c3c3b;
+  --dept-soft: #e9f8f6;
+  --dept-ink: #276f69;
 }
 .theme-dept-food {
-  --dept-bg: #FEBF31;
-  --dept-fg: #1f1e1b;
+  --dept-bg: #fcbf31;
+  --dept-fg: #3c3c3b;
   --dept-soft: #fffbeb;
-  --dept-ink: #936601;
+  --dept-ink: #825900;
 }
 .theme-dept-pet {
-  --dept-bg: #d9567b;
-  --dept-fg: #ffffff;
-  --dept-soft: #fae8ec;
-  --dept-ink: #d13360;
+  --dept-bg: #f03351;
+  --dept-fg: #000000;
+  --dept-soft: #fdebed;
+  --dept-ink: #bd1734;
 }
 .theme-dept-beverages {
-  --dept-bg: #7ca63c;
-  --dept-fg: #ffffff;
-  --dept-soft: #f1f4e3;
-  --dept-ink: #5c7c2d;
+  --dept-bg: #aace3b;
+  --dept-fg: #3c3c3b;
+  --dept-soft: #f3f8df;
+  --dept-ink: #587000;
 }
 .theme-dept-personal {
   --dept-bg: #a96a9e;
@@ -362,10 +391,10 @@ html {
   --dept-ink: #9b5a90;
 }
 .theme-dept-baby {
-  --dept-bg: #5b8fd9;
-  --dept-fg: #ffffff;
-  --dept-soft: #eaf0f9;
-  --dept-ink: #2f6fcb;
+  --dept-bg: #e7e4e3;
+  --dept-fg: #3c3c3b;
+  --dept-soft: #f6f5f4;
+  --dept-ink: #66605d;
 }
 .theme-dept-fashion {
   --dept-bg: #c4693b;
@@ -474,7 +503,7 @@ html {
   height: 5rem;
 }
 .cat-fallback-word {
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1.35;
   color: color-mix(in srgb, var(--dept-bg) 70%, var(--foreground));
   max-width: 90%;
@@ -620,4 +649,34 @@ html {
 .store-hero {
   background: linear-gradient(135deg, var(--ink-soft) 0%, var(--ink) 70%);
   color: var(--card);
+}
+
+/* ─── Shop-card no-art fallback ───
+ * Same language as the product card's no-photo tile: a department-neutral
+ * ink tint and a monogram, so a shop without a banner reads as art direction
+ * rather than as a broken image. Lives with the other primitives' styles
+ * because the Studio and vendor preview render the same card. */
+.shop-art-fallback {
+  background: linear-gradient(135deg, color-mix(in srgb, var(--ink) 8%, #ffffff), color-mix(in srgb, var(--ink) 3%, #ffffff));
+}
+.shop-art-monogram {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 9999px;
+  background-color: var(--ink);
+  color: #ffffff;
+  font-size: 1.125rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+.shop-art-word {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--ink) 55%, #ffffff);
+  max-width: 90%;
 }

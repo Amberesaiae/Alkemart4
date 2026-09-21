@@ -46,7 +46,7 @@ export function StudioProductCard({ product }: { product: PreviewProduct }) {
         <p className="truncate text-[11px] text-muted-foreground">
           {product.sellerName}
         </p>
-        <Price amount={pesewasToMajor(product.fromPricePesewas)} currency="GHS" size="sm" />
+        <Price amount={pesewasToMajor(product.fromPricePesewas)} currency="GHS" size="sm" className="font-extrabold text-[#FF3B30] dark:text-red-400" />
       </div>
     </div>
   )

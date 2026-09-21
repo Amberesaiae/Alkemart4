@@ -72,7 +72,7 @@ function CartPage() {
   return (
     <div className="space-y-6 pb-8">
       <header className="space-y-1">
-        <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">
+        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
           Cart
         </h1>
         <p className="text-sm text-muted-foreground">

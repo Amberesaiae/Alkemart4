@@ -169,7 +169,7 @@ function ShelfSourceFields({ section, categories, onChange }: {
  * list: having them in both places meant three interaction paths to the same
  * four operations. Delete stays here, next to the thing being deleted.
  */
-export function SectionEditor({ section, categories, headingRef, issues, position, onChange, onDelete, onUpload }: {
+export function SectionEditor({ section, categories, headingRef, issues, position, onChange, onDelete, onUpload, locked }: {
   section: HomeSection
   categories: Array<{ id: string; name: string }>
   headingRef: React.RefObject<HTMLHeadingElement | null>
@@ -179,6 +179,8 @@ export function SectionEditor({ section, categories, headingRef, issues, positio
   onChange: (section: HomeSection) => void
   onDelete: () => void
   onUpload?: (file: File) => Promise<string>
+  /** Plot beats cannot be deleted — hide them instead. */
+  locked?: boolean
 }) {
   const [confirmingDelete, setConfirmingDelete] = useState(false)
   useEffect(() => { setConfirmingDelete(false) }, [section.id])
@@ -422,7 +424,9 @@ export function SectionEditor({ section, categories, headingRef, issues, positio
       </CardContent>
       <CardFooter className="flex-col items-stretch gap-2">
         <Separator />
-        {confirmingDelete ? (
+        {locked ? (
+          <p className="text-xs text-muted-foreground">This beat is part of the homepage plot. Hide it from buyers instead of deleting it.</p>
+        ) : confirmingDelete ? (
           <div className="flex flex-col gap-2 rounded-2xl border border-tone-danger-ink/30 bg-tone-danger-soft p-3" role="alert">
             <p className="text-sm font-bold text-tone-danger-ink">Delete this section?</p>
             <div className="flex gap-2">

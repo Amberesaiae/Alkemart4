@@ -3,7 +3,7 @@ import { Link } from "@tanstack/react-router"
 export function SearchMicroHeader() {
   return (
     <header className="flex items-center justify-between px-4 py-3 sm:px-6">
-      <span className="text-xl font-extrabold tracking-tight text-foreground">
+      <span className="text-xl font-bold tracking-tight text-foreground">
         alkemart<span className="text-primary">.</span>
       </span>
       <Link

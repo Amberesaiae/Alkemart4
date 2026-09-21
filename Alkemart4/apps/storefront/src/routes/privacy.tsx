@@ -51,7 +51,7 @@ function PrivacyPage() {
             <p className="text-xs font-bold uppercase tracking-[0.16em] opacity-70">
               Legal
             </p>
-            <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl">
+            <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
               Privacy Policy
             </h1>
             <p className="max-w-xl text-sm leading-relaxed opacity-80 sm:text-base">
@@ -71,8 +71,8 @@ function PrivacyPage() {
               key={s.t}
               className="rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6"
             >
-              <h2 className="flex items-baseline gap-2.5 text-lg font-extrabold tracking-tight text-foreground">
-                <span className="font-black text-primary">{i + 1}</span>
+              <h2 className="flex items-baseline gap-2.5 text-lg font-bold tracking-tight text-foreground">
+                <span className="font-bold text-primary">{i + 1}</span>
                 {s.t}
               </h2>
               <p className="mt-2 text-sm leading-relaxed text-muted-foreground">

@@ -40,6 +40,35 @@ export {
   DropdownMenuRadioGroup,
 } from "./dropdown-menu"
 export { Modal, ModalTrigger, ModalClose } from "./modal"
+export {
+  Dialog,
+  DialogPortal,
+  DialogOverlay,
+  DialogTrigger,
+  DialogClose,
+  DialogContent,
+  DialogHeader,
+  DialogFooter,
+  DialogTitle,
+  DialogDescription,
+} from "./dialog"
+export {
+  Sheet,
+  SheetPortal,
+  SheetOverlay,
+  SheetTrigger,
+  SheetClose,
+  SheetContent,
+  SheetHeader,
+  SheetFooter,
+  SheetTitle,
+  SheetDescription,
+} from "./sheet"
+export { Slider } from "./slider"
+export { RadioGroup, RadioGroupItem } from "./radio-group"
+export { ToggleGroup, ToggleGroupItem, toggleGroupVariants } from "./toggle-group"
+export { ScrollArea, ScrollBar } from "./scroll-area"
+export { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "./tooltip"
 export { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "./table"
 export { Skeleton } from "./skeleton"
 export { Separator } from "./separator"

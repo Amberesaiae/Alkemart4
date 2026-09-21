@@ -132,7 +132,7 @@ function ContactPage() {
             <p className="text-xs font-bold uppercase tracking-[0.16em] text-muted-foreground">
               Contact
             </p>
-            <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl">
+            <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
               Contact Us
             </h1>
             <p className="text-base leading-relaxed text-muted-foreground sm:text-lg">
@@ -182,7 +182,7 @@ function ContactPage() {
           >
             <h2
               id="form-heading"
-              className="text-xl font-extrabold tracking-tight"
+              className="text-xl font-bold tracking-tight"
             >
               Send a message
             </h2>
@@ -282,7 +282,7 @@ function ContactPage() {
 
           <aside className="space-y-4">
             <div className="rounded-2xl border border-border bg-card p-6 shadow-xs sm:p-8">
-              <h2 className="text-lg font-extrabold tracking-tight">
+              <h2 className="text-lg font-bold tracking-tight">
                 Marketplace notes
               </h2>
               <ul className="mt-4 space-y-3 text-sm leading-relaxed text-muted-foreground">

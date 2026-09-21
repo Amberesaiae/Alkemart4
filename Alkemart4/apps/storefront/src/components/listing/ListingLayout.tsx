@@ -12,15 +12,22 @@ type Props = {
   loadingCount?: boolean
   crumbs?: Crumb[]
   breadcrumbLabel?: string
+  /** Compact filter dropdown rendered at the top — the only filter surface. */
+  filterDropdown?: ReactNode
+  /** @deprecated hero image card omitted — kept for call-site compat */
   hero?: ReactNode
+  /** @deprecated big filter bar omitted — kept for call-site compat */
   filterStrip?: ReactNode
   /** Removable applied-facet chips, shown directly above the grid. */
   applied?: ReactNode
-  sidebar: ReactNode
+  /** Category sidebar — Category + Sub-category + Sellers. Desktop only. */
+  sidebar?: ReactNode
+  /** @deprecated category rail omitted — kept for call-site compat */
   toolbar?: ReactNode
   children: ReactNode
-  filtersOpen: boolean
-  onToggleFilters: () => void
+  /** @deprecated no sidebar to toggle — kept for call-site compat */
+  filtersOpen?: boolean
+  onToggleFilters?: () => void
   activeFilterCount?: number
   sort?: ListingSort
   onSortChange?: (sort: ListingSort) => void
@@ -37,7 +44,12 @@ const SORT_OPTIONS: { value: ListingSort; label: string }[] = [
 ]
 
 /**
- * PLP chrome: count · Filters | Featured sort as chip grid · View right
+ * Foundational PLP chrome (MOWAFER reference):
+ * title · count · top bar (Filters dropdown on mobile + Sort + view) ·
+ * 2-column body (sidebar on lg+, grid content).
+ * No hero image card, no category rail, no big filter bar.
+ * Sidebar + mobile dropdown share one URL-owned ListingFacetState — no
+ * duplicate writers.
  */
 export function ListingLayout({
   title,
@@ -45,22 +57,16 @@ export function ListingLayout({
   loadingCount,
   crumbs,
   breadcrumbLabel,
-  hero,
-  filterStrip,
+  filterDropdown,
   applied,
   sidebar,
-  toolbar,
   children,
-  filtersOpen,
-  onToggleFilters,
-  activeFilterCount = 0,
   sort,
   onSortChange,
   viewMode,
   onViewModeChange,
   className,
 }: Props) {
-  const panelId = useId()
   const trail: Crumb[] =
     crumbs ??
     [
@@ -71,149 +77,98 @@ export function ListingLayout({
   const showSort = typeof sort === "string" && typeof onSortChange === "function"
   const showView =
     typeof viewMode === "string" && typeof onViewModeChange === "function"
+  const sortId = useId()
 
   return (
     <div className={cn("space-y-5", className)}>
       <Breadcrumbs items={trail} />
 
-      {hero}
-
-      <div className="space-y-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <p className="type-sm text-muted-foreground">
-            {!loadingCount && typeof count === "number"
-              ? `${count} product${count === 1 ? "" : "s"}`
-              : "\u00a0"}
-          </p>
-          <button
-            type="button"
-            className={cn(
-              "ms-auto inline-flex min-h-11 items-center gap-2 rounded-full border border-border bg-card px-4 py-2 type-sm font-semibold transition",
-              "hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
-              filtersOpen && "border-primary/40 bg-muted",
-            )}
-            aria-expanded={filtersOpen}
-            aria-controls={panelId}
-            onClick={onToggleFilters}
-          >
-            <span className="inline-flex items-center gap-1.5">
-              {filtersOpen ? "Hide filters" : "Filters"}
-              {activeFilterCount > 0 ? (
-                <span className="inline-flex min-w-[1.25rem] items-center justify-center rounded-full bg-primary px-1.5 py-0.5 text-[0.7rem] font-bold leading-none text-primary-foreground">
-                  {activeFilterCount}
-                  <span className="sr-only">
-                    {" "}
-                    active filter{activeFilterCount === 1 ? "" : "s"}
-                  </span>
-                </span>
-              ) : null}
-            </span>
-            <IconSafe
-              name="chevron-right"
-              size={16}
-              preferAsset={false}
-              className={cn(
-                "shrink-0 transition-transform duration-200",
-                filtersOpen ? "rotate-90" : "rotate-0",
-              )}
-            />
-          </button>
-        </div>
-
-        {/* Featured/sort as chip grid (left) · view toggles (right) */}
-        {showSort || showView ? (
-          <div className="flex items-start gap-2 sm:items-center">
-            {showSort ? (
-              <div
-                className="min-w-0 flex-1"
-                role="group"
-                aria-label="Sort products"
-              >
-                <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4">
-                  {SORT_OPTIONS.map((opt) => {
-                    const on = sort === opt.value
-                    return (
-                      <button
-                        key={opt.value}
-                        type="button"
-                        aria-pressed={on}
-                        onClick={() => onSortChange(opt.value)}
-                        className={cn(
-                          "min-h-10 rounded-full border px-2.5 py-2 text-center type-sm font-semibold transition",
-                          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
-                          on
-                            ? "border-primary bg-primary text-primary-foreground"
-                            : "border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground",
-                        )}
-                      >
-                        {opt.label}
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-            ) : null}
-
-            {showView ? (
-              <div
-                className="ms-auto inline-flex shrink-0 overflow-hidden rounded-full border border-border bg-card"
-                role="group"
-                aria-label="View mode"
-              >
-                <button
-                  type="button"
-                  aria-pressed={viewMode === "grid"}
-                  aria-label="Grid view"
-                  onClick={() => onViewModeChange("grid")}
-                  className={cn(
-                    "flex h-11 w-11 items-center justify-center transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary",
-                    viewMode === "grid"
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:bg-muted",
-                  )}
-                >
-                  <IconSafe name="filter-grid" size={18} />
-                </button>
-                <button
-                  type="button"
-                  aria-pressed={viewMode === "list"}
-                  aria-label="List view"
-                  onClick={() => onViewModeChange("list")}
-                  className={cn(
-                    "flex h-11 w-11 items-center justify-center border-l border-border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary",
-                    viewMode === "list"
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:bg-muted",
-                  )}
-                >
-                  <IconSafe name="filter-list" size={18} preferAsset={false} />
-                </button>
-              </div>
-            ) : null}
-          </div>
-        ) : null}
+      <div className="space-y-1">
+        <h1 className="text-xl font-bold leading-tight tracking-tight text-foreground sm:text-2xl">
+          {title}
+        </h1>
+        <p className="type-sm text-muted-foreground">
+          {!loadingCount && typeof count === "number"
+            ? `${count} product${count === 1 ? "" : "s"}`
+            : "\u00a0"}
+        </p>
       </div>
 
-      {toolbar}
+      <div className="flex flex-wrap items-center gap-2">
+        {filterDropdown ? (
+          <div className="lg:hidden">{filterDropdown}</div>
+        ) : null}
 
-      <div
-        id={panelId}
-        hidden={!filtersOpen}
-        className={cn("space-y-4", !filtersOpen && "hidden")}
-      >
-        {filterStrip}
+        {showSort ? (
+          <div className="inline-flex min-h-11 items-center gap-2 rounded-full border border-border bg-card px-4 py-2">
+            <label
+              htmlFor={sortId}
+              className="type-sm font-semibold text-muted-foreground"
+            >
+              Sort
+            </label>
+            <select
+              id={sortId}
+              value={sort}
+              onChange={(e) => onSortChange(e.target.value as ListingSort)}
+              className="bg-transparent type-sm font-semibold text-foreground outline-none"
+              aria-label="Sort products"
+            >
+              {SORT_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        ) : null}
+
+        {showView ? (
+          <div
+            className="ms-auto inline-flex shrink-0 overflow-hidden rounded-full border border-border bg-card"
+            role="group"
+            aria-label="View mode"
+          >
+            <button
+              type="button"
+              aria-pressed={viewMode === "grid"}
+              aria-label="Grid view"
+              onClick={() => onViewModeChange("grid")}
+              className={cn(
+                "flex h-11 w-11 items-center justify-center transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary",
+                viewMode === "grid"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:bg-muted",
+              )}
+            >
+              <IconSafe name="filter-grid" size={18} />
+            </button>
+            <button
+              type="button"
+              aria-pressed={viewMode === "list"}
+              aria-label="List view"
+              onClick={() => onViewModeChange("list")}
+              className={cn(
+                "flex h-11 w-11 items-center justify-center border-l border-border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary",
+                viewMode === "list"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:bg-muted",
+              )}
+            >
+              <IconSafe name="filter-list" size={18} preferAsset={false} />
+            </button>
+          </div>
+        ) : null}
       </div>
 
       <div
         className={cn(
           "grid gap-6",
-          filtersOpen ? "lg:grid-cols-[240px_1fr]" : "grid-cols-1",
+          sidebar ? "lg:grid-cols-[240px_minmax(0,1fr)]" : "grid-cols-1",
         )}
       >
-        {filtersOpen ? (
-          <div className="min-w-0" aria-labelledby={panelId}>
-            {sidebar}
-          </div>
+        {sidebar ? (
+          <div className="hidden min-w-0 lg:block">{sidebar}</div>
         ) : null}
         <div className="min-w-0 space-y-4">
           {applied}

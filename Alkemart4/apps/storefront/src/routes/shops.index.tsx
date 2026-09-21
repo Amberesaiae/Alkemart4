@@ -8,7 +8,7 @@ import {
   StoreCardFeaturedStrip,
   storeCardShell,
 } from "@workspace/ui"
-import { MagnifyingGlass, Storefront } from "@phosphor-icons/react"
+import { MagnifyingGlass } from "@phosphor-icons/react"
 import { listStoreVendors, type StoreVendor } from "@/lib/vendors"
 import { listStoreProducts } from "@/lib/products"
 import { EmptyState } from "@/components/empty-state"
@@ -252,8 +252,9 @@ function ShopCard({ shop }: { shop: StoreVendor }) {
       >
         <StoreCardArt
           src={shop.banner ?? shop.logo}
+          shopName={shop.name}
+          categoryLabel={shop.tagline}
           className="aspect-[16/9]"
-          fallback={<Storefront size={40} aria-hidden />}
         />
         <div className="flex flex-col gap-1.5 p-3.5 pb-3">
           <h2 className="truncate text-base font-bold tracking-tight">{shop.name}</h2>

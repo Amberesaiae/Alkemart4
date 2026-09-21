@@ -1,5 +1,5 @@
-import { useEffect, useState, type ReactNode } from "react"
-import { ArrowRight, Pause, Play } from "@phosphor-icons/react"
+import { useEffect, useState, useRef, useCallback, type ReactNode } from "react"
+import { ArrowRight, CaretLeft, CaretRight, Pause, Play } from "@phosphor-icons/react"
 import { countdownParts, timeRemaining } from "@alkemart/shared/homepage"
 import { cn } from "./cn"
 
@@ -27,8 +27,8 @@ export function MerchSectionHeader({ eyebrow, title, subtitle, action, align = "
   return (
     <div className={cn(align === "between" ? "flex items-end justify-between gap-3" : "space-y-1", className)}>
       <div className="min-w-0 space-y-1">
-        {eyebrow ? <p className="text-xs font-black uppercase tracking-[0.18em] opacity-60">{eyebrow}</p> : null}
-        <h2 className="text-2xl font-black tracking-tight">{title}</h2>
+        {eyebrow ? <p className="text-xs font-bold uppercase tracking-[0.18em] opacity-60">{eyebrow}</p> : null}
+        <h2 className="text-2xl font-bold">{title}</h2>
         {subtitle ? <p className="max-w-2xl text-sm leading-6 opacity-70">{subtitle}</p> : null}
       </div>
       {action ? <div className="shrink-0 text-sm font-bold">{action}</div> : null}
@@ -59,8 +59,8 @@ export function MerchPromoHero({ eyebrow, title, subtitle, body, imageUrl, actio
       <section className={cn("relative overflow-hidden rounded-3xl", themeClass(theme), compact ? "p-6" : "p-7 sm:p-10", className)}>
         {imageUrl ? <div className="absolute inset-0 bg-cover bg-center opacity-25" style={{ backgroundImage: `url(${imageUrl})` }} aria-hidden="true" /> : null}
         <div className="relative z-10 max-w-2xl">
-          {eyebrow ? <p className="mb-3 text-xs font-black uppercase tracking-[0.18em] opacity-65">{eyebrow}</p> : null}
-          <h2 className={cn("font-black leading-[1.02] tracking-tight", compact ? "text-2xl" : "text-3xl sm:text-4xl")}>{title}</h2>
+          {eyebrow ? <p className="mb-3 text-xs font-bold uppercase tracking-[0.18em] opacity-65">{eyebrow}</p> : null}
+          <h2 className={cn("font-bold leading-[1.02] tracking-tight", compact ? "text-2xl" : "text-3xl sm:text-4xl")}>{title}</h2>
           {subtitle ? <p className="mt-2 text-sm font-semibold opacity-80 sm:text-base">{subtitle}</p> : null}
           {body ? <p className="mt-3 max-w-xl text-sm leading-6 opacity-75">{body}</p> : null}
           {actionNode && interactive ? <a href={action!.href}>{actionNode}</a> : actionNode}
@@ -71,8 +71,8 @@ export function MerchPromoHero({ eyebrow, title, subtitle, body, imageUrl, actio
   return (
     <section className={cn("grid overflow-hidden rounded-3xl sm:grid-cols-2", compact ? "min-h-52" : "min-h-[300px]", themeClass(theme), className)}>
       <div className={cn("flex flex-col justify-center", compact ? "p-6" : "p-7 sm:p-10 lg:p-14")}>
-        {eyebrow ? <p className="mb-3 text-xs font-black uppercase tracking-[0.18em] opacity-65">{eyebrow}</p> : null}
-        <h2 className={cn("font-black leading-[1.02] tracking-tight", compact ? "text-2xl" : "text-3xl sm:text-4xl lg:text-5xl")}>{title}</h2>
+        {eyebrow ? <p className="mb-3 text-xs font-bold uppercase tracking-[0.18em] opacity-65">{eyebrow}</p> : null}
+        <h2 className={cn("font-bold leading-[1.02] tracking-tight", compact ? "text-2xl" : "text-3xl sm:text-4xl lg:text-5xl")}>{title}</h2>
         {subtitle ? <p className="mt-2 text-sm font-semibold opacity-80 sm:text-base">{subtitle}</p> : null}
         {body ? <p className="mt-4 max-w-lg text-sm leading-6 opacity-75 sm:text-base">{body}</p> : null}
         {actionNode && interactive ? <a href={action!.href}>{actionNode}</a> : actionNode}
@@ -88,32 +88,76 @@ export function MerchPromoGrid({ title, subtitle, eyebrow, columns, theme, varia
   eyebrow?: string
   columns: 2 | 3 | 4
   theme: MerchTheme
-  variant?: "cards" | "bento"
+  variant?: "cards" | "bento" | "walmart" | "editorial"
   tiles: Array<{ id: string; title: string; eyebrow?: string; body?: string; imageUrl?: string; href: string }>
   interactive?: boolean
   compact?: boolean
   className?: string
 }) {
-  const gridClass = variant === "bento"
-    ? "grid gap-3 sm:grid-cols-3"
-    : cn("grid gap-3", columns === 2 ? "sm:grid-cols-2" : columns === 3 ? "sm:grid-cols-3" : "grid-cols-2 lg:grid-cols-4")
+  const gridClass = variant === "walmart"
+    ? "grid gap-3.5 sm:grid-cols-2 lg:grid-cols-3"
+    : variant === "editorial"
+      ? "grid gap-3 sm:grid-cols-2 lg:grid-cols-3"
+      : variant === "bento"
+      ? "grid gap-3 sm:grid-cols-3"
+      : cn("grid gap-3", columns === 2 ? "sm:grid-cols-2" : columns === 3 ? "sm:grid-cols-3" : "grid-cols-2 lg:grid-cols-4")
   return (
     <section className={cn("space-y-4", className)}>
       {title || subtitle || eyebrow ? <MerchSectionHeader eyebrow={eyebrow} title={title ?? ""} subtitle={subtitle} /> : null}
       <div className={gridClass}>
         {tiles.map((tile, index) => {
+          if (variant === "editorial") {
+            // Editorial tile — Walmart pattern: art on top, display caption
+            // below on paper. No scrim, no overlay; the type scale (large
+            // bold headline + underlined shop link) is what carries it.
+            const editorial = (
+              <div className="group flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-card transition-all duration-200 hover:shadow-md">
+                <div className="relative aspect-[4/3] w-full overflow-hidden bg-black/5">
+                  {tile.imageUrl ? (
+                    <img
+                      src={tile.imageUrl}
+                      alt=""
+                      loading="lazy"
+                      decoding="async"
+                      draggable={false}
+                      className="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]"
+                    />
+                  ) : null}
+                </div>
+                <div className="flex flex-1 flex-col items-start gap-1 p-4 sm:p-5">
+                  {tile.eyebrow ? (
+                    <p className="text-xs font-bold uppercase tracking-[0.16em] text-muted-foreground">{tile.eyebrow}</p>
+                  ) : null}
+                  <p className="text-xl font-bold leading-tight text-foreground">{tile.title}</p>
+                  {tile.body ? <p className="mt-0.5 text-sm leading-6 text-muted-foreground">{tile.body}</p> : null}
+                  <span className="mt-1.5 text-sm font-bold text-foreground underline underline-offset-4">
+                    Shop now
+                  </span>
+                </div>
+              </div>
+            )
+            return interactive ? (
+              <a key={tile.id} href={tile.href}>{editorial}</a>
+            ) : (
+              <div key={tile.id}>{editorial}</div>
+            )
+          }
+          const isWalmartHero = variant === "walmart" && (index === 0 || index === tiles.length - 1)
           const card = (
             <div className={cn(
-              "group relative overflow-hidden rounded-2xl p-5",
-              compact ? "min-h-28" : variant === "bento" && index === 0 ? "min-h-64 sm:col-span-2 sm:row-span-2" : "min-h-52",
+              "group relative overflow-hidden rounded-2xl p-5 flex flex-col justify-end transition-all duration-300 shadow-2xs hover:shadow-md",
+              compact ? "min-h-28" : variant === "bento" && index === 0 ? "min-h-64 sm:col-span-2 sm:row-span-2" : isWalmartHero ? "min-h-[320px] lg:min-h-[360px]" : "min-h-52",
               themeClass(theme),
             )}>
-              <div className="absolute inset-0 bg-cover bg-center transition duration-300 group-hover:scale-[1.03]" style={tile.imageUrl ? { backgroundImage: `url(${tile.imageUrl})` } : undefined} />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/5 to-transparent" />
+              <div className="absolute inset-0 bg-cover bg-center transition duration-500 group-hover:scale-[1.04]" style={tile.imageUrl ? { backgroundImage: `url(${tile.imageUrl})` } : undefined} />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
               <div className="relative z-10 flex h-full flex-col justify-end text-white">
-                {tile.eyebrow ? <p className="text-[11px] font-black uppercase tracking-[0.16em] text-white/70">{tile.eyebrow}</p> : null}
-                <p className="text-xl font-black">{tile.title}</p>
-                {tile.body ? <p className="mt-1 text-sm text-white/80">{tile.body}</p> : null}
+                {tile.eyebrow ? <p className="text-xs font-bold uppercase tracking-[0.16em] text-primary">{tile.eyebrow}</p> : null}
+                <p className={cn("font-bold", isWalmartHero ? "text-2xl sm:text-3xl" : "text-xl")}>{tile.title}</p>
+                {tile.body ? <p className="mt-1 text-sm text-white/80 line-clamp-2">{tile.body}</p> : null}
+                <span className="mt-3 inline-flex items-center gap-1 text-xs font-bold text-primary underline-offset-2 group-hover:underline">
+                  Shop now &rarr;
+                </span>
               </div>
             </div>
           )
@@ -129,7 +173,7 @@ export function MerchPromoGrid({ title, subtitle, eyebrow, columns, theme, varia
  * code-defined `HomeAdvertiseBand`. Same visual job (compact CTA strip),
  * but admin-configurable with theme + primary/secondary actions.
  */
-export function MerchPromoBand({ eyebrow, title, body, imageUrl, action, secondaryAction, theme, interactive = true, compact = false, className }: {
+export function MerchPromoBand({ eyebrow, title, body, imageUrl, action, secondaryAction, theme, layout = "split", focalPoint, interactive = true, compact = false, scrim = "strong", className }: {
   eyebrow?: string
   title: string
   body?: string
@@ -137,8 +181,14 @@ export function MerchPromoBand({ eyebrow, title, body, imageUrl, action, seconda
   action?: { label: string; href: string }
   secondaryAction?: { label: string; href: string }
   theme: MerchTheme
+  /** `cover` renders band-made art full-bleed with scrimmed overlay copy. */
+  layout?: "split" | "cover"
+  /** CSS object-position for the cover crop. */
+  focalPoint?: string
   interactive?: boolean
   compact?: boolean
+  /** Cover scrim strength — `none` for art with flat space for copy. */
+  scrim?: "strong" | "soft" | "none"
   className?: string
 }) {
   const primary = action ? (
@@ -149,13 +199,57 @@ export function MerchPromoBand({ eyebrow, title, body, imageUrl, action, seconda
   const secondary = secondaryAction ? (
     <span className="text-sm font-bold underline underline-offset-2">{secondaryAction.label}</span>
   ) : null
+  if (layout === "cover" && imageUrl) {
+    return (
+      <section className={cn("relative overflow-hidden rounded-2xl", className)} aria-label={title}>
+        <img
+          src={imageUrl}
+          alt=""
+          aria-hidden="true"
+          loading="lazy"
+          decoding="async"
+          className="absolute inset-0 h-full w-full object-cover"
+          style={focalPoint ? { objectPosition: focalPoint } : undefined}
+        />
+        <div
+          className={cn(
+            "absolute inset-0",
+            scrim === "none"
+              ? ""
+              : scrim === "soft"
+                ? "bg-gradient-to-r from-black/40 via-transparent to-transparent"
+                : "bg-gradient-to-r from-black/65 via-black/25 to-transparent",
+          )}
+          aria-hidden="true"
+        />
+        <div className={cn(
+          "relative flex max-w-xl flex-col items-start justify-center gap-2",
+          compact ? "min-h-32 p-5 sm:min-h-40 sm:p-6" : "min-h-44 p-6 sm:min-h-52 sm:p-8",
+        )}>
+          {eyebrow ? <p className="text-xs font-bold uppercase tracking-[0.18em] text-primary">{eyebrow}</p> : null}
+          <h2 className={cn("font-bold leading-tight text-white", compact ? "text-xl sm:text-2xl" : "text-2xl sm:text-3xl")}>{title}</h2>
+          {body ? <p className="max-w-md text-sm leading-6 text-white/80">{body}</p> : null}
+          {action || secondaryAction ? (
+            <div className="mt-1 flex flex-wrap items-center gap-4">
+              {primary && interactive && action ? <a href={action.href}>{primary}</a> : primary}
+              {secondary && interactive && secondaryAction ? (
+                <a href={secondaryAction.href} className="text-white">{secondary}</a>
+              ) : (
+                <span className="text-white">{secondary}</span>
+              )}
+            </div>
+          ) : null}
+        </div>
+      </section>
+    )
+  }
   return (
     <section className={cn("relative overflow-hidden rounded-2xl", themeClass(theme), compact ? "px-5 py-5" : "px-6 py-6 sm:px-8", className)} aria-label={title}>
       {imageUrl ? <div className="absolute inset-0 bg-cover bg-center opacity-20" style={{ backgroundImage: `url(${imageUrl})` }} aria-hidden="true" /> : null}
       <div className="relative flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
         <div className="min-w-0 space-y-1">
-          {eyebrow ? <p className="text-xs font-black uppercase tracking-[0.18em] opacity-65">{eyebrow}</p> : null}
-          <h2 className="text-xl font-black tracking-tight sm:text-2xl">{title}</h2>
+          {eyebrow ? <p className="text-xs font-bold uppercase tracking-[0.18em] opacity-65">{eyebrow}</p> : null}
+          <h2 className="text-xl font-bold sm:text-2xl">{title}</h2>
           {body ? <p className="max-w-xl text-sm leading-6 opacity-75">{body}</p> : null}
         </div>
         <div className="flex shrink-0 flex-wrap items-center gap-4">
@@ -243,6 +337,13 @@ export function MerchCategoryTileBody({ label, badge, imageUrl, focalPoint, imag
   ratio?: MerchCategoryRatio
 }) {
   const [loaded, setLoaded] = useState(false)
+  const [failed, setFailed] = useState(false)
+  useEffect(() => {
+    setLoaded(false)
+    setFailed(false)
+  }, [imageUrl])
+
+  const showArt = Boolean(imageUrl) && !failed
 
   return (
     <>
@@ -256,7 +357,7 @@ export function MerchCategoryTileBody({ label, badge, imageUrl, focalPoint, imag
           variant === "mosaic" && "lg:aspect-auto lg:min-h-0 lg:flex-1",
         )}
       >
-        {imageUrl ? (
+        {showArt ? (
           <>
             {!loaded ? (
               <span className="merch-shimmer absolute inset-0 z-0 block" aria-hidden="true" />
@@ -270,7 +371,7 @@ export function MerchCategoryTileBody({ label, badge, imageUrl, focalPoint, imag
               loading="lazy"
               draggable={false}
               onLoad={() => setLoaded(true)}
-              onError={() => setLoaded(true)}
+              onError={() => { setFailed(true); setLoaded(true) }}
               style={focalPoint ? { objectPosition: focalPoint } : undefined}
               className={cn(
                 "absolute inset-0 z-[1] h-full w-full object-cover",
@@ -293,11 +394,11 @@ export function MerchCategoryTileBody({ label, badge, imageUrl, focalPoint, imag
           and leaves neighbouring tiles misaligned by a couple of pixels. Size
           is already how a feature tile reads as a feature. */}
       <span className="flex min-w-0 shrink-0 items-center gap-2 px-0.5">
-        <span className="min-w-0 flex-1 truncate text-[13px] font-semibold leading-snug sm:text-sm">
+        <span className="min-w-0 flex-1 truncate text-sm font-semibold leading-snug">
           {label}
         </span>
         {badge ? (
-          <span className="shrink-0 rounded-full bg-primary px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-black">
+          <span className="shrink-0 rounded-full bg-primary px-2 py-0.5 text-xs font-bold uppercase tracking-wider text-black">
             {badge}
           </span>
         ) : null}
@@ -351,12 +452,56 @@ export function MerchShelf({ title, subtitle, eyebrow, action, layout = "grid", 
   children: ReactNode
   className?: string
 }) {
+  const scrollRef = useRef<HTMLDivElement>(null)
+
+  const scroll = useCallback((direction: "left" | "right") => {
+    if (!scrollRef.current) return
+    const offset = direction === "left" ? -360 : 360
+    scrollRef.current.scrollBy({ left: offset, behavior: "smooth" })
+  }, [])
+
   return (
-    <section className={cn("space-y-4", className)}>
-      <MerchSectionHeader eyebrow={eyebrow} title={title} subtitle={subtitle} action={action} />
-      {layout === "carousel"
-        ? <div className="flex gap-3 overflow-x-auto pb-2 [scroll-snap-type:x_mandatory]">{children}</div>
-        : <>{children}</>}
+    <section className={cn("space-y-3.5", className)}>
+      <div className="flex items-end justify-between gap-3">
+        <div className="min-w-0 space-y-0.5">
+          {eyebrow ? <p className="text-xs font-bold uppercase tracking-[0.18em] opacity-60">{eyebrow}</p> : null}
+          <h2 className="text-xl font-bold sm:text-2xl">{title}</h2>
+          {subtitle ? <p className="max-w-2xl text-xs sm:text-sm leading-snug opacity-70">{subtitle}</p> : null}
+        </div>
+        <div className="flex items-center gap-2">
+          {action ? <div className="shrink-0 text-sm font-bold">{action}</div> : null}
+          {layout === "carousel" ? (
+            <div className="hidden sm:flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => scroll("left")}
+                aria-label="Scroll left"
+                className="flex h-8 w-8 items-center justify-center rounded-full border border-black/10 bg-white text-foreground shadow-2xs hover:bg-black/5 active:scale-95 transition-all dark:bg-card dark:border-white/10"
+              >
+                <CaretLeft size={16} weight="bold" />
+              </button>
+              <button
+                type="button"
+                onClick={() => scroll("right")}
+                aria-label="Scroll right"
+                className="flex h-8 w-8 items-center justify-center rounded-full border border-black/10 bg-white text-foreground shadow-2xs hover:bg-black/5 active:scale-95 transition-all dark:bg-card dark:border-white/10"
+              >
+                <CaretRight size={16} weight="bold" />
+              </button>
+            </div>
+          ) : null}
+        </div>
+      </div>
+      {layout === "carousel" ? (
+        <div
+          ref={scrollRef}
+          className="scrollbar-none flex gap-3 overflow-x-auto pb-2 [scroll-snap-type:x_mandatory] -mx-4 px-4 sm:mx-0 sm:px-0"
+        >
+          {children}
+        </div>
+      ) : (
+        <>{children}</>
+      )}
     </section>
   )
 }
@@ -410,7 +555,7 @@ export function MerchCountdown({ to, expiredLabel = "Offer ended", compact = fal
             compact && "min-w-9 px-1.5 py-0.5",
           )}
         >
-          <span className={cn("font-black tabular-nums leading-none", compact ? "text-sm" : "text-lg")}>
+          <span className={cn("font-bold tabular-nums leading-none", compact ? "text-sm" : "text-lg")}>
             {String(value).padStart(2, "0")}
           </span>
           <span className="text-[9px] font-bold uppercase tracking-wider opacity-70">{unit}</span>
@@ -449,8 +594,8 @@ export function MerchCountdownBanner({ eyebrow, title, body, countdownTo, expire
       ) : null}
       <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
         <div className="min-w-0 space-y-1">
-          {eyebrow ? <p className="text-xs font-black uppercase tracking-[0.18em] opacity-65">{eyebrow}</p> : null}
-          <h2 className={cn("font-black tracking-tight", compact ? "text-xl" : "text-2xl sm:text-3xl")}>{title}</h2>
+          {eyebrow ? <p className="text-xs font-bold uppercase tracking-[0.18em] opacity-65">{eyebrow}</p> : null}
+          <h2 className={cn("font-bold", compact ? "text-xl" : "text-2xl sm:text-3xl")}>{title}</h2>
           {body ? <p className="max-w-xl text-sm leading-6 opacity-75">{body}</p> : null}
         </div>
         <div className="flex shrink-0 flex-col items-start gap-3 sm:items-end">
@@ -535,8 +680,8 @@ export function MerchDealRail({ title, subtitle, eyebrow, countdownTo, action, c
     <section className={cn("space-y-4 rounded-2xl bg-black/[0.03] p-4 sm:p-5", className)}>
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div className="min-w-0 space-y-1">
-          {eyebrow ? <p className="text-xs font-black uppercase tracking-[0.18em] opacity-60">{eyebrow}</p> : null}
-          <h2 className="text-2xl font-black tracking-tight">{title}</h2>
+          {eyebrow ? <p className="text-xs font-bold uppercase tracking-[0.18em] opacity-60">{eyebrow}</p> : null}
+          <h2 className="text-2xl font-bold">{title}</h2>
           {subtitle ? <p className="max-w-2xl text-sm leading-6 opacity-70">{subtitle}</p> : null}
         </div>
         <div className="flex shrink-0 items-center gap-3">
@@ -552,7 +697,7 @@ export function MerchDealRail({ title, subtitle, eyebrow, countdownTo, action, c
 /** Corner flag for a deal card, e.g. "Flash deal". */
 export function MerchDealBadge({ label, className }: { label: string; className?: string }) {
   return (
-    <span className={cn("absolute left-2 top-2 z-10 rounded-full bg-primary px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-black shadow-sm", className)}>
+    <span className={cn("absolute left-2 top-2 z-10 rounded-full bg-primary px-2 py-0.5 text-xs font-bold uppercase tracking-wider text-black shadow-sm", className)}>
       {label}
     </span>
   )
@@ -567,7 +712,7 @@ export function MerchValueGrid({ title, subtitle, items, compact = false, classN
 }) {
   return (
     <section className={cn("rounded-3xl bg-black text-white", compact ? "p-5" : "p-6 sm:p-8", className)}>
-      {title ? <h2 className="text-2xl font-black">{title}</h2> : null}
+      {title ? <h2 className="text-2xl font-bold">{title}</h2> : null}
       {subtitle ? <p className="mt-1 text-sm text-white/65">{subtitle}</p> : null}
       <div className={cn("grid gap-3 sm:grid-cols-2 lg:grid-cols-4", title || subtitle ? "mt-5" : "")}>
         {items.map((item) => (

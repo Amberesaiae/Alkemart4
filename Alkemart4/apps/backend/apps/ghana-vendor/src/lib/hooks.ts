@@ -274,6 +274,17 @@ export function useUpdateProfile() {
   })
 }
 
+export function useUpdateSeller() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (input: Parameters<typeof seller.update>[0]) => seller.update(input),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["vendor", "profile"] })
+      qc.invalidateQueries({ queryKey: ["seller", "me"] })
+    },
+  })
+}
+
 export function useUpdateStorefront() {
   const qc = useQueryClient()
   return useMutation({

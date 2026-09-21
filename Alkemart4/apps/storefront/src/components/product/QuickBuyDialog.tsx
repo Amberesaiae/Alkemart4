@@ -52,7 +52,6 @@ export function QuickBuyDialog({
 
   const detail = detailQ.data ?? product
   const attributes = detail.attributes ?? []
-  const multiSeller = (detail.offerCount ?? 0) > 1
   const peers = sellersHintText(detail.offerCount)
   const canAdd = Boolean(detail.offerId)
 
@@ -98,13 +97,12 @@ export function QuickBuyDialog({
           ) : null}
         </div>
 
-        <h2 className="pr-8 text-lg font-bold leading-snug tracking-tight">{detail.title}</h2>
+        <h2 className="pr-8 text-lg font-bold leading-snug">{detail.title}</h2>
 
         <Price
           amount={detail.amount}
           currencyCode={detail.currencyCode}
           size="lg"
-          from={multiSeller}
           className="block"
         />
 

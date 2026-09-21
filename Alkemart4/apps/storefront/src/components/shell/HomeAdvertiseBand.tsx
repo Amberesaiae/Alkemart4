@@ -34,7 +34,7 @@ export function HomeAdvertiseBand({
       )}
     >
       <span
-        className="pointer-events-none absolute -right-1 -top-4 select-none text-[5rem] font-black leading-none text-black/[0.06] sm:text-[6rem]"
+        className="pointer-events-none absolute -right-1 -top-4 select-none text-[5rem] font-bold leading-none text-black/[0.06] sm:text-[6rem]"
         aria-hidden
       >
         02

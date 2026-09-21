@@ -27,6 +27,7 @@ export {
   listingHeroBody,
 } from "./ListingHero"
 export { ListingFilterStrip } from "./ListingFilterStrip"
+export { ListingFilterDropdown } from "./ListingFilterDropdown"
 export {
   ListingLocationFilter,
   type LocationFilterValue,

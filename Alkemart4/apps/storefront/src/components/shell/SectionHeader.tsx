@@ -29,7 +29,7 @@ export function SectionHeader({
         className,
       )}
     >
-      <h2 className="text-lg font-bold tracking-tight text-foreground sm:text-xl">
+      <h2 className="type-section text-foreground">
         {title}
       </h2>
       {actionLabel && actionTo ? (

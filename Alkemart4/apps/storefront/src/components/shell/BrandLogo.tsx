@@ -32,7 +32,7 @@ export function BrandLogo({
   const wordmark = (
     <span
       className={cn(
-        "brand-wordmark font-extrabold leading-none",
+        "brand-wordmark font-bold leading-none",
         typeClass,
         onDark ? "text-white" : "text-foreground",
       )}

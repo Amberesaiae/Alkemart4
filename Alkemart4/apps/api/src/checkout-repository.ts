@@ -194,6 +194,14 @@ export interface CheckoutRepository {
    */
   reviewTotalsBySeller(): Promise<Map<string, { count: number; avg: number }>>
   /**
+   * Published-review count and mean per product, in one pass.
+   *
+   * Every catalogue card carries a rating, so this must be one query for a
+   * whole page of cards — the alternative is one query per card on the
+   * storefront's busiest surface.
+   */
+  reviewTotalsByProduct(): Promise<Map<string, { count: number; avg: number }>>
+  /**
    * Units sold per product, optionally limited to orders since a date.
    *
    * Powers the "Most ordered" and "Trending" shelves. Real order data or
@@ -776,6 +784,25 @@ export class InMemoryCheckoutRepository implements CheckoutRepository {
     const out = new Map<string, { count: number; avg: number }>()
     for (const [sellerId, acc] of sums) {
       out.set(sellerId, {
+        count: acc.count,
+        avg: Math.round((acc.total / acc.count) * 10) / 10,
+      })
+    }
+    return out
+  }
+
+  async reviewTotalsByProduct() {
+    const sums = new Map<string, { count: number; total: number }>()
+    for (const r of this.reviewsById.values()) {
+      if (r.status !== "published") continue
+      const acc = sums.get(r.productId) ?? { count: 0, total: 0 }
+      acc.count += 1
+      acc.total += r.rating
+      sums.set(r.productId, acc)
+    }
+    const out = new Map<string, { count: number; avg: number }>()
+    for (const [productId, acc] of sums) {
+      out.set(productId, {
         count: acc.count,
         avg: Math.round((acc.total / acc.count) * 10) / 10,
       })

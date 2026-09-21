@@ -9,11 +9,9 @@ import {
   QueryClientProvider,
   useQuery,
 } from "@tanstack/react-query"
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { retrieveCart } from "@/lib/cart"
 import { getSessionCustomer } from "@/lib/auth"
-import { listStoreCategories } from "@/lib/products"
-import { resolveRailCategories } from "@/lib/catalog-nav"
 import { getMercurVendorUrl } from "@/lib/env"
 import { cn } from "@/lib/utils"
 import { AppHeader } from "@/components/shell/AppHeader"
@@ -23,7 +21,6 @@ import {
   DropdownMenuSeparator,
 } from "@workspace/ui"
 import { AppFooter } from "@/components/shell/AppFooter"
-import { CategoryIconRail } from "@/components/shell/CategoryIconRail"
 import { DocumentTitle } from "@/components/document-title"
 import { RouteAnnouncer } from "@/components/a11y/RouteAnnouncer"
 import { SkipLink } from "@/components/skip-link"
@@ -70,7 +67,8 @@ function AnalyticsPageviews() {
 
 /**
  * Full-bleed marketplace shell (canonical storefront layout).
- * Header + department rail + main + footer span the viewport.
+ * Header + main + footer span the viewport. Departments live in the
+ * homepage mosaic and as an in-page reel on browse/search — not sticky chrome.
  * Content max-width lives on the content row only — not a nested “page card”
  * (that pattern made the real site look tiny / cut off inside another frame).
  */
@@ -96,44 +94,11 @@ function Shell() {
     enabled: shellReady,
     staleTime: 60_000,
   })
-  const catsQ = useQuery({
-    queryKey: ["store", "categories"],
-    queryFn: () => listStoreCategories(),
-    staleTime: 5 * 60_000,
-  })
-
-  /** Department rail — real API categories only */
-  const railCategories = useMemo(
-    () => resolveRailCategories(catsQ.data ?? []),
-    [catsQ.data],
-  )
-
   const count =
     cartQ.data?.items.reduce((s, l) => s + l.quantity, 0) ?? 0
 
   const isAuthPage = pathname.startsWith("/login")
   const isCheckout = pathname.startsWith("/checkout")
-
-  /**
-   * Category rail — discovery chrome only.
-   * Hide on auth, checkout, cart, product (focus commerce steps).
-   */
-  const showCategoryRail =
-    !isAuthPage &&
-    !isCheckout &&
-    !pathname.startsWith("/cart") &&
-    !pathname.startsWith("/product/")
-
-  /** Active department slug when browsing; undefined on home (no rail item selected). */
-  const browseActiveSlug = (() => {
-    if (!pathname.startsWith("/categories/") && !pathname.startsWith("/browse/"))
-      return undefined
-    const slug = pathname
-      .replace(/^\/(categories|browse)\//, "")
-      .split("/")[0]
-    if (!slug || slug === "all") return undefined
-    return slug
-  })()
 
   const initials = sessionQ.data
     ? (
@@ -240,13 +205,6 @@ function Shell() {
         onAccountClose={closeAccount}
         accountMenu={accountMenu}
       />
-
-      {showCategoryRail ? (
-        <CategoryIconRail
-          categories={railCategories}
-          activeSlug={browseActiveSlug}
-        />
-      ) : null}
 
       <main
         id="main"

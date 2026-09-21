@@ -71,7 +71,7 @@ export function PeerOffersList({
                     amount={o.amount}
                     currencyCode={o.currencyCode}
                     size="sm"
-                    className="font-bold text-foreground"
+                    className="font-bold text-tone-brand-ink"
                   />
                 </div>
               </button>

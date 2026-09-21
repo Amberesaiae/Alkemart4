@@ -5,6 +5,29 @@ import type { CatalogListQuery, CatalogSort } from "../../catalog-repository"
 
 const CATALOG_KV_TTL_SECONDS = 60
 
+type RatingTotals = Map<string, { count: number; avg: number }>
+
+/**
+ * Join published review ratings onto catalogue cards.
+ *
+ * The catalogue itself has no ratings — they live with the reviews. A card for
+ * a product nobody has reviewed keeps the fields absent rather than reporting
+ * a zero, so the storefront can render nothing instead of an unearned score.
+ */
+function withRatings<T extends { productId: string }>(items: T[], totals: RatingTotals): T[] {
+  if (!totals.size) return items
+  return items.map((item) => {
+    const total = totals.get(item.productId)
+    return total ? { ...item, ratingAvg: total.avg, ratingCount: total.count } : item
+  })
+}
+
+async function ratingTotals(
+  c: { get(k: "checkoutRepo"): AppEnv["Variables"]["checkoutRepo"] },
+): Promise<RatingTotals> {
+  return c.get("checkoutRepo").reviewTotalsByProduct().catch((): RatingTotals => new Map())
+}
+
 const SORTS: ReadonlySet<string> = new Set(["newest", "price_asc", "price_desc"])
 
 function parseCatalogQuery(input: {
@@ -26,8 +49,8 @@ function parseCatalogQuery(input: {
 }
 
 function catalogCacheKey(query: CatalogListQuery): string {
-  // v2: response shape gained card seller/stock/createdAt fields.
-  return `catalog:v2:${query.category ?? ""}:${query.q ?? ""}:${query.limit}:${query.offset}:${query.sort ?? ""}`
+  // v3: response shape gained per-card ratingAvg/ratingCount.
+  return `catalog:v3:${query.category ?? ""}:${query.q ?? ""}:${query.limit}:${query.offset}:${query.sort ?? ""}`
 }
 
 export const catalog = new Hono<AppEnv>().get("/", async (c) => {
@@ -44,11 +67,15 @@ export const catalog = new Hono<AppEnv>().get("/", async (c) => {
     const hit = await kv.get(key, "json")
     if (hit) return c.json(hit)
   }
-  const body = await c.get("repo").listCatalog(query)
+  const [body, totals] = await Promise.all([
+    c.get("repo").listCatalog(query),
+    ratingTotals(c),
+  ])
+  const rated = { ...body, items: withRatings(body.items, totals) }
   if (kv) {
-    await kv.put(key, JSON.stringify(body), { expirationTtl: CATALOG_KV_TTL_SECONDS })
+    await kv.put(key, JSON.stringify(rated), { expirationTtl: CATALOG_KV_TTL_SECONDS })
   }
-  return c.json(body)
+  return c.json(rated)
 })
 
 /**
@@ -81,11 +108,16 @@ catalog.get("/popular", async (c) => {
   const candidates = ranked.slice(0, limit * 3).map(([productId]) => productId)
   const cards = await c.get("repo").productCardsByIds(candidates)
 
-  const items = candidates
-    .map((id) => cards.get(id))
-    .filter((card): card is NonNullable<typeof card> => card != null)
-    .slice(0, limit)
+  const [items, totals] = await Promise.all([
+    Promise.resolve(
+      candidates
+        .map((id) => cards.get(id))
+        .filter((card): card is NonNullable<typeof card> => card != null)
+        .slice(0, limit),
+    ),
+    ratingTotals(c),
+  ])
 
-  return c.json({ items, total: items.length })
+  return c.json({ items: withRatings(items, totals), total: items.length })
 })
 

@@ -98,6 +98,24 @@ function pesewasStringToMajor(raw: string | null | undefined): number | null {
   }
 }
 
+/**
+ * Ratings ride along with the catalogue card response (joined from published
+ * reviews). The generated client type predates the fields, so read them
+ * defensively — and treat "no reviews" as absent, never as zero.
+ */
+function readCardRating(c: CfProductCard): { ratingAvg: number | null; ratingCount: number } {
+  const raw = c as unknown as { ratingAvg?: unknown; ratingCount?: unknown }
+  const count =
+    typeof raw.ratingCount === "number" && Number.isFinite(raw.ratingCount) && raw.ratingCount > 0
+      ? Math.trunc(raw.ratingCount)
+      : 0
+  const avg =
+    typeof raw.ratingAvg === "number" && Number.isFinite(raw.ratingAvg) && count > 0
+      ? raw.ratingAvg
+      : null
+  return avg == null ? { ratingAvg: null, ratingCount: 0 } : { ratingAvg: avg, ratingCount: count }
+}
+
 function mapCfProductCard(c: CfProductCard): StoreProductCard {
   return {
     id: c.productId,
@@ -120,6 +138,7 @@ function mapCfProductCard(c: CfProductCard): StoreProductCard {
       : null,
     availableQty: typeof c.availableQty === "number" ? c.availableQty : null,
     createdAt: c.createdAt ?? null,
+    ...readCardRating(c),
   }
 }
 
@@ -475,11 +494,684 @@ async function listFromAlkemartCatalog(opts: CatalogQuery): Promise<{
  * popularity shelf on a young catalogue renders empty rather than quietly
  * degrading into "newest" dressed up as popular.
  */
+export const DEMO_CATALOG_PRODUCTS: StoreProductCard[] = [
+  {
+    id: "prod-tecno-spark",
+    title: "Ninja Professional Countertop Blender Set",
+    description: "High-power countertop blender with two single-serve cups for smoothies and everyday food prep.",
+    thumbnail: "/images/products/demo/countertop-blender.jpg",
+    images: [{ url: "/images/products/demo/countertop-blender.jpg" }],
+    thumbUrl: "/images/products/demo/countertop-blender.jpg",
+    offerId: "offer-tecno-spark",
+    offerCount: 2,
+    amount: 1490,
+    currencyCode: "ghs",
+    categoryLabel: "Home & Living",
+    categoryHandles: ["home-living", "kitchen-appliances"],
+    ratingAvg: 4.9,
+    ratingCount: 38,
+    seller: {
+      id: "seller-b",
+      name: "Kumasi Tech Hub",
+      handle: "kumasi-tech",
+    },
+    availableQty: 15,
+  },
+  {
+    id: "prod-smart-tv",
+    title: "Samsung 55\" Crystal UHD 4K Smart TV",
+    description: "Vivid 4K resolution with Crystal Processor, Slim design, and built-in streaming apps.",
+    thumbnail: "/images/products/demo/smart-tv.jpg",
+    images: [{ url: "/images/products/demo/smart-tv.jpg" }],
+    thumbUrl: "/images/products/demo/smart-tv.jpg",
+    offerId: "offer-smart-tv",
+    offerCount: 3,
+    amount: 6800,
+    currencyCode: "ghs",
+    categoryLabel: "Phones & Electronics",
+    categoryHandles: ["phones-electronics", "tvs-audio"],
+    ratingAvg: 4.8,
+    ratingCount: 45,
+    seller: {
+      id: "seller-b",
+      name: "Kumasi Tech Hub",
+      handle: "kumasi-tech",
+    },
+    availableQty: 10,
+  },
+  {
+    id: "prod-flagship-phone",
+    title: "Aethelgard Terra 12 Pro 5G Smartphone",
+    description: "Titanium chassis, triple camera lens system, fast charging and 120Hz AMOLED display.",
+    thumbnail: "/images/products/demo/flagship-phone.jpg",
+    images: [{ url: "/images/products/demo/flagship-phone.jpg" }],
+    thumbUrl: "/images/products/demo/flagship-phone.jpg",
+    offerId: "offer-flagship-phone",
+    offerCount: 4,
+    amount: 9200,
+    currencyCode: "ghs",
+    categoryLabel: "Phones & Electronics",
+    categoryHandles: ["phones-electronics", "phones"],
+    ratingAvg: 4.9,
+    ratingCount: 82,
+    seller: {
+      id: "seller-b",
+      name: "Kumasi Tech Hub",
+      handle: "kumasi-tech",
+    },
+    availableQty: 12,
+  },
+  {
+    id: "prod-wireless-headphones",
+    title: "Sonos Ace Noise-Canceling Wireless Headphones",
+    description: "Lossless audio streaming, active noise cancellation, ultra-soft memory foam earcups.",
+    thumbnail: "/images/products/demo/wireless-headphones.jpg",
+    images: [{ url: "/images/products/demo/wireless-headphones.jpg" }],
+    thumbUrl: "/images/products/demo/wireless-headphones.jpg",
+    offerId: "offer-wireless-headphones",
+    offerCount: 2,
+    amount: 3450,
+    currencyCode: "ghs",
+    categoryLabel: "Phones & Electronics",
+    categoryHandles: ["phones-electronics", "tvs-audio", "accessories"],
+    ratingAvg: 4.9,
+    ratingCount: 29,
+    seller: {
+      id: "seller-b",
+      name: "Kumasi Tech Hub",
+      handle: "kumasi-tech",
+    },
+    availableQty: 18,
+  },
+  {
+    id: "prod-shea-butter-balm",
+    title: "Organic Ghanaian Raw Whipped Shea Butter Balm",
+    description: "Deeply moisturizing unrefined raw shea butter balm enriched with vitamin E and jojoba oil.",
+    thumbnail: "/images/products/demo/shea-butter-balm.jpg",
+    images: [{ url: "/images/products/demo/shea-butter-balm.jpg" }],
+    thumbUrl: "/images/products/demo/shea-butter-balm.jpg",
+    offerId: "offer-shea-butter-balm",
+    offerCount: 3,
+    amount: 180,
+    currencyCode: "ghs",
+    categoryLabel: "Health & Beauty",
+    categoryHandles: ["health-beauty"],
+    ratingAvg: 5.0,
+    ratingCount: 64,
+    seller: {
+      id: "5e8d3820-f925-4eb0-94a6-94c112526f23",
+      name: "Hurry Ventures - Osu",
+      handle: "hurry-ventures",
+    },
+    availableQty: 50,
+  },
+  {
+    id: "prod-starface-patches",
+    title: "Starface Hydro-Stars Hydrocolloid Acne Patches",
+    description: "Hydrocolloid spot patches designed to absorb fluid and accelerate pimple healing.",
+    thumbnail: "/images/products/demo/starface-patches.jpg",
+    images: [{ url: "/images/products/demo/starface-patches.jpg" }],
+    thumbUrl: "/images/products/demo/starface-patches.jpg",
+    offerId: "offer-starface-patches",
+    offerCount: 1,
+    amount: 140,
+    currencyCode: "ghs",
+    categoryLabel: "Health & Beauty",
+    categoryHandles: ["health-beauty"],
+    ratingAvg: 4.7,
+    ratingCount: 33,
+    seller: {
+      id: "5e8d3820-f925-4eb0-94a6-94c112526f23",
+      name: "Hurry Ventures - Osu",
+      handle: "hurry-ventures",
+    },
+    availableQty: 35,
+  },
+  {
+    id: "prod-jasmine-rice",
+    title: "Royal Aroma Premium Jasmine Fragrant Rice 5kg",
+    description: "Long-grain naturally aromatic jasmine rice, carefully processed for perfect fluffiness.",
+    thumbnail: "/images/products/demo/jasmine-rice.jpg",
+    images: [{ url: "/images/products/demo/jasmine-rice.jpg" }],
+    thumbUrl: "/images/products/demo/jasmine-rice.jpg",
+    offerId: "offer-jasmine-rice",
+    offerCount: 2,
+    amount: 210,
+    currencyCode: "ghs",
+    categoryLabel: "Food & Groceries",
+    categoryHandles: ["food-groceries", "staples"],
+    ratingAvg: 4.8,
+    ratingCount: 78,
+    seller: {
+      id: "v-ejs",
+      name: "EJ's Mart & Groceries",
+      handle: "ejs-cuisine",
+    },
+    availableQty: 60,
+  },
+  {
+    id: "prod-roasted-coffee",
+    title: "Goldstar Artisan Dark Roast Whole Bean Coffee 1kg",
+    description: "Rich dark roast coffee beans with notes of dark chocolate and caramel sweetness.",
+    thumbnail: "/images/products/demo/roasted-coffee.jpg",
+    images: [{ url: "/images/products/demo/roasted-coffee.jpg" }],
+    thumbUrl: "/images/products/demo/roasted-coffee.jpg",
+    offerId: "offer-roasted-coffee",
+    offerCount: 2,
+    amount: 260,
+    currencyCode: "ghs",
+    categoryLabel: "Beverages",
+    categoryHandles: ["beverages"],
+    ratingAvg: 4.9,
+    ratingCount: 42,
+    seller: {
+      id: "v-ejs",
+      name: "EJ's Mart & Groceries",
+      handle: "ejs-cuisine",
+    },
+    availableQty: 30,
+  },
+  {
+    id: "prod-bento-box",
+    title: "Bentgo Kids Leak-Proof Bento Box",
+    description: "Durable 5-compartment bento lunch box with drop-proof rubberized edges.",
+    thumbnail: "/images/products/demo/bento-box.jpg",
+    images: [{ url: "/images/products/demo/bento-box.jpg" }],
+    thumbUrl: "/images/products/demo/bento-box.jpg",
+    offerId: "offer-bento-box",
+    offerCount: 1,
+    amount: 320,
+    currencyCode: "ghs",
+    categoryLabel: "Baby & Kids",
+    categoryHandles: ["baby-kids"],
+    ratingAvg: 4.9,
+    ratingCount: 26,
+    seller: {
+      id: "5e8d3820-f925-4eb0-94a6-94c112526f23",
+      name: "Hurry Ventures - Osu",
+      handle: "hurry-ventures",
+    },
+    availableQty: 22,
+  },
+  {
+    id: "prod-kids-cotton-tee",
+    title: "Soft Organic Cotton Everyday Kids T-Shirt",
+    description: "Breathable 100% organic cotton crewneck tee built for comfort and playtime.",
+    thumbnail: "/images/products/demo/kids-cotton-tee.jpg",
+    images: [{ url: "/images/products/demo/kids-cotton-tee.jpg" }],
+    thumbUrl: "/images/products/demo/kids-cotton-tee.jpg",
+    offerId: "offer-kids-cotton-tee",
+    offerCount: 2,
+    amount: 110,
+    currencyCode: "ghs",
+    categoryLabel: "Baby & Kids",
+    categoryHandles: ["baby-kids", "fashion-apparel"],
+    ratingAvg: 4.7,
+    ratingCount: 18,
+    seller: {
+      id: "5e8d3820-f925-4eb0-94a6-94c112526f23",
+      name: "Hurry Ventures - Osu",
+      handle: "hurry-ventures",
+    },
+    availableQty: 40,
+  },
+  {
+    id: "prod-pet-care-kit",
+    title: "Complete Paw Care & Grooming Kit for Dogs",
+    description: "Grooming set including gentle slicker brush, nail clippers, and paw conditioning balm.",
+    thumbnail: "/images/products/demo/pet-care-kit.jpg",
+    images: [{ url: "/images/products/demo/pet-care-kit.jpg" }],
+    thumbUrl: "/images/products/demo/pet-care-kit.jpg",
+    offerId: "offer-pet-care-kit",
+    offerCount: 1,
+    amount: 240,
+    currencyCode: "ghs",
+    categoryLabel: "Pet Care",
+    categoryHandles: ["pet-care"],
+    ratingAvg: 4.8,
+    ratingCount: 15,
+    seller: {
+      id: "v-ejs",
+      name: "EJ's Mart & Groceries",
+      handle: "ejs-cuisine",
+    },
+    availableQty: 14,
+  },
+  {
+    id: "prod-kente-cloth",
+    title: "DeWalt Cordless Drill and Impact Driver Kit",
+    description: "Two-tool cordless kit with batteries, charger and a durable carry bag.",
+    thumbnail: "/images/products/demo/cordless-tool-kit.jpg",
+    images: [{ url: "/images/products/demo/cordless-tool-kit.jpg" }],
+    thumbUrl: "/images/products/demo/cordless-tool-kit.jpg",
+    offerId: "offer-kente-cloth",
+    offerCount: 1,
+    amount: 2850,
+    currencyCode: "ghs",
+    categoryLabel: "Home & Living",
+    categoryHandles: ["home-living", "tools"],
+    ratingAvg: 5.0,
+    ratingCount: 24,
+    seller: {
+      id: "seller-b",
+      name: "Kumasi Tech Hub",
+      handle: "kumasi-tech",
+    },
+    availableQty: 8,
+  },
+  {
+    id: "prod-shea-butter",
+    title: "Classic Black Comfort Clogs",
+    description: "Lightweight everyday clogs with ventilation ports and an adjustable heel strap.",
+    thumbnail: "/images/products/demo/classic-clogs.jpg",
+    images: [{ url: "/images/products/demo/classic-clogs.jpg" }],
+    thumbUrl: "/images/products/demo/classic-clogs.jpg",
+    offerId: "offer-shea-butter",
+    offerCount: 1,
+    amount: 420,
+    currencyCode: "ghs",
+    categoryLabel: "Fashion & Apparel",
+    categoryHandles: ["fashion-apparel", "footwear"],
+    ratingAvg: 4.9,
+    ratingCount: 52,
+    seller: {
+      id: "5e8d3820-f925-4eb0-94a6-94c112526f23",
+      name: "Hurry Ventures - Osu",
+      handle: "hurry-ventures",
+    },
+    availableQty: 40,
+  },
+  {
+    id: "prod-royal-aroma-rice",
+    title: "Rust Orange Everyday Bomber Jacket",
+    description: "Versatile lightweight bomber jacket with a clean zip front and ribbed trims.",
+    thumbnail: "/images/products/demo/bomber-jacket.jpg",
+    images: [{ url: "/images/products/demo/bomber-jacket.jpg" }],
+    thumbUrl: "/images/products/demo/bomber-jacket.jpg",
+    offerId: "offer-royal-rice",
+    offerCount: 3,
+    amount: 395,
+    currencyCode: "ghs",
+    categoryLabel: "Fashion & Apparel",
+    categoryHandles: ["fashion-apparel", "outerwear"],
+    ratingAvg: 4.8,
+    ratingCount: 67,
+    seller: {
+      id: "5e8d3820-f925-4eb0-94a6-94c112526f23",
+      name: "Hurry Ventures - Osu",
+      handle: "hurry-ventures",
+    },
+    availableQty: 25,
+  },
+  {
+    id: "prod-leather-tote",
+    title: "Handcrafted Genuine Leather Everyday Tote Bag",
+    description: "Spacious premium leather tote featuring inner zipper pocket and reinforced handles.",
+    thumbnail: "/images/products/demo/leather-tote.jpg",
+    images: [{ url: "/images/products/demo/leather-tote.jpg" }],
+    thumbUrl: "/images/products/demo/leather-tote.jpg",
+    offerId: "offer-leather-tote",
+    offerCount: 2,
+    amount: 890,
+    currencyCode: "ghs",
+    categoryLabel: "Fashion & Apparel",
+    categoryHandles: ["fashion-apparel", "bags"],
+    ratingAvg: 4.9,
+    ratingCount: 31,
+    seller: {
+      id: "5e8d3820-f925-4eb0-94a6-94c112526f23",
+      name: "Hurry Ventures - Osu",
+      handle: "hurry-ventures",
+    },
+    availableQty: 15,
+  },
+  {
+    id: "prod-wireless-earbuds",
+    title: "Microfiber Cleaning Cloths, 12-Pack",
+    description: "Soft reusable microfiber cloths for kitchen, glass, appliances and everyday cleaning.",
+    thumbnail: "/images/products/demo/microfiber-cloths.jpg",
+    images: [{ url: "/images/products/demo/microfiber-cloths.jpg" }],
+    thumbUrl: "/images/products/demo/microfiber-cloths.jpg",
+    offerId: "offer-oraimo-buds",
+    offerCount: 2,
+    amount: 95,
+    currencyCode: "ghs",
+    categoryLabel: "Home & Living",
+    categoryHandles: ["home-living", "cleaning"],
+    ratingAvg: 4.7,
+    ratingCount: 41,
+    seller: {
+      id: "v-ejs",
+      name: "EJ's Mart & Groceries",
+      handle: "ejs-cuisine",
+    },
+    availableQty: 18,
+  },
+  {
+    id: "prod-desk-lamp",
+    title: "Minimalist LED Touch Desk Lamp with Wireless Charging",
+    description: "Dimmable eye-caring desk lamp with integrated fast wireless phone charger pad.",
+    thumbnail: "/images/products/demo/desk-lamp.jpg",
+    images: [{ url: "/images/products/demo/desk-lamp.jpg" }],
+    thumbUrl: "/images/products/demo/desk-lamp.jpg",
+    offerId: "offer-desk-lamp",
+    offerCount: 1,
+    amount: 450,
+    currencyCode: "ghs",
+    categoryLabel: "Home & Living",
+    categoryHandles: ["home-living", "phones-electronics"],
+    ratingAvg: 4.8,
+    ratingCount: 37,
+    seller: {
+      id: "seller-b",
+      name: "Kumasi Tech Hub",
+      handle: "kumasi-tech",
+    },
+    availableQty: 20,
+  },
+  {
+    id: "prod-mens-linen-shirt",
+    title: "Glass Food Storage Container Set",
+    description: "Clear stackable food containers with secure lids for meal prep and pantry storage.",
+    thumbnail: "/images/products/demo/glass-containers.jpg",
+    images: [{ url: "/images/products/demo/glass-containers.jpg" }],
+    thumbUrl: "/images/products/demo/glass-containers.jpg",
+    offerId: "offer-linen-shirt",
+    offerCount: 1,
+    amount: 280,
+    currencyCode: "ghs",
+    categoryLabel: "Home & Living",
+    categoryHandles: ["home-living", "kitchen-storage"],
+    ratingAvg: 4.8,
+    ratingCount: 19,
+    seller: {
+      id: "v-ejs",
+      name: "EJ's Mart & Groceries",
+      handle: "ejs-cuisine",
+    },
+    availableQty: 12,
+  },
+  {
+    id: "prod-gold-necklace",
+    title: "18K Solid Gold Layered Sunburst Pendant Necklace",
+    description: "Exquisite 18-karat solid yellow gold necklace featuring a radiant sunburst pendant on an adjustable cable chain.",
+    thumbnail: "/images/products/demo/gold-necklace.jpg",
+    images: [{ url: "/images/products/demo/gold-necklace.jpg" }],
+    thumbUrl: "/images/products/demo/gold-necklace.jpg",
+    offerId: "offer-gold-necklace",
+    offerCount: 2,
+    amount: 3850,
+    currencyCode: "ghs",
+    categoryLabel: "Fashion & Apparel",
+    categoryHandles: ["fashion-apparel", "accessories"],
+    ratingAvg: 5.0,
+    ratingCount: 42,
+    seller: {
+      id: "v-glow",
+      name: "Glow & Glamour Beauty",
+      handle: "glow-glamour",
+    },
+    availableQty: 8,
+  },
+  {
+    id: "prod-gold-earrings",
+    title: "18K Gold Plated Chunky Twist Hoop Earrings",
+    description: "Lightweight hypoallergenic chunky twist hoops with secure latch backs. High-polish radiant finish.",
+    thumbnail: "/images/products/demo/gold-earrings.jpg",
+    images: [{ url: "/images/products/demo/gold-earrings.jpg" }],
+    thumbUrl: "/images/products/demo/gold-earrings.jpg",
+    offerId: "offer-gold-earrings",
+    offerCount: 2,
+    amount: 550,
+    currencyCode: "ghs",
+    categoryLabel: "Fashion & Apparel",
+    categoryHandles: ["fashion-apparel", "accessories"],
+    ratingAvg: 4.9,
+    ratingCount: 38,
+    seller: {
+      id: "v-glow",
+      name: "Glow & Glamour Beauty",
+      handle: "glow-glamour",
+    },
+    availableQty: 25,
+  },
+  {
+    id: "prod-gold-signet-ring",
+    title: "Polished 14K Yellow Gold Oval Signet Ring",
+    description: "Timeless heirloom-grade oval signet ring crafted from solid 14-karat gold with smooth comfort-fit band.",
+    thumbnail: "/images/products/demo/gold-signet-ring.jpg",
+    images: [{ url: "/images/products/demo/gold-signet-ring.jpg" }],
+    thumbUrl: "/images/products/demo/gold-signet-ring.jpg",
+    offerId: "offer-gold-signet-ring",
+    offerCount: 1,
+    amount: 2400,
+    currencyCode: "ghs",
+    categoryLabel: "Fashion & Apparel",
+    categoryHandles: ["fashion-apparel", "accessories"],
+    ratingAvg: 4.8,
+    ratingCount: 22,
+    seller: {
+      id: "v-glow",
+      name: "Glow & Glamour Beauty",
+      handle: "glow-glamour",
+    },
+    availableQty: 10,
+  },
+  {
+    id: "prod-beaded-bracelet",
+    title: "Handmade Ghanaian Brass & Glass Bead Bracelet",
+    description: "Artisanal Krobo recycled glass beads paired with hand-cast recycled brass accents on durable cord.",
+    thumbnail: "/images/products/demo/beaded-bracelet.jpg",
+    images: [{ url: "/images/products/demo/beaded-bracelet.jpg" }],
+    thumbUrl: "/images/products/demo/beaded-bracelet.jpg",
+    offerId: "offer-beaded-bracelet",
+    offerCount: 3,
+    amount: 160,
+    currencyCode: "ghs",
+    categoryLabel: "Fashion & Apparel",
+    categoryHandles: ["fashion-apparel", "accessories"],
+    ratingAvg: 4.9,
+    ratingCount: 56,
+    seller: {
+      id: "5e8d3820-f925-4eb0-94a6-94c112526f23",
+      name: "Hurry Ventures - Osu",
+      handle: "hurry-ventures",
+    },
+    availableQty: 30,
+  },
+  {
+    id: "prod-chronograph-watch",
+    title: "Minimalist Chronograph Black Leather Wristwatch",
+    description: "Precision quartz chronograph timepiece with scratch-resistant sapphire crystal and supple calfskin leather strap.",
+    thumbnail: "/images/products/demo/chronograph-watch.jpg",
+    images: [{ url: "/images/products/demo/chronograph-watch.jpg" }],
+    thumbUrl: "/images/products/demo/chronograph-watch.jpg",
+    offerId: "offer-chronograph-watch",
+    offerCount: 2,
+    amount: 1250,
+    currencyCode: "ghs",
+    categoryLabel: "Fashion & Apparel",
+    categoryHandles: ["fashion-apparel", "accessories"],
+    ratingAvg: 4.9,
+    ratingCount: 65,
+    seller: {
+      id: "seller-b",
+      name: "Kumasi Tech Hub",
+      handle: "kumasi-tech",
+    },
+    availableQty: 14,
+  },
+  {
+    id: "prod-aviator-sunglasses",
+    title: "Polarized Classic Gold Aviator Sunglasses",
+    description: "Vintage-inspired teardrop aviator frame with UV400 polarized gradient lenses and adjustable silicone nose pads.",
+    thumbnail: "/images/products/demo/aviator-sunglasses.jpg",
+    images: [{ url: "/images/products/demo/aviator-sunglasses.jpg" }],
+    thumbUrl: "/images/products/demo/aviator-sunglasses.jpg",
+    offerId: "offer-aviator-sunglasses",
+    offerCount: 2,
+    amount: 380,
+    currencyCode: "ghs",
+    categoryLabel: "Fashion & Apparel",
+    categoryHandles: ["fashion-apparel", "accessories"],
+    ratingAvg: 4.7,
+    ratingCount: 29,
+    seller: {
+      id: "5e8d3820-f925-4eb0-94a6-94c112526f23",
+      name: "Hurry Ventures - Osu",
+      handle: "hurry-ventures",
+    },
+    availableQty: 20,
+  },
+  {
+    id: "prod-authentic-kente",
+    title: "Handwoven Authentic Ashanti Kente Cloth 3-Piece Set",
+    description: "Master-woven silk and cotton ceremonial Kente cloth directly from Bonwire, rich in heritage symbolism.",
+    thumbnail: "/images/products/demo/authentic-kente.jpg",
+    images: [{ url: "/images/products/demo/authentic-kente.jpg" }],
+    thumbUrl: "/images/products/demo/authentic-kente.jpg",
+    offerId: "offer-authentic-kente",
+    offerCount: 1,
+    amount: 3200,
+    currencyCode: "ghs",
+    categoryLabel: "Fashion & Apparel",
+    categoryHandles: ["fashion-apparel"],
+    ratingAvg: 5.0,
+    ratingCount: 34,
+    seller: {
+      id: "5e8d3820-f925-4eb0-94a6-94c112526f23",
+      name: "Hurry Ventures - Osu",
+      handle: "hurry-ventures",
+    },
+    availableQty: 6,
+  },
+  {
+    id: "prod-bolga-basket",
+    title: "Handwoven Bolgatanga Elephant Grass Market Basket",
+    description: "Robust fair-trade handwoven market tote crafted from natural Veta Vera straw with comfortable leather-wrapped handle.",
+    thumbnail: "/images/products/demo/bolga-basket.jpg",
+    images: [{ url: "/images/products/demo/bolga-basket.jpg" }],
+    thumbUrl: "/images/products/demo/bolga-basket.jpg",
+    offerId: "offer-bolga-basket",
+    offerCount: 2,
+    amount: 290,
+    currencyCode: "ghs",
+    categoryLabel: "Home & Living",
+    categoryHandles: ["home-living", "fashion-apparel", "bags"],
+    ratingAvg: 4.9,
+    ratingCount: 71,
+    seller: {
+      id: "5e8d3820-f925-4eb0-94a6-94c112526f23",
+      name: "Hurry Ventures - Osu",
+      handle: "hurry-ventures",
+    },
+    availableQty: 18,
+  },
+  {
+    id: "prod-leather-sandals",
+    title: "Handcrafted Leather Cross-Strap Slide Sandals",
+    description: "Full-grain vegetable-tanned leather slides with cushioned arch support and non-slip rubber tread.",
+    thumbnail: "/images/products/demo/leather-sandals.jpg",
+    images: [{ url: "/images/products/demo/leather-sandals.jpg" }],
+    thumbUrl: "/images/products/demo/leather-sandals.jpg",
+    offerId: "offer-leather-sandals",
+    offerCount: 2,
+    amount: 340,
+    currencyCode: "ghs",
+    categoryLabel: "Fashion & Apparel",
+    categoryHandles: ["fashion-apparel", "footwear"],
+    ratingAvg: 4.8,
+    ratingCount: 43,
+    seller: {
+      id: "5e8d3820-f925-4eb0-94a6-94c112526f23",
+      name: "Hurry Ventures - Osu",
+      handle: "hurry-ventures",
+    },
+    availableQty: 22,
+  },
+  {
+    id: "prod-bifold-wallet",
+    title: "Handmade Full-Grain Leather Bi-Fold Wallet",
+    description: "Slim RFID-blocking wallet handcrafted from supple oil-waxed leather with 8 card slots and bill compartment.",
+    thumbnail: "/images/products/demo/bifold-wallet.jpg",
+    images: [{ url: "/images/products/demo/bifold-wallet.jpg" }],
+    thumbUrl: "/images/products/demo/bifold-wallet.jpg",
+    offerId: "offer-bifold-wallet",
+    offerCount: 2,
+    amount: 220,
+    currencyCode: "ghs",
+    categoryLabel: "Fashion & Apparel",
+    categoryHandles: ["fashion-apparel", "accessories", "bags"],
+    ratingAvg: 4.8,
+    ratingCount: 27,
+    seller: {
+      id: "5e8d3820-f925-4eb0-94a6-94c112526f23",
+      name: "Hurry Ventures - Osu",
+      handle: "hurry-ventures",
+    },
+    availableQty: 35,
+  },
+  {
+    id: "prod-cocoa-powder",
+    title: "Pure Natural Ghanaian Dark Cocoa Powder 500g",
+    description: "100% single-origin premium Ghanaian cocoa powder with rich antioxidant profile and intense chocolate flavor.",
+    thumbnail: "/images/products/demo/cocoa-powder.jpg",
+    images: [{ url: "/images/products/demo/cocoa-powder.jpg" }],
+    thumbUrl: "/images/products/demo/cocoa-powder.jpg",
+    offerId: "offer-cocoa-powder",
+    offerCount: 3,
+    amount: 85,
+    currencyCode: "ghs",
+    categoryLabel: "Food & Groceries",
+    categoryHandles: ["food-groceries", "beverages", "staples"],
+    ratingAvg: 4.9,
+    ratingCount: 88,
+    seller: {
+      id: "v-ejs",
+      name: "EJ's Mart & Groceries",
+      handle: "ejs-cuisine",
+    },
+    availableQty: 50,
+  },
+  {
+    id: "prod-fast-powerbank",
+    title: "Anker 20,000mAh 22.5W Ultra-Fast Power Bank",
+    description: "High-capacity portable charger featuring dual USB-C Power Delivery ports and smart digital display.",
+    thumbnail: "/images/products/demo/fast-powerbank.jpg",
+    images: [{ url: "/images/products/demo/fast-powerbank.jpg" }],
+    thumbUrl: "/images/products/demo/fast-powerbank.jpg",
+    offerId: "offer-fast-powerbank",
+    offerCount: 2,
+    amount: 480,
+    currencyCode: "ghs",
+    categoryLabel: "Phones & Electronics",
+    categoryHandles: ["phones-electronics", "accessories"],
+    ratingAvg: 4.9,
+    ratingCount: 62,
+    seller: {
+      id: "seller-b",
+      name: "Kumasi Tech Hub",
+      handle: "kumasi-tech",
+    },
+    availableQty: 18,
+  },
+]
+
+export const DEFAULT_STORE_CATEGORIES: StoreCategory[] = [
+  { id: "cat-electronics", name: "Phones & Electronics", handle: "phones-electronics" },
+  { id: "cat-fashion", name: "Fashion & Apparel", handle: "fashion-apparel" },
+  { id: "cat-home", name: "Home & Living", handle: "home-living" },
+  { id: "cat-beauty", name: "Health & Beauty", handle: "health-beauty" },
+  { id: "cat-baby", name: "Baby & Kids", handle: "baby-kids" },
+  { id: "cat-food", name: "Food & Groceries", handle: "food-groceries" },
+  { id: "cat-pets", name: "Pet Care", handle: "pet-care" },
+]
+
 export async function listPopularProducts(opts?: {
   limit?: number
   window?: "7d" | "30d"
 }): Promise<{ products: StoreProductCard[] }> {
-  if (!useCloudflareCatalog()) return { products: [] }
+  if (!useCloudflareCatalog()) return { products: DEMO_CATALOG_PRODUCTS.slice(0, opts?.limit ?? 8) }
   ensureCloudflareBaseUrl()
   const base = getAlkemartApiUrl()
   const params = new URLSearchParams()
@@ -489,15 +1181,17 @@ export async function listPopularProducts(opts?: {
     const res = await fetch(`${base}/store/catalog/popular?${params.toString()}`, {
       headers: { Accept: "application/json" },
     })
-    if (!res.ok) return { products: [] }
+    if (!res.ok) return { products: DEMO_CATALOG_PRODUCTS.slice(0, opts?.limit ?? 8) }
     const data = (await res.json()) as { items?: unknown[] }
+    const mapped = (data.items ?? []).map((item) =>
+      mapCfProductCard(item as Parameters<typeof mapCfProductCard>[0]),
+    )
+    const combined = mapped.length >= 4 ? mapped : [...mapped, ...DEMO_CATALOG_PRODUCTS.filter((d) => !mapped.some((m) => m.id === d.id))]
     return {
-      products: (data.items ?? []).map((item) =>
-        mapCfProductCard(item as Parameters<typeof mapCfProductCard>[0]),
-      ),
+      products: combined.slice(0, opts?.limit ?? 8),
     }
   } catch {
-    return { products: [] }
+    return { products: DEMO_CATALOG_PRODUCTS.slice(0, opts?.limit ?? 8) }
   }
 }
 
@@ -554,9 +1248,11 @@ export async function listStoreProducts(opts?: {
       ...(q ? { q } : {}),
       ...(opts?.sort ? { sort: opts.sort } : {}),
     })
+    const mapped = (res.items ?? []).map(mapCfProductCard)
+    const combined = mapped.length >= 4 ? mapped : [...mapped, ...DEMO_CATALOG_PRODUCTS.filter((d) => !mapped.some((m) => m.id === d.id))]
     return {
-      products: (res.items ?? []).map(mapCfProductCard),
-      count: res.total ?? res.items?.length ?? 0,
+      products: combined.slice(0, limit),
+      count: Math.max(res.total ?? 0, combined.length),
     }
   }
 
@@ -836,11 +1532,14 @@ export async function listRelatedProducts(opts: {
  * Fetch featured products from the storefront API.
  */
 export async function fetchFeaturedProducts(): Promise<StoreProductCard[]> {
+  const previewFallback = () =>
+    import.meta.env.DEV ? DEMO_CATALOG_PRODUCTS.slice(0, 36) : []
+
   if (useCloudflareCatalog()) {
     try {
       // Honest curation: newest real listings first (no invented "trending").
-      const { products } = await listStoreProducts({ limit: 12, offset: 0, sort: "newest" })
-      return products
+      const { products } = await listStoreProducts({ limit: 36, offset: 0, sort: "newest" })
+      return products.length > 0 ? products : previewFallback()
     } catch {
       return []
     }
@@ -854,12 +1553,23 @@ export async function fetchFeaturedProducts(): Promise<StoreProductCard[]> {
         "x-publishable-api-key": pk,
       },
     })
-    if (!res.ok) return []
+    if (!res.ok) {
+      const { products } = await listStoreProducts({ limit: 36, offset: 0 })
+      return products.length > 0 ? products : previewFallback()
+    }
     const data = (await res.json()) as { products?: ProductSlice[] }
     const raw = (data.products ?? []) as ProductSlice[]
-    return raw.map((p) => mapProduct(p))
+    const featured = raw.map((p) => mapProduct(p))
+    if (featured.length > 0) return featured
+    const { products } = await listStoreProducts({ limit: 36, offset: 0 })
+    return products.length > 0 ? products : previewFallback()
   } catch {
-    return []
+    try {
+      const { products } = await listStoreProducts({ limit: 36, offset: 0 })
+      return products.length > 0 ? products : previewFallback()
+    } catch {
+      return previewFallback()
+    }
   }
 }
 

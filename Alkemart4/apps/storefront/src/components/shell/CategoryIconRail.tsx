@@ -1,16 +1,17 @@
-import { useState } from "react"
+import { useMemo, useRef } from "react"
 import { Link } from "@tanstack/react-router"
+import { useQuery } from "@tanstack/react-query"
 import type { IconId } from "@/design/icons"
 import { IconSafe } from "@/design/icons"
-import { iconForCategory, type RailCategory, type RailChild } from "@/lib/catalog-nav"
-import { cn } from "@/lib/utils"
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@workspace/ui"
+  iconForCategory,
+  resolveRailCategories,
+  type RailCategory,
+} from "@/lib/catalog-nav"
+import { listStoreCategories, DEFAULT_STORE_CATEGORIES } from "@/lib/products"
+import { cn } from "@/lib/utils"
+import { Skeleton } from "@/components/skeleton"
+import { CaretLeft, CaretRight } from "@phosphor-icons/react"
 
 type Props = {
   categories: RailCategory[]
@@ -19,36 +20,40 @@ type Props = {
 }
 
 /**
- * Short department rail. Each chip links to the department and opens a
- * lightweight popdown of subcategories when children exist.
+ * Hubtel-proportioned service reel: large circular chip with the label
+ * below it on the page background — no cards. Chips read at 64px with
+ * 14px semibold labels, scrollable with edge arrows.
  */
 export function CategoryIconRail({
   categories,
   activeSlug,
   className,
 }: Props) {
+  const scrollRef = useRef<HTMLDivElement>(null)
+
+  function scroll(direction: "left" | "right") {
+    if (!scrollRef.current) return
+    const offset = direction === "left" ? -320 : 320
+    scrollRef.current.scrollBy({ left: offset, behavior: "smooth" })
+  }
+
   if (!categories.length) return null
 
   return (
-    <nav
-      aria-label="Departments"
-      className={cn("border-b border-border bg-card", className)}
-    >
-      <div className="relative mx-auto w-full max-w-[1200px]">
+    <nav aria-label="Categories" className={cn("relative w-full py-2", className)}>
+      <div className="group relative">
+        <button
+          type="button"
+          onClick={() => scroll("left")}
+          aria-label="Scroll left"
+          className="absolute -left-3 top-[2rem] z-20 flex h-9 w-9 items-center justify-center rounded-full border border-border bg-card text-foreground shadow-md transition-all hover:scale-105 hover:bg-tone-neutral-soft active:scale-95"
+        >
+          <CaretLeft size={16} weight="bold" />
+        </button>
+
         <div
-          className="pointer-events-none absolute inset-y-0 left-0 z-10 w-6 bg-gradient-to-r from-card to-transparent sm:hidden"
-          aria-hidden
-        />
-        <div
-          className="pointer-events-none absolute inset-y-0 right-0 z-10 w-6 bg-gradient-to-l from-card to-transparent sm:hidden"
-          aria-hidden
-        />
-        <div
-          className={cn(
-            "scrollbar-none flex w-full items-center",
-            "justify-start gap-1 overflow-x-auto px-4 py-2.5",
-            "sm:justify-center sm:flex-wrap sm:gap-1.5 sm:overflow-visible sm:px-6 sm:py-3",
-          )}
+          ref={scrollRef}
+          className="scrollbar-none flex w-full items-start justify-start gap-4 overflow-x-auto px-1 py-1 scroll-smooth sm:gap-5"
         >
           {categories.map((c) => (
             <RailItem
@@ -56,7 +61,6 @@ export function CategoryIconRail({
               slug={(c.handle || c.id).toLowerCase()}
               label={c.name}
               iconId={c.icon ?? iconForCategory(c.name, c.handle)}
-              children={c.children ?? []}
               active={
                 activeSlug === (c.handle || c.id).toLowerCase() ||
                 (c.children ?? []).some((ch) => ch.handle === activeSlug)
@@ -64,8 +68,71 @@ export function CategoryIconRail({
             />
           ))}
         </div>
+
+        <button
+          type="button"
+          onClick={() => scroll("right")}
+          aria-label="Scroll right"
+          className="absolute -right-3 top-[2rem] z-20 flex h-9 w-9 items-center justify-center rounded-full border border-border bg-card text-foreground shadow-md transition-all hover:scale-105 hover:bg-tone-neutral-soft active:scale-95"
+        >
+          <CaretRight size={16} weight="bold" />
+        </button>
       </div>
     </nav>
+  )
+}
+
+/** Shimmer loading state for category rail — mirrors chip + label below. */
+export function CategoryRailSkeleton() {
+  return (
+    <div className="flex w-full gap-4 overflow-hidden py-2 sm:gap-5" aria-hidden="true">
+      {Array.from({ length: 8 }).map((_, i) => (
+        <div
+          key={i}
+          className="flex w-20 shrink-0 flex-col items-center gap-2 sm:w-24"
+        >
+          <Skeleton className="h-16 w-16 rounded-full sm:h-[4.5rem] sm:w-[4.5rem]" />
+          <Skeleton className="h-3.5 w-16 rounded-md" />
+        </div>
+      ))}
+    </div>
+  )
+}
+
+/** Fetches department list and renders Hubtel category reel. */
+export function CategoryReel({
+  activeSlug,
+  className,
+}: {
+  activeSlug?: string
+  className?: string
+}) {
+  const catsQ = useQuery({
+    queryKey: ["store", "categories"],
+    queryFn: () => listStoreCategories(),
+    staleTime: 5 * 60_000,
+  })
+
+  // Same fallback as the homepage: an empty catalogue response must not
+  // blank discovery.
+  const categories = useMemo(
+    () =>
+      resolveRailCategories(
+        (catsQ.data?.length ?? 0) > 0 ? catsQ.data! : DEFAULT_STORE_CATEGORIES,
+      ),
+    [catsQ.data],
+  )
+
+  if (catsQ.isLoading) {
+    return <CategoryRailSkeleton />
+  }
+
+  return (
+    <CategoryIconRail
+      categories={categories}
+      activeSlug={activeSlug}
+      className={className}
+    />
   )
 }
 
@@ -73,125 +140,27 @@ function RailItem(props: {
   slug: string
   label: string
   iconId: IconId
-  children: RailChild[]
   active: boolean
 }) {
-  const hasKids = props.children.length > 0
-  const [open, setOpen] = useState(false)
-
-  const chipClass = cn(
-    "group relative flex shrink-0 flex-row items-center gap-1.5",
-    "rounded-full px-2.5 py-1.5 transition sm:gap-2 sm:px-3 sm:py-2",
-    "hover:bg-muted/60",
-    props.active || open
-      ? "bg-muted/80 text-foreground"
-      : "text-muted-foreground hover:text-foreground",
-  )
-
-  if (!hasKids) {
-    return (
-      <Link
-        to="/categories/$slug"
-        params={{ slug: props.slug }}
-        className={chipClass}
-      >
-        <IconSafe name={props.iconId} size={20} preferAsset className="shrink-0" />
-        <span
-          className={cn(
-            "max-w-[9.5rem] truncate whitespace-nowrap text-sm font-medium leading-none sm:max-w-none",
-            props.active && "font-semibold",
-          )}
-        >
-          {props.label}
-        </span>
-        <ActiveBar active={props.active} />
-      </Link>
-    )
-  }
-
   return (
-    <DropdownMenu open={open} onOpenChange={setOpen} modal={false}>
-      <div
-        className="relative flex shrink-0 items-center"
-        onMouseEnter={() => setOpen(true)}
-        onMouseLeave={() => setOpen(false)}
-      >
-        <Link
-          to="/categories/$slug"
-          params={{ slug: props.slug }}
-          className={cn(chipClass, "rounded-r-none pr-1.5 sm:pr-2")}
-        >
-          <IconSafe name={props.iconId} size={20} preferAsset className="shrink-0" />
-          <span
-            className={cn(
-              "max-w-[9.5rem] truncate whitespace-nowrap text-sm font-medium leading-none sm:max-w-none",
-              (props.active || open) && "font-semibold",
-            )}
-          >
-            {props.label}
-          </span>
-          <ActiveBar active={props.active || open} />
-        </Link>
-        <DropdownMenuTrigger asChild>
-          <button
-            type="button"
-            className={cn(
-              chipClass,
-              "rounded-l-none border-l border-border/60 px-2",
-              open && "bg-muted/80 text-foreground",
-            )}
-            aria-label={`${props.label} subcategories`}
-          >
-            <Chevron open={open} />
-          </button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" aria-label={`${props.label} subcategories`}>
-          <DropdownMenuItem asChild className="font-semibold text-foreground">
-            <Link to="/categories/$slug" params={{ slug: props.slug }}>
-              Shop all {props.label}
-            </Link>
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          {props.children.map((ch) => (
-            <DropdownMenuItem key={ch.id} asChild className="text-muted-foreground focus:text-foreground">
-              <Link to="/categories/$slug" params={{ slug: ch.handle }}>
-                {ch.name}
-              </Link>
-            </DropdownMenuItem>
-          ))}
-        </DropdownMenuContent>
-      </div>
-    </DropdownMenu>
-  )
-}
-
-function ActiveBar({ active }: { active: boolean }) {
-  return (
-    <span
-      className={cn(
-        "absolute inset-x-2.5 -bottom-0.5 h-0.5 rounded-full transition sm:inset-x-3",
-        active ? "bg-primary" : "bg-transparent",
-      )}
-      aria-hidden
-    />
-  )
-}
-
-function Chevron({ open }: { open: boolean }) {
-  return (
-    <svg
-      viewBox="0 0 12 12"
-      className={cn("size-3 shrink-0 transition", open && "rotate-180")}
-      aria-hidden
+    <Link
+      to="/categories/$slug"
+      params={{ slug: props.slug }}
+      className="group flex w-20 shrink-0 flex-col items-center gap-2 sm:w-24"
     >
-      <path
-        d="M2.5 4.5 6 8l3.5-3.5"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
+      <span
+        className={cn(
+          "flex h-16 w-16 items-center justify-center rounded-full bg-tone-neutral-soft transition-all duration-200 group-hover:scale-105 sm:h-[4.5rem] sm:w-[4.5rem]",
+          props.active
+            ? "text-foreground ring-2 ring-primary ring-offset-2 ring-offset-background"
+            : "text-foreground",
+        )}
+      >
+        <IconSafe name={props.iconId} size={28} preferAsset />
+      </span>
+      <span className="line-clamp-2 min-h-[2.5rem] w-full px-0.5 text-center text-sm font-semibold leading-snug text-foreground">
+        {props.label}
+      </span>
+    </Link>
   )
 }

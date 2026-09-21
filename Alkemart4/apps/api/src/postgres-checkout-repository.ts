@@ -961,6 +961,28 @@ export class PostgresCheckoutRepository implements CheckoutRepository {
     return out
   }
 
+  async reviewTotalsByProduct() {
+    const rows = await this.db
+      .select({
+        productId: reviews.productId,
+        count: sql<number>`count(*)`,
+        avg: sql<string | number>`avg(${reviews.rating})`,
+      })
+      .from(reviews)
+      .where(eq(reviews.status, "published"))
+      .groupBy(reviews.productId)
+    const out = new Map<string, { count: number; avg: number }>()
+    for (const r of rows) {
+      const count = Number(r.count)
+      if (count <= 0) continue
+      out.set(r.productId, {
+        count,
+        avg: Math.round(Number(r.avg) * 10) / 10,
+      })
+    }
+    return out
+  }
+
   async listPublishedReviewsByProduct(productId: string) {
     const rows = await this.db
       .select()

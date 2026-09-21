@@ -81,7 +81,7 @@ function SignInPage() {
           aria-hidden
           className="pointer-events-none absolute -bottom-40 -left-24 h-80 w-80 rounded-full bg-ink/5 blur-3xl"
         />
-        <Link to="/" className="relative text-2xl font-extrabold tracking-tight">
+        <Link to="/" className="relative text-2xl font-bold tracking-tight">
           <span className="text-primary">●</span> alkemart
         </Link>
         <img
@@ -91,8 +91,8 @@ function SignInPage() {
         />
 
         <div className="auth-panel-copy absolute left-0 top-0 z-20 w-full bg-white/90 px-8 py-6 backdrop-blur-sm lg:px-10">
-          <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-black/55">Shop Alkemart</p>
-          <p className="mt-1 text-lg font-black tracking-tight text-black">Find what fits your everyday.</p>
+          <p className="text-xs font-bold uppercase tracking-[0.2em] text-black/55">Shop Alkemart</p>
+          <p className="mt-1 text-lg font-bold text-black">Find what fits your everyday.</p>
         </div>
         <div className="relative max-w-md space-y-7">
           <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-md">
@@ -141,7 +141,7 @@ function SignInPage() {
 
       <div className="flex flex-col bg-background">
         <div className="flex items-center justify-between border-b border-border px-4 py-3 md:hidden">
-          <Link to="/" className="text-lg font-extrabold tracking-tight">
+          <Link to="/" className="text-lg font-bold tracking-tight">
             <span className="text-primary">●</span> alkemart
           </Link>
           <Link to="/" className="text-sm font-medium text-muted-foreground">

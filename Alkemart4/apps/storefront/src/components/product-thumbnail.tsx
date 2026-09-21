@@ -16,7 +16,7 @@ const sizeClass = {
 function ProductThumbnail({ src, alt, className, size = "md" }: ProductThumbnailProps) {
   if (!src) {
     return (
-      <div className={cn("flex shrink-0 items-center justify-center border border-dashed border-border bg-muted text-[10px] text-muted-foreground", sizeClass[size], className)}>
+      <div className={cn("flex shrink-0 items-center justify-center border border-dashed border-border bg-muted text-xs text-muted-foreground", sizeClass[size], className)}>
         —
       </div>
     )

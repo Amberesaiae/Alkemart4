@@ -15,6 +15,12 @@ One-shot (all four):
 bun run dev:workers
 ```
 
+Restart (kills anything on ports 8787/5175/3002/3001, then starts all four detached):
+
+```bash
+bun run restart
+```
+
 Stop with Ctrl-C (script traps child processes).
 
 ## Prerequisites

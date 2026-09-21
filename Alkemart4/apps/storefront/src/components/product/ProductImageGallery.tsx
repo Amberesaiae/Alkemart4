@@ -36,7 +36,7 @@ function NoPhotoTile({
           size={40}
         />
       </span>
-      <span className="cat-fallback-word line-clamp-2 text-[11px] font-semibold uppercase tracking-[0.14em]">
+      <span className="cat-fallback-word line-clamp-2 font-semibold uppercase tracking-[0.14em]">
         {categoryLabel?.trim() || title}
       </span>
     </div>

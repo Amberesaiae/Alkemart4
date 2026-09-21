@@ -3,12 +3,19 @@ import { useState, type FormEvent, type ReactNode } from "react"
 import { IconSafe } from "@/design/icons"
 import { BrandLogo } from "@/components/shell/BrandLogo"
 import { DeliverToPicker } from "@/components/shell/DeliverToPicker"
+import { HeaderCategoryNav } from "@/components/shell/HeaderCategoryNav"
+import { DEFAULT_STORE_CATEGORIES } from "@/lib/products"
+import { iconForCategory } from "@/lib/catalog-nav"
 import {
   Avatar,
   AvatarFallback,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@workspace/ui"
 import { cn } from "@/lib/utils"
@@ -24,19 +31,13 @@ export type AppHeaderProps = {
   onAccountClose: () => void
 }
 
-/** Secondary / info links — not mixed into the cart cluster */
-const UTILITY_NAV = [
-  { label: "About Us", to: "/about", match: (p: string) => p === "/about" },
-] as const
-
 /**
- * Traditional commerce header:
+ * MOWAFER-shaped commerce header:
  *
  *   [Logo]  [======== Search ========]  [Account] [Cart]
+ *   [Deliver to] [Departments........................] [Stores]
  *
- * Mobile: logo + account/cart on row 1; full-width search row 2.
- * About / Last Offers live in a slim utility strip (desktop)
- * and the menu drawer (mobile) — never between search and cart.
+ * Mobile: logo + account/cart; full-width search; location + browse context.
  */
 export function AppHeader({
   cartCount,
@@ -51,85 +52,83 @@ export function AppHeader({
   const navigate = useNavigate()
   const pathname = useRouterState({ select: (s) => s.location.pathname })
   const [q, setQ] = useState("")
-
+  const [filterOpen, setFilterOpen] = useState(false)
 
   function onSearch(e: FormEvent) {
     e.preventDefault()
     void navigate({ to: "/search", search: { q: q.trim() } })
   }
 
-  const utilityLinkClass = (active: boolean) =>
-    cn(
-      "inline-flex min-h-9 items-center px-2.5 text-sm font-medium transition",
-      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-      active
-        ? "font-semibold text-foreground"
-        : "text-muted-foreground hover:text-foreground",
-    )
-
   return (
-    <header className="border-b border-border bg-card" role="banner">
+    <header className="border-b border-border bg-card shadow-xs" role="banner">
+      <div className="hidden bg-muted/40 md:block">
+        <div className="mx-auto flex h-9 w-full max-w-[1200px] items-center justify-end gap-6 px-4 text-xs font-semibold text-muted-foreground sm:px-6">
+          <Link to="/sell" className="inline-flex items-center gap-1.5 transition hover:text-foreground">
+            <IconSafe name="add-cart" size={15} />
+            Sell on alkemart
+          </Link>
+          <Link to="/delivery" className="inline-flex items-center gap-1.5 transition hover:text-foreground">
+            <IconSafe name="truck" size={15} />
+            Delivery partners
+          </Link>
+          <span className="rounded-md bg-foreground px-3 py-1.5 font-bold text-background">
+            Get the app
+          </span>
+        </div>
+      </div>
       <div className="mx-auto w-full max-w-[1200px] px-4 sm:px-6">
         {/* Primary commerce row: Logo · Search · Account · Cart */}
-        <div className="flex h-14 items-center gap-3 sm:h-16 sm:gap-4">
+        <div className="flex h-12 items-center gap-2.5 sm:h-14 sm:gap-3">
           <BrandLogo size="md" className="min-w-0 shrink-0" />
 
-          {/* Where it is going changes what is worth showing, so the area sits
-              before search rather than buried in checkout. */}
-          <DeliverToPicker />
+          <DeliverToPicker className="max-w-[7rem] sm:max-w-[9rem] md:max-w-[10.5rem]" />
 
-          {/* Search — center flex (md+). Traditional marketplace pattern. */}
+          {/* Search — the dominant desktop commerce control. */}
           <form
             onSubmit={onSearch}
-            className="relative hidden min-w-0 flex-1 md:block"
+            className="mx-auto hidden min-w-0 max-w-[34rem] flex-1 items-center gap-2 md:flex"
             role="search"
             aria-label="Site search"
           >
-            <input
-              type="search"
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              placeholder="Search products"
-              className={cn(
-                "h-11 min-h-11 w-full rounded-full border border-border bg-muted/50",
-                "py-2 pl-5 pr-24 text-sm text-foreground outline-none",
-                "placeholder:text-muted-foreground",
-                "focus:border-primary focus:bg-card focus-visible:ring-2 focus-visible:ring-primary/30",
-              )}
-              aria-label="Search products"
-              autoComplete="off"
-              enterKeyHint="search"
-            />
-            <button
-              type="submit"
-              className={cn(
-                "absolute right-1 top-1 inline-flex h-9 min-h-9 min-w-[4.25rem] items-center justify-center",
-                "rounded-full bg-primary px-4 text-sm font-bold text-primary-foreground",
-                "hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-              )}
-            >
-              Search
-            </button>
+            <div className="relative min-w-0 flex-1">
+              <IconSafe
+                name="search"
+                size={18}
+                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+              />
+              <input
+                type="search"
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder="Search products, shops and categories"
+                className={cn(
+                  "h-10 min-h-10 w-full rounded-lg border border-border bg-muted/50",
+                  "py-2 pl-10 pr-11 text-sm font-medium text-foreground outline-none",
+                  "placeholder:text-muted-foreground",
+                  "focus:border-primary focus:bg-card focus-visible:ring-2 focus-visible:ring-primary/30",
+                )}
+                aria-label="Search products"
+                autoComplete="off"
+                enterKeyHint="search"
+              />
+              <button
+                type="button"
+                onClick={() => setFilterOpen(true)}
+                className="absolute right-1 top-1 inline-flex size-8 items-center justify-center rounded-md text-muted-foreground transition hover:bg-card hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                aria-label="Open search filters"
+              >
+                <IconSafe name="filter-grid" size={17} weight="bold" />
+              </button>
+            </div>
           </form>
 
-          {/* Desktop utility navigation next to search */}
-          <nav
-            className="hidden items-center gap-1.5 lg:flex shrink-0"
-            aria-label="About and contact"
-          >
-            {UTILITY_NAV.map((item) => {
-              const active = item.match(pathname)
-              return (
-                <Link
-                  key={item.label}
-                  to={item.to}
-                  className={utilityLinkClass(active)}
-                  aria-current={active ? "page" : undefined}
-                >
-                  {item.label}
-                </Link>
-              )
-            })}
+          <nav className="hidden shrink-0 items-center gap-0.5 lg:flex" aria-label="Primary">
+            <Link to="/" className="rounded-md px-2 py-2 text-sm font-bold text-muted-foreground hover:bg-muted hover:text-foreground">
+              Home
+            </Link>
+            <Link to="/shops" className="rounded-md px-2 py-2 text-sm font-bold text-muted-foreground hover:bg-muted hover:text-foreground">
+              Stores
+            </Link>
           </nav>
 
           {/* Trailing tools — far right, always Account then Cart (commerce convention) */}
@@ -138,38 +137,6 @@ export function AppHeader({
             role="group"
             aria-label="Account and cart"
           >
-            {/* Mobile: utility menu (About) — left of account */}
-            <div className="lg:hidden">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button
-                  type="button"
-                  className={cn(
-                    "flex h-11 min-h-11 min-w-11 items-center justify-center rounded-full",
-                    "text-muted-foreground hover:bg-muted hover:text-foreground",
-                    "focus-visible:ring-2 focus-visible:ring-ring",
-                  )}
-                  aria-label="More menu"
-                >
-                  <IconSafe name="menu" size={22} />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="min-w-[12rem]" aria-label="Site links">
-                {UTILITY_NAV.map((item) =>
-                  "hash" in item && item.hash ? (
-                    <DropdownMenuItem asChild key={item.label}>
-                      <a href={`/#${item.hash}`}>{item.label}</a>
-                    </DropdownMenuItem>
-                  ) : (
-                    <DropdownMenuItem asChild key={item.label}>
-                      <Link to={item.to}>{item.label}</Link>
-                    </DropdownMenuItem>
-                  ),
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
-            </div>
-
             {/* Account */}
             <DropdownMenu open={accountOpen} onOpenChange={onAccountOpenChange}>
               <DropdownMenuTrigger asChild>
@@ -250,38 +217,93 @@ export function AppHeader({
         {/* Mobile search — full width under tools */}
         <form
           onSubmit={onSearch}
-          className="relative pb-3 md:hidden"
+          className="flex items-center gap-2 pb-3 md:hidden"
           role="search"
           aria-label="Site search"
         >
-          <input
-            type="search"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="Search products"
-            className={cn(
-              "h-11 min-h-11 w-full rounded-full border border-border bg-muted/50",
-              "py-2 pl-5 pr-24 text-sm text-foreground outline-none",
-              "placeholder:text-muted-foreground",
-              "focus:border-primary focus:bg-card focus-visible:ring-2 focus-visible:ring-primary/30",
-            )}
-            aria-label="Search products"
-            autoComplete="off"
-            enterKeyHint="search"
-          />
-          <button
-            type="submit"
-            className={cn(
-              "absolute right-1 top-1 inline-flex h-9 min-h-9 min-w-[4.25rem] items-center justify-center",
-              "rounded-full bg-primary px-4 text-sm font-bold text-primary-foreground",
-              "hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-            )}
-          >
-            Search
-          </button>
+          <div className="relative min-w-0 flex-1">
+            <IconSafe
+              name="search"
+              size={18}
+              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+            />
+            <input
+              type="search"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Search products, shops and categories"
+              className={cn(
+                "h-10 min-h-10 w-full rounded-lg border border-border bg-muted/50",
+                "py-2 pl-10 pr-11 text-sm font-medium text-foreground outline-none",
+                "placeholder:text-muted-foreground",
+                "focus:border-primary focus:bg-card focus-visible:ring-2 focus-visible:ring-primary/30",
+              )}
+              aria-label="Search products"
+              autoComplete="off"
+              enterKeyHint="search"
+            />
+            <button
+              type="button"
+              onClick={() => setFilterOpen(true)}
+              className="absolute right-1 top-1 inline-flex size-8 items-center justify-center rounded-md text-muted-foreground transition hover:bg-card hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              aria-label="Open search filters"
+            >
+              <IconSafe name="filter-grid" size={17} weight="bold" />
+            </button>
+          </div>
         </form>
 
+        {/* Full-width, horizontally scrollable taxonomy row. */}
+        <div className="flex min-h-12 items-center">
+          <HeaderCategoryNav pathname={pathname} />
+        </div>
       </div>
+
+      <Dialog open={filterOpen} onOpenChange={setFilterOpen}>
+        <DialogContent className="max-w-xl p-0">
+          <DialogHeader className="border-b border-border px-6 pb-4 pt-6 text-left">
+            <DialogTitle className="text-2xl font-black">Filter your search</DialogTitle>
+            <DialogDescription>
+              Search directly or choose a department to narrow the market.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-5 px-6 pb-6">
+            <form onSubmit={(event) => { onSearch(event); setFilterOpen(false) }} className="relative">
+              <IconSafe name="search" size={19} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <input
+                type="search"
+                value={q}
+                onChange={(event) => setQ(event.target.value)}
+                placeholder="What are you looking for?"
+                className="h-12 w-full rounded-xl border border-border bg-muted/40 pl-11 pr-4 text-sm font-medium outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                autoFocus
+              />
+            </form>
+            <div>
+              <p className="mb-3 text-sm font-black">Shop by department</p>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                {DEFAULT_STORE_CATEGORIES.filter((category) => !category.parentCategoryId).slice(0, 9).map((category) => (
+                  <button
+                    key={category.id}
+                    type="button"
+                    onClick={() => {
+                      setFilterOpen(false)
+                      void navigate({
+                        to: "/search",
+                        search: { category: [category.handle || category.id] },
+                      })
+                    }}
+                    className="flex min-h-12 items-center gap-2 rounded-xl border border-border px-3 text-left text-sm font-bold transition hover:border-primary hover:bg-primary/5"
+                  >
+                    <IconSafe name={iconForCategory(category.name, category.handle)} size={17} className="text-primary" />
+                    <span className="line-clamp-2">{category.name}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </header>
   )
 }

@@ -1,5 +1,5 @@
 import type { HomeSection } from "@alkemart/shared/homepage"
-import { isSectionVisible } from "@alkemart/shared/homepage"
+import { composeMarketCourse, DEFAULT_HOMEPAGE_SECTIONS, isSectionVisible } from "@alkemart/shared/homepage"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
@@ -10,11 +10,9 @@ import {
   EmptyState,
   LivePreview,
   Skeleton,
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
+  StudioWorkbench,
   formatSchedule,
+  type StudioDevice,
 } from "@workspace/ui"
 import { PageShell } from "../../components/page-shell"
 import { homepageStudio } from "../../lib/api"
@@ -23,16 +21,17 @@ import { usePreviewFeatured } from "../../components/homepage-studio/preview-dat
 import { PublishBar } from "../../components/homepage-studio/PublishBar"
 import { SectionEditor } from "../../components/homepage-studio/SectionEditor"
 import { SectionLibrary } from "../../components/homepage-studio/SectionLibrary"
-import { SlideOver, SlideOverClose } from "../../components/homepage-studio/SlideOver"
 import { sectionLabels, sectionName, storefrontBase, validateSections } from "../../components/homepage-studio/model"
+import { StudioOutline } from "../../components/homepage-studio/StudioOutline"
+
+const COURSE_IDS = new Set(DEFAULT_HOMEPAGE_SECTIONS.map((section) => section.id))
 
 export const Route = createFileRoute("/_authenticated/homepage")({ component: HomepageStudioPage })
 
 /**
- * Single-pane studio: the draft canvas is the page. Layers stack with gap
- * inserts, and editing happens in a slide-over beside the canvas — no
- * outline rail, no docked inspector. Every control lives exactly once:
- * the canvas owns stacking and looking, the slide-over owns fields.
+ * Three-zone merchandising workbench: outline (the plot), phone-first
+ * canvas of real storefront components, docked inspector. Campaigns
+ * append after the plot; they never steal the first screen.
  */
 function HomepageStudioPage() {
   const queryClient = useQueryClient()
@@ -40,10 +39,10 @@ function HomepageStudioPage() {
   const categoriesQ = useQuery({ queryKey: ["homepage-studio", "categories"], queryFn: homepageStudio.categories })
   const [sections, setSections] = useState<HomeSection[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
-  const [inspectorOpen, setInspectorOpen] = useState(false)
   const [libraryOpen, setLibraryOpen] = useState(false)
   const [addAt, setAddAt] = useState<number | null>(null)
   const [perspective, setPerspective] = useState<"draft" | "live">("draft")
+  const [device, setDevice] = useState<StudioDevice>("mobile")
   const [showHidden, setShowHidden] = useState(true)
   const [publishAt, setPublishAt] = useState<string | null>(null)
   const [unpublishAt, setUnpublishAt] = useState<string | null>(null)
@@ -64,22 +63,20 @@ function HomepageStudioPage() {
 
   useEffect(() => {
     if (!pageQ.data) return
-    setSections(pageQ.data.sections)
-    setSelectedId((current) => current ?? pageQ.data.sections[0]?.id ?? null)
+    const next = composeMarketCourse(pageQ.data.sections)
+    setSections(next)
+    setSelectedId((current) => current ?? next[0]?.id ?? null)
   }, [pageQ.data])
 
   const announce = (message: string) => setAnnouncement(message)
 
   const openSection = useCallback((section: HomeSection, message?: string) => {
     setSelectedId(section.id)
-    setInspectorOpen(true)
     if (message) announce(message)
     // The heading mounts with the slide-over; focus it so keyboard and
     // screen-reader users land where the work happens.
     requestAnimationFrame(() => settingsHeadingRef.current?.focus())
   }, [])
-
-  const closeInspector = useCallback(() => setInspectorOpen(false), [])
 
   const selected = useMemo(() => sections.find((section) => section.id === selectedId) ?? null, [sections, selectedId])
   const selectedIndex = useMemo(() => sections.findIndex((section) => section.id === selectedId), [sections, selectedId])
@@ -195,139 +192,121 @@ function HomepageStudioPage() {
   }
 
   return (
-    <PageShell>
+    <PageShell className="flex min-h-[calc(100vh-0px)] max-w-none flex-col space-y-0 p-0">
       <div aria-live="polite" role="status" className="sr-only">{announcement}</div>
-
-      {/* Slim command bar: title, status and publish actions stay reachable
-          while the canvas scrolls. */}
-      <div className="sticky top-0 z-30 -mx-5 border-b border-border bg-background/90 px-5 py-2.5 backdrop-blur sm:-mx-8 sm:px-8">
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-          <h1 className="mr-auto text-lg font-extrabold tracking-tight">Homepage</h1>
-          <PublishBar
-            status={pageQ.data.status}
-            hiddenCount={hiddenCount}
-            issueCount={issues.length}
-            saving={save.isPending}
-            publishing={publish.isPending}
-            publishAt={publishAt}
-            unpublishAt={unpublishAt}
-            onPublishAt={setPublishAt}
-            onUnpublishAt={setUnpublishAt}
-            onSave={() => { if (!blockedByIssues("save")) save.mutate() }}
-            onPublish={() => { if (!blockedByIssues("publish")) publish.mutate() }}
+      <StudioWorkbench
+        className="min-h-[80vh]"
+        device={device}
+        onDevice={setDevice}
+        toolbar={
+          <>
+            <h1 className="mr-auto text-lg font-extrabold tracking-tight">Homepage</h1>
+            <Button type="button" size="sm" variant={perspective === "draft" ? "default" : "ghost"} className="h-7 gap-1 px-2.5 text-xs" onClick={() => setPerspective("draft")}>
+              <Pencil className="h-3.5 w-3.5" aria-hidden /> Draft
+            </Button>
+            <Button type="button" size="sm" variant={perspective === "live" ? "default" : "ghost"} className="h-7 gap-1 px-2.5 text-xs" onClick={() => setPerspective("live")}>
+              <Globe className="h-3.5 w-3.5" aria-hidden /> Live
+            </Button>
+            {perspective === "draft" ? (
+              <Button
+                type="button"
+                size="sm"
+                variant={showHidden ? "default" : "ghost"}
+                aria-pressed={showHidden}
+                className="h-7 gap-1 px-2.5 text-xs"
+                onClick={() => {
+                  setShowHidden((value) => {
+                    announce(value ? "Hidden sections concealed — buyer view." : "Hidden sections shown — draft view.")
+                    return !value
+                  })
+                }}
+              >
+                {showHidden ? <Eye className="h-3.5 w-3.5" aria-hidden /> : <EyeSlash className="h-3.5 w-3.5" aria-hidden />}
+                Hidden
+              </Button>
+            ) : null}
+            <PublishBar
+              status={pageQ.data.status}
+              hiddenCount={hiddenCount}
+              issueCount={issues.length}
+              saving={save.isPending}
+              publishing={publish.isPending}
+              publishAt={publishAt}
+              unpublishAt={unpublishAt}
+              onPublishAt={setPublishAt}
+              onUnpublishAt={setUnpublishAt}
+              onSave={() => { if (!blockedByIssues("save")) save.mutate() }}
+              onPublish={() => { if (!blockedByIssues("publish")) publish.mutate() }}
+            />
+          </>
+        }
+        outline={
+          <StudioOutline
+            sections={sections}
+            selectedId={selectedId}
+            issues={issues}
+            onSelect={(section) => openSection(section, `${sectionName(section)} selected.`)}
+            onMove={(id, delta) => move(id, delta)}
+            onAdd={() => { setAddAt(sections.length); setLibraryOpen(true) }}
           />
-        </div>
-      </div>
-
-      <div className="mx-auto max-w-5xl">
-        <Tabs value={perspective} onValueChange={(next) => setPerspective(next as "draft" | "live")}>
-          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-            <TabsList aria-label="Preview perspective">
-              <TabsTrigger value="draft">
-                <Pencil className="mr-1.5 h-4 w-4" aria-hidden="true" />
-                Draft
-              </TabsTrigger>
-              <TabsTrigger value="live">
-                <Globe className="mr-1.5 h-4 w-4" aria-hidden="true" />
-                Live page
-              </TabsTrigger>
-            </TabsList>
-            <div className="flex items-center gap-1">
-              {perspective === "draft" ? (
-                <Button
-                  type="button"
-                  size="sm"
-                  variant={showHidden ? "default" : "ghost"}
-                  aria-pressed={showHidden}
-                  onClick={() => {
-                    setShowHidden((value) => {
-                      announce(value ? "Hidden sections concealed — buyer view." : "Hidden sections shown — draft view.")
-                      return !value
-                    })
-                  }}
-                  title={showHidden ? "Conceal hidden sections (buyer view)" : "Show hidden sections (draft view)"}
-                  className="h-7 gap-1 px-2.5 text-xs"
-                >
-                  {showHidden ? <Eye className="h-3.5 w-3.5" aria-hidden="true" /> : <EyeSlash className="h-3.5 w-3.5" aria-hidden="true" />}
-                  Hidden
-                </Button>
-              ) : null}
-              <div className="inline-flex items-center rounded-xl border border-border bg-white px-2.5 py-1 text-xs text-muted-foreground shadow-xs">
-                Canvas follows your window — narrow it to proof the mobile layout
-              </div>
-            </div>
-          </div>
-          <TabsContent value="draft" className="mt-0">
-            <div className="rounded-3xl border border-border bg-tone-neutral-soft p-3 sm:p-4">
-              <div className="mx-auto max-w-6xl">
-                <DraftPreview
-                  sections={sections}
-                  selectedId={selectedId}
-                  issues={issues}
-                  showHidden={showHidden}
-                  featured={featured}
-                  categories={flatCategories}
-                  topCategories={topCategories}
-                  onMove={(id, delta) => move(id, delta)}
-                  onToggleVisible={toggleVisible}
-                  onDuplicate={duplicate}
-                  onAddAt={(index) => { setAddAt(index); setLibraryOpen(true) }}
-                  onAddFirst={() => { setAddAt(0); setLibraryOpen(true) }}
-                  onSelect={(section) => openSection(section, `${sectionName(section)} selected. Section settings opened. `)}
-                />
-                <p className="mt-3 px-1 text-xs text-muted-foreground">
-                  Draft canvas — hover a gap to insert, click a layer to edit.
-                </p>
-              </div>
-            </div>
-          </TabsContent>
-          <TabsContent value="live" className="mt-0">
-            <div className="mx-auto max-w-6xl">
-              <LivePreview
-                hideToolbar
-                title="Live preview of the storefront homepage"
-                pageUrl={previewUrl}
-                note="Live page — save and publish to update what buyers see."
-              />
-            </div>
-          </TabsContent>
-        </Tabs>
-      </div>
+        }
+        canvas={
+          perspective === "live" ? (
+            <LivePreview
+              hideToolbar
+              title="Live preview of the storefront homepage"
+              pageUrl={previewUrl}
+              note="Live page — save and publish to update what buyers see."
+            />
+          ) : (
+            <DraftPreview
+              sections={sections}
+              selectedId={selectedId}
+              issues={issues}
+              showHidden={showHidden}
+              featured={featured}
+              categories={flatCategories}
+              topCategories={topCategories}
+              onMove={(id, delta) => move(id, delta)}
+              onToggleVisible={toggleVisible}
+              onDuplicate={duplicate}
+              onAddAt={(index) => { setAddAt(index); setLibraryOpen(true) }}
+              onAddFirst={() => { setAddAt(0); setLibraryOpen(true) }}
+              onSelect={(section) => openSection(section, `${sectionName(section)} selected.`)}
+            />
+          )
+        }
+        inspector={
+          selected ? (
+            <SectionEditor
+              key={selected.id}
+              section={selected}
+              categories={flatCategories}
+              headingRef={settingsHeadingRef}
+              issues={selectedIssues}
+              position={selectedIndex >= 0 ? `Section ${selectedIndex + 1} of ${sections.length}` : ""}
+              onUpload={homepageStudio.upload}
+              locked={COURSE_IDS.has(selected.id)}
+              onChange={update}
+              onDelete={() => {
+                setSections((items) => items.filter((item) => item.id !== selected.id))
+                setSelectedId(null)
+                announce("Section deleted.")
+              }}
+            />
+          ) : (
+            <p className="p-5 text-sm text-muted-foreground">Select a beat on the plot or canvas to edit art, ratio, and source.</p>
+          )
+        }
+      />
 
       <SectionLibrary
         open={libraryOpen}
         disabled={sections.length >= 24}
-        title={addAt === 0 ? "Add first section" : addAt != null ? `Insert at position ${addAt + 1}` : "Add section"}
+        title={addAt === 0 ? "Add first section" : addAt != null ? `Insert at position ${addAt + 1}` : "Add campaign"}
         onClose={() => { setLibraryOpen(false); setAddAt(null) }}
         onPick={insertSection}
       />
-
-      <SlideOver
-        open={inspectorOpen && selected !== null}
-        label={selected ? `Edit ${sectionName(selected)}` : "Section settings"}
-        returnFocusId={selected ? `layer-edit-${selected.id}` : null}
-        onClose={closeInspector}
-      >
-        <SlideOverClose onClose={closeInspector} />
-        {selected ? (
-          <SectionEditor
-            key={selected.id}
-            section={selected}
-            categories={flatCategories}
-            headingRef={settingsHeadingRef}
-            issues={selectedIssues}
-            position={selectedIndex >= 0 ? `Section ${selectedIndex + 1} of ${sections.length}` : ""}
-            onUpload={homepageStudio.upload}
-            onChange={update}
-            onDelete={() => {
-              setSections((items) => items.filter((item) => item.id !== selected.id))
-              setSelectedId(null)
-              setInspectorOpen(false)
-              announce("Section deleted.")
-            }}
-          />
-        ) : null}
-      </SlideOver>
     </PageShell>
   )
 }

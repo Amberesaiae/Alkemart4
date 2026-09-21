@@ -1,10 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router"
 import { useEffect, useMemo, useState } from "react"
 import { useBlocker } from "@tanstack/react-router"
-import { useSellerProfile, useUpdateStorefront, usePauseShop, useUnpauseShop, useShopPolicies, useSavePolicy, useCategories, useProducts, useUpdateDisplay, useUpdateContact, useUpdateDelivery, useFeatured, useSetFeatured } from "../lib/hooks"
-import { DELIVERY_MINUTE_BANDS } from "@alkemart/shared/storefront-badges"
+import { useSellerProfile, useUpdateStorefront, usePauseShop, useUnpauseShop, useShopPolicies, useSavePolicy, useUpdateContact } from "../lib/hooks"
 import type { StorefrontPatch } from "../lib/api"
-import { Card, Button, Input, Label, LivePreview, Textarea, Skeleton, DatePicker, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui"
+import { Card, Button, Input, Label, LivePreview, Textarea, Skeleton, DatePicker } from "@workspace/ui"
 import { format } from "date-fns"
 import { PageShell } from "../components/page-shell"
 import { PageHeader } from "../components/page-header"
@@ -20,9 +19,6 @@ import {
   Megaphone,
   Tag,
   ShieldCheck,
-  X,
-  CaretUp,
-  CaretDown,
   PhoneCall,
   CalendarBlank,
   Clock,
@@ -32,6 +28,7 @@ import {
   WhatsappLogo,
 } from "@phosphor-icons/react"
 import { toast } from "sonner"
+import { ShopStudio } from "../components/ShopStudio"
 
 export const Route = createFileRoute('/store')({
   component: StorePage,
@@ -298,7 +295,7 @@ function StorePage() {
                 <span className="flex h-2 w-2 rounded-full bg-warning ring-2 ring-background" title="Unsaved edits" />
               )}
             </div>
-            <p className="text-xs text-muted-foreground truncate font-medium">Tagline, announcement & SEO</p>
+            <p className="text-xs text-muted-foreground truncate font-medium">Tagline, announcement and SEO</p>
           </div>
         </button>
 
@@ -324,9 +321,9 @@ function StorePage() {
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-bold truncate">Catalog & Display</span>
+              <span className="text-sm font-bold truncate">Shop window</span>
             </div>
-            <p className="text-xs text-muted-foreground truncate font-medium">Stock mode, order & shelf</p>
+            <p className="text-xs text-muted-foreground truncate font-medium">Banner, eight picks, delivery</p>
           </div>
         </button>
 
@@ -560,11 +557,7 @@ function StorePage() {
 
           {/* ── Category 2: Catalog & Display ── */}
           {activeCategory === "catalog" && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-              <DisplayCard />
-              <FeaturedCard />
-              <DeliveryCard />
-            </div>
+            <ShopStudio />
           )}
 
           {/* ── Category 3: Policies & Operations ── */}
@@ -811,329 +804,6 @@ function PoliciesCard() {
           Publish Policies
         </Button>
       </div>
-    </Card>
-  )
-}
-
-/** Sentinel: Radix items need non-empty values; maps back to "". */
-const NONE = "__none"
-
-function DisplayCard() {  const { data: profile } = useSellerProfile()
-  const { data: categoriesData } = useCategories()
-  const update = useUpdateDisplay()
-  const seller = profile?.seller
-  const categories = categoriesData?.product_categories ?? []
-  const savedOrder = seller?.display?.categoryOrder ?? []
-  const savedFeaturedCat = seller?.display?.featuredCategoryId ?? ""
-  const savedStockMode = seller?.display?.stockMode ?? "exact"
-
-  const [order, setOrder] = useState<string[] | null>(null)
-  const [featuredCat, setFeaturedCat] = useState<string | null>(null)
-  const [stockMode, setStockMode] = useState<"exact" | "bands" | null>(null)
-  const [addId, setAddId] = useState("")
-  const [savedFlash, setSavedFlash] = useState(false)
-
-  const orderValue = order ?? savedOrder
-  const featuredValue = featuredCat ?? savedFeaturedCat
-  const stockValue = stockMode ?? savedStockMode
-  const dirty =
-    order !== null || featuredCat !== null || stockMode !== null
-
-  const move = (idx: number, dir: -1 | 1) => {
-    const next = [...orderValue]
-    const j = idx + dir
-    if (j < 0 || j >= next.length) return
-    const [item] = next.splice(idx, 1)
-    next.splice(j, 0, item!)
-    setOrder(next)
-    setSavedFlash(false)
-  }
-
-  const handleSave = async () => {
-    try {
-      await update.mutateAsync({
-        categoryOrder: order ?? undefined,
-        featuredCategoryId: featuredCat !== null ? (featuredCat === "" ? null : featuredCat) : undefined,
-        stockMode: stockMode ?? undefined,
-      })
-      setOrder(null)
-      setFeaturedCat(null)
-      setStockMode(null)
-      setSavedFlash(true)
-      toast.success("Catalog display saved.")
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to save display.")
-    }
-  }
-
-  const nameOf = (id: string) => categories.find((c) => c.id === id)?.name ?? id
-
-  return (
-    <Card id="store-display" className="p-6 space-y-4 scroll-mt-24">
-      <h2 className="font-black flex items-center gap-2">
-        <Storefront className="h-5 w-5 text-primary" /> Catalog display
-        {dirty ? (
-          <span className="ml-auto text-xs font-bold uppercase tracking-wide text-warning-fg">Unsaved</span>
-        ) : (
-          <span className="ml-auto text-xs font-bold uppercase tracking-wide text-success">Saved</span>
-        )}
-      </h2>
-      {savedFlash && (
-        <p role="status" className="text-sm font-bold text-success flex items-center gap-2">
-          <CheckCircle className="h-4 w-4" /> Display preferences saved.
-        </p>
-      )}
-      <div className="space-y-2">
-        <Label htmlFor="store-display-stock">Stock display</Label>
-        <Select
-          value={stockValue}
-          onValueChange={(v) => { setStockMode(v as "exact" | "bands"); setSavedFlash(false) }}
-        >
-          <SelectTrigger id="store-display-stock">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="exact">Exact counts</SelectItem>
-            <SelectItem value="bands">Bands (Low stock / In stock)</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="store-display-featured-cat">Featured category (optional)</Label>
-        <Select
-          value={featuredValue || NONE}
-          onValueChange={(v) => { setFeaturedCat(v === NONE ? "" : v); setSavedFlash(false) }}
-        >
-          <SelectTrigger id="store-display-featured-cat">
-            <SelectValue placeholder="None" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={NONE}>None</SelectItem>
-            {categories.map((c) => (
-              <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-      <div className="space-y-2">
-        <Label>Category order</Label>
-        {orderValue.length === 0 ? (
-          <p className="text-sm text-muted-foreground font-medium">Default taxonomy order. Add categories to pin them first.</p>
-        ) : (
-          <ul className="space-y-1">
-            {orderValue.map((id, i) => (
-              <li key={id} className="flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-medium">
-                <span className="font-bold text-muted-foreground tabular-nums">{i + 1}.</span>
-                <span className="flex-1 truncate">{nameOf(id)}</span>
-                <button type="button" aria-label={`Move ${nameOf(id)} up`} disabled={i === 0} onClick={() => move(i, -1)} className="inline-flex items-center px-1 disabled:opacity-30"><CaretUp size={12} weight="bold" aria-hidden /></button>
-                <button type="button" aria-label={`Move ${nameOf(id)} down`} disabled={i === orderValue.length - 1} onClick={() => move(i, 1)} className="inline-flex items-center px-1 disabled:opacity-30"><CaretDown size={12} weight="bold" aria-hidden /></button>
-                <button type="button" aria-label={`Remove ${nameOf(id)}`} onClick={() => { setOrder(orderValue.filter((x) => x !== id)); setSavedFlash(false) }} className="inline-flex items-center px-1 text-destructive"><X size={12} weight="bold" aria-hidden /></button>
-              </li>
-            ))}
-          </ul>
-        )}
-        <div className="flex gap-2">
-          <Select value={addId} onValueChange={setAddId}>
-            <SelectTrigger aria-label="Add category to order" className="flex-1">
-              <SelectValue placeholder="Add a category…" />
-            </SelectTrigger>
-            <SelectContent>
-              {categories.filter((c) => !orderValue.includes(c.id)).map((c) => (
-                <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Button
-            variant="outline"
-            disabled={!addId}
-            onClick={() => { if (addId) { setOrder([...orderValue, addId]); setAddId(""); setSavedFlash(false) } }}
-          >
-            Add
-          </Button>
-        </div>
-      </div>
-      <Button onClick={() => { void handleSave() }} disabled={!dirty || update.isPending} isLoading={update.isPending}>
-        Save display
-      </Button>
-    </Card>
-  )
-}
-
-/**
- * The shop's delivery band.
- *
- * Coarse bands only, and unset stays unset: a shop that has never declared
- * one shows no delivery time to buyers rather than inheriting a platform
- * default nobody promised. Shops at or under 30 minutes earn the "Fast
- * delivery" badge — which is why the band is a claim, not a decoration.
- */
-function DeliveryCard() {
-  const { data } = useSellerProfile()
-  const saved = data?.seller?.delivery?.minutes ?? null
-  const update = useUpdateDelivery()
-  const [value, setValue] = useState<number | null | undefined>(undefined)
-  const current = value === undefined ? saved : value
-  const dirty = value !== undefined && value !== saved
-
-  const handleSave = async () => {
-    try {
-      await update.mutateAsync(current ?? null)
-      setValue(undefined)
-      toast.success(
-        current == null
-          ? "Delivery time cleared — buyers will not see a time."
-          : `Delivery time set to ${current} minutes.`,
-      )
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Could not save delivery time.")
-    }
-  }
-
-  return (
-    <Card id="store-delivery" className="p-6 space-y-4 scroll-mt-24">
-      <h2 className="font-black flex items-center gap-2">
-        <Clock className="h-5 w-5 text-primary" /> Delivery time
-      </h2>
-      <p className="text-sm text-muted-foreground font-medium">
-        How long a typical order takes to reach a buyer. Shown on your shop card
-        and in search. Pick the band you can keep on a busy day, not your best day.
-      </p>
-      <div className="flex flex-wrap gap-2" role="group" aria-label="Delivery time band">
-        <button
-          type="button"
-          onClick={() => setValue(null)}
-          aria-pressed={current == null}
-          className={`h-10 rounded-xl border px-3.5 text-sm font-bold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
-            current == null ? "border-foreground bg-foreground text-background" : "border-border text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          Not set
-        </button>
-        {DELIVERY_MINUTE_BANDS.map((band) => (
-          <button
-            key={band}
-            type="button"
-            onClick={() => setValue(band)}
-            aria-pressed={current === band}
-            className={`h-10 rounded-xl border px-3.5 text-sm font-bold tabular-nums transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
-              current === band ? "border-primary bg-primary text-primary-foreground" : "border-border text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            {band} min
-          </button>
-        ))}
-      </div>
-      {current != null && current <= 30 ? (
-        <p className="text-sm font-bold text-success flex items-center gap-2">
-          <CheckCircle className="h-4 w-4" /> This band earns the “Fast delivery” badge.
-        </p>
-      ) : null}
-      <Button onClick={() => void handleSave()} disabled={!dirty || update.isPending}>
-        {update.isPending ? "Saving…" : "Save delivery time"}
-      </Button>
-    </Card>
-  )
-}
-
-function FeaturedCard() {
-  const { data: featuredData } = useFeatured()
-  const { data: productsData } = useProducts({ limit: 100 })
-  const save = useSetFeatured()
-  const savedIds = featuredData?.productIds ?? []
-  const allProducts = productsData?.products ?? []
-
-  const [ids, setIds] = useState<string[] | null>(null)
-  const [savedFlash, setSavedFlash] = useState(false)
-  const value = ids ?? savedIds
-  const dirty = ids !== null
-
-  const titleOf = (id: string) => allProducts.find((p) => p.id === id)?.title ?? id
-
-  const move = (idx: number, dir: -1 | 1) => {
-    const next = [...value]
-    const j = idx + dir
-    if (j < 0 || j >= next.length) return
-    const [item] = next.splice(idx, 1)
-    next.splice(j, 0, item!)
-    setIds(next)
-    setSavedFlash(false)
-  }
-
-  const toggle = (id: string) => {
-    if (value.includes(id)) {
-      setIds(value.filter((x) => x !== id))
-    } else {
-      if (value.length >= 8) {
-        toast.error("The shelf holds at most 8 products.")
-        return
-      }
-      setIds([...value, id])
-    }
-    setSavedFlash(false)
-  }
-
-  const handleSave = async () => {
-    try {
-      await save.mutateAsync(value)
-      setIds(null)
-      setSavedFlash(true)
-      toast.success("Featured shelf published.")
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to save shelf.")
-    }
-  }
-
-  return (
-    <Card id="store-featured" className="p-6 space-y-4 scroll-mt-24">
-      <h2 className="font-black flex items-center gap-2">
-        <Storefront className="h-5 w-5 text-primary" /> Featured shelf
-        <span className="ml-auto text-xs font-bold text-muted-foreground tabular-nums">{value.length}/8</span>
-      </h2>
-      {savedFlash && (
-        <p role="status" className="text-sm font-bold text-success flex items-center gap-2">
-          <CheckCircle className="h-4 w-4" /> Shelf published — buyers see it first.
-        </p>
-      )}
-      {value.length === 0 ? (
-        <p className="text-sm text-muted-foreground font-medium">No featured products yet. Tick up to 8 below — rank 1 shows first.</p>
-      ) : (
-        <ol className="space-y-1">
-          {value.map((id, i) => (
-            <li key={id} className="flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-medium">
-              <span className="font-bold text-primary tabular-nums">#{i + 1}</span>
-              <span className="flex-1 truncate">{titleOf(id)}</span>
-              <button type="button" aria-label={`Move ${titleOf(id)} up`} disabled={i === 0} onClick={() => move(i, -1)} className="inline-flex items-center px-1 disabled:opacity-30"><CaretUp size={12} weight="bold" aria-hidden /></button>
-              <button type="button" aria-label={`Move ${titleOf(id)} down`} disabled={i === value.length - 1} onClick={() => move(i, 1)} className="inline-flex items-center px-1 disabled:opacity-30"><CaretDown size={12} weight="bold" aria-hidden /></button>
-              <button type="button" aria-label={`Remove ${titleOf(id)}`} onClick={() => toggle(id)} className="inline-flex items-center px-1 text-destructive"><X size={12} weight="bold" aria-hidden /></button>
-            </li>
-          ))}
-        </ol>
-      )}
-      <div className="space-y-2">
-        <Label>Your products</Label>
-        {allProducts.length === 0 ? (
-          <p className="text-sm text-muted-foreground font-medium">List a product first, then feature it here.</p>
-        ) : (
-          <ul className="max-h-56 space-y-1 overflow-y-auto rounded-xl border p-2">
-            {allProducts.map((p) => (
-              <li key={p.id}>
-                <label className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm font-medium hover:bg-muted/50">
-                  <input
-                    type="checkbox"
-                    checked={value.includes(p.id)}
-                    onChange={() => toggle(p.id)}
-                    className="h-4 w-4 accent-primary"
-                  />
-                  <span className="truncate">{p.title || "Untitled"}</span>
-                </label>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-      <Button onClick={() => { void handleSave() }} disabled={!dirty || save.isPending} isLoading={save.isPending}>
-        Publish shelf
-      </Button>
     </Card>
   )
 }
