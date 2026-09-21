@@ -34,7 +34,10 @@ import { errorHandler } from "./middleware/error"
 import { securityMiddleware } from "./middleware/security"
 import { adminActions } from "./routes/admin/actions"
 import { adminAppeals } from "./routes/admin/appeals"
+import { adminAttributes } from "./routes/admin/attributes"
+import { adminMatches } from "./routes/admin/matches"
 import { adminReviews } from "./routes/admin/reviews"
+import { adminTaxonomy } from "./routes/admin/taxonomy"
 import { adminAuth } from "./routes/admin/auth"
 import { adminMigrate } from "./routes/admin/migrate"
 import { adminOrders } from "./routes/admin/orders"
@@ -284,6 +287,9 @@ export function createApp(
   admin.route("/stats", withBind(bindCatalog, withBind(bindCheckout, adminStats)))
   admin.route("/stats/traffic", withBind(bindCatalog, adminTrafficStats))
   admin.route("/products", withBind(bindCatalog, adminProducts))
+  admin.route("/taxonomy", withBind(bindCatalog, adminTaxonomy))
+  admin.route("/attributes", withBind(bindCatalog, adminAttributes))
+  admin.route("/matches", withBind(bindCatalog, adminMatches))
   admin.route("/orders", withBind(bindCheckout, adminOrders))
   admin.route("/migrate", adminMigrate)
   admin.route("/actions", adminActions)

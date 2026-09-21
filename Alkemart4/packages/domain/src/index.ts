@@ -1,7 +1,28 @@
 export type { Pesewas } from "./money"
 export { asPesewas } from "./money"
-export type { CategoryNode } from "./taxonomy"
-export { assertLeafCategory, buildNavTree } from "./taxonomy"
+export type { CategoryNode, TaxonomyNodeRow, TaxonomyStatus } from "./taxonomy"
+export type {
+  AttributeDefinitionLike,
+  AttributeType,
+  AttributeValueLike,
+  IdentityConfidence,
+} from "./identity"
+export {
+  AttributeValidationError,
+  IdentityTransitionError,
+  canShowComparison,
+  promoteIdentityConfidence,
+  validateAttributeValue,
+} from "./identity"
+export {
+  activateCategory,
+  assertAssignableCategory,
+  assertLeafCategory,
+  buildNavTree,
+  deprecateCategory,
+  resolveCategoryRedirect,
+  TaxonomyTransitionError,
+} from "./taxonomy"
 export type { ProductStatus, SellerStatus, SellableInput } from "./sellable"
 export { isSellable } from "./sellable"
 export type { PeerOfferDto, PeerOfferInput } from "./offers"

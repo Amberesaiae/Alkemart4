@@ -966,6 +966,25 @@ export const products = {
   appealsMine: () => get<{ appeals: VendorAppeal[] }>("/vendor/products/appeals/mine"),
 
   /**
+   * Phase 1B — seller enrichment of product identity (brand/model/…).
+   * PATCH /vendor/products/:id/identity. Never promotes confidence.
+   */
+  patchIdentity: async (
+    id: string,
+    identity: {
+      brand?: string | null
+      model?: string | null
+      gtin?: string | null
+      mpn?: string | null
+      manufacturer?: string | null
+      productType?: string | null
+    },
+  ) => {
+    const data = await patchJson<{ identity: unknown }>(`/vendor/products/${id}/identity`, identity)
+    return data.identity
+  },
+
+  /**
    * One-shot listing — POST /vendor/products (title, primaryCategoryId, pricePesewas, onHand…).
    */
   quickList: async (input: {
@@ -975,11 +994,25 @@ export const products = {
     quantity?: number
     category_id?: string
     image_url?: string
+    identity?: {
+      brand?: string
+      model?: string
+      manufacturer?: string
+      productType?: string
+    }
     variant_options?: { name: string; values: string[] }[]
     variant_entries?: { options: Record<string, string>; price_ghs?: number; quantity?: number }[]
   }) => {
     if (!input.category_id) throw new ApiError(400, "Please choose a category for your product")
     const pricePesewas = String(Math.round(Number(input.price_ghs) * 100))
+    const identity = Object.fromEntries(
+      Object.entries({
+        brand: input.identity?.brand?.trim() || undefined,
+        model: input.identity?.model?.trim() || undefined,
+        manufacturer: input.identity?.manufacturer?.trim() || undefined,
+        productType: input.identity?.productType?.trim() || undefined,
+      }).filter(([, v]) => v !== undefined),
+    )
     const created = await post<WorkersProductItem>("/vendor/products", {
       title: input.title,
       description: input.description,
@@ -987,6 +1020,7 @@ export const products = {
       pricePesewas,
       onHand: input.quantity ?? 1,
       ...(input.image_url ? { imageUrl: input.image_url } : {}),
+      ...(Object.keys(identity).length > 0 ? { identity } : {}),
       // Variations used to be assembled client-side and silently dropped by
       // the API. The server now accepts the full matrix (V1).
       ...(input.variant_options?.length

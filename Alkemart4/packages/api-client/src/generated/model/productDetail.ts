@@ -16,6 +16,7 @@ import type { PeerOffer } from './peerOffer';
 import type { ProductOptionType } from './productOptionType';
 import type { ProductCombo } from './productCombo';
 import type { ProductReview } from './productReview';
+import type { ProductDetailIdentity } from './productDetailIdentity';
 
 export interface ProductDetail {
   productId: string;
@@ -40,4 +41,6 @@ export interface ProductDetail {
   ratingCount: number;
   /** Latest published reviews (max 5). */
   reviews: ProductReview[];
+  /** Product identity (ADR-002). UIs hide comparison language unless comparisonEligible. */
+  identity: ProductDetailIdentity;
 }

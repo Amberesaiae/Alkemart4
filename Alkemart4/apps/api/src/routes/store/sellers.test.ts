@@ -51,6 +51,11 @@ function withSellerAOnlyProduct(data: CatalogSnapshot): CatalogSnapshot {
     productOptions: [],
     productOptionValues: [],
     variantOptionValues: [],
+    attributeDefinitions: [],
+    attributeProfiles: [],
+    profileAttributes: [],
+    productAttributeValues: [],
+    matchCandidates: [],
   }
 }
 

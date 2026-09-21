@@ -43,6 +43,11 @@ async function setup() {
     productOptions: [],
     productOptionValues: [],
     variantOptionValues: [],
+    attributeDefinitions: [],
+    attributeProfiles: [],
+    profileAttributes: [],
+    productAttributeValues: [],
+    matchCandidates: [],
   }
   const app = createApp({
     authRepo,

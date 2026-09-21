@@ -2,7 +2,11 @@
  * Mowafer department themes — class-based (imgi_11 / imgi_12).
  * Components apply a `.theme-dept-*` class; paint via CSS variables.
  * No inline backgroundColor / color styles.
+ *
+ * Governed accents live in `@alkemart/shared/department-themes` (Phase 1E);
+ * the keyword heuristic below remains the fallback for unmapped handles.
  */
+import { departmentTheme } from "@alkemart/shared"
 
 export type DeptThemeId =
   | "electronics"
@@ -32,6 +36,21 @@ export function deptThemeClass(
   handle?: string | null,
 ): string {
   return `theme-dept-${deptThemeId(name, handle)}`
+}
+
+/**
+ * Governed accent triple for a department id, or null when unmapped
+ * (caller keeps the class-based heuristic). Source: shared themes table.
+ */
+export function governedTheme(departmentId: string): {
+  accent: string
+  accentSoft: string
+  accentInk: string
+  icon: string
+} | null {
+  const t = departmentTheme(departmentId)
+  if (!t) return null
+  return { accent: t.accent, accentSoft: t.accentSoft, accentInk: t.accentInk, icon: t.icon }
 }
 
 export function deptThemeId(

@@ -39,6 +39,11 @@ function catalogWithProduct(): CatalogSnapshot {
     productOptions: [],
     productOptionValues: [],
     variantOptionValues: [],
+    attributeDefinitions: [],
+    attributeProfiles: [],
+    profileAttributes: [],
+    productAttributeValues: [],
+    matchCandidates: [],
   }
 }
 

@@ -415,6 +415,11 @@ describe("PATCH /vendor/sellers/me/display + /contact + /featured", () => {
     productOptions: [],
     productOptionValues: [],
     variantOptionValues: [],
+    attributeDefinitions: [],
+    attributeProfiles: [],
+    profileAttributes: [],
+    productAttributeValues: [],
+    matchCandidates: [],
     }
     const app = createApp({
       authRepo: new InMemoryAuthRepository(),
@@ -502,6 +507,11 @@ describe("PATCH /vendor/sellers/me/display + /contact + /featured", () => {
     productOptions: [],
     productOptionValues: [],
     variantOptionValues: [],
+    attributeDefinitions: [],
+    attributeProfiles: [],
+    profileAttributes: [],
+    productAttributeValues: [],
+    matchCandidates: [],
     }
     const repo = new InMemoryCatalogRepository(snapshot)
     const app = createApp({

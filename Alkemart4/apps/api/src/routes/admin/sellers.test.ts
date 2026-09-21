@@ -27,6 +27,11 @@ async function adminApp() {
     productOptions: [],
     productOptionValues: [],
     variantOptionValues: [],
+    attributeDefinitions: [],
+    attributeProfiles: [],
+    profileAttributes: [],
+    productAttributeValues: [],
+    matchCandidates: [],
   }
   const repo = new InMemoryCatalogRepository(snapshot)
   const auditLog = new InMemoryAdminAuditLog()

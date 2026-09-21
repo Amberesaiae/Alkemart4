@@ -1,7 +1,21 @@
 import { GHANA_CATEGORY_SEED, type CategorySeedRow } from "@alkemart/db"
 import type { ProductStatus, SellerStatus } from "@alkemart/domain"
 
-export type CatalogCategory = CategorySeedRow
+export type CatalogCategory = CategorySeedRow & {
+  /** Lifecycle (Phase 1A); absent on rows that predate the columns. */
+  code?: string | null
+  displayName?: string | null
+  slug?: string | null
+  level?: number | null
+  status?: "proposed" | "active" | "deprecated" | null
+  isBrowseable?: boolean | null
+  isAssignable?: boolean | null
+  isNavVisible?: boolean | null
+  attributeProfileId?: string | null
+  replacementNodeId?: string | null
+  sortOrder?: number | null
+  version?: number | null
+}
 
 export type CatalogSeller = {
   id: string
@@ -27,6 +41,15 @@ export type CatalogProduct = {
   imageUrl?: string | null
   /** ISO string in snapshots; Date in Postgres rows. */
   createdAt?: string | null
+  /** Identity (Phase 1B / ADR-002); absent reads as seller_specific. */
+  brand?: string | null
+  model?: string | null
+  gtin?: string | null
+  mpn?: string | null
+  manufacturer?: string | null
+  productType?: string | null
+  identityConfidence?: "identified" | "matched" | "seller_specific" | null
+  identityProvenance?: Record<string, unknown> | null
 }
 
 export type CatalogVariant = {
@@ -34,6 +57,9 @@ export type CatalogVariant = {
   productId: string
   sku: string | null
   title: string | null
+  imageUrl?: string | null
+  weightGrams?: number | null
+  gtin?: string | null
 }
 
 export type CatalogProductOption = {
@@ -66,6 +92,69 @@ export type CatalogOffer = {
   reserved: number
   currency: string
   active: boolean
+  /** Offer terms (Phase 3A); absent reads as unknown — never fabricated. */
+  condition?: string | null
+  compareAtPesewas?: bigint | null
+  compareAtProvenance?: string | null
+  fulfillmentOrigin?: string | null
+  warrantyRef?: string | null
+  returnsRef?: string | null
+  deliveryPromise?: string | null
+  freshnessAt?: string | null
+  publishedAt?: string | null
+}
+
+export type CatalogAttributeDefinition = {
+  id: string
+  code: string
+  label: string
+  type: "text" | "number" | "boolean" | "option" | "multi_option"
+  unitFamily?: string | null
+  allowedValues?: string[] | null
+  filterable: boolean
+  searchable: boolean
+  required: boolean
+  variantAxis: boolean
+  visibleOnCard: boolean
+  visibleOnPdp: boolean
+}
+
+export type CatalogAttributeProfile = {
+  id: string
+  name: string
+  categoryId?: string | null
+  version: number
+}
+
+export type CatalogProfileAttribute = {
+  id: string
+  profileId: string
+  definitionId: string
+  position: number
+  required: boolean
+}
+
+export type CatalogProductAttributeValue = {
+  id: string
+  productId: string
+  definitionId: string
+  textValue?: string | null
+  numberValue?: number | null
+  booleanValue?: boolean | null
+  optionValues?: string[] | null
+  unit?: string | null
+}
+
+export type CatalogMatchCandidate = {
+  id: string
+  productId: string
+  candidateProductId: string
+  source: string
+  evidence?: Record<string, unknown> | null
+  status: "proposed" | "confirmed" | "rejected"
+  reviewerId?: string | null
+  reviewedAt?: string | null
+  createdAt: string
 }
 
 export type CatalogSnapshot = {
@@ -77,6 +166,11 @@ export type CatalogSnapshot = {
   productOptions: CatalogProductOption[]
   productOptionValues: CatalogProductOptionValue[]
   variantOptionValues: CatalogVariantOptionValue[]
+  attributeDefinitions: CatalogAttributeDefinition[]
+  attributeProfiles: CatalogAttributeProfile[]
+  profileAttributes: CatalogProfileAttribute[]
+  productAttributeValues: CatalogProductAttributeValue[]
+  matchCandidates: CatalogMatchCandidate[]
 }
 
 export type JsonCatalogSnapshot = {
@@ -84,10 +178,20 @@ export type JsonCatalogSnapshot = {
   productOptions?: CatalogProductOption[]
   productOptionValues?: CatalogProductOptionValue[]
   variantOptionValues?: CatalogVariantOptionValue[]
+  attributeDefinitions?: CatalogAttributeDefinition[]
+  attributeProfiles?: CatalogAttributeProfile[]
+  profileAttributes?: CatalogProfileAttribute[]
+  productAttributeValues?: CatalogProductAttributeValue[]
+  matchCandidates?: CatalogMatchCandidate[]
   sellers: Array<Omit<CatalogSeller, "deliveryFeePesewas"> & { deliveryFeePesewas: string }>
   products: CatalogProduct[]
   variants: CatalogVariant[]
-  offers: Array<Omit<CatalogOffer, "pricePesewas"> & { pricePesewas: string }>
+  offers: Array<
+    Omit<CatalogOffer, "pricePesewas" | "compareAtPesewas"> & {
+      pricePesewas: string
+      compareAtPesewas?: string | null
+    }
+  >
 }
 
 /** 1 product, 2 sellers, 2 offers (seller-a cheaper). */
@@ -97,6 +201,11 @@ export function demoCatalog(): CatalogSnapshot {
     productOptions: [],
     productOptionValues: [],
     variantOptionValues: [],
+    attributeDefinitions: [],
+    attributeProfiles: [],
+    profileAttributes: [],
+    productAttributeValues: [],
+    matchCandidates: [],
     sellers: [
       {
         id: "seller-a",
@@ -172,6 +281,11 @@ export function snapshotToJson(data: CatalogSnapshot): JsonCatalogSnapshot {
     productOptions: data.productOptions,
     productOptionValues: data.productOptionValues,
     variantOptionValues: data.variantOptionValues,
+    attributeDefinitions: data.attributeDefinitions,
+    attributeProfiles: data.attributeProfiles,
+    profileAttributes: data.profileAttributes,
+    productAttributeValues: data.productAttributeValues,
+    matchCandidates: data.matchCandidates,
     sellers: data.sellers.map((s) => ({
       ...s,
       deliveryFeePesewas: s.deliveryFeePesewas.toString(),
@@ -181,6 +295,7 @@ export function snapshotToJson(data: CatalogSnapshot): JsonCatalogSnapshot {
     offers: data.offers.map((o) => ({
       ...o,
       pricePesewas: o.pricePesewas.toString(),
+      compareAtPesewas: o.compareAtPesewas?.toString() ?? null,
     })),
   }
 }
@@ -191,6 +306,11 @@ export function snapshotFromJson(json: JsonCatalogSnapshot): CatalogSnapshot {
     productOptions: json.productOptions ?? [],
     productOptionValues: json.productOptionValues ?? [],
     variantOptionValues: json.variantOptionValues ?? [],
+    attributeDefinitions: json.attributeDefinitions ?? [],
+    attributeProfiles: json.attributeProfiles ?? [],
+    profileAttributes: json.profileAttributes ?? [],
+    productAttributeValues: json.productAttributeValues ?? [],
+    matchCandidates: json.matchCandidates ?? [],
     sellers: json.sellers.map((s) => ({
       ...s,
       status: s.status,
@@ -201,6 +321,8 @@ export function snapshotFromJson(json: JsonCatalogSnapshot): CatalogSnapshot {
     offers: json.offers.map((o) => ({
       ...o,
       pricePesewas: BigInt(o.pricePesewas),
+      compareAtPesewas:
+        o.compareAtPesewas != null ? BigInt(o.compareAtPesewas as unknown as string) : null,
     })),
   }
 }

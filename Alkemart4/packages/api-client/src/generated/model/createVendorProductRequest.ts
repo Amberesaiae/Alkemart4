@@ -13,6 +13,7 @@ Checkout charge/initialize is documented under /store/checkout.
  * OpenAPI spec version: 0.5.0
  */
 import type { PesewasString } from './pesewasString';
+import type { CreateVendorProductRequestIdentity } from './createVendorProductRequestIdentity';
 
 export interface CreateVendorProductRequest {
   /**
@@ -45,4 +46,6 @@ export interface CreateVendorProductRequest {
    * @nullable
    */
   imageUrl?: string | null;
+  /** Brand/model enrichment at publish (Level C default; no barcode required). */
+  identity?: CreateVendorProductRequestIdentity;
 }

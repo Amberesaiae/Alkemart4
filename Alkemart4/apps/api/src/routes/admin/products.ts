@@ -1,8 +1,10 @@
 import { InvalidModerationTransitionError } from "@alkemart/domain"
 import { Hono } from "hono"
 import { HTTPException } from "hono/http-exception"
+import { z } from "zod"
 import type { AdminProductModerationAction, CatalogRepository } from "../../catalog-repository"
 import type { AppEnv } from "../../context"
+import { readJsonBody } from "../../lib/session"
 import { requireAdmin } from "../../middleware/auth"
 
 async function moderateProduct(
@@ -86,4 +88,33 @@ export const adminProducts = new Hono<AppEnv>()
       detail: { status: product.status },
     })
     return c.json({ product })
+  })
+  /**
+   * Phase 1B — reviewed identity promotion (ADR-002).
+   * The reviewer is the admin performing the call; unreviewed promotion
+   * is rejected by the domain, never silently applied.
+   */
+  .post("/:id/identity/promote", async (c) => {
+    const parsed = z
+      .object({ confidence: z.enum(["matched", "identified"]) })
+      .safeParse(await readJsonBody(c))
+    if (!parsed.success) throw new HTTPException(400, { message: "invalid body" })
+    try {
+      const identity = await c
+        .get("repo")
+        .promoteProductIdentity(c.req.param("id"), parsed.data.confidence, c.get("auth").userId)
+      if (!identity) throw new HTTPException(404, { message: "product not found" })
+      await c.get("auditLog").log({
+        adminUserId: c.get("auth").userId,
+        action: "product.identity-promote",
+        targetType: "product",
+        targetId: c.req.param("id"),
+        detail: { confidence: parsed.data.confidence },
+      })
+      return c.json({ identity })
+    } catch (err) {
+      if (err instanceof HTTPException) throw err
+      const message = err instanceof Error ? err.message : String(err)
+      throw new HTTPException(400, { message })
+    }
   })

@@ -38,6 +38,24 @@ const VariantEntryBody = z.object({
   sku: z.string().trim().min(1).max(64).optional().nullable(),
 })
 
+const IdentityBody = z.object({
+  brand: z.string().trim().max(120).optional().nullable(),
+  model: z.string().trim().max(120).optional().nullable(),
+  gtin: z.string().trim().max(32).optional().nullable(),
+  mpn: z.string().trim().max(64).optional().nullable(),
+  manufacturer: z.string().trim().max(120).optional().nullable(),
+  productType: z.string().trim().max(80).optional().nullable(),
+})
+
+const AttributeValueBody = z.object({
+  definitionId: z.string().min(1),
+  textValue: z.string().max(2000).optional().nullable(),
+  numberValue: z.number().finite().optional().nullable(),
+  booleanValue: z.boolean().optional().nullable(),
+  optionValues: z.array(z.string().trim().min(1).max(80)).max(50).optional().nullable(),
+  unit: z.string().trim().max(20).optional().nullable(),
+})
+
 const CreateBody = z.object({
   title: z.string().trim().min(1).max(200),
   description: z.string().trim().max(5000).optional().nullable(),
@@ -48,6 +66,7 @@ const CreateBody = z.object({
   variantTitle: z.string().trim().min(1).max(120).optional().nullable(),
   imageUrl: ImageUrl.optional().nullable(),
   attributes: AttributeBody.optional(),
+  identity: IdentityBody.optional(),
   variant_options: z.array(VariantOptionBody).max(2).optional(),
   variant_entries: z.array(VariantEntryBody).max(30).optional(),
 })
@@ -135,6 +154,7 @@ export const vendorProducts = new Hono<AppEnv>()
         variantTitle: parsed.data.variantTitle ?? null,
         imageUrl: parsed.data.imageUrl ?? null,
         attributes: normalizeAttributes(parsed.data.attributes),
+        identity: parsed.data.identity ?? undefined,
         variantOptions: parsed.data.variant_options?.map((o) => ({ name: o.name, values: o.values })),
         variantEntries: parsed.data.variant_entries?.map((e) => ({
           options: e.options,
@@ -266,4 +286,54 @@ export const vendorProducts = new Hono<AppEnv>()
     )
     if (!updated) throw new HTTPException(404, { message: "product or value not found" })
     return c.json(updated)
+  })
+  /**
+   * Phase 1B — seller enrichment of product identity (brand/model/…).
+   * Never promotes confidence; matching stays a reviewed workflow.
+   */
+  .patch("/:id/identity", async (c) => {
+    const parsed = IdentityBody.refine((v) => Object.keys(v).length > 0, {
+      message: "empty patch",
+    }).safeParse(await readJsonBody(c))
+    if (!parsed.success) throw new HTTPException(400, { message: "invalid body" })
+    const sellerId = sellerIdOrThrow(c)
+    try {
+      const identity = await c
+        .get("repo")
+        .updateProductIdentity(c.req.param("id"), parsed.data, { sellerId })
+      if (!identity) throw new HTTPException(404, { message: "product not found" })
+      return c.json({ identity })
+    } catch (err) {
+      if (err instanceof HTTPException) throw err
+      mapCatalogWriteError(err)
+    }
+  })
+  /**
+   * Phase 1C — seller writes typed attribute values against definitions.
+   * Unknown definitions and invalid values are 400, never silent drops.
+   */
+  .put("/:id/attributes", async (c) => {
+    const parsed = z.array(AttributeValueBody).min(1).max(100).safeParse(await readJsonBody(c))
+    if (!parsed.success) throw new HTTPException(400, { message: "invalid body" })
+    const sellerId = sellerIdOrThrow(c)
+    try {
+      const values = await c
+        .get("repo")
+        .setProductAttributeValues(c.req.param("id"), parsed.data, { sellerId })
+      return c.json({ values })
+    } catch (err) {
+      if (err instanceof HTTPException) throw err
+      mapCatalogWriteError(err)
+    }
+  })
+  .get("/:id/attributes", async (c) => {
+    const sellerId = sellerIdOrThrow(c)
+    const owned = (await c.get("repo").listVendorProducts(sellerId)).some(
+      (p) => p.product.id === c.req.param("id"),
+    )
+    if (!owned) throw new HTTPException(404, { message: "product not found" })
+    return c.json({
+      values: await c.get("repo").listProductAttributeValues(c.req.param("id")),
+      definitions: await c.get("repo").listAttributeDefinitions(),
+    })
   })

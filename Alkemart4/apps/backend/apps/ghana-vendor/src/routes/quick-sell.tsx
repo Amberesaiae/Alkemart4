@@ -44,6 +44,8 @@ function QuickSellPage() {
   const [title, setTitle] = useState("")
   const [priceGhs, setPriceGhs] = useState("")
   const [description, setDescription] = useState("")
+  const [brand, setBrand] = useState("")
+  const [model, setModel] = useState("")
   const [categoryId, setCategoryId] = useState("")
   const [quantity, setQuantity] = useState(1)
   const [hasVariations, setHasVariations] = useState(false)
@@ -176,6 +178,10 @@ function QuickSellPage() {
         ...(e.quantity && e.quantity.trim() ? { quantity: Number(e.quantity) } : {}),
       }))
 
+      const identity = {
+        ...(brand.trim() ? { brand: brand.trim() } : {}),
+        ...(model.trim() ? { model: model.trim() } : {}),
+      }
       await quickSell.mutateAsync({
         title,
         price_ghs: Number(priceGhs),
@@ -183,6 +189,9 @@ function QuickSellPage() {
         quantity,
         category_id: categoryId || undefined,
         image_url: imageUrl,
+        // Progressive enrichment (Phase 1B): optional brand/model help
+        // matching; never a gate — barcode-less sellers publish normally.
+        ...(Object.keys(identity).length > 0 ? { identity } : {}),
       })
 
       qc.invalidateQueries({ queryKey: ["vendor"] })
@@ -331,6 +340,27 @@ function QuickSellPage() {
                     autoFocus
                     required 
                   />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="brand">Brand <span className="font-normal text-muted-foreground">(optional)</span></Label>
+                    <Input
+                      id="brand"
+                      value={brand}
+                      onChange={e => setBrand(e.target.value)}
+                      placeholder="e.g. Tecno"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="model">Model <span className="font-normal text-muted-foreground">(optional)</span></Label>
+                    <Input
+                      id="model"
+                      value={model}
+                      onChange={e => setModel(e.target.value)}
+                      placeholder="e.g. Spark 20"
+                    />
+                  </div>
                 </div>
                 
                 <div className="space-y-2">

@@ -44,14 +44,23 @@ tags:
     description: Seller lifecycle and commission
   - name: admin-products
     description: Product moderation (propose → published/rejected)
+  - name: admin-taxonomy
+    description: Taxonomy lifecycle (propose → active → deprecated with replacement)
+  - name: admin-attributes
+    description: Typed attribute definitions and category profiles
+  - name: admin-matches
+    description: Product-match review queue (reviewed merges only)
 
 paths:
   /store/categories:
     get:
       operationId: getCategories
       tags: [catalog]
-      summary: Ghana category nav tree
-      description: Returns the is_nav category tree (roots are Ghana departments).
+      summary: Ghana category nav tree (active, nav-visible nodes only)
+      description: |
+        Proposed and deprecated nodes are pruned; deprecated slugs resolve
+        via GET /store/categories/resolve. Display names fall back to
+        canonical names, slugs to handles.
       responses:
         "200":
           description: Category nav tree
@@ -59,6 +68,24 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/CategoryListResponse"
+
+  /store/categories/resolve:
+    get:
+      operationId: resolveCategory
+      tags: [catalog]
+      summary: Follow a category slug through deprecation redirects
+      parameters:
+        - name: slug
+          in: query
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Terminal active node id + slug
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   /store/catalog:
     get:
@@ -528,6 +555,80 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
 
+  /vendor/products/{id}/identity:
+    patch:
+      operationId: updateProductIdentity
+      tags: [vendor-products]
+      summary: Seller enrichment of product identity (never promotes confidence)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              minProperties: 1
+              properties:
+                brand: { type: string, nullable: true, maxLength: 120 }
+                model: { type: string, nullable: true, maxLength: 120 }
+                gtin: { type: string, nullable: true, maxLength: 32 }
+                mpn: { type: string, nullable: true, maxLength: 64 }
+                manufacturer: { type: string, nullable: true, maxLength: 120 }
+                productType: { type: string, nullable: true, maxLength: 80 }
+      responses:
+        "200":
+          description: Identity with comparison eligibility
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /vendor/products/{id}/attributes:
+    get:
+      operationId: getProductAttributeValues
+      tags: [vendor-products]
+      summary: Owned product values + all definitions
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Values and definitions
+        "404":
+          $ref: "#/components/responses/NotFound"
+    put:
+      operationId: setProductAttributeValues
+      tags: [vendor-products]
+      summary: Write typed values (definitions govern, 400 on invalid)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              minItems: 1
+              maxItems: 100
+              items: { type: object }
+      responses:
+        "200":
+          description: Stored values
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
   /admin/auth/login:
     post:
       operationId: loginAdmin
@@ -788,6 +889,226 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /admin/products/{id}/identity/promote:
+    post:
+      operationId: promoteProductIdentity
+      tags: [admin-products]
+      summary: Reviewed identity promotion (matched/identified)
+      description: The reviewer is the calling admin; unreviewed promotion is rejected by the domain.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ProductId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [confidence]
+              properties:
+                confidence: { type: string, enum: [matched, identified] }
+      responses:
+        "200":
+          description: Identity with comparison eligibility
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /admin/taxonomy:
+    get:
+      operationId: listTaxonomyNodes
+      tags: [admin-taxonomy]
+      summary: Full governed taxonomy (all statuses)
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: Taxonomy nodes
+    post:
+      operationId: createTaxonomyNode
+      tags: [admin-taxonomy]
+      summary: Propose a category node
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code, name]
+              properties:
+                code: { type: string }
+                name: { type: string }
+                displayName: { type: string, nullable: true }
+                slug: { type: string, nullable: true }
+                handle: { type: string, nullable: true }
+                parentId: { type: string, nullable: true }
+                isBrowseable: { type: boolean }
+                isAssignable: { type: boolean }
+                isNavVisible: { type: boolean }
+                attributeProfileId: { type: string, nullable: true }
+                sortOrder: { type: integer }
+      responses:
+        "201":
+          description: Proposed node
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /admin/taxonomy/{id}:
+    patch:
+      operationId: updateTaxonomyNode
+      tags: [admin-taxonomy]
+      summary: Edit node or activate it (proposed → active)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        "200":
+          description: Updated node
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /admin/taxonomy/{id}/deprecate:
+    post:
+      operationId: deprecateTaxonomyNode
+      tags: [admin-taxonomy]
+      summary: Deprecate with a live replacement (never delete)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [replacementId]
+              properties:
+                replacementId: { type: string }
+      responses:
+        "200":
+          description: Deprecated node
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /admin/attributes/definitions:
+    get:
+      operationId: listAttributeDefinitions
+      tags: [admin-attributes]
+      summary: Typed attribute definitions
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: Definitions
+    post:
+      operationId: createAttributeDefinition
+      tags: [admin-attributes]
+      summary: Govern a new attribute definition
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code, label, type]
+              properties:
+                code: { type: string }
+                label: { type: string }
+                type: { type: string, enum: [text, number, boolean, option, multi_option] }
+      responses:
+        "201":
+          description: Definition created
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /admin/attributes/profiles:
+    get:
+      operationId: listAttributeProfiles
+      tags: [admin-attributes]
+      summary: Category attribute profiles
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: Profiles
+    post:
+      operationId: createAttributeProfile
+      tags: [admin-attributes]
+      summary: Bind definitions into a category profile
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, definitions]
+              properties:
+                name: { type: string }
+                categoryId: { type: string, nullable: true }
+      responses:
+        "201":
+          description: Profile created
+
+  /admin/matches:
+    get:
+      operationId: listMatchCandidates
+      tags: [admin-matches]
+      summary: Match review queue (optional status filter)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema: { type: string, enum: [proposed, confirmed, rejected] }
+      responses:
+        "200":
+          description: Candidates
+
+  /admin/matches/{id}/review:
+    post:
+      operationId: reviewMatchCandidate
+      tags: [admin-matches]
+      summary: Confirm (promotes both sides to matched) or reject
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [decision]
+              properties:
+                decision: { type: string, enum: [confirmed, rejected] }
+      responses:
+        "200":
+          description: Reviewed candidate
         "404":
           $ref: "#/components/responses/NotFound"
 
@@ -1315,6 +1636,16 @@ components:
           nullable: true
           maxLength: 2048
           description: Vendor-supplied http(s) image URL (uploads land on Workers later).
+        identity:
+          type: object
+          description: Brand/model enrichment at publish (Level C default; no barcode required).
+          properties:
+            brand: { type: string, nullable: true, maxLength: 120 }
+            model: { type: string, nullable: true, maxLength: 120 }
+            gtin: { type: string, nullable: true, maxLength: 32 }
+            mpn: { type: string, nullable: true, maxLength: 64 }
+            manufacturer: { type: string, nullable: true, maxLength: 120 }
+            productType: { type: string, nullable: true, maxLength: 80 }
 
     PatchVendorProductRequest:
       type: object
@@ -1757,6 +2088,7 @@ components:
         - ratingAvg
         - ratingCount
         - reviews
+        - identity
       properties:
         productId:
           type: string
@@ -1800,6 +2132,17 @@ components:
           items:
             $ref: "#/components/schemas/ProductReview"
           description: Latest published reviews (max 5).
+        identity:
+          type: object
+          required: [identityConfidence, comparisonEligible]
+          description: Product identity (ADR-002). UIs hide comparison language unless comparisonEligible.
+          properties:
+            brand: { type: string, nullable: true }
+            model: { type: string, nullable: true }
+            manufacturer: { type: string, nullable: true }
+            productType: { type: string, nullable: true }
+            identityConfidence: { type: string, enum: [identified, matched, seller_specific] }
+            comparisonEligible: { type: boolean }
 
     CategoryNode:
       type: object

@@ -21,23 +21,34 @@ import type {
   CategoryListResponse,
   CommissionRequest,
   CreateAdminPayoutBody,
+  CreateAttributeDefinitionBody,
+  CreateAttributeProfileBody,
   CreateCart201,
   CreateCheckoutBody,
   CreateStoreReviewBody,
+  CreateTaxonomyNodeBody,
   CreateVendorProductRequest,
   Credentials,
+  DeprecateTaxonomyNodeBody,
   GetCatalogParams,
   GetCheckoutStatusParams,
   GetPopularProducts200,
   GetPopularProductsParams,
   GhanaSetupRequest,
+  ListMatchCandidatesParams,
   LookupOrderGroupBody,
   PatchVendorProductRequest,
   PaystackWebhookBody,
   ProductDetail,
+  PromoteProductIdentityBody,
+  ResolveCategoryParams,
+  ReviewMatchCandidateBody,
   SellerReadiness,
   SellerShopResponse,
   SessionClaims,
+  SetProductAttributeValuesBodyItem,
+  UpdateProductIdentityBody,
+  UpdateTaxonomyNodeBody,
   VendorProduct,
   VendorProductListResponse,
   VendorRegisterRequest
@@ -46,8 +57,11 @@ import type {
 import { customFetch } from '../http';
 
 /**
- * Returns the is_nav category tree (roots are Ghana departments).
- * @summary Ghana category nav tree
+ * Proposed and deprecated nodes are pruned; deprecated slugs resolve
+via GET /store/categories/resolve. Display names fall back to
+canonical names, slugs to handles.
+
+ * @summary Ghana category nav tree (active, nav-visible nodes only)
  */
 export const getGetCategoriesUrl = () => {
 
@@ -60,6 +74,37 @@ export const getGetCategoriesUrl = () => {
 export const getCategories = async ( options?: RequestInit): Promise<CategoryListResponse> => {
   
   return customFetch<CategoryListResponse>(getGetCategoriesUrl(),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+/**
+ * @summary Follow a category slug through deprecation redirects
+ */
+export const getResolveCategoryUrl = (params: ResolveCategoryParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/store/categories/resolve?${stringifiedParams}` : `/store/categories/resolve`
+}
+
+export const resolveCategory = async (params: ResolveCategoryParams, options?: RequestInit): Promise<void> => {
+  
+  return customFetch<void>(getResolveCategoryUrl(params),
   {      
     ...options,
     method: 'GET'
@@ -532,6 +577,82 @@ export const proposeVendorProduct = async (id: string, options?: RequestInit): P
 
 
 /**
+ * @summary Seller enrichment of product identity (never promotes confidence)
+ */
+export const getUpdateProductIdentityUrl = (id: string,) => {
+
+
+  
+
+  return `/vendor/products/${id}/identity`
+}
+
+export const updateProductIdentity = async (id: string,
+    updateProductIdentityBody: UpdateProductIdentityBody, options?: RequestInit): Promise<void> => {
+  
+  return customFetch<void>(getUpdateProductIdentityUrl(id),
+  {      
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      updateProductIdentityBody,)
+  }
+);}
+
+
+
+/**
+ * @summary Owned product values + all definitions
+ */
+export const getGetProductAttributeValuesUrl = (id: string,) => {
+
+
+  
+
+  return `/vendor/products/${id}/attributes`
+}
+
+export const getProductAttributeValues = async (id: string, options?: RequestInit): Promise<void> => {
+  
+  return customFetch<void>(getGetProductAttributeValuesUrl(id),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+/**
+ * @summary Write typed values (definitions govern, 400 on invalid)
+ */
+export const getSetProductAttributeValuesUrl = (id: string,) => {
+
+
+  
+
+  return `/vendor/products/${id}/attributes`
+}
+
+export const setProductAttributeValues = async (id: string,
+    setProductAttributeValuesBodyItem: SetProductAttributeValuesBodyItem[], options?: RequestInit): Promise<void> => {
+  
+  return customFetch<void>(getSetProductAttributeValuesUrl(id),
+  {      
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      setProductAttributeValuesBodyItem,)
+  }
+);}
+
+
+
+/**
  * @summary Login admin
  */
 export const getLoginAdminUrl = () => {
@@ -793,6 +914,289 @@ export const requestProductChanges = async (id: string, options?: RequestInit): 
     method: 'POST'
     
     
+  }
+);}
+
+
+
+/**
+ * The reviewer is the calling admin; unreviewed promotion is rejected by the domain.
+ * @summary Reviewed identity promotion (matched/identified)
+ */
+export const getPromoteProductIdentityUrl = (id: string,) => {
+
+
+  
+
+  return `/admin/products/${id}/identity/promote`
+}
+
+export const promoteProductIdentity = async (id: string,
+    promoteProductIdentityBody: PromoteProductIdentityBody, options?: RequestInit): Promise<void> => {
+  
+  return customFetch<void>(getPromoteProductIdentityUrl(id),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      promoteProductIdentityBody,)
+  }
+);}
+
+
+
+/**
+ * @summary Full governed taxonomy (all statuses)
+ */
+export const getListTaxonomyNodesUrl = () => {
+
+
+  
+
+  return `/admin/taxonomy`
+}
+
+export const listTaxonomyNodes = async ( options?: RequestInit): Promise<void> => {
+  
+  return customFetch<void>(getListTaxonomyNodesUrl(),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+/**
+ * @summary Propose a category node
+ */
+export const getCreateTaxonomyNodeUrl = () => {
+
+
+  
+
+  return `/admin/taxonomy`
+}
+
+export const createTaxonomyNode = async (createTaxonomyNodeBody: CreateTaxonomyNodeBody, options?: RequestInit): Promise<void> => {
+  
+  return customFetch<void>(getCreateTaxonomyNodeUrl(),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      createTaxonomyNodeBody,)
+  }
+);}
+
+
+
+/**
+ * @summary Edit node or activate it (proposed → active)
+ */
+export const getUpdateTaxonomyNodeUrl = (id: string,) => {
+
+
+  
+
+  return `/admin/taxonomy/${id}`
+}
+
+export const updateTaxonomyNode = async (id: string,
+    updateTaxonomyNodeBody: UpdateTaxonomyNodeBody, options?: RequestInit): Promise<void> => {
+  
+  return customFetch<void>(getUpdateTaxonomyNodeUrl(id),
+  {      
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      updateTaxonomyNodeBody,)
+  }
+);}
+
+
+
+/**
+ * @summary Deprecate with a live replacement (never delete)
+ */
+export const getDeprecateTaxonomyNodeUrl = (id: string,) => {
+
+
+  
+
+  return `/admin/taxonomy/${id}/deprecate`
+}
+
+export const deprecateTaxonomyNode = async (id: string,
+    deprecateTaxonomyNodeBody: DeprecateTaxonomyNodeBody, options?: RequestInit): Promise<void> => {
+  
+  return customFetch<void>(getDeprecateTaxonomyNodeUrl(id),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      deprecateTaxonomyNodeBody,)
+  }
+);}
+
+
+
+/**
+ * @summary Typed attribute definitions
+ */
+export const getListAttributeDefinitionsUrl = () => {
+
+
+  
+
+  return `/admin/attributes/definitions`
+}
+
+export const listAttributeDefinitions = async ( options?: RequestInit): Promise<void> => {
+  
+  return customFetch<void>(getListAttributeDefinitionsUrl(),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+/**
+ * @summary Govern a new attribute definition
+ */
+export const getCreateAttributeDefinitionUrl = () => {
+
+
+  
+
+  return `/admin/attributes/definitions`
+}
+
+export const createAttributeDefinition = async (createAttributeDefinitionBody: CreateAttributeDefinitionBody, options?: RequestInit): Promise<void> => {
+  
+  return customFetch<void>(getCreateAttributeDefinitionUrl(),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      createAttributeDefinitionBody,)
+  }
+);}
+
+
+
+/**
+ * @summary Category attribute profiles
+ */
+export const getListAttributeProfilesUrl = () => {
+
+
+  
+
+  return `/admin/attributes/profiles`
+}
+
+export const listAttributeProfiles = async ( options?: RequestInit): Promise<void> => {
+  
+  return customFetch<void>(getListAttributeProfilesUrl(),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+/**
+ * @summary Bind definitions into a category profile
+ */
+export const getCreateAttributeProfileUrl = () => {
+
+
+  
+
+  return `/admin/attributes/profiles`
+}
+
+export const createAttributeProfile = async (createAttributeProfileBody: CreateAttributeProfileBody, options?: RequestInit): Promise<void> => {
+  
+  return customFetch<void>(getCreateAttributeProfileUrl(),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      createAttributeProfileBody,)
+  }
+);}
+
+
+
+/**
+ * @summary Match review queue (optional status filter)
+ */
+export const getListMatchCandidatesUrl = (params?: ListMatchCandidatesParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/admin/matches?${stringifiedParams}` : `/admin/matches`
+}
+
+export const listMatchCandidates = async (params?: ListMatchCandidatesParams, options?: RequestInit): Promise<void> => {
+  
+  return customFetch<void>(getListMatchCandidatesUrl(params),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+/**
+ * @summary Confirm (promotes both sides to matched) or reject
+ */
+export const getReviewMatchCandidateUrl = (id: string,) => {
+
+
+  
+
+  return `/admin/matches/${id}/review`
+}
+
+export const reviewMatchCandidate = async (id: string,
+    reviewMatchCandidateBody: ReviewMatchCandidateBody, options?: RequestInit): Promise<void> => {
+  
+  return customFetch<void>(getReviewMatchCandidateUrl(id),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      reviewMatchCandidateBody,)
   }
 );}
 

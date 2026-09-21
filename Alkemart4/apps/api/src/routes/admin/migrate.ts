@@ -1,4 +1,4 @@
-import { users } from "@alkemart/db"
+import { attributeDefinitions, attributeProfiles, profileAttributes, users } from "@alkemart/db"
 import { hashPassword } from "@alkemart/domain"
 import { eq, sql } from "drizzle-orm"
 import { Hono } from "hono"
@@ -185,4 +185,132 @@ export const adminMigrate = new Hono<AppEnv>()
   .post("/send-notifications", async (c) => {
     const result = await runNotificationDispatch(null, c.env, null)
     return c.json({ ok: true, ...result })
+  })
+  /**
+   * Blueprint Phase 1 foundations (taxonomy lifecycle, identity confidence,
+   * typed attributes, match candidates, collections, offer terms).
+   * Idempotent — mirrors packages/db/src/migrations/0020_blueprint_phase1.sql.
+   */
+  .post("/blueprint-phase1", async (c) => {
+    const env = parseEnv(c.env as unknown as Record<string, unknown>)
+    const db = primaryDb(env)
+    const applied: string[] = []
+    const exec = async (label: string, statement: ReturnType<typeof sql>) => {
+      await db.execute(statement)
+      applied.push(label)
+    }
+    await exec("taxonomy_status", sql`DO $$ BEGIN CREATE TYPE taxonomy_status AS ENUM('proposed', 'active', 'deprecated'); EXCEPTION WHEN duplicate_object THEN NULL; END $$`)
+    await exec("identity_confidence", sql`DO $$ BEGIN CREATE TYPE identity_confidence AS ENUM('identified', 'matched', 'seller_specific'); EXCEPTION WHEN duplicate_object THEN NULL; END $$`)
+    await exec("attribute_type", sql`DO $$ BEGIN CREATE TYPE attribute_type AS ENUM('text', 'number', 'boolean', 'option', 'multi_option'); EXCEPTION WHEN duplicate_object THEN NULL; END $$`)
+    await exec("match_candidate_status", sql`DO $$ BEGIN CREATE TYPE match_candidate_status AS ENUM('proposed', 'confirmed', 'rejected'); EXCEPTION WHEN duplicate_object THEN NULL; END $$`)
+    await exec("collection_visibility", sql`DO $$ BEGIN CREATE TYPE collection_visibility AS ENUM('draft', 'published'); EXCEPTION WHEN duplicate_object THEN NULL; END $$`)
+    await exec("categories.code", sql`ALTER TABLE categories ADD COLUMN IF NOT EXISTS code text`)
+    await exec("categories.display_name", sql`ALTER TABLE categories ADD COLUMN IF NOT EXISTS display_name text`)
+    await exec("categories.slug", sql`ALTER TABLE categories ADD COLUMN IF NOT EXISTS slug text`)
+    await exec("categories.level", sql`ALTER TABLE categories ADD COLUMN IF NOT EXISTS level integer NOT NULL DEFAULT 0`)
+    await exec("categories.status", sql`ALTER TABLE categories ADD COLUMN IF NOT EXISTS status taxonomy_status NOT NULL DEFAULT 'active'`)
+    await exec("categories.is_browseable", sql`ALTER TABLE categories ADD COLUMN IF NOT EXISTS is_browseable boolean NOT NULL DEFAULT true`)
+    await exec("categories.is_assignable", sql`ALTER TABLE categories ADD COLUMN IF NOT EXISTS is_assignable boolean NOT NULL DEFAULT true`)
+    await exec("categories.is_nav_visible", sql`ALTER TABLE categories ADD COLUMN IF NOT EXISTS is_nav_visible boolean NOT NULL DEFAULT true`)
+    await exec("categories.attribute_profile_id", sql`ALTER TABLE categories ADD COLUMN IF NOT EXISTS attribute_profile_id text`)
+    await exec("categories.replacement_node_id", sql`ALTER TABLE categories ADD COLUMN IF NOT EXISTS replacement_node_id text REFERENCES categories(id)`)
+    await exec("categories.sort_order", sql`ALTER TABLE categories ADD COLUMN IF NOT EXISTS sort_order integer NOT NULL DEFAULT 0`)
+    await exec("categories.version", sql`ALTER TABLE categories ADD COLUMN IF NOT EXISTS version integer NOT NULL DEFAULT 1`)
+    await exec("products.brand", sql`ALTER TABLE products ADD COLUMN IF NOT EXISTS brand text`)
+    await exec("products.model", sql`ALTER TABLE products ADD COLUMN IF NOT EXISTS model text`)
+    await exec("products.gtin", sql`ALTER TABLE products ADD COLUMN IF NOT EXISTS gtin text`)
+    await exec("products.mpn", sql`ALTER TABLE products ADD COLUMN IF NOT EXISTS mpn text`)
+    await exec("products.manufacturer", sql`ALTER TABLE products ADD COLUMN IF NOT EXISTS manufacturer text`)
+    await exec("products.product_type", sql`ALTER TABLE products ADD COLUMN IF NOT EXISTS product_type text`)
+    await exec("products.identity_confidence", sql`ALTER TABLE products ADD COLUMN IF NOT EXISTS identity_confidence identity_confidence NOT NULL DEFAULT 'seller_specific'`)
+    await exec("products.identity_provenance", sql`ALTER TABLE products ADD COLUMN IF NOT EXISTS identity_provenance jsonb`)
+    await exec("product_variants.image_url", sql`ALTER TABLE product_variants ADD COLUMN IF NOT EXISTS image_url text`)
+    await exec("product_variants.weight_grams", sql`ALTER TABLE product_variants ADD COLUMN IF NOT EXISTS weight_grams integer`)
+    await exec("product_variants.gtin", sql`ALTER TABLE product_variants ADD COLUMN IF NOT EXISTS gtin text`)
+    await exec("offers.condition", sql`ALTER TABLE offers ADD COLUMN IF NOT EXISTS condition text`)
+    await exec("offers.compare_at_pesewas", sql`ALTER TABLE offers ADD COLUMN IF NOT EXISTS compare_at_pesewas bigint`)
+    await exec("offers.compare_at_provenance", sql`ALTER TABLE offers ADD COLUMN IF NOT EXISTS compare_at_provenance text`)
+    await exec("offers.fulfillment_origin", sql`ALTER TABLE offers ADD COLUMN IF NOT EXISTS fulfillment_origin text`)
+    await exec("offers.warranty_ref", sql`ALTER TABLE offers ADD COLUMN IF NOT EXISTS warranty_ref text`)
+    await exec("offers.returns_ref", sql`ALTER TABLE offers ADD COLUMN IF NOT EXISTS returns_ref text`)
+    await exec("offers.delivery_promise", sql`ALTER TABLE offers ADD COLUMN IF NOT EXISTS delivery_promise text`)
+    await exec("offers.freshness_at", sql`ALTER TABLE offers ADD COLUMN IF NOT EXISTS freshness_at timestamptz`)
+    await exec("offers.published_at", sql`ALTER TABLE offers ADD COLUMN IF NOT EXISTS published_at timestamptz`)
+    await exec("attribute_definitions", sql`CREATE TABLE IF NOT EXISTS attribute_definitions (id text PRIMARY KEY, code text NOT NULL UNIQUE, label text NOT NULL, type attribute_type NOT NULL, unit_family text, allowed_values jsonb, filterable boolean NOT NULL DEFAULT false, searchable boolean NOT NULL DEFAULT false, required boolean NOT NULL DEFAULT false, variant_axis boolean NOT NULL DEFAULT false, visible_on_card boolean NOT NULL DEFAULT false, visible_on_pdp boolean NOT NULL DEFAULT true)`)
+    await exec("attribute_profiles", sql`CREATE TABLE IF NOT EXISTS attribute_profiles (id text PRIMARY KEY, name text NOT NULL, category_id text, version integer NOT NULL DEFAULT 1)`)
+    await exec("profile_attributes", sql`CREATE TABLE IF NOT EXISTS profile_attributes (id text PRIMARY KEY, profile_id text NOT NULL REFERENCES attribute_profiles(id), definition_id text NOT NULL REFERENCES attribute_definitions(id), position integer NOT NULL DEFAULT 0, required boolean NOT NULL DEFAULT false, UNIQUE (profile_id, definition_id))`)
+    await exec("product_attribute_values", sql`CREATE TABLE IF NOT EXISTS product_attribute_values (id text PRIMARY KEY, product_id text NOT NULL REFERENCES products(id), definition_id text NOT NULL REFERENCES attribute_definitions(id), text_value text, number_value double precision, boolean_value boolean, option_values jsonb, unit text, UNIQUE (product_id, definition_id))`)
+    await exec("product_match_candidates", sql`CREATE TABLE IF NOT EXISTS product_match_candidates (id text PRIMARY KEY, product_id text NOT NULL REFERENCES products(id), candidate_product_id text NOT NULL REFERENCES products(id), source text NOT NULL, evidence jsonb, status match_candidate_status NOT NULL DEFAULT 'proposed', reviewer_id text, reviewed_at timestamptz, created_at timestamptz NOT NULL DEFAULT now())`)
+    await exec("collections", sql`CREATE TABLE IF NOT EXISTS collections (id text PRIMARY KEY, seller_id text NOT NULL REFERENCES sellers(id), name text NOT NULL, slug text NOT NULL, description text, image_url text, visibility collection_visibility NOT NULL DEFAULT 'draft', position integer NOT NULL DEFAULT 0, starts_at timestamptz, ends_at timestamptz, created_at timestamptz NOT NULL DEFAULT now())`)
+    await exec("collection_products", sql`CREATE TABLE IF NOT EXISTS collection_products (id text PRIMARY KEY, collection_id text NOT NULL REFERENCES collections(id), product_id text NOT NULL REFERENCES products(id), position integer NOT NULL DEFAULT 0, UNIQUE (collection_id, product_id))`)
+    return c.json({ ok: true, applied })
+  })
+  /**
+   * Blueprint Phase 1C — seed the governed Phones attribute profile.
+   * Idempotent: existing codes/profiles are reused, never duplicated.
+   * Category linkage stays null until taxonomy assignment (Phase 1A UI).
+   */
+  .post("/phones-profile", async (c) => {
+    const env = parseEnv(c.env as unknown as Record<string, unknown>)
+    const db = primaryDb(env)
+    const defs: Array<{
+      code: string
+      label: string
+      type: "text" | "number" | "boolean" | "option" | "multi_option"
+      unitFamily?: string
+      allowedValues?: string[]
+      filterable: boolean
+      searchable: boolean
+      required: boolean
+      variantAxis: boolean
+      visibleOnCard: boolean
+      visibleOnPdp: boolean
+    }> = [
+      { code: "phone.brand", label: "Brand", type: "text", filterable: true, searchable: true, required: true, variantAxis: false, visibleOnCard: true, visibleOnPdp: true },
+      { code: "phone.model_family", label: "Model family", type: "text", filterable: true, searchable: true, required: false, variantAxis: false, visibleOnCard: false, visibleOnPdp: true },
+      { code: "phone.storage_gb", label: "Storage", type: "number", unitFamily: "storage", filterable: true, searchable: false, required: false, variantAxis: true, visibleOnCard: false, visibleOnPdp: true },
+      { code: "phone.ram_gb", label: "RAM", type: "number", unitFamily: "memory", filterable: true, searchable: false, required: false, variantAxis: true, visibleOnCard: false, visibleOnPdp: true },
+      { code: "phone.network", label: "Network", type: "option", allowedValues: ["4G", "5G"], filterable: true, searchable: false, required: false, variantAxis: true, visibleOnCard: false, visibleOnPdp: true },
+      { code: "phone.condition", label: "Condition", type: "option", allowedValues: ["new", "locally_used", "refurbished"], filterable: true, searchable: false, required: true, variantAxis: false, visibleOnCard: true, visibleOnPdp: true },
+    ]
+    const existing = await db.select({ code: attributeDefinitions.code }).from(attributeDefinitions)
+    const have = new Set(existing.map((r) => r.code.toLowerCase()))
+    for (const d of defs) {
+      if (have.has(d.code.toLowerCase())) continue
+      await db.insert(attributeDefinitions).values({
+        id: crypto.randomUUID(),
+        code: d.code,
+        label: d.label,
+        type: d.type,
+        unitFamily: d.unitFamily ?? null,
+        allowedValues: d.allowedValues ?? null,
+        filterable: d.filterable,
+        searchable: d.searchable,
+        required: d.required,
+        variantAxis: d.variantAxis,
+        visibleOnCard: d.visibleOnCard,
+        visibleOnPdp: d.visibleOnPdp,
+      })
+    }
+    const profiles = await db
+      .select({ id: attributeProfiles.id })
+      .from(attributeProfiles)
+      .where(eq(attributeProfiles.name, "phones-v1"))
+    let profileId = profiles[0]?.id ?? null
+    if (!profileId) {
+      profileId = crypto.randomUUID()
+      await db.insert(attributeProfiles).values({ id: profileId, name: "phones-v1", categoryId: null, version: 1 })
+    }
+    const rows = await db.select().from(attributeDefinitions)
+    const byCode = new Map(rows.map((r) => [r.code.toLowerCase(), r.id]))
+    let position = 0
+    for (const d of defs) {
+      const definitionId = byCode.get(d.code.toLowerCase())
+      if (!definitionId) continue
+      await db
+        .insert(profileAttributes)
+        .values({ id: crypto.randomUUID(), profileId, definitionId, position: position++, required: d.required })
+        .onConflictDoNothing()
+    }
+    return c.json({ ok: true, profile: "phones-v1", definitions: defs.map((d) => d.code) })
   })

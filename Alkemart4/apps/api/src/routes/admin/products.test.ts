@@ -28,6 +28,11 @@ function emptyCatalog(): CatalogSnapshot {
     productOptions: [],
     productOptionValues: [],
     variantOptionValues: [],
+    attributeDefinitions: [],
+    attributeProfiles: [],
+    profileAttributes: [],
+    productAttributeValues: [],
+    matchCandidates: [],
   }
 }
 

@@ -74,7 +74,8 @@ function ProductDetailPage() {
   const peersQ = useQuery({
     queryKey: ["store", "peer-offers", p?.id],
     queryFn: () => listPeerOffersForProduct(p!.id),
-    enabled: Boolean(p?.id),
+    // Level C listings carry no comparison claims — skip the peer fetch.
+    enabled: Boolean(p?.id) && p?.identity?.comparisonEligible !== false,
   });
 
   const relatedQ = useQuery({
@@ -322,6 +323,7 @@ function ProductDetailPage() {
             currencyCode: displayCurrency,
             path: productPath,
             sellerName: displaySeller?.name,
+            brandName: p.identity?.brand ?? null,
           }),
           breadcrumbJsonLd([
             { name: "Home", path: "/" },
@@ -596,11 +598,15 @@ function ProductDetailPage() {
               </div>
             )}
 
-            <PeerOffersList
-              offers={hasMatrix ? matrixPeers : peerOffers}
-              activeOfferId={activeOfferId}
-              onSelect={setSelectedOfferId}
-            />
+            {/* Exact comparison is earned (ADR-002): Level C listings show
+                no peer table and no comparison language. */}
+            {p?.identity?.comparisonEligible !== false ? (
+              <PeerOffersList
+                offers={hasMatrix ? matrixPeers : peerOffers}
+                activeOfferId={activeOfferId}
+                onSelect={setSelectedOfferId}
+              />
+            ) : null}
 
             {(p.attributes?.length ?? 0) > 0 ? (
               <div className="space-y-2">

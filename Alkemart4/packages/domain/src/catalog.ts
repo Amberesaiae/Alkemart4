@@ -67,6 +67,18 @@ export type ProductDetailDto = {
   reviews: ProductReviewDto[]
   /** Structured facts about the item — what it is, not what you pick. */
   attributes: { label: string; value: string }[]
+  /**
+   * Phase 1B identity (ADR-002). UIs hide comparison language unless
+   * `comparisonEligible` is true; the seller is never the brand.
+   */
+  identity: {
+    brand: string | null
+    model: string | null
+    manufacturer: string | null
+    productType: string | null
+    identityConfidence: "identified" | "matched" | "seller_specific"
+    comparisonEligible: boolean
+  }
 }
 
 export type ProductCardInput = {
@@ -86,6 +98,13 @@ export type ProductDetailInput = {
   categoryName: string
   imageUrls: string[]
   attributes?: { label: string; value: string }[]
+  identity?: {
+    brand?: string | null
+    model?: string | null
+    manufacturer?: string | null
+    productType?: string | null
+    identityConfidence?: "identified" | "matched" | "seller_specific" | null
+  }
 }
 
 /** Card-level offer facts; satisfied by PeerOfferInput and by test fixtures. */
@@ -136,6 +155,7 @@ export function toProductDetail(
 ): ProductDetailDto {
   const published = extras?.reviews ?? []
   const ratingCount = published.length
+  const confidence = product.identity?.identityConfidence ?? "seller_specific"
   return {
     productId: product.productId,
     title: product.title,
@@ -144,6 +164,14 @@ export function toProductDetail(
     categoryName: product.categoryName,
     imageUrls: product.imageUrls,
     attributes: product.attributes ?? [],
+    identity: {
+      brand: product.identity?.brand ?? null,
+      model: product.identity?.model ?? null,
+      manufacturer: product.identity?.manufacturer ?? null,
+      productType: product.identity?.productType ?? null,
+      identityConfidence: confidence,
+      comparisonEligible: confidence === "identified" || confidence === "matched",
+    },
     offers: sortPeerOffers(sellableOffers).map(toPeerOffer),
     optionTypes: extras?.optionTypes ?? [],
     combos: extras?.combos ?? [],

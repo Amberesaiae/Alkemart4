@@ -1,5 +1,6 @@
 export * from "./ghana"
 export * from "./brand"
+export * from "./department-themes"
 export * from "./homepage"
 export * from "./storefront-badges"
 export * from "./product-attributes"

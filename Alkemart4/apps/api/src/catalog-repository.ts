@@ -1,11 +1,16 @@
 import {
+  attributeDefinitions,
+  attributeProfiles,
   categories,
   moderationAppeals,
   offers,
+  productAttributeValues,
+  productMatchCandidates,
   productOptions,
   productOptionValues,
   products,
   productVariants,
+  profileAttributes,
   reviews,
   sellers,
   shopFeatured,
@@ -13,16 +18,25 @@ import {
   variantOptionValues,
 } from "@alkemart/db"
 import {
+  activateCategory,
   approveProduct,
+  assertAssignableCategory,
   assertLeafCategory,
   buildNavTree,
+  canShowComparison,
+  deprecateCategory,
   isSellable,
+  promoteIdentityConfidence,
   proposeProduct,
   rejectProduct,
   requestProductChanges,
+  resolveCategoryRedirect,
   toProductCard,
   toProductDetail,
+  validateAttributeValue,
+  type AttributeType,
   type CategoryNode,
+  type IdentityConfidence,
   type PeerOfferInput,
   type ProductCardDto,
   type ProductDetailDto,
@@ -43,8 +57,12 @@ import {
 } from "./variant-matrix"
 import { attributesFromJson } from "@alkemart/shared/product-attributes"
 import type {
+  CatalogAttributeDefinition,
+  CatalogAttributeProfile,
+  CatalogMatchCandidate,
   CatalogOffer,
   CatalogProduct,
+  CatalogProductAttributeValue,
   CatalogSnapshot,
   CatalogVariant,
 } from "./demo-seed"
@@ -185,6 +203,8 @@ export type CreateVendorProductInput = {
   variantOptions?: VariantOptionInput[]
   variantEntries?: VariantEntryInput[]
   attributes?: { label: string; value: string }[]
+  /** Phase 1B enrichment at publish (Level C default; no barcode required). */
+  identity?: UpdateProductIdentityInput
 }
 
 export type UpdateProductVariantInput = {
@@ -226,6 +246,152 @@ export type AdminProductDto = {
 }
 
 export type AdminProductModerationAction = "approve" | "reject" | "request_changes"
+
+/** Phase 1A — governed taxonomy node (ADR-001/002). */
+export type TaxonomyNodeDto = {
+  id: string
+  code: string | null
+  canonicalName: string
+  displayName: string | null
+  slug: string | null
+  handle: string
+  parentId: string | null
+  level: number
+  status: "proposed" | "active" | "deprecated"
+  isBrowseable: boolean
+  isAssignable: boolean
+  isNavVisible: boolean
+  attributeProfileId: string | null
+  replacementNodeId: string | null
+  sortOrder: number
+  version: number
+}
+
+export type CreateTaxonomyNodeInput = {
+  code: string
+  name: string
+  displayName?: string | null
+  slug?: string | null
+  handle?: string | null
+  parentId?: string | null
+  isBrowseable?: boolean
+  isAssignable?: boolean
+  isNavVisible?: boolean
+  attributeProfileId?: string | null
+  sortOrder?: number
+}
+
+export type UpdateTaxonomyNodeInput = {
+  name?: string
+  displayName?: string | null
+  slug?: string | null
+  parentId?: string | null
+  isBrowseable?: boolean
+  isAssignable?: boolean
+  isNavVisible?: boolean
+  attributeProfileId?: string | null
+  sortOrder?: number
+  /** Activation only (proposed → active). Deprecation uses deprecateTaxonomyNode. */
+  status?: "active"
+}
+
+/** Phase 1B — product identity (ADR-002). */
+export type ProductIdentityDto = {
+  productId: string
+  brand: string | null
+  model: string | null
+  gtin: string | null
+  mpn: string | null
+  manufacturer: string | null
+  productType: string | null
+  identityConfidence: IdentityConfidence
+  /** Exact comparison renders only when true. */
+  comparisonEligible: boolean
+}
+
+export type UpdateProductIdentityInput = {
+  brand?: string | null
+  model?: string | null
+  gtin?: string | null
+  mpn?: string | null
+  manufacturer?: string | null
+  productType?: string | null
+}
+
+/** Phase 1C — typed attributes. */
+export type AttributeDefinitionDto = {
+  id: string
+  code: string
+  label: string
+  type: AttributeType
+  unitFamily: string | null
+  allowedValues: string[] | null
+  filterable: boolean
+  searchable: boolean
+  required: boolean
+  variantAxis: boolean
+  visibleOnCard: boolean
+  visibleOnPdp: boolean
+}
+
+export type CreateAttributeDefinitionInput = {
+  code: string
+  label: string
+  type: AttributeType
+  unitFamily?: string | null
+  allowedValues?: string[] | null
+  filterable?: boolean
+  searchable?: boolean
+  required?: boolean
+  variantAxis?: boolean
+  visibleOnCard?: boolean
+  visibleOnPdp?: boolean
+}
+
+export type AttributeProfileDto = {
+  id: string
+  name: string
+  categoryId: string | null
+  version: number
+  definitions: Array<{
+    definitionId: string
+    code: string
+    position: number
+    required: boolean
+  }>
+}
+
+export type ProductAttributeValueDto = {
+  definitionId: string
+  code: string
+  textValue: string | null
+  numberValue: number | null
+  booleanValue: boolean | null
+  optionValues: string[] | null
+  unit: string | null
+}
+
+export type SetProductAttributeValueInput = {
+  definitionId: string
+  textValue?: string | null
+  numberValue?: number | null
+  booleanValue?: boolean | null
+  optionValues?: string[] | null
+  unit?: string | null
+}
+
+/** Phase 1D — match candidates. */
+export type MatchCandidateDto = {
+  id: string
+  productId: string
+  candidateProductId: string
+  source: string
+  evidence: Record<string, unknown> | null
+  status: "proposed" | "confirmed" | "rejected"
+  reviewerId: string | null
+  reviewedAt: string | null
+  createdAt: string
+}
 
 export class CatalogConflictError extends Error {
   constructor(message = "offer already exists") {
@@ -314,6 +480,54 @@ export interface CatalogRepository {
    * moderators see variant listings, not just the base product).
    */
   getAdminProductDetail(productId: string): Promise<VendorProductDto | null>
+  // ── Phase 1A: taxonomy lifecycle ──
+  listTaxonomyNodes(): Promise<TaxonomyNodeDto[]>
+  createTaxonomyNode(input: CreateTaxonomyNodeInput): Promise<TaxonomyNodeDto>
+  updateTaxonomyNode(id: string, patch: UpdateTaxonomyNodeInput): Promise<TaxonomyNodeDto | null>
+  deprecateTaxonomyNode(id: string, replacementId: string): Promise<TaxonomyNodeDto | null>
+  /** Follow deprecation redirects for a slug or id; null when unknown/unresolvable. */
+  resolveCategoryRedirect(slugOrId: string): Promise<{ id: string; slug: string | null } | null>
+  // ── Phase 1B: product identity (ADR-002) ──
+  /** Seller enrichment (brand/model/…) or admin edit; scope enforces ownership. */
+  updateProductIdentity(
+    productId: string,
+    patch: UpdateProductIdentityInput,
+    scope: { sellerId: string } | { admin: true },
+  ): Promise<ProductIdentityDto | null>
+  /** Reviewed promotion along seller_specific → matched → identified. */
+  promoteProductIdentity(
+    productId: string,
+    confidence: IdentityConfidence,
+    reviewerId: string,
+  ): Promise<ProductIdentityDto | null>
+  // ── Phase 1C: typed attributes ──
+  listAttributeDefinitions(): Promise<AttributeDefinitionDto[]>
+  createAttributeDefinition(input: CreateAttributeDefinitionInput): Promise<AttributeDefinitionDto>
+  listAttributeProfiles(): Promise<AttributeProfileDto[]>
+  createAttributeProfile(input: {
+    name: string
+    categoryId?: string | null
+    definitions: Array<{ definitionId: string; position?: number; required?: boolean }>
+  }): Promise<AttributeProfileDto>
+  listProductAttributeValues(productId: string): Promise<ProductAttributeValueDto[]>
+  setProductAttributeValues(
+    productId: string,
+    values: SetProductAttributeValueInput[],
+    scope: { sellerId: string } | { admin: true },
+  ): Promise<ProductAttributeValueDto[]>
+  // ── Phase 1D: match candidates ──
+  proposeMatchCandidate(
+    productId: string,
+    candidateProductId: string,
+    source: string,
+    evidence?: Record<string, unknown> | null,
+  ): Promise<MatchCandidateDto>
+  listMatchCandidates(status?: "proposed" | "confirmed" | "rejected"): Promise<MatchCandidateDto[]>
+  reviewMatchCandidate(
+    id: string,
+    decision: "confirmed" | "rejected",
+    reviewerId: string,
+  ): Promise<MatchCandidateDto | null>
 }
 function toBigInt(value: bigint | string | number): bigint {
   return typeof value === "bigint" ? value : BigInt(value)
@@ -332,6 +546,18 @@ function assertLeafCategoryId(
   categoryRows: CatalogSnapshot["categories"],
   categoryId: string,
 ): void {
+  const row = categoryRows.find((c) => c.id === categoryId)
+  if (!row) throw new CatalogValidationError("unknown category")
+  // Phase 1A: sellers publish only into active, assignable nodes.
+  try {
+    assertAssignableCategory({
+      id: row.id,
+      status: taxonomyStatusOf(row),
+      isAssignable: row.isAssignable ?? true,
+    })
+  } catch {
+    throw new CatalogValidationError("category is not assignable")
+  }
   const tree = buildNavTree(categoryRows.filter((c) => c.isNav))
   const node = findCategoryNode(tree, categoryId)
   if (!node) throw new CatalogValidationError("unknown category")
@@ -519,6 +745,191 @@ function nextModerationStatus(
     case "request_changes":
       return requestProductChanges(status)
   }
+}
+
+// ── Phase 1 shared snapshot helpers ──
+
+function taxonomyStatusOf(r: {
+  status?: "proposed" | "active" | "deprecated" | null
+}): "proposed" | "active" | "deprecated" {
+  return r.status ?? "active"
+}
+
+function toTaxonomyNodeDto(r: CatalogSnapshot["categories"][number]): TaxonomyNodeDto {
+  return {
+    id: r.id,
+    code: r.code ?? null,
+    canonicalName: r.name,
+    displayName: r.displayName ?? null,
+    slug: r.slug ?? r.handle ?? null,
+    handle: r.handle,
+    parentId: r.parentId,
+    level: r.level ?? 0,
+    status: taxonomyStatusOf(r),
+    isBrowseable: r.isBrowseable ?? true,
+    isAssignable: r.isAssignable ?? true,
+    isNavVisible: r.isNavVisible ?? r.isNav,
+    attributeProfileId: r.attributeProfileId ?? null,
+    replacementNodeId: r.replacementNodeId ?? null,
+    sortOrder: r.sortOrder ?? r.rank,
+    version: r.version ?? 1,
+  }
+}
+
+function identityOfProduct(p: CatalogSnapshot["products"][number]): ProductIdentityDto {
+  const confidence = p.identityConfidence ?? "seller_specific"
+  return {
+    productId: p.id,
+    brand: p.brand ?? null,
+    model: p.model ?? null,
+    gtin: p.gtin ?? null,
+    mpn: p.mpn ?? null,
+    manufacturer: p.manufacturer ?? null,
+    productType: p.productType ?? null,
+    identityConfidence: confidence,
+    comparisonEligible: canShowComparison(confidence),
+  }
+}
+
+function toMatchCandidateDto(r: CatalogMatchCandidate): MatchCandidateDto {
+  return {
+    id: r.id,
+    productId: r.productId,
+    candidateProductId: r.candidateProductId,
+    source: r.source,
+    evidence: r.evidence ?? null,
+    status: r.status,
+    reviewerId: r.reviewerId ?? null,
+    reviewedAt: r.reviewedAt ?? null,
+    createdAt: r.createdAt,
+  }
+}
+
+function definitionDto(r: CatalogAttributeDefinition): AttributeDefinitionDto {
+  return {
+    id: r.id,
+    code: r.code,
+    label: r.label,
+    type: r.type,
+    unitFamily: r.unitFamily ?? null,
+    allowedValues: r.allowedValues ?? null,
+    filterable: r.filterable,
+    searchable: r.searchable,
+    required: r.required,
+    variantAxis: r.variantAxis,
+    visibleOnCard: r.visibleOnCard,
+    visibleOnPdp: r.visibleOnPdp,
+  }
+}
+
+function profileDto(
+  data: Pick<
+    CatalogSnapshot,
+    "attributeProfiles" | "profileAttributes" | "attributeDefinitions"
+  >,
+  profile: CatalogAttributeProfile,
+): AttributeProfileDto {
+  const defById = new Map((data.attributeDefinitions ?? []).map((d) => [d.id, d]))
+  return {
+    id: profile.id,
+    name: profile.name,
+    categoryId: profile.categoryId ?? null,
+    version: profile.version,
+    definitions: (data.profileAttributes ?? [])
+      .filter((l) => l.profileId === profile.id)
+      .sort((a, b) => a.position - b.position)
+      .map((l) => ({
+        definitionId: l.definitionId,
+        code: defById.get(l.definitionId)?.code ?? l.definitionId,
+        position: l.position,
+        required: l.required,
+      })),
+  }
+}
+
+function productAttributeValueDto(
+  data: Pick<CatalogSnapshot, "attributeDefinitions">,
+  row: CatalogProductAttributeValue,
+): ProductAttributeValueDto {
+  const def = (data.attributeDefinitions ?? []).find((d) => d.id === row.definitionId)
+  return {
+    definitionId: row.definitionId,
+    code: def?.code ?? row.definitionId,
+    textValue: row.textValue ?? null,
+    numberValue: row.numberValue ?? null,
+    booleanValue: row.booleanValue ?? null,
+    optionValues: row.optionValues ?? null,
+    unit: row.unit ?? null,
+  }
+}
+
+/** Snapshot-based redirect resolution shared by both repositories. */
+function resolveRedirectFromRows(
+  categories: CatalogSnapshot["categories"],
+  slugOrId: string,
+): { id: string; slug: string | null } | null {
+  const key = slugOrId.trim()
+  const start = categories.find((c) => c.id === key || c.slug === key || c.handle === key)
+  if (!start) return null
+  const byId = new Map(
+    categories.map(
+      (c) =>
+        [
+          c.id,
+          {
+            id: c.id,
+            status: taxonomyStatusOf(c),
+            replacementNodeId: c.replacementNodeId ?? null,
+          },
+        ] as const,
+    ),
+  )
+  const idMap = new Map(categories.map((c) => [c.id, c] as const))
+  try {
+    const id = resolveCategoryRedirect(start.id, byId)
+    const node = idMap.get(id)!
+    const dto = toTaxonomyNodeDto(node)
+    return { id: dto.id, slug: dto.slug }
+  } catch {
+    return null
+  }
+}
+
+function ensurePhase1Arrays(data: CatalogSnapshot): void {
+  data.attributeDefinitions ??= []
+  data.attributeProfiles ??= []
+  data.profileAttributes ??= []
+  data.productAttributeValues ??= []
+  data.matchCandidates ??= []
+}
+
+function cleanText(v: string | null | undefined): string | null {
+  const t = v?.trim()
+  return t ? t : null
+}
+
+function slugify(input: string): string {
+  const slug = input
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+  return slug || crypto.randomUUID().slice(0, 8)
+}
+
+/** Depth from the parent chain (roots stay 0); guards against parent cycles. */
+function taxonomyLevel(
+  rows: CatalogSnapshot["categories"],
+  parentId: string | null,
+): number {
+  let level = 0
+  let current = parentId
+  const seen = new Set<string>()
+  while (current && !seen.has(current)) {
+    seen.add(current)
+    level += 1
+    current = rows.find((c) => c.id === current)?.parentId ?? null
+  }
+  return level
 }
 
 function sellerOwnsProduct(
@@ -713,6 +1124,13 @@ export function getProductFrom(
       categoryName: cat?.name ?? product.primaryCategoryId,
       imageUrls: product.imageUrl ? [product.imageUrl] : [],
       attributes: attributesFromJson(product.attributes),
+      identity: {
+        brand: product.brand ?? null,
+        model: product.model ?? null,
+        manufacturer: product.manufacturer ?? null,
+        productType: product.productType ?? null,
+        identityConfidence: product.identityConfidence ?? "seller_specific",
+      },
     },
     offersForProduct,
     {
@@ -861,6 +1279,13 @@ export class InMemoryCatalogRepository implements CatalogRepository {
       primaryCategoryId: input.primaryCategoryId,
       sellerId: input.sellerId,
       attributes: input.attributes ?? [],
+      brand: cleanText(input.identity?.brand),
+      model: cleanText(input.identity?.model),
+      gtin: cleanText(input.identity?.gtin),
+      mpn: cleanText(input.identity?.mpn),
+      manufacturer: cleanText(input.identity?.manufacturer),
+      productType: cleanText(input.identity?.productType),
+      identityConfidence: "seller_specific",
     }
     this.data.products.push(product)
     if (specs.length === 0) {
@@ -955,6 +1380,401 @@ export class InMemoryCatalogRepository implements CatalogRepository {
   async getAdminProductDetail(productId: string): Promise<VendorProductDto | null> {
     if (!this.data.products.some((p) => p.id === productId)) return null
     return this.assembleOwnedProduct(productId)
+  }
+
+  // ── Phase 1A: taxonomy lifecycle (in-memory) ──
+
+  async listTaxonomyNodes(): Promise<TaxonomyNodeDto[]> {
+    return this.data.categories
+      .map(toTaxonomyNodeDto)
+      .sort((a, b) => a.sortOrder - b.sortOrder || a.handle.localeCompare(b.handle))
+  }
+
+  async createTaxonomyNode(input: CreateTaxonomyNodeInput): Promise<TaxonomyNodeDto> {
+    const code = input.code.trim()
+    const name = input.name.trim()
+    if (!code) throw new CatalogValidationError("code required")
+    if (!name) throw new CatalogValidationError("name required")
+    if (this.data.categories.some((c) => c.code === code)) {
+      throw new CatalogConflictError("category code already exists")
+    }
+    const slug = cleanText(input.slug) ?? slugify(code)
+    const handle = cleanText(input.handle) ?? slug
+    if (this.data.categories.some((c) => c.handle === handle || c.slug === slug)) {
+      throw new CatalogConflictError("category slug/handle already exists")
+    }
+    if (input.parentId !== undefined && input.parentId !== null) {
+      if (!this.data.categories.some((c) => c.id === input.parentId)) {
+        throw new CatalogValidationError("unknown parent category")
+      }
+    }
+    const row: CatalogSnapshot["categories"][number] = {
+      id: crypto.randomUUID(),
+      handle,
+      name,
+      parentId: input.parentId ?? null,
+      rank: input.sortOrder ?? 0,
+      isNav: input.isNavVisible ?? true,
+      code,
+      displayName: cleanText(input.displayName),
+      slug,
+      level: 0,
+      status: "proposed",
+      isBrowseable: input.isBrowseable ?? true,
+      isAssignable: input.isAssignable ?? true,
+      isNavVisible: input.isNavVisible ?? true,
+      attributeProfileId: cleanText(input.attributeProfileId),
+      replacementNodeId: null,
+      sortOrder: input.sortOrder ?? 0,
+      version: 1,
+    }
+    // Level derives from the parent chain (roots stay 0).
+    row.level = taxonomyLevel(this.data.categories, row.parentId)
+    this.data.categories.push(row)
+    return toTaxonomyNodeDto(row)
+  }
+
+  async updateTaxonomyNode(
+    id: string,
+    patch: UpdateTaxonomyNodeInput,
+  ): Promise<TaxonomyNodeDto | null> {
+    const row = this.data.categories.find((c) => c.id === id)
+    if (!row) return null
+    if (taxonomyStatusOf(row) === "deprecated") {
+      throw new CatalogValidationError("deprecated categories are read-only; create a successor instead")
+    }
+    if (patch.name !== undefined) {
+      if (!patch.name.trim()) throw new CatalogValidationError("name required")
+      row.name = patch.name.trim()
+    }
+    if (patch.displayName !== undefined) row.displayName = cleanText(patch.displayName)
+    if (patch.slug !== undefined) {
+      const slug = cleanText(patch.slug) ?? slugify(row.code ?? row.handle)
+      if (this.data.categories.some((c) => c.id !== id && (c.slug === slug || c.handle === slug))) {
+        throw new CatalogConflictError("category slug/handle already exists")
+      }
+      row.slug = slug
+    }
+    if (patch.parentId !== undefined) {
+      if (patch.parentId !== null && !this.data.categories.some((c) => c.id === patch.parentId)) {
+        throw new CatalogValidationError("unknown parent category")
+      }
+      if (patch.parentId === id) throw new CatalogValidationError("a category cannot parent itself")
+      row.parentId = patch.parentId
+      row.level = taxonomyLevel(this.data.categories, row.parentId)
+    }
+    if (patch.isBrowseable !== undefined) row.isBrowseable = patch.isBrowseable
+    if (patch.isAssignable !== undefined) row.isAssignable = patch.isAssignable
+    if (patch.isNavVisible !== undefined) {
+      row.isNavVisible = patch.isNavVisible
+      row.isNav = patch.isNavVisible
+    }
+    if (patch.attributeProfileId !== undefined) {
+      row.attributeProfileId = cleanText(patch.attributeProfileId)
+    }
+    if (patch.sortOrder !== undefined) {
+      row.sortOrder = patch.sortOrder
+      row.rank = patch.sortOrder
+    }
+    if (patch.status !== undefined) {
+      activateCategory({ id: row.id, status: taxonomyStatusOf(row) })
+      row.status = "active"
+    }
+    row.version = (row.version ?? 1) + 1
+    return toTaxonomyNodeDto(row)
+  }
+
+  async deprecateTaxonomyNode(id: string, replacementId: string): Promise<TaxonomyNodeDto | null> {
+    const row = this.data.categories.find((c) => c.id === id)
+    if (!row) return null
+    const replacement = this.data.categories.find((c) => c.id === replacementId) ?? null
+    deprecateCategory(
+      { id: row.id, status: taxonomyStatusOf(row) },
+      replacement
+        ? { id: replacement.id, status: taxonomyStatusOf(replacement) }
+        : null,
+    )
+    row.status = "deprecated"
+    row.replacementNodeId = replacementId
+    row.isNavVisible = false
+    row.isNav = false
+    row.version = (row.version ?? 1) + 1
+    return toTaxonomyNodeDto(row)
+  }
+
+  async resolveCategoryRedirect(
+    slugOrId: string,
+  ): Promise<{ id: string; slug: string | null } | null> {
+    return resolveRedirectFromRows(this.data.categories, slugOrId)
+  }
+
+  // ── Phase 1B: product identity (in-memory) ──
+
+  async updateProductIdentity(
+    productId: string,
+    patch: UpdateProductIdentityInput,
+    scope: { sellerId: string } | { admin: true },
+  ): Promise<ProductIdentityDto | null> {
+    const product = this.data.products.find((p) => p.id === productId)
+    if (!product) return null
+    if (!("admin" in scope)) {
+      const owned = sellerOwnsProduct(this.data, scope.sellerId, productId)
+      if (!owned) return null
+    }
+    if (patch.brand !== undefined) product.brand = cleanText(patch.brand)
+    if (patch.model !== undefined) product.model = cleanText(patch.model)
+    if (patch.gtin !== undefined) product.gtin = cleanText(patch.gtin)
+    if (patch.mpn !== undefined) product.mpn = cleanText(patch.mpn)
+    if (patch.manufacturer !== undefined) product.manufacturer = cleanText(patch.manufacturer)
+    if (patch.productType !== undefined) product.productType = cleanText(patch.productType)
+    return identityOfProduct(product)
+  }
+
+  async promoteProductIdentity(
+    productId: string,
+    confidence: IdentityConfidence,
+    reviewerId: string,
+  ): Promise<ProductIdentityDto | null> {
+    const product = this.data.products.find((p) => p.id === productId)
+    if (!product) return null
+    const next = promoteIdentityConfidence(product.identityConfidence ?? "seller_specific", confidence, reviewerId)
+    product.identityConfidence = next
+    product.identityProvenance = {
+      ...((product.identityProvenance as Record<string, unknown> | null) ?? {}),
+      promotedBy: reviewerId,
+      promotedAt: new Date().toISOString(),
+      confidence: next,
+    }
+    return identityOfProduct(product)
+  }
+
+  // ── Phase 1C: typed attributes (in-memory) ──
+
+  async listAttributeDefinitions(): Promise<AttributeDefinitionDto[]> {
+    ensurePhase1Arrays(this.data)
+    return this.data.attributeDefinitions.map(definitionDto)
+  }
+
+  async createAttributeDefinition(
+    input: CreateAttributeDefinitionInput,
+  ): Promise<AttributeDefinitionDto> {
+    ensurePhase1Arrays(this.data)
+    const code = input.code.trim()
+    if (!code) throw new CatalogValidationError("code required")
+    if (!input.label.trim()) throw new CatalogValidationError("label required")
+    if (this.data.attributeDefinitions.some((d) => d.code.toLowerCase() === code.toLowerCase())) {
+      throw new CatalogConflictError("attribute code already exists")
+    }
+    if (
+      (input.type === "option" || input.type === "multi_option") &&
+      (!input.allowedValues || input.allowedValues.length === 0)
+    ) {
+      throw new CatalogValidationError("option attributes require allowed values")
+    }
+    const row: CatalogAttributeDefinition = {
+      id: crypto.randomUUID(),
+      code,
+      label: input.label.trim(),
+      type: input.type,
+      unitFamily: cleanText(input.unitFamily),
+      allowedValues: input.allowedValues?.map((v) => v.trim()).filter(Boolean) ?? null,
+      filterable: input.filterable ?? false,
+      searchable: input.searchable ?? false,
+      required: input.required ?? false,
+      variantAxis: input.variantAxis ?? false,
+      visibleOnCard: input.visibleOnCard ?? false,
+      visibleOnPdp: input.visibleOnPdp ?? true,
+    }
+    this.data.attributeDefinitions.push(row)
+    return definitionDto(row)
+  }
+
+  async listAttributeProfiles(): Promise<AttributeProfileDto[]> {
+    ensurePhase1Arrays(this.data)
+    return this.data.attributeProfiles.map((p) => profileDto(this.data, p))
+  }
+
+  async createAttributeProfile(input: {
+    name: string
+    categoryId?: string | null
+    definitions: Array<{ definitionId: string; position?: number; required?: boolean }>
+  }): Promise<AttributeProfileDto> {
+    ensurePhase1Arrays(this.data)
+    if (!input.name.trim()) throw new CatalogValidationError("name required")
+    if (input.categoryId !== undefined && input.categoryId !== null) {
+      if (!this.data.categories.some((c) => c.id === input.categoryId)) {
+        throw new CatalogValidationError("unknown category")
+      }
+    }
+    for (const link of input.definitions) {
+      if (!this.data.attributeDefinitions.some((d) => d.id === link.definitionId)) {
+        throw new CatalogValidationError(`unknown attribute definition ${link.definitionId}`)
+      }
+    }
+    const profile: CatalogAttributeProfile = {
+      id: crypto.randomUUID(),
+      name: input.name.trim(),
+      categoryId: input.categoryId ?? null,
+      version: 1,
+    }
+    this.data.attributeProfiles.push(profile)
+    input.definitions.forEach((link, i) => {
+      this.data.profileAttributes.push({
+        id: crypto.randomUUID(),
+        profileId: profile.id,
+        definitionId: link.definitionId,
+        position: link.position ?? i,
+        required: link.required ?? false,
+      })
+    })
+    return profileDto(this.data, profile)
+  }
+
+  async listProductAttributeValues(productId: string): Promise<ProductAttributeValueDto[]> {
+    ensurePhase1Arrays(this.data)
+    return this.data.productAttributeValues
+      .filter((v) => v.productId === productId)
+      .map((v) => productAttributeValueDto(this.data, v))
+  }
+
+  async setProductAttributeValues(
+    productId: string,
+    values: SetProductAttributeValueInput[],
+    scope: { sellerId: string } | { admin: true },
+  ): Promise<ProductAttributeValueDto[]> {
+    ensurePhase1Arrays(this.data)
+    const product = this.data.products.find((p) => p.id === productId)
+    if (!product) throw new CatalogValidationError("unknown product")
+    if (!("admin" in scope)) {
+      if (!sellerOwnsProduct(this.data, scope.sellerId, productId)) {
+        throw new CatalogValidationError("not your product")
+      }
+    }
+    const defById = new Map(this.data.attributeDefinitions.map((d) => [d.id, d]))
+    for (const v of values) {
+      const def = defById.get(v.definitionId)
+      if (!def) throw new CatalogValidationError(`unknown attribute definition ${v.definitionId}`)
+      validateAttributeValue(
+        {
+          id: def.id,
+          code: def.code,
+          type: def.type,
+          allowedValues: def.allowedValues,
+          required: def.required,
+        },
+        {
+          textValue: v.textValue ?? null,
+          numberValue: v.numberValue ?? null,
+          booleanValue: v.booleanValue ?? null,
+          optionValues: v.optionValues ?? null,
+          unit: v.unit ?? null,
+        },
+      )
+    }
+    for (const v of values) {
+      const existing = this.data.productAttributeValues.find(
+        (r) => r.productId === productId && r.definitionId === v.definitionId,
+      )
+      const row = {
+        textValue: v.textValue ?? null,
+        numberValue: v.numberValue ?? null,
+        booleanValue: v.booleanValue ?? null,
+        optionValues: v.optionValues ?? null,
+        unit: cleanText(v.unit),
+      }
+      if (existing) Object.assign(existing, row)
+      else {
+        this.data.productAttributeValues.push({
+          id: crypto.randomUUID(),
+          productId,
+          definitionId: v.definitionId,
+          ...row,
+        })
+      }
+    }
+    return this.listProductAttributeValues(productId)
+  }
+
+  // ── Phase 1D: match candidates (in-memory) ──
+
+  async proposeMatchCandidate(
+    productId: string,
+    candidateProductId: string,
+    source: string,
+    evidence?: Record<string, unknown> | null,
+  ): Promise<MatchCandidateDto> {
+    ensurePhase1Arrays(this.data)
+    if (productId === candidateProductId) {
+      throw new CatalogValidationError("a product cannot match itself")
+    }
+    if (
+      !this.data.products.some((p) => p.id === productId) ||
+      !this.data.products.some((p) => p.id === candidateProductId)
+    ) {
+      throw new CatalogValidationError("unknown product")
+    }
+    const dupe = this.data.matchCandidates.find(
+      (m) =>
+        m.status === "proposed" &&
+        ((m.productId === productId && m.candidateProductId === candidateProductId) ||
+          (m.productId === candidateProductId && m.candidateProductId === productId)),
+    )
+    if (dupe) throw new CatalogConflictError("match already proposed")
+    const row: CatalogMatchCandidate = {
+      id: crypto.randomUUID(),
+      productId,
+      candidateProductId,
+      source,
+      evidence: evidence ?? null,
+      status: "proposed",
+      reviewerId: null,
+      reviewedAt: null,
+      createdAt: new Date().toISOString(),
+    }
+    this.data.matchCandidates.push(row)
+    return toMatchCandidateDto(row)
+  }
+
+  async listMatchCandidates(
+    status?: "proposed" | "confirmed" | "rejected",
+  ): Promise<MatchCandidateDto[]> {
+    ensurePhase1Arrays(this.data)
+    return this.data.matchCandidates
+      .filter((m) => !status || m.status === status)
+      .map(toMatchCandidateDto)
+  }
+
+  async reviewMatchCandidate(
+    id: string,
+    decision: "confirmed" | "rejected",
+    reviewerId: string,
+  ): Promise<MatchCandidateDto | null> {
+    ensurePhase1Arrays(this.data)
+    const row = this.data.matchCandidates.find((m) => m.id === id)
+    if (!row) return null
+    if (row.status !== "proposed") {
+      throw new CatalogValidationError("only proposed matches can be reviewed")
+    }
+    if (!reviewerId.trim()) throw new CatalogValidationError("reviewer required")
+    row.status = decision
+    row.reviewerId = reviewerId
+    row.reviewedAt = new Date().toISOString()
+    if (decision === "confirmed") {
+      // Confirmation promotes both sides to matched (reviewed — ADR-002).
+      for (const pid of [row.productId, row.candidateProductId]) {
+        const product = this.data.products.find((p) => p.id === pid)
+        if (product && (product.identityConfidence ?? "seller_specific") === "seller_specific") {
+          product.identityConfidence = "matched"
+          product.identityProvenance = {
+            ...((product.identityProvenance as Record<string, unknown> | null) ?? {}),
+            matchedBy: reviewerId,
+            matchedAt: row.reviewedAt,
+            matchCandidateId: row.id,
+          }
+        }
+      }
+    }
+    return toMatchCandidateDto(row)
   }
 
   async updateVendorProduct(
@@ -1362,6 +2182,28 @@ export class PostgresCatalogRepository implements CatalogRepository {
         db.select().from(productOptionValues).catch((): OptionValueRow[] => []),
         db.select().from(variantOptionValues).catch((): VariantLinkRow[] => []),
       ])
+    // Phase 1 tables are newer than the base schema: databases that have not
+    // run migration 0020 yet keep serving the catalog with these degrading
+    // to empty. Writes to the new endpoints require 0020 (400/500 honestly
+    // if absent) — apply via POST /admin/migrate/blueprint-phase1.
+    type AttrDefRow = typeof attributeDefinitions.$inferSelect
+    type AttrProfileRow = typeof attributeProfiles.$inferSelect
+    type ProfileAttrRow = typeof profileAttributes.$inferSelect
+    type AttrValueRow = typeof productAttributeValues.$inferSelect
+    type MatchRow = typeof productMatchCandidates.$inferSelect
+    const [attrDefRows, attrProfileRows, profileAttrRows, attrValueRows, matchRows]: [
+      AttrDefRow[],
+      AttrProfileRow[],
+      ProfileAttrRow[],
+      AttrValueRow[],
+      MatchRow[],
+    ] = await Promise.all([
+      db.select().from(attributeDefinitions).catch((): AttrDefRow[] => []),
+      db.select().from(attributeProfiles).catch((): AttrProfileRow[] => []),
+      db.select().from(profileAttributes).catch((): ProfileAttrRow[] => []),
+      db.select().from(productAttributeValues).catch((): AttrValueRow[] => []),
+      db.select().from(productMatchCandidates).catch((): MatchRow[] => []),
+    ])
     return {
       categories: categoryRows.map((r) => ({
         id: r.id,
@@ -1370,6 +2212,18 @@ export class PostgresCatalogRepository implements CatalogRepository {
         parentId: r.parentId,
         rank: r.rank,
         isNav: r.isNav,
+        code: r.code,
+        displayName: r.displayName,
+        slug: r.slug,
+        level: r.level,
+        status: r.status,
+        isBrowseable: r.isBrowseable,
+        isAssignable: r.isAssignable,
+        isNavVisible: r.isNavVisible,
+        attributeProfileId: r.attributeProfileId,
+        replacementNodeId: r.replacementNodeId,
+        sortOrder: r.sortOrder,
+        version: r.version,
       })),
       sellers: sellerRows.map((r) => ({
         id: r.id,
@@ -1392,12 +2246,23 @@ export class PostgresCatalogRepository implements CatalogRepository {
         imageUrl: r.imageUrl,
         attributes: attributesFromJson(r.attributes),
         createdAt: r.createdAt ? r.createdAt.toISOString() : null,
+        brand: r.brand,
+        model: r.model,
+        gtin: r.gtin,
+        mpn: r.mpn,
+        manufacturer: r.manufacturer,
+        productType: r.productType,
+        identityConfidence: r.identityConfidence,
+        identityProvenance: (r.identityProvenance as Record<string, unknown> | null) ?? null,
       })),
       variants: variantRows.map((r) => ({
         id: r.id,
         productId: r.productId,
         sku: r.sku,
         title: r.title,
+        imageUrl: r.imageUrl,
+        weightGrams: r.weightGrams,
+        gtin: r.gtin,
       })),
       offers: offerRows.map((r) => ({
         id: r.id,
@@ -1409,6 +2274,15 @@ export class PostgresCatalogRepository implements CatalogRepository {
         reserved: r.reserved,
         currency: r.currency,
         active: r.active,
+        condition: r.condition,
+        compareAtPesewas: r.compareAtPesewas != null ? toBigInt(r.compareAtPesewas) : null,
+        compareAtProvenance: r.compareAtProvenance,
+        fulfillmentOrigin: r.fulfillmentOrigin,
+        warrantyRef: r.warrantyRef,
+        returnsRef: r.returnsRef,
+        deliveryPromise: r.deliveryPromise,
+        freshnessAt: r.freshnessAt ? r.freshnessAt.toISOString() : null,
+        publishedAt: r.publishedAt ? r.publishedAt.toISOString() : null,
       })),
       productOptions: optionRows.map((r) => ({
         id: r.id,
@@ -1426,6 +2300,54 @@ export class PostgresCatalogRepository implements CatalogRepository {
       variantOptionValues: linkRows.map((r) => ({
         variantId: r.variantId,
         valueId: r.valueId,
+      })),
+      attributeDefinitions: attrDefRows.map((r) => ({
+        id: r.id,
+        code: r.code,
+        label: r.label,
+        type: r.type,
+        unitFamily: r.unitFamily,
+        allowedValues: (r.allowedValues as string[] | null) ?? null,
+        filterable: r.filterable,
+        searchable: r.searchable,
+        required: r.required,
+        variantAxis: r.variantAxis,
+        visibleOnCard: r.visibleOnCard,
+        visibleOnPdp: r.visibleOnPdp,
+      })),
+      attributeProfiles: attrProfileRows.map((r) => ({
+        id: r.id,
+        name: r.name,
+        categoryId: r.categoryId,
+        version: r.version,
+      })),
+      profileAttributes: profileAttrRows.map((r) => ({
+        id: r.id,
+        profileId: r.profileId,
+        definitionId: r.definitionId,
+        position: r.position,
+        required: r.required,
+      })),
+      productAttributeValues: attrValueRows.map((r) => ({
+        id: r.id,
+        productId: r.productId,
+        definitionId: r.definitionId,
+        textValue: r.textValue,
+        numberValue: r.numberValue,
+        booleanValue: r.booleanValue,
+        optionValues: (r.optionValues as string[] | null) ?? null,
+        unit: r.unit,
+      })),
+      matchCandidates: matchRows.map((r) => ({
+        id: r.id,
+        productId: r.productId,
+        candidateProductId: r.candidateProductId,
+        source: r.source,
+        evidence: (r.evidence as Record<string, unknown> | null) ?? null,
+        status: r.status,
+        reviewerId: r.reviewerId,
+        reviewedAt: r.reviewedAt ? r.reviewedAt.toISOString() : null,
+        createdAt: r.createdAt ? r.createdAt.toISOString() : new Date(0).toISOString(),
       })),
     }
   }
@@ -1524,6 +2446,13 @@ export class PostgresCatalogRepository implements CatalogRepository {
           sellerId: input.sellerId,
           imageUrl: input.imageUrl ?? null,
           attributes: input.attributes ?? null,
+          brand: cleanText(input.identity?.brand),
+          model: cleanText(input.identity?.model),
+          gtin: cleanText(input.identity?.gtin),
+          mpn: cleanText(input.identity?.mpn),
+          manufacturer: cleanText(input.identity?.manufacturer),
+          productType: cleanText(input.identity?.productType),
+          identityConfidence: "seller_specific",
         })
         if (specs.length === 0) {
           const variantId = crypto.randomUUID()
@@ -2056,5 +2985,491 @@ export class PostgresCatalogRepository implements CatalogRepository {
     const product = data.products.find((p) => p.id === productId)
     if (!product || !product.sellerId) return null
     return this.loadOwnedVendorProduct(product.sellerId, productId, this.wdb)
+  }
+
+  // ── Phase 1A: taxonomy lifecycle (Postgres) ──
+
+  async listTaxonomyNodes(): Promise<TaxonomyNodeDto[]> {
+    const data = await this.load()
+    return data.categories
+      .map(toTaxonomyNodeDto)
+      .sort((a, b) => a.sortOrder - b.sortOrder || a.handle.localeCompare(b.handle))
+  }
+
+  async createTaxonomyNode(input: CreateTaxonomyNodeInput): Promise<TaxonomyNodeDto> {
+    const data = await this.load(this.wdb)
+    const code = input.code.trim()
+    const name = input.name.trim()
+    if (!code) throw new CatalogValidationError("code required")
+    if (!name) throw new CatalogValidationError("name required")
+    if (data.categories.some((c) => c.code === code)) {
+      throw new CatalogConflictError("category code already exists")
+    }
+    const slug = cleanText(input.slug) ?? slugify(code)
+    const handle = cleanText(input.handle) ?? slug
+    if (data.categories.some((c) => c.handle === handle || c.slug === slug)) {
+      throw new CatalogConflictError("category slug/handle already exists")
+    }
+    const parentId = input.parentId ?? null
+    if (parentId !== null && !data.categories.some((c) => c.id === parentId)) {
+      throw new CatalogValidationError("unknown parent category")
+    }
+    const level = taxonomyLevel(data.categories, parentId)
+    const id = crypto.randomUUID()
+    const browseable = input.isBrowseable ?? true
+    const assignable = input.isAssignable ?? true
+    const navVisible = input.isNavVisible ?? true
+    const sortOrder = input.sortOrder ?? 0
+    await this.wdb.insert(categories).values({
+      id,
+      handle,
+      name,
+      parentId,
+      rank: sortOrder,
+      isNav: navVisible,
+      code,
+      displayName: cleanText(input.displayName),
+      slug,
+      level,
+      status: "proposed",
+      isBrowseable: browseable,
+      isAssignable: assignable,
+      isNavVisible: navVisible,
+      attributeProfileId: cleanText(input.attributeProfileId),
+      replacementNodeId: null,
+      sortOrder,
+      version: 1,
+    })
+    invalidateSnapshot(this.wdb, this.db)
+    return {
+      id,
+      code,
+      canonicalName: name,
+      displayName: cleanText(input.displayName),
+      slug,
+      handle,
+      parentId,
+      level,
+      status: "proposed",
+      isBrowseable: browseable,
+      isAssignable: assignable,
+      isNavVisible: navVisible,
+      attributeProfileId: cleanText(input.attributeProfileId),
+      replacementNodeId: null,
+      sortOrder,
+      version: 1,
+    }
+  }
+
+  async updateTaxonomyNode(
+    id: string,
+    patch: UpdateTaxonomyNodeInput,
+  ): Promise<TaxonomyNodeDto | null> {
+    const data = await this.load(this.wdb)
+    const row = data.categories.find((c) => c.id === id)
+    if (!row) return null
+    if (taxonomyStatusOf(row) === "deprecated") {
+      throw new CatalogValidationError("deprecated categories are read-only; create a successor instead")
+    }
+    const set: Record<string, unknown> = {}
+    if (patch.name !== undefined) {
+      if (!patch.name.trim()) throw new CatalogValidationError("name required")
+      set["name"] = patch.name.trim()
+    }
+    if (patch.displayName !== undefined) set["displayName"] = cleanText(patch.displayName)
+    if (patch.slug !== undefined) {
+      const slug = cleanText(patch.slug) ?? slugify(row.code ?? row.handle)
+      if (data.categories.some((c) => c.id !== id && (c.slug === slug || c.handle === slug))) {
+        throw new CatalogConflictError("category slug/handle already exists")
+      }
+      set["slug"] = slug
+    }
+    if (patch.parentId !== undefined) {
+      if (patch.parentId !== null && !data.categories.some((c) => c.id === patch.parentId)) {
+        throw new CatalogValidationError("unknown parent category")
+      }
+      if (patch.parentId === id) throw new CatalogValidationError("a category cannot parent itself")
+      set["parentId"] = patch.parentId
+      set["level"] = taxonomyLevel(data.categories, patch.parentId)
+    }
+    if (patch.isBrowseable !== undefined) set["isBrowseable"] = patch.isBrowseable
+    if (patch.isAssignable !== undefined) set["isAssignable"] = patch.isAssignable
+    if (patch.isNavVisible !== undefined) {
+      set["isNavVisible"] = patch.isNavVisible
+      set["isNav"] = patch.isNavVisible
+    }
+    if (patch.attributeProfileId !== undefined) {
+      set["attributeProfileId"] = cleanText(patch.attributeProfileId)
+    }
+    if (patch.sortOrder !== undefined) {
+      set["sortOrder"] = patch.sortOrder
+      set["rank"] = patch.sortOrder
+    }
+    if (patch.status !== undefined) {
+      activateCategory({ id, status: taxonomyStatusOf(row) })
+      set["status"] = "active"
+    }
+    set["version"] = (row.version ?? 1) + 1
+    await this.wdb.update(categories).set(set).where(eq(categories.id, id))
+    invalidateSnapshot(this.wdb, this.db)
+    const fresh = await this.load(this.wdb)
+    const updated = fresh.categories.find((c) => c.id === id)!
+    return toTaxonomyNodeDto(updated)
+  }
+
+  async deprecateTaxonomyNode(id: string, replacementId: string): Promise<TaxonomyNodeDto | null> {
+    const data = await this.load(this.wdb)
+    const row = data.categories.find((c) => c.id === id)
+    if (!row) return null
+    const replacement = data.categories.find((c) => c.id === replacementId) ?? null
+    deprecateCategory(
+      { id: row.id, status: taxonomyStatusOf(row) },
+      replacement
+        ? { id: replacement.id, status: taxonomyStatusOf(replacement) }
+        : null,
+    )
+    await this.wdb
+      .update(categories)
+      .set({
+        status: "deprecated",
+        replacementNodeId: replacementId,
+        isNavVisible: false,
+        isNav: false,
+        version: (row.version ?? 1) + 1,
+      })
+      .where(eq(categories.id, id))
+    invalidateSnapshot(this.wdb, this.db)
+    const fresh = await this.load(this.wdb)
+    return toTaxonomyNodeDto(fresh.categories.find((c) => c.id === id)!)
+  }
+
+  async resolveCategoryRedirect(
+    slugOrId: string,
+  ): Promise<{ id: string; slug: string | null } | null> {
+    const data = await this.load()
+    return resolveRedirectFromRows(data.categories, slugOrId)
+  }
+
+  // ── Phase 1B: product identity (Postgres) ──
+
+  async updateProductIdentity(
+    productId: string,
+    patch: UpdateProductIdentityInput,
+    scope: { sellerId: string } | { admin: true },
+  ): Promise<ProductIdentityDto | null> {
+    const data = await this.load(this.wdb)
+    const product = data.products.find((p) => p.id === productId)
+    if (!product) return null
+    if (!("admin" in scope)) {
+      if (!sellerOwnsProduct(data, scope.sellerId, productId)) return null
+    }
+    const set: Record<string, unknown> = {}
+    if (patch.brand !== undefined) set["brand"] = cleanText(patch.brand)
+    if (patch.model !== undefined) set["model"] = cleanText(patch.model)
+    if (patch.gtin !== undefined) set["gtin"] = cleanText(patch.gtin)
+    if (patch.mpn !== undefined) set["mpn"] = cleanText(patch.mpn)
+    if (patch.manufacturer !== undefined) set["manufacturer"] = cleanText(patch.manufacturer)
+    if (patch.productType !== undefined) set["productType"] = cleanText(patch.productType)
+    if (Object.keys(set).length > 0) {
+      await this.wdb.update(products).set(set).where(eq(products.id, productId))
+      invalidateSnapshot(this.wdb, this.db)
+    }
+    const fresh = await this.load(this.wdb)
+    return identityOfProduct(fresh.products.find((p) => p.id === productId)!)
+  }
+
+  async promoteProductIdentity(
+    productId: string,
+    confidence: IdentityConfidence,
+    reviewerId: string,
+  ): Promise<ProductIdentityDto | null> {
+    const data = await this.load(this.wdb)
+    const product = data.products.find((p) => p.id === productId)
+    if (!product) return null
+    const next = promoteIdentityConfidence(
+      product.identityConfidence ?? "seller_specific",
+      confidence,
+      reviewerId,
+    )
+    const provenance = {
+      ...((product.identityProvenance as Record<string, unknown> | null) ?? {}),
+      promotedBy: reviewerId,
+      promotedAt: new Date().toISOString(),
+      confidence: next,
+    }
+    await this.wdb
+      .update(products)
+      .set({ identityConfidence: next, identityProvenance: provenance })
+      .where(eq(products.id, productId))
+    invalidateSnapshot(this.wdb, this.db)
+    const fresh = await this.load(this.wdb)
+    return identityOfProduct(fresh.products.find((p) => p.id === productId)!)
+  }
+
+  // ── Phase 1C: typed attributes (Postgres) ──
+
+  async listAttributeDefinitions(): Promise<AttributeDefinitionDto[]> {
+    const data = await this.load()
+    ensurePhase1Arrays(data)
+    return data.attributeDefinitions.map(definitionDto)
+  }
+
+  async createAttributeDefinition(
+    input: CreateAttributeDefinitionInput,
+  ): Promise<AttributeDefinitionDto> {
+    const data = await this.load(this.wdb)
+    ensurePhase1Arrays(data)
+    const code = input.code.trim()
+    if (!code) throw new CatalogValidationError("code required")
+    if (!input.label.trim()) throw new CatalogValidationError("label required")
+    if (
+      data.attributeDefinitions.some((d) => d.code.toLowerCase() === code.toLowerCase())
+    ) {
+      throw new CatalogConflictError("attribute code already exists")
+    }
+    if (
+      (input.type === "option" || input.type === "multi_option") &&
+      (!input.allowedValues || input.allowedValues.length === 0)
+    ) {
+      throw new CatalogValidationError("option attributes require allowed values")
+    }
+    const id = crypto.randomUUID()
+    const row = {
+      id,
+      code,
+      label: input.label.trim(),
+      type: input.type,
+      unitFamily: cleanText(input.unitFamily),
+      allowedValues: input.allowedValues?.map((v) => v.trim()).filter(Boolean) ?? null,
+      filterable: input.filterable ?? false,
+      searchable: input.searchable ?? false,
+      required: input.required ?? false,
+      variantAxis: input.variantAxis ?? false,
+      visibleOnCard: input.visibleOnCard ?? false,
+      visibleOnPdp: input.visibleOnPdp ?? true,
+    }
+    await this.wdb.insert(attributeDefinitions).values(row)
+    invalidateSnapshot(this.wdb, this.db)
+    return definitionDto({ ...row, allowedValues: row.allowedValues ?? null })
+  }
+
+  async listAttributeProfiles(): Promise<AttributeProfileDto[]> {
+    const data = await this.load()
+    ensurePhase1Arrays(data)
+    return data.attributeProfiles.map((p) => profileDto(data, p))
+  }
+
+  async createAttributeProfile(input: {
+    name: string
+    categoryId?: string | null
+    definitions: Array<{ definitionId: string; position?: number; required?: boolean }>
+  }): Promise<AttributeProfileDto> {
+    const data = await this.load(this.wdb)
+    ensurePhase1Arrays(data)
+    if (!input.name.trim()) throw new CatalogValidationError("name required")
+    if (input.categoryId !== undefined && input.categoryId !== null) {
+      if (!data.categories.some((c) => c.id === input.categoryId)) {
+        throw new CatalogValidationError("unknown category")
+      }
+    }
+    for (const link of input.definitions) {
+      if (!data.attributeDefinitions.some((d) => d.id === link.definitionId)) {
+        throw new CatalogValidationError(`unknown attribute definition ${link.definitionId}`)
+      }
+    }
+    const id = crypto.randomUUID()
+    await this.wdb.insert(attributeProfiles).values({
+      id,
+      name: input.name.trim(),
+      categoryId: input.categoryId ?? null,
+      version: 1,
+    })
+    for (const [i, link] of input.definitions.entries()) {
+      await this.wdb.insert(profileAttributes).values({
+        id: crypto.randomUUID(),
+        profileId: id,
+        definitionId: link.definitionId,
+        position: link.position ?? i,
+        required: link.required ?? false,
+      })
+    }
+    invalidateSnapshot(this.wdb, this.db)
+    const fresh = await this.load(this.wdb)
+    return profileDto(
+      fresh,
+      fresh.attributeProfiles.find((p) => p.id === id)!,
+    )
+  }
+
+  async listProductAttributeValues(productId: string): Promise<ProductAttributeValueDto[]> {
+    const data = await this.load()
+    ensurePhase1Arrays(data)
+    return data.productAttributeValues
+      .filter((v) => v.productId === productId)
+      .map((v) => productAttributeValueDto(data, v))
+  }
+
+  async setProductAttributeValues(
+    productId: string,
+    values: SetProductAttributeValueInput[],
+    scope: { sellerId: string } | { admin: true },
+  ): Promise<ProductAttributeValueDto[]> {
+    const data = await this.load(this.wdb)
+    ensurePhase1Arrays(data)
+    const product = data.products.find((p) => p.id === productId)
+    if (!product) throw new CatalogValidationError("unknown product")
+    if (!("admin" in scope)) {
+      if (!sellerOwnsProduct(data, scope.sellerId, productId)) {
+        throw new CatalogValidationError("not your product")
+      }
+    }
+    const defById = new Map(data.attributeDefinitions.map((d) => [d.id, d]))
+    for (const v of values) {
+      const def = defById.get(v.definitionId)
+      if (!def) throw new CatalogValidationError(`unknown attribute definition ${v.definitionId}`)
+      validateAttributeValue(
+        {
+          id: def.id,
+          code: def.code,
+          type: def.type,
+          allowedValues: def.allowedValues,
+          required: def.required,
+        },
+        {
+          textValue: v.textValue ?? null,
+          numberValue: v.numberValue ?? null,
+          booleanValue: v.booleanValue ?? null,
+          optionValues: v.optionValues ?? null,
+          unit: v.unit ?? null,
+        },
+      )
+    }
+    for (const v of values) {
+      const row = {
+        textValue: v.textValue ?? null,
+        numberValue: v.numberValue ?? null,
+        booleanValue: v.booleanValue ?? null,
+        optionValues: v.optionValues ?? null,
+        unit: cleanText(v.unit),
+      }
+      await this.wdb
+        .insert(productAttributeValues)
+        .values({ id: crypto.randomUUID(), productId, definitionId: v.definitionId, ...row })
+        .onConflictDoUpdate({
+          target: [productAttributeValues.productId, productAttributeValues.definitionId],
+          set: row,
+        })
+    }
+    invalidateSnapshot(this.wdb, this.db)
+    const fresh = await this.load(this.wdb)
+    return fresh.productAttributeValues
+      .filter((v) => v.productId === productId)
+      .map((v) => productAttributeValueDto(fresh, v))
+  }
+
+  // ── Phase 1D: match candidates (Postgres) ──
+
+  async proposeMatchCandidate(
+    productId: string,
+    candidateProductId: string,
+    source: string,
+    evidence?: Record<string, unknown> | null,
+  ): Promise<MatchCandidateDto> {
+    const data = await this.load(this.wdb)
+    ensurePhase1Arrays(data)
+    if (productId === candidateProductId) {
+      throw new CatalogValidationError("a product cannot match itself")
+    }
+    if (
+      !data.products.some((p) => p.id === productId) ||
+      !data.products.some((p) => p.id === candidateProductId)
+    ) {
+      throw new CatalogValidationError("unknown product")
+    }
+    const dupe = data.matchCandidates.find(
+      (m) =>
+        m.status === "proposed" &&
+        ((m.productId === productId && m.candidateProductId === candidateProductId) ||
+          (m.productId === candidateProductId && m.candidateProductId === productId)),
+    )
+    if (dupe) throw new CatalogConflictError("match already proposed")
+    const id = crypto.randomUUID()
+    const now = new Date()
+    await this.wdb.insert(productMatchCandidates).values({
+      id,
+      productId,
+      candidateProductId,
+      source,
+      evidence: evidence ?? null,
+      status: "proposed",
+      reviewerId: null,
+      reviewedAt: null,
+      createdAt: now,
+    })
+    invalidateSnapshot(this.wdb, this.db)
+    return {
+      id,
+      productId,
+      candidateProductId,
+      source,
+      evidence: evidence ?? null,
+      status: "proposed",
+      reviewerId: null,
+      reviewedAt: null,
+      createdAt: now.toISOString(),
+    }
+  }
+
+  async listMatchCandidates(
+    status?: "proposed" | "confirmed" | "rejected",
+  ): Promise<MatchCandidateDto[]> {
+    const data = await this.load()
+    ensurePhase1Arrays(data)
+    return data.matchCandidates
+      .filter((m) => !status || m.status === status)
+      .map(toMatchCandidateDto)
+  }
+
+  async reviewMatchCandidate(
+    id: string,
+    decision: "confirmed" | "rejected",
+    reviewerId: string,
+  ): Promise<MatchCandidateDto | null> {
+    const data = await this.load(this.wdb)
+    ensurePhase1Arrays(data)
+    const row = data.matchCandidates.find((m) => m.id === id)
+    if (!row) return null
+    if (row.status !== "proposed") {
+      throw new CatalogValidationError("only proposed matches can be reviewed")
+    }
+    if (!reviewerId.trim()) throw new CatalogValidationError("reviewer required")
+    const reviewedAt = new Date()
+    await this.wdb
+      .update(productMatchCandidates)
+      .set({ status: decision, reviewerId, reviewedAt })
+      .where(eq(productMatchCandidates.id, id))
+    if (decision === "confirmed") {
+      for (const pid of [row.productId, row.candidateProductId]) {
+        const product = data.products.find((p) => p.id === pid)
+        if (product && (product.identityConfidence ?? "seller_specific") === "seller_specific") {
+          await this.wdb
+            .update(products)
+            .set({
+              identityConfidence: "matched",
+              identityProvenance: {
+                ...((product.identityProvenance as Record<string, unknown> | null) ?? {}),
+                matchedBy: reviewerId,
+                matchedAt: reviewedAt.toISOString(),
+                matchCandidateId: id,
+              },
+            })
+            .where(eq(products.id, pid))
+        }
+      }
+    }
+    invalidateSnapshot(this.wdb, this.db)
+    const fresh = await this.load(this.wdb)
+    const updated = fresh.matchCandidates.find((m) => m.id === id)!
+    return toMatchCandidateDto(updated)
   }
 }

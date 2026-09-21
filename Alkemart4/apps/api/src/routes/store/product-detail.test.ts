@@ -48,6 +48,11 @@ describe("GET /store/products/:id with variants", () => {
       productOptions: [],
       productOptionValues: [],
       variantOptionValues: [],
+    attributeDefinitions: [],
+    attributeProfiles: [],
+    profileAttributes: [],
+    productAttributeValues: [],
+    matchCandidates: [],
     }
     const authRepo = new InMemoryAuthRepository()
     const { hashPassword } = await import("@alkemart/domain")

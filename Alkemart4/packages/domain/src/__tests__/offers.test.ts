@@ -56,6 +56,7 @@ describe("toPeerOffer", () => {
       currency: "ghs",
       available: 5,
       deliveryFeePesewas: "500",
+      options: {},
     })
   })
 })

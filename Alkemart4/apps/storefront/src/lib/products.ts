@@ -80,6 +80,19 @@ export type StoreProductCard = {
   rating?: number | null
   /** Sellable units behind the card's best offer — null when unknown. */
   availableQty?: number | null
+  /**
+   * Product identity (ADR-002). Comparison UI renders only when
+   * `comparisonEligible` is true; absent on pre-identity API responses,
+   * which read as eligible to preserve existing behavior.
+   */
+  identity?: {
+    brand?: string | null
+    model?: string | null
+    manufacturer?: string | null
+    productType?: string | null
+    identityConfidence?: "identified" | "matched" | "seller_specific" | null
+    comparisonEligible?: boolean | null
+  } | null
 }
 
 function ensureCloudflareBaseUrl(): void {
@@ -194,6 +207,16 @@ function mapCfDetail(d: CfProductDetail): StoreProductCard {
     })),
     ratingAvg: d.ratingAvg ?? null,
     ratingCount: d.ratingCount ?? 0,
+    identity: d.identity
+      ? {
+          brand: d.identity.brand ?? null,
+          model: d.identity.model ?? null,
+          manufacturer: d.identity.manufacturer ?? null,
+          productType: d.identity.productType ?? null,
+          identityConfidence: d.identity.identityConfidence ?? null,
+          comparisonEligible: d.identity.comparisonEligible ?? true,
+        }
+      : null,
     reviews: (d.reviews ?? []).map((r) => ({
       rating: r.rating,
       title: r.title,
