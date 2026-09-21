@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Alkemart Store API
-  version: 0.5.0
+  version: 0.6.0
   description: |
     Multivendor Ghana catalog + Plan 2 identity/seller contract.
     Product is canonical content; Offer is the sellable unit.
@@ -30,6 +30,12 @@ tags:
     description: Verified-purchase buyer reviews
   - name: orders
     description: Buyer order groups (signed-in and guest lookup)
+  - name: search
+    description: Alias-aware product search with server-counted facets
+  - name: admin-aliases
+    description: Search-vocabulary governance (reviewed synonyms/redirects)
+  - name: admin-search
+    description: Projection freshness and zero-result queue
   - name: store-auth
     description: Buyer register/login
   - name: vendor-auth
@@ -193,6 +199,76 @@ paths:
       responses:
         "200":
           description: Homepage key + published sections
+
+  /store/search:
+    get:
+      operationId: searchProducts
+      tags: [search]
+      summary: Alias-aware product search (sellable offers only)
+      description: |
+        Approved synonyms rewrite the query (provenance in appliedAlias);
+        redirect aliases return a canonical target. Facets are
+        definition-backed with server counts. Unknown filter codes are 400.
+        Zero/low-result queries are logged for the quality queue.
+      parameters:
+        - name: q
+          in: query
+          required: false
+          schema: { type: string }
+        - name: category
+          in: query
+          required: false
+          description: Category id, slug, or handle (includes descendants).
+          schema: { type: string }
+        - name: filter
+          in: query
+          required: false
+          description: Repeatable typed-attribute filter `code:v1,v2`.
+          schema: { type: string }
+        - name: priceMin
+          in: query
+          required: false
+          description: Integer pesewas floor on best price.
+          schema: { type: string }
+        - name: priceMax
+          in: query
+          required: false
+          schema: { type: string }
+        - name: condition
+          in: query
+          required: false
+          schema: { type: string }
+        - name: sort
+          in: query
+          required: false
+          schema: { type: string, enum: [newest, price_asc, price_desc] }
+        - name: limit
+          in: query
+          required: false
+          schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+        - name: offset
+          in: query
+          required: false
+          schema: { type: integer, minimum: 0, default: 0 }
+      responses:
+        "200":
+          description: Cards + facets + alias provenance + recovery suggestions
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /store/catalog/facets:
+    get:
+      operationId: getCatalogFacets
+      tags: [search]
+      summary: Definition-backed facets with server counts
+      parameters:
+        - name: category
+          in: query
+          required: false
+          schema: { type: string }
+      responses:
+        "200":
+          description: Price bounds, availability, conditions, attribute counts
 
   /store/products/{id}:
     get:
@@ -1111,6 +1187,93 @@ paths:
           description: Reviewed candidate
         "404":
           $ref: "#/components/responses/NotFound"
+
+  /admin/aliases:
+    get:
+      operationId: listSearchAliases
+      tags: [admin-aliases]
+      summary: Alias governance queue (optional status filter)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema: { type: string, enum: [proposed, approved, rejected] }
+      responses:
+        "200":
+          description: Aliases
+    post:
+      operationId: proposeSearchAlias
+      tags: [admin-aliases]
+      summary: Propose a synonym or redirect
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [term, target, type]
+              properties:
+                term: { type: string }
+                target: { type: string }
+                type: { type: string, enum: [synonym, redirect] }
+      responses:
+        "201":
+          description: Proposed alias
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /admin/aliases/{id}/review:
+    post:
+      operationId: reviewSearchAlias
+      tags: [admin-aliases]
+      summary: Approve (goes live) or reject a term
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [decision]
+              properties:
+                decision: { type: string, enum: [approved, rejected] }
+      responses:
+        "200":
+          description: Reviewed alias
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /admin/search/status:
+    get:
+      operationId: getSearchStatus
+      tags: [admin-search]
+      summary: Outbox depth, alias counts, zero-result sample
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: Search operations status
+
+  /admin/search/zero-result:
+    get:
+      operationId: listZeroResultQueries
+      tags: [admin-search]
+      summary: Zero-result query queue for taxonomy/alias review
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+      responses:
+        "200":
+          description: Recent zero-result queries
 
   /store/cart:
     post:

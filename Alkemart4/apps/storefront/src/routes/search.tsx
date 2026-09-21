@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react"
-import { createFileRoute, useNavigate } from "@tanstack/react-router"
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
 import { useQuery } from "@tanstack/react-query"
 import { ProductCard } from "@/components/product-card"
 import { ProductGridShell } from "@/components/product-grid"
@@ -15,7 +15,9 @@ import { searchCatalog } from "@/lib/search"
 import {
   trackSearchLandingViewed,
   trackSearchPerformed,
-  track,
+  trackSearchZeroResults,
+  trackFilterApplied,
+  trackFilterRemoved,
 } from "@/lib/analytics"
 import { Container } from "@workspace/ui"
 import { PageSeo } from "@/components/page-seo"
@@ -105,6 +107,9 @@ function SearchPage() {
   useEffect(() => {
     if (!q || !productsQ.isSuccess) return
     trackSearchPerformed(q, productsQ.data.estimatedTotalHits)
+    if (productsQ.data.estimatedTotalHits === 0) {
+      trackSearchZeroResults({ query: q })
+    }
   }, [q, productsQ.isSuccess, productsQ.data?.estimatedTotalHits])
 
   useEffect(() => {
@@ -145,7 +150,7 @@ function SearchPage() {
 
   const engine = productsQ.data?.engine
   const engineLabel =
-    engine === "meilisearch"
+    engine === "workers" || engine === "meilisearch"
       ? "Live catalog search"
       : engine === "medusa"
         ? "Catalog search"
@@ -245,12 +250,30 @@ function SearchPage() {
               className="rounded-2xl border border-border bg-card p-4"
               distribution={facetDistribution ?? {}}
               active={active}
-              onChange={(next) =>
+              onChange={(next) => {
+                const prevCats = new Set(active.category_handles)
+                const prevSellers = new Set(active.seller_handles)
+                for (const h of next.category_handles) {
+                  if (!prevCats.has(h)) trackFilterApplied({ dimension: "category", value: h })
+                }
+                for (const h of active.category_handles) {
+                  if (!next.category_handles.includes(h)) {
+                    trackFilterRemoved({ dimension: "category", value: h })
+                  }
+                }
+                for (const h of next.seller_handles) {
+                  if (!prevSellers.has(h)) trackFilterApplied({ dimension: "seller", value: h })
+                }
+                for (const h of active.seller_handles) {
+                  if (!next.seller_handles.includes(h)) {
+                    trackFilterRemoved({ dimension: "seller", value: h })
+                  }
+                }
                 setSearch({
                   category: next.category_handles,
                   seller: next.seller_handles,
                 })
-              }
+              }}
             />
           ) : null}
 
@@ -266,13 +289,64 @@ function SearchPage() {
             ) : null}
 
             {productsQ.data && productsQ.data.products.length === 0 ? (
-              <EmptyState
-                illustration="emptyCatalog"
-                title={q ? `No results for "${q}"` : "No matching products"}
-                description="Try another term or clear filters."
-                actionLabel="Browse all"
-                actionTo="/"
-              />
+              <>
+                <EmptyState
+                  illustration="emptyCatalog"
+                  title={q ? `No results for "${q}"` : "No matching products"}
+                  description={
+                    productsQ.data.appliedAlias
+                      ? `Including matches for "${productsQ.data.query}" — try another term or clear filters.`
+                      : "Try another term or clear filters."
+                  }
+                  actionLabel="Browse all"
+                  actionTo="/"
+                />
+                {(() => {
+                  const suggestions = productsQ.data.suggestions
+                  if (!suggestions) return null
+                  const cats = suggestions.categories ?? []
+                  const shops = suggestions.shops ?? []
+                  if (cats.length === 0 && shops.length === 0) return null
+                  return (
+                    <div className="space-y-3">
+                      {cats.length > 0 ? (
+                        <div>
+                          <p className="mb-2 text-sm font-bold">Related categories</p>
+                          <div className="flex flex-wrap gap-2">
+                            {cats.map((c) => (
+                              <Link
+                                key={c.id}
+                                to="/categories/$slug"
+                                params={{ slug: c.slug }}
+                                className="rounded-full border border-border bg-card px-4 py-2 text-sm font-semibold hover:border-primary"
+                              >
+                                {c.name}
+                              </Link>
+                            ))}
+                          </div>
+                        </div>
+                      ) : null}
+                      {shops.length > 0 ? (
+                        <div>
+                          <p className="mb-2 text-sm font-bold">Matching shops</p>
+                          <div className="flex flex-wrap gap-2">
+                            {shops.map((s) => (
+                              <Link
+                                key={s.handle}
+                                to="/shops/$slug"
+                                params={{ slug: s.handle }}
+                                className="rounded-full border border-border bg-card px-4 py-2 text-sm font-semibold hover:border-primary"
+                              >
+                                {s.name}
+                              </Link>
+                            ))}
+                          </div>
+                        </div>
+                      ) : null}
+                    </div>
+                  )
+                })()}
+              </>
             ) : null}
 
             {productsQ.data && productsQ.data.products.length > 0 ? (

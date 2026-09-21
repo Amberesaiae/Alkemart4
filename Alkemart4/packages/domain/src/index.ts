@@ -7,6 +7,8 @@ export type {
   AttributeValueLike,
   IdentityConfidence,
 } from "./identity"
+export type { AliasApplication, SearchAliasLike } from "./search"
+export { applyAliases, normalizeQuery, queryTokens } from "./search"
 export {
   AttributeValidationError,
   IdentityTransitionError,

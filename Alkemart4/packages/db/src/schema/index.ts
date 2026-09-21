@@ -21,6 +21,14 @@ export {
   collections,
   collectionProducts,
 } from "./collections"
+export {
+  outboxStatusEnum,
+  searchOutbox,
+  aliasTypeEnum,
+  aliasStatusEnum,
+  searchAliases,
+  searchQueryLog,
+} from "./search"
 export { userRoleEnum, users, sellerMemberRoleEnum, sellerMembers } from "./users"
 export { carts, cartItems } from "./carts"
 export {

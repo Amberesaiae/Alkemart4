@@ -33,6 +33,7 @@ import { corsMiddleware } from "./middleware/cors"
 import { errorHandler } from "./middleware/error"
 import { securityMiddleware } from "./middleware/security"
 import { adminActions } from "./routes/admin/actions"
+import { adminAliases, adminSearch } from "./routes/admin/aliases"
 import { adminAppeals } from "./routes/admin/appeals"
 import { adminAttributes } from "./routes/admin/attributes"
 import { adminMatches } from "./routes/admin/matches"
@@ -48,6 +49,7 @@ import { adminStats, adminTrafficStats } from "./routes/admin/stats"
 import { adminHomepage } from "./routes/admin/homepage"
 import { health } from "./routes/health"
 import { storeAuth } from "./routes/store/auth"
+import { storeSearch } from "./routes/store/search"
 import { storeCart } from "./routes/store/cart"
 import { catalog } from "./routes/store/catalog"
 import { categories } from "./routes/store/categories"
@@ -252,6 +254,7 @@ export function createApp(
   store.route("/auth", withBind(bindAuth, storeAuth))
   store.route("/categories", withBind(bindCatalog, categories))
   store.route("/catalog", withBind(bindCatalog, withBind(bindCheckout, catalog)))
+  store.route("/search", withBind(bindCatalog, storeSearch))
   store.route("/products", withBind(bindCatalog, withBind(bindCheckout, products)))
   store.route("/sellers", withBind(bindAuth, withBind(bindCatalog, withBind(bindCheckout, sellers))))
   store.route("/homepage", withBind(bindCatalog, storeHomepage))
@@ -290,6 +293,8 @@ export function createApp(
   admin.route("/taxonomy", withBind(bindCatalog, adminTaxonomy))
   admin.route("/attributes", withBind(bindCatalog, adminAttributes))
   admin.route("/matches", withBind(bindCatalog, adminMatches))
+  admin.route("/aliases", withBind(bindCatalog, adminAliases))
+  admin.route("/search", withBind(bindCatalog, adminSearch))
   admin.route("/orders", withBind(bindCheckout, adminOrders))
   admin.route("/migrate", adminMigrate)
   admin.route("/actions", adminActions)

@@ -10,7 +10,7 @@ Seller payouts use Paystack transfer recipients (`recipientCode`) only —
 never Stripe, Flutterwave, or a generic multi-PSP interface.
 Checkout charge/initialize is documented under /store/checkout.
 
- * OpenAPI spec version: 0.5.0
+ * OpenAPI spec version: 0.6.0
  */
 import type {
   AddCartItemBody,
@@ -30,19 +30,25 @@ import type {
   CreateVendorProductRequest,
   Credentials,
   DeprecateTaxonomyNodeBody,
+  GetCatalogFacetsParams,
   GetCatalogParams,
   GetCheckoutStatusParams,
   GetPopularProducts200,
   GetPopularProductsParams,
   GhanaSetupRequest,
   ListMatchCandidatesParams,
+  ListSearchAliasesParams,
+  ListZeroResultQueriesParams,
   LookupOrderGroupBody,
   PatchVendorProductRequest,
   PaystackWebhookBody,
   ProductDetail,
   PromoteProductIdentityBody,
+  ProposeSearchAliasBody,
   ResolveCategoryParams,
   ReviewMatchCandidateBody,
+  ReviewSearchAliasBody,
+  SearchProductsParams,
   SellerReadiness,
   SellerShopResponse,
   SessionClaims,
@@ -203,6 +209,73 @@ export const getGetStoreHomepageUrl = () => {
 export const getStoreHomepage = async ( options?: RequestInit): Promise<void> => {
   
   return customFetch<void>(getGetStoreHomepageUrl(),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+/**
+ * Approved synonyms rewrite the query (provenance in appliedAlias);
+redirect aliases return a canonical target. Facets are
+definition-backed with server counts. Unknown filter codes are 400.
+Zero/low-result queries are logged for the quality queue.
+
+ * @summary Alias-aware product search (sellable offers only)
+ */
+export const getSearchProductsUrl = (params?: SearchProductsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/store/search?${stringifiedParams}` : `/store/search`
+}
+
+export const searchProducts = async (params?: SearchProductsParams, options?: RequestInit): Promise<void> => {
+  
+  return customFetch<void>(getSearchProductsUrl(params),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+/**
+ * @summary Definition-backed facets with server counts
+ */
+export const getGetCatalogFacetsUrl = (params?: GetCatalogFacetsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/store/catalog/facets?${stringifiedParams}` : `/store/catalog/facets`
+}
+
+export const getCatalogFacets = async (params?: GetCatalogFacetsParams, options?: RequestInit): Promise<void> => {
+  
+  return customFetch<void>(getGetCatalogFacetsUrl(params),
   {      
     ...options,
     method: 'GET'
@@ -1197,6 +1270,143 @@ export const reviewMatchCandidate = async (id: string,
     headers: { 'Content-Type': 'application/json', ...options?.headers },
     body: JSON.stringify(
       reviewMatchCandidateBody,)
+  }
+);}
+
+
+
+/**
+ * @summary Alias governance queue (optional status filter)
+ */
+export const getListSearchAliasesUrl = (params?: ListSearchAliasesParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/admin/aliases?${stringifiedParams}` : `/admin/aliases`
+}
+
+export const listSearchAliases = async (params?: ListSearchAliasesParams, options?: RequestInit): Promise<void> => {
+  
+  return customFetch<void>(getListSearchAliasesUrl(params),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+/**
+ * @summary Propose a synonym or redirect
+ */
+export const getProposeSearchAliasUrl = () => {
+
+
+  
+
+  return `/admin/aliases`
+}
+
+export const proposeSearchAlias = async (proposeSearchAliasBody: ProposeSearchAliasBody, options?: RequestInit): Promise<void> => {
+  
+  return customFetch<void>(getProposeSearchAliasUrl(),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      proposeSearchAliasBody,)
+  }
+);}
+
+
+
+/**
+ * @summary Approve (goes live) or reject a term
+ */
+export const getReviewSearchAliasUrl = (id: string,) => {
+
+
+  
+
+  return `/admin/aliases/${id}/review`
+}
+
+export const reviewSearchAlias = async (id: string,
+    reviewSearchAliasBody: ReviewSearchAliasBody, options?: RequestInit): Promise<void> => {
+  
+  return customFetch<void>(getReviewSearchAliasUrl(id),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      reviewSearchAliasBody,)
+  }
+);}
+
+
+
+/**
+ * @summary Outbox depth, alias counts, zero-result sample
+ */
+export const getGetSearchStatusUrl = () => {
+
+
+  
+
+  return `/admin/search/status`
+}
+
+export const getSearchStatus = async ( options?: RequestInit): Promise<void> => {
+  
+  return customFetch<void>(getGetSearchStatusUrl(),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+/**
+ * @summary Zero-result query queue for taxonomy/alias review
+ */
+export const getListZeroResultQueriesUrl = (params?: ListZeroResultQueriesParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/admin/search/zero-result?${stringifiedParams}` : `/admin/search/zero-result`
+}
+
+export const listZeroResultQueries = async (params?: ListZeroResultQueriesParams, options?: RequestInit): Promise<void> => {
+  
+  return customFetch<void>(getListZeroResultQueriesUrl(params),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
   }
 );}
 

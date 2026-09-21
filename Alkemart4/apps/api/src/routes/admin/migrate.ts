@@ -246,6 +246,30 @@ export const adminMigrate = new Hono<AppEnv>()
     return c.json({ ok: true, applied })
   })
   /**
+   * Blueprint Phase 2 foundations (search outbox, alias governance, query
+   * telemetry). Idempotent — mirrors
+   * packages/db/src/migrations/0021_blueprint_phase2.sql.
+   */
+  .post("/blueprint-phase2", async (c) => {
+    const env = parseEnv(c.env as unknown as Record<string, unknown>)
+    const db = primaryDb(env)
+    const applied: string[] = []
+    const exec = async (label: string, statement: ReturnType<typeof sql>) => {
+      await db.execute(statement)
+      applied.push(label)
+    }
+    await exec("outbox_status", sql`DO $$ BEGIN CREATE TYPE outbox_status AS ENUM('pending', 'claimed', 'acked', 'failed'); EXCEPTION WHEN duplicate_object THEN NULL; END $$`)
+    await exec("alias_type", sql`DO $$ BEGIN CREATE TYPE alias_type AS ENUM('synonym', 'redirect'); EXCEPTION WHEN duplicate_object THEN NULL; END $$`)
+    await exec("alias_status", sql`DO $$ BEGIN CREATE TYPE alias_status AS ENUM('proposed', 'approved', 'rejected'); EXCEPTION WHEN duplicate_object THEN NULL; END $$`)
+    await exec("search_outbox", sql`CREATE TABLE IF NOT EXISTS search_outbox (id text PRIMARY KEY, entity text NOT NULL, entity_id text NOT NULL, op text NOT NULL, payload jsonb, status outbox_status NOT NULL DEFAULT 'pending', attempts integer NOT NULL DEFAULT 0, last_error text, created_at timestamptz NOT NULL DEFAULT now(), claimed_at timestamptz)`)
+    await exec("search_outbox_status_idx", sql`CREATE INDEX IF NOT EXISTS search_outbox_status_idx ON search_outbox (status, created_at)`)
+    await exec("search_aliases", sql`CREATE TABLE IF NOT EXISTS search_aliases (id text PRIMARY KEY, term text NOT NULL, target text NOT NULL, type alias_type NOT NULL, status alias_status NOT NULL DEFAULT 'proposed', reviewer_id text, reviewed_at timestamptz, created_at timestamptz NOT NULL DEFAULT now())`)
+    await exec("search_aliases_term_idx", sql`CREATE INDEX IF NOT EXISTS search_aliases_term_idx ON search_aliases (term, status)`)
+    await exec("search_query_log", sql`CREATE TABLE IF NOT EXISTS search_query_log (id text PRIMARY KEY, query text NOT NULL, result_count integer NOT NULL DEFAULT 0, created_at timestamptz NOT NULL DEFAULT now())`)
+    await exec("search_query_log_created_idx", sql`CREATE INDEX IF NOT EXISTS search_query_log_created_idx ON search_query_log (created_at)`)
+    return c.json({ ok: true, applied })
+  })
+  /**
    * Blueprint Phase 1C — seed the governed Phones attribute profile.
    * Idempotent: existing codes/profiles are reused, never duplicated.
    * Category linkage stays null until taxonomy assignment (Phase 1A UI).

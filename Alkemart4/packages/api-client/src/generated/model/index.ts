@@ -10,7 +10,7 @@ Seller payouts use Paystack transfer recipients (`recipientCode`) only —
 never Stripe, Flutterwave, or a generic multi-PSP interface.
 Checkout charge/initialize is documented under /store/checkout.
 
- * OpenAPI spec version: 0.5.0
+ * OpenAPI spec version: 0.6.0
  */
 
 export * from './addCartItemBody';
@@ -44,6 +44,7 @@ export * from './currency';
 export * from './deprecateTaxonomyNodeBody';
 export * from './errorResponse';
 export * from './forbiddenResponse';
+export * from './getCatalogFacetsParams';
 export * from './getCatalogParams';
 export * from './getCatalogSort';
 export * from './getCheckoutStatusParams';
@@ -54,6 +55,9 @@ export * from './ghanaSetupRequest';
 export * from './ghanaSetupRequestMomo';
 export * from './listMatchCandidatesParams';
 export * from './listMatchCandidatesStatus';
+export * from './listSearchAliasesParams';
+export * from './listSearchAliasesStatus';
+export * from './listZeroResultQueriesParams';
 export * from './lookupOrderGroupBody';
 export * from './notFoundResponse';
 export * from './patchVendorProductRequest';
@@ -74,9 +78,15 @@ export * from './productReview';
 export * from './productStatus';
 export * from './promoteProductIdentityBody';
 export * from './promoteProductIdentityBodyConfidence';
+export * from './proposeSearchAliasBody';
+export * from './proposeSearchAliasBodyType';
 export * from './resolveCategoryParams';
 export * from './reviewMatchCandidateBody';
 export * from './reviewMatchCandidateBodyDecision';
+export * from './reviewSearchAliasBody';
+export * from './reviewSearchAliasBodyDecision';
+export * from './searchProductsParams';
+export * from './searchProductsSort';
 export * from './sellerAvailability';
 export * from './sellerAvailabilityState';
 export * from './sellerReadiness';

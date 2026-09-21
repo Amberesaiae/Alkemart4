@@ -157,6 +157,18 @@ export type CatalogMatchCandidate = {
   createdAt: string
 }
 
+/** Approved-or-pending query vocabulary (Phase 2C). */
+export type CatalogSearchAlias = {
+  id: string
+  term: string
+  target: string
+  type: "synonym" | "redirect"
+  status: "proposed" | "approved" | "rejected"
+  reviewerId?: string | null
+  reviewedAt?: string | null
+  createdAt: string
+}
+
 export type CatalogSnapshot = {
   categories: CatalogCategory[]
   sellers: CatalogSeller[]
@@ -171,6 +183,7 @@ export type CatalogSnapshot = {
   profileAttributes: CatalogProfileAttribute[]
   productAttributeValues: CatalogProductAttributeValue[]
   matchCandidates: CatalogMatchCandidate[]
+  searchAliases: CatalogSearchAlias[]
 }
 
 export type JsonCatalogSnapshot = {
@@ -183,6 +196,7 @@ export type JsonCatalogSnapshot = {
   profileAttributes?: CatalogProfileAttribute[]
   productAttributeValues?: CatalogProductAttributeValue[]
   matchCandidates?: CatalogMatchCandidate[]
+  searchAliases?: CatalogSearchAlias[]
   sellers: Array<Omit<CatalogSeller, "deliveryFeePesewas"> & { deliveryFeePesewas: string }>
   products: CatalogProduct[]
   variants: CatalogVariant[]
@@ -206,6 +220,7 @@ export function demoCatalog(): CatalogSnapshot {
     profileAttributes: [],
     productAttributeValues: [],
     matchCandidates: [],
+    searchAliases: [],
     sellers: [
       {
         id: "seller-a",
@@ -286,6 +301,7 @@ export function snapshotToJson(data: CatalogSnapshot): JsonCatalogSnapshot {
     profileAttributes: data.profileAttributes,
     productAttributeValues: data.productAttributeValues,
     matchCandidates: data.matchCandidates,
+    searchAliases: data.searchAliases,
     sellers: data.sellers.map((s) => ({
       ...s,
       deliveryFeePesewas: s.deliveryFeePesewas.toString(),
@@ -311,6 +327,7 @@ export function snapshotFromJson(json: JsonCatalogSnapshot): CatalogSnapshot {
     profileAttributes: json.profileAttributes ?? [],
     productAttributeValues: json.productAttributeValues ?? [],
     matchCandidates: json.matchCandidates ?? [],
+    searchAliases: json.searchAliases ?? [],
     sellers: json.sellers.map((s) => ({
       ...s,
       status: s.status,

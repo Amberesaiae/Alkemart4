@@ -12,6 +12,9 @@ import {
   productVariants,
   profileAttributes,
   reviews,
+  searchAliases,
+  searchOutbox,
+  searchQueryLog,
   sellers,
   shopFeatured,
   shopViews,
@@ -19,6 +22,7 @@ import {
 } from "@alkemart/db"
 import {
   activateCategory,
+  applyAliases,
   approveProduct,
   assertAssignableCategory,
   assertLeafCategory,
@@ -26,8 +30,10 @@ import {
   canShowComparison,
   deprecateCategory,
   isSellable,
+  normalizeQuery,
   promoteIdentityConfidence,
   proposeProduct,
+  queryTokens,
   rejectProduct,
   requestProductChanges,
   resolveCategoryRedirect,
@@ -42,7 +48,7 @@ import {
   type ProductDetailDto,
   type ProductStatus,
 } from "@alkemart/domain"
-import { and, eq, inArray } from "drizzle-orm"
+import { and, desc, eq, inArray } from "drizzle-orm"
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js"
 import { flagCatalogProduct, flaggingContext, type ProductFlag } from "./moderation-flags"
 import {
@@ -63,6 +69,7 @@ import type {
   CatalogOffer,
   CatalogProduct,
   CatalogProductAttributeValue,
+  CatalogSearchAlias,
   CatalogSnapshot,
   CatalogVariant,
 } from "./demo-seed"
@@ -393,6 +400,66 @@ export type MatchCandidateDto = {
   createdAt: string
 }
 
+/** Phase 2 — search, facets, aliases. */
+export type StoreSearchFilter = {
+  /** Attribute definition code (stable, UI-friendly). */
+  code: string
+  values: string[]
+}
+
+export type StoreSearchInput = {
+  q: string
+  category?: string
+  filters?: StoreSearchFilter[]
+  priceMinPesewas?: string
+  priceMaxPesewas?: string
+  condition?: string[]
+  sort?: CatalogSort
+  limit: number
+  offset: number
+}
+
+export type StoreSearchDto = {
+  items: ProductCardDto[]
+  total: number
+  /** Echo of the submitted query (pre-alias). */
+  query: string
+  appliedAlias: { term: string; kind: "synonym" | "redirect" } | null
+  /** Redirect target when an alias of type redirect matched. */
+  redirect: string | null
+  facetDistribution: Record<string, Record<string, number>>
+  suggestions: {
+    categories: Array<{ id: string; name: string; slug: string }>
+    shops: Array<{ handle: string; name: string }>
+  }
+}
+
+export type CatalogFacetsDto = {
+  categoryId: string | null
+  priceMinPesewas: string | null
+  priceMaxPesewas: string | null
+  availabilityCount: number
+  conditions: Record<string, number>
+  attributes: Array<{ code: string; label: string; values: Record<string, number> }>
+}
+
+export type SearchAliasDto = {
+  id: string
+  term: string
+  target: string
+  type: "synonym" | "redirect"
+  status: "proposed" | "approved" | "rejected"
+  reviewerId: string | null
+  reviewedAt: string | null
+  createdAt: string
+}
+
+export type ZeroResultQueryDto = {
+  query: string
+  resultCount: number
+  at: string
+}
+
 export class CatalogConflictError extends Error {
   constructor(message = "offer already exists") {
     super(message)
@@ -528,6 +595,28 @@ export interface CatalogRepository {
     decision: "confirmed" | "rejected",
     reviewerId: string,
   ): Promise<MatchCandidateDto | null>
+  // ── Phase 2A: outbox (projection trigger; rebuild reads source tables) ──
+  recordOutboxEvent(
+    entity: string,
+    entityId: string,
+    op: string,
+    payload?: Record<string, unknown> | null,
+  ): Promise<void>
+  outboxStatus(): Promise<{ pending: number; lastAt: string | null }>
+  // ── Phase 2: search + facets ──
+  searchProducts(input: StoreSearchInput): Promise<StoreSearchDto>
+  catalogFacets(category?: string): Promise<CatalogFacetsDto>
+  // ── Phase 2C: alias governance ──
+  listSearchAliases(status?: "proposed" | "approved" | "rejected"): Promise<SearchAliasDto[]>
+  proposeSearchAlias(term: string, target: string, type: "synonym" | "redirect"): Promise<SearchAliasDto>
+  reviewSearchAlias(
+    id: string,
+    decision: "approved" | "rejected",
+    reviewerId: string,
+  ): Promise<SearchAliasDto | null>
+  // ── Phase 2D: query telemetry ──
+  logSearchQuery(query: string, resultCount: number): Promise<void>
+  listZeroResultQueries(limit?: number): Promise<ZeroResultQueryDto[]>
 }
 function toBigInt(value: bigint | string | number): bigint {
   return typeof value === "bigint" ? value : BigInt(value)
@@ -1074,6 +1163,360 @@ export function listCategoriesFrom(data: CatalogSnapshot): CategoryNode[] {
   return buildNavTree(data.categories.filter((c) => c.isNav))
 }
 
+// ── Phase 2 shared search (snapshot-pure; both repositories reuse) ──
+
+/** Subtree ids for a category id, slug, or handle; null when unknown. */
+function categorySubtreeIds(
+  categories: CatalogSnapshot["categories"],
+  key: string,
+): string[] | null {
+  const k = key.trim()
+  const node = categories.find((c) => c.id === k || c.slug === k || c.handle === k)
+  if (!node) return null
+  const byParent = new Map<string, CatalogSnapshot["categories"]>()
+  for (const c of categories) {
+    if (!c.parentId) continue
+    const list = byParent.get(c.parentId) ?? []
+    list.push(c)
+    byParent.set(c.parentId, list)
+  }
+  const ids = [node.id]
+  const walk = (id: string) => {
+    for (const child of byParent.get(id) ?? []) {
+      ids.push(child.id)
+      walk(child.id)
+    }
+  }
+  walk(node.id)
+  return ids
+}
+
+function scoreProduct(p: CatalogProduct, tokens: string[]): number {
+  const title = p.title.toLowerCase()
+  const desc = (p.description ?? "").toLowerCase()
+  const identity = [p.brand ?? "", p.model ?? "", p.manufacturer ?? ""].join(" ").toLowerCase()
+  let score = 0
+  for (const t of tokens) {
+    if (title.includes(t)) score += 3
+    if (identity.includes(t)) score += 2
+    if (desc.includes(t)) score += 1
+  }
+  if (tokens.length > 0 && title.includes(tokens.join(" "))) score += 5
+  return score
+}
+
+function matchAttributeValue(
+  defType: string,
+  row: { textValue?: string | null; numberValue?: number | null; booleanValue?: boolean | null; optionValues?: string[] | null },
+  wanted: string[],
+): boolean {
+  const want = wanted.map((v) => v.toLowerCase())
+  switch (defType) {
+    case "option":
+    case "multi_option": {
+      const have = (row.optionValues ?? []).map((v) => v.toLowerCase())
+      return want.some((w) => have.includes(w))
+    }
+    case "number": {
+      if (row.numberValue == null) return false
+      return want.some((w) => Number(w) === row.numberValue)
+    }
+    case "boolean": {
+      if (row.booleanValue == null) return false
+      return want.includes(String(row.booleanValue).toLowerCase())
+    }
+    default: {
+      const text = (row.textValue ?? "").toLowerCase()
+      return want.some((w) => text.includes(w))
+    }
+  }
+}
+
+type SearchableData = CatalogSnapshot
+
+/** Sellable raw offers per product (condition-aware; cards carry no condition). */
+function sellableOffersByProduct(data: SearchableData): Map<string, CatalogOffer[]> {
+  const sellerById = new Map(data.sellers.map((s) => [s.id, s]))
+  const productById = new Map(data.products.map((p) => [p.id, p]))
+  const out = new Map<string, CatalogOffer[]>()
+  for (const offer of data.offers) {
+    const seller = sellerById.get(offer.sellerId)
+    const product = productById.get(offer.productId)
+    if (!seller || !product) continue
+    if (
+      !isSellable({
+        productStatus: product.status,
+        sellerStatus: seller.status,
+        offerActive: offer.active,
+        onHand: offer.onHand,
+        reserved: offer.reserved,
+        pricePesewas: offer.pricePesewas,
+      })
+    ) {
+      continue
+    }
+    const list = out.get(offer.productId) ?? []
+    list.push(offer)
+    out.set(offer.productId, list)
+  }
+  return out
+}
+
+function facetAttributesFor(
+  data: SearchableData,
+  categoryId: string | null,
+  productIds: Set<string>,
+): Array<{ code: string; label: string; values: Record<string, number> }> {
+  let defs = data.attributeDefinitions.filter((d) => d.filterable)
+  if (categoryId) {
+    const category = data.categories.find((c) => c.id === categoryId)
+    const profileId = category?.attributeProfileId ?? null
+    if (profileId) {
+      const inProfile = new Set(
+        data.profileAttributes.filter((l) => l.profileId === profileId).map((l) => l.definitionId),
+      )
+      defs = defs.filter((d) => inProfile.has(d.id))
+    }
+  }
+  const valuesByProduct = new Map<string, typeof data.productAttributeValues>()
+  for (const v of data.productAttributeValues) {
+    if (!productIds.has(v.productId)) continue
+    const list = valuesByProduct.get(v.productId) ?? []
+    list.push(v)
+    valuesByProduct.set(v.productId, list)
+  }
+  const out: Array<{ code: string; label: string; values: Record<string, number> }> = []
+  for (const def of defs) {
+    const counts: Record<string, number> = {}
+    for (const productId of productIds) {
+      const rows = (valuesByProduct.get(productId) ?? []).filter((r) => r.definitionId === def.id)
+      for (const row of rows) {
+        const labels: string[] =
+          def.type === "option" || def.type === "multi_option"
+            ? (row.optionValues ?? [])
+            : def.type === "number" && row.numberValue != null
+              ? [`${row.numberValue}${row.unit ? ` ${row.unit}` : ""}`]
+              : def.type === "boolean" && row.booleanValue != null
+                ? [String(row.booleanValue)]
+                : row.textValue
+                  ? [row.textValue]
+                  : []
+        for (const label of labels) counts[label] = (counts[label] ?? 0) + 1
+      }
+    }
+    if (Object.keys(counts).length > 0) out.push({ code: def.code, label: def.label, values: counts })
+  }
+  return out
+}
+
+function emptySuggestions(): StoreSearchDto["suggestions"] {
+  return { categories: [], shops: [] }
+}
+
+function recoverySuggestions(
+  data: SearchableData,
+  tokens: string[],
+): StoreSearchDto["suggestions"] {
+  if (tokens.length === 0) return emptySuggestions()
+  const key = tokens[0]!
+  const categories = data.categories
+    .filter((c) => taxonomyStatusOf(c) === "active" && c.name.toLowerCase().includes(key))
+    .slice(0, 5)
+    .map((c) => ({ id: c.id, name: c.name, slug: c.slug ?? c.handle }))
+  const shops = data.sellers
+    .filter((s) => s.status === "open" && s.name.toLowerCase().includes(key))
+    .slice(0, 5)
+    .map((s) => ({ handle: s.handle, name: s.name }))
+  return { categories, shops }
+}
+
+export function searchFrom(data: SearchableData, input: StoreSearchInput): StoreSearchDto {
+  const raw = normalizeQuery(input.q)
+  const approved = (data.searchAliases ?? [])
+    .filter((a) => a.status === "approved")
+    .map((a) => ({ term: a.term, target: a.target, type: a.type }))
+  const applied = applyAliases(raw, approved)
+  if (applied.kind === "redirect") {
+    return {
+      items: [],
+      total: 0,
+      query: raw,
+      appliedAlias: { term: applied.aliasTerm, kind: "redirect" },
+      redirect: applied.target,
+      facetDistribution: {},
+      suggestions: emptySuggestions(),
+    }
+  }
+  const q = applied.kind === "synonym" ? applied.query : raw
+  const tokens = queryTokens(q)
+
+  let categoryId: string | null = null
+  let rows = data.products.filter((p) => p.status === "published")
+  if (input.category) {
+    const ids = categorySubtreeIds(data.categories, input.category)
+    if (!ids) {
+      return {
+        items: [],
+        total: 0,
+        query: raw,
+        appliedAlias: null,
+        redirect: null,
+        facetDistribution: {},
+        suggestions: recoverySuggestions(data, tokens),
+      }
+    }
+    const allowed = new Set(ids)
+    rows = rows.filter((p) => allowed.has(p.primaryCategoryId))
+    const direct = data.categories.find(
+      (c) => c.id === input.category || c.slug === input.category || c.handle === input.category,
+    )
+    categoryId = direct?.id ?? null
+  }
+
+  // Relevance pre-sort (cardsFor title-sorts, so score here first).
+  let scored = rows.map((p) => ({ p, score: tokens.length > 0 ? scoreProduct(p, tokens) : 1 }))
+  if (tokens.length > 0) scored = scored.filter((s) => s.score > 0)
+  scored.sort((a, b) => b.score - a.score || a.p.title.localeCompare(b.p.title))
+  rows = scored.map((s) => s.p)
+
+  // Typed attribute filters (unknown codes match nothing — routes 400 first).
+  const defByCode = new Map(data.attributeDefinitions.map((d) => [d.code.toLowerCase(), d]))
+  for (const f of input.filters ?? []) {
+    const def = defByCode.get(f.code.toLowerCase())
+    if (!def) {
+      rows = []
+      break
+    }
+    const wantedByProduct = new Map<string, typeof data.productAttributeValues>()
+    for (const v of data.productAttributeValues) {
+      if (v.definitionId !== def.id) continue
+      const list = wantedByProduct.get(v.productId) ?? []
+      list.push(v)
+      wantedByProduct.set(v.productId, list)
+    }
+    rows = rows.filter((p) =>
+      (wantedByProduct.get(p.id) ?? []).some((v) =>
+        matchAttributeValue(def.type, v, f.values),
+      ),
+    )
+  }
+
+  // Cards (sellable only), then price/condition refinement on sellable offers.
+  const sellable = sellableOffersByProduct(data)
+  let cards = cardsFor(rows, data, sellablePeerOffers(data))
+  if (input.priceMinPesewas !== undefined) {
+    const min = BigInt(input.priceMinPesewas)
+    cards = cards.filter((c) => BigInt(c.fromPricePesewas) >= min)
+  }
+  if (input.priceMaxPesewas !== undefined) {
+    const max = BigInt(input.priceMaxPesewas)
+    cards = cards.filter((c) => BigInt(c.fromPricePesewas) <= max)
+  }
+  if (input.condition && input.condition.length > 0) {
+    const want = new Set(input.condition.map((c) => c.toLowerCase()))
+    const withCondition = new Set(
+      [...sellable.entries()]
+        .filter(([, list]) =>
+          list.some((o) => want.has((o.condition ?? "unspecified").toLowerCase())),
+        )
+        .map(([pid]) => pid),
+    )
+    cards = cards.filter((c) => withCondition.has(c.productId))
+  }
+  if (input.sort) {
+    cards = applySort(cards, input.sort)
+  } else if (tokens.length > 0) {
+    // Restore relevance order (cardsFor title-sorted above).
+    const order = new Map(rows.map((p, i) => [p.id, i]))
+    cards = [...cards].sort(
+      (a, b) => (order.get(a.productId) ?? 0) - (order.get(b.productId) ?? 0),
+    )
+  }
+
+  const productIds = new Set(cards.map((c) => c.productId))
+  const prices = cards.map((c) => BigInt(c.fromPricePesewas))
+  const conditions: Record<string, number> = {}
+  for (const [pid, list] of sellable) {
+    if (!productIds.has(pid)) continue
+    for (const o of list) {
+      const key = (o.condition ?? "unspecified").toLowerCase()
+      conditions[key] = (conditions[key] ?? 0) + 1
+    }
+  }
+  const attrFacets = facetAttributesFor(data, categoryId, productIds)
+  const facetDistribution: Record<string, Record<string, number>> = {}
+  for (const f of attrFacets) facetDistribution[f.code] = f.values
+  if (Object.keys(conditions).length > 0) facetDistribution["condition"] = conditions
+
+  const total = cards.length
+  return {
+    items: cards.slice(input.offset, input.offset + input.limit),
+    total,
+    query: raw,
+    appliedAlias:
+      applied.kind === "synonym" ? { term: applied.aliasTerm, kind: "synonym" } : null,
+    redirect: null,
+    facetDistribution,
+    suggestions: total === 0 ? recoverySuggestions(data, tokens) : emptySuggestions(),
+  }
+}
+
+export function facetsFrom(data: SearchableData, category?: string): CatalogFacetsDto {
+  let categoryId: string | null = null
+  let rows = data.products.filter((p) => p.status === "published")
+  if (category) {
+    const ids = categorySubtreeIds(data.categories, category)
+    if (!ids) {
+      return {
+        categoryId: null,
+        priceMinPesewas: null,
+        priceMaxPesewas: null,
+        availabilityCount: 0,
+        conditions: {},
+        attributes: [],
+      }
+    }
+    const allowed = new Set(ids)
+    rows = rows.filter((p) => allowed.has(p.primaryCategoryId))
+    categoryId =
+      data.categories.find((c) => c.id === category || c.slug === category || c.handle === category)
+        ?.id ?? null
+  }
+  const cards = cardsFor(rows, data, sellablePeerOffers(data))
+  const productIds = new Set(cards.map((c) => c.productId))
+  const prices = cards.map((c) => BigInt(c.fromPricePesewas))
+  const sellable = sellableOffersByProduct(data)
+  const conditions: Record<string, number> = {}
+  for (const [pid, list] of sellable) {
+    if (!productIds.has(pid)) continue
+    for (const o of list) {
+      const key = (o.condition ?? "unspecified").toLowerCase()
+      conditions[key] = (conditions[key] ?? 0) + 1
+    }
+  }
+  return {
+    categoryId,
+    priceMinPesewas: prices.length > 0 ? prices.reduce((a, b) => (a < b ? a : b)).toString() : null,
+    priceMaxPesewas: prices.length > 0 ? prices.reduce((a, b) => (a > b ? a : b)).toString() : null,
+    availabilityCount: cards.length,
+    conditions,
+    attributes: facetAttributesFor(data, categoryId, productIds),
+  }
+}
+
+function toSearchAliasDto(r: CatalogSearchAlias): SearchAliasDto {
+  return {
+    id: r.id,
+    term: r.term,
+    target: r.target,
+    type: r.type,
+    status: r.status,
+    reviewerId: r.reviewerId ?? null,
+    reviewedAt: r.reviewedAt ?? null,
+    createdAt: r.createdAt,
+  }
+}
+
 export function listCatalogFrom(data: CatalogSnapshot, query: CatalogListQuery): CatalogListDto {
   let productRows = data.products
   if (query.category) {
@@ -1288,6 +1731,7 @@ export class InMemoryCatalogRepository implements CatalogRepository {
       identityConfidence: "seller_specific",
     }
     this.data.products.push(product)
+    await this.recordOutboxEvent("product", productId, "upsert", { title: input.title })
     if (specs.length === 0) {
       const variantId = crypto.randomUUID()
       const offerId = crypto.randomUUID()
@@ -1431,6 +1875,7 @@ export class InMemoryCatalogRepository implements CatalogRepository {
     // Level derives from the parent chain (roots stay 0).
     row.level = taxonomyLevel(this.data.categories, row.parentId)
     this.data.categories.push(row)
+    await this.recordOutboxEvent("category", row.id, "upsert", { code: row.code })
     return toTaxonomyNodeDto(row)
   }
 
@@ -1481,6 +1926,7 @@ export class InMemoryCatalogRepository implements CatalogRepository {
       row.status = "active"
     }
     row.version = (row.version ?? 1) + 1
+    await this.recordOutboxEvent("category", row.id, "upsert")
     return toTaxonomyNodeDto(row)
   }
 
@@ -1499,6 +1945,7 @@ export class InMemoryCatalogRepository implements CatalogRepository {
     row.isNavVisible = false
     row.isNav = false
     row.version = (row.version ?? 1) + 1
+    await this.recordOutboxEvent("category", row.id, "deprecate")
     return toTaxonomyNodeDto(row)
   }
 
@@ -1527,6 +1974,7 @@ export class InMemoryCatalogRepository implements CatalogRepository {
     if (patch.mpn !== undefined) product.mpn = cleanText(patch.mpn)
     if (patch.manufacturer !== undefined) product.manufacturer = cleanText(patch.manufacturer)
     if (patch.productType !== undefined) product.productType = cleanText(patch.productType)
+    await this.recordOutboxEvent("product", productId, "identity")
     return identityOfProduct(product)
   }
 
@@ -1545,6 +1993,7 @@ export class InMemoryCatalogRepository implements CatalogRepository {
       promotedAt: new Date().toISOString(),
       confidence: next,
     }
+    await this.recordOutboxEvent("product", productId, "identity-promote")
     return identityOfProduct(product)
   }
 
@@ -1586,6 +2035,7 @@ export class InMemoryCatalogRepository implements CatalogRepository {
       visibleOnPdp: input.visibleOnPdp ?? true,
     }
     this.data.attributeDefinitions.push(row)
+    await this.recordOutboxEvent("attribute_definition", row.id, "upsert", { code: row.code })
     return definitionDto(row)
   }
 
@@ -1627,6 +2077,7 @@ export class InMemoryCatalogRepository implements CatalogRepository {
         required: link.required ?? false,
       })
     })
+    await this.recordOutboxEvent("attribute_profile", profile.id, "upsert")
     return profileDto(this.data, profile)
   }
 
@@ -1692,6 +2143,7 @@ export class InMemoryCatalogRepository implements CatalogRepository {
         })
       }
     }
+    await this.recordOutboxEvent("product", productId, "attributes")
     return this.listProductAttributeValues(productId)
   }
 
@@ -1732,6 +2184,7 @@ export class InMemoryCatalogRepository implements CatalogRepository {
       createdAt: new Date().toISOString(),
     }
     this.data.matchCandidates.push(row)
+    await this.recordOutboxEvent("product_match", row.id, "proposed")
     return toMatchCandidateDto(row)
   }
 
@@ -1774,7 +2227,125 @@ export class InMemoryCatalogRepository implements CatalogRepository {
         }
       }
     }
+    await this.recordOutboxEvent("product_match", row.id, decision)
     return toMatchCandidateDto(row)
+  }
+
+  // ── Phase 2A: outbox (in-memory; operational, outside the snapshot) ──
+  private outbox: Array<{
+    id: string
+    entity: string
+    entityId: string
+    op: string
+    payload: Record<string, unknown> | null
+    createdAt: string
+  }> = []
+
+  private queryLog: Array<{ query: string; resultCount: number; at: string }> = []
+
+  async recordOutboxEvent(
+    entity: string,
+    entityId: string,
+    op: string,
+    payload?: Record<string, unknown> | null,
+  ): Promise<void> {
+    this.outbox.push({
+      id: crypto.randomUUID(),
+      entity,
+      entityId,
+      op,
+      payload: payload ?? null,
+      createdAt: new Date().toISOString(),
+    })
+    if (this.outbox.length > 500) this.outbox.splice(0, this.outbox.length - 500)
+  }
+
+  async outboxStatus(): Promise<{ pending: number; lastAt: string | null }> {
+    const last = this.outbox[this.outbox.length - 1]
+    return { pending: this.outbox.length, lastAt: last?.createdAt ?? null }
+  }
+
+  // ── Phase 2: search + facets (in-memory) ──
+
+  async searchProducts(input: StoreSearchInput): Promise<StoreSearchDto> {
+    const limit = Math.min(100, Math.max(1, Math.trunc(input.limit) || 20))
+    const offset = Math.max(0, Math.trunc(input.offset) || 0)
+    return searchFrom(this.data, { ...input, limit, offset })
+  }
+
+  async catalogFacets(category?: string): Promise<CatalogFacetsDto> {
+    return facetsFrom(this.data, category)
+  }
+
+  // ── Phase 2C: alias governance (in-memory) ──
+
+  async listSearchAliases(
+    status?: "proposed" | "approved" | "rejected",
+  ): Promise<SearchAliasDto[]> {
+    return this.data.searchAliases
+      .filter((a) => !status || a.status === status)
+      .map(toSearchAliasDto)
+  }
+
+  async proposeSearchAlias(
+    term: string,
+    target: string,
+    type: "synonym" | "redirect",
+  ): Promise<SearchAliasDto> {
+    const cleanTerm = term.trim().toLowerCase()
+    const cleanTarget = target.trim()
+    if (!cleanTerm) throw new CatalogValidationError("term required")
+    if (!cleanTarget) throw new CatalogValidationError("target required")
+    const live = this.data.searchAliases.find(
+      (a) => a.term.toLowerCase() === cleanTerm && a.status !== "rejected",
+    )
+    if (live) throw new CatalogConflictError("term already governed")
+    const row: CatalogSearchAlias = {
+      id: crypto.randomUUID(),
+      term: term.trim(),
+      target: cleanTarget,
+      type,
+      status: "proposed",
+      reviewerId: null,
+      reviewedAt: null,
+      createdAt: new Date().toISOString(),
+    }
+    this.data.searchAliases.push(row)
+    await this.recordOutboxEvent("search_alias", row.id, "proposed", { term: row.term })
+    return toSearchAliasDto(row)
+  }
+
+  async reviewSearchAlias(
+    id: string,
+    decision: "approved" | "rejected",
+    reviewerId: string,
+  ): Promise<SearchAliasDto | null> {
+    const row = this.data.searchAliases.find((a) => a.id === id)
+    if (!row) return null
+    if (row.status !== "proposed") {
+      throw new CatalogValidationError("only proposed aliases can be reviewed")
+    }
+    if (!reviewerId.trim()) throw new CatalogValidationError("reviewer required")
+    row.status = decision
+    row.reviewerId = reviewerId
+    row.reviewedAt = new Date().toISOString()
+    return toSearchAliasDto(row)
+  }
+
+  // ── Phase 2D: query telemetry (in-memory) ──
+
+  async logSearchQuery(query: string, resultCount: number): Promise<void> {
+    const q = query.trim()
+    if (!q) return
+    this.queryLog.push({ query: q, resultCount, at: new Date().toISOString() })
+    if (this.queryLog.length > 500) this.queryLog.splice(0, this.queryLog.length - 500)
+  }
+
+  async listZeroResultQueries(limit = 20): Promise<ZeroResultQueryDto[]> {
+    return this.queryLog
+      .filter((q) => q.resultCount === 0)
+      .slice(-Math.min(100, Math.max(1, limit)))
+      .reverse()
   }
 
   async updateVendorProduct(
@@ -1820,6 +2391,7 @@ export class InMemoryCatalogRepository implements CatalogRepository {
     ) {
       owned.product.status = "proposed"
     }
+    await this.recordOutboxEvent("product", productId, "upsert")
     return toVendorProductDto(
       owned.product,
       owned.variant,
@@ -1851,6 +2423,7 @@ export class InMemoryCatalogRepository implements CatalogRepository {
       offer.onHand = patch.onHand
     }
     if (patch.active !== undefined) offer.active = patch.active
+    await this.recordOutboxEvent("offer", offer.id, "upsert", { productId })
     return toVendorProductDto(product, variant, offer, assembleExtras(this.data, productId))
   }
 
@@ -2182,6 +2755,12 @@ export class PostgresCatalogRepository implements CatalogRepository {
         db.select().from(productOptionValues).catch((): OptionValueRow[] => []),
         db.select().from(variantOptionValues).catch((): VariantLinkRow[] => []),
       ])
+    // Phase 2 tables degrade the same way when 0021 is not yet applied.
+    type SearchAliasRow = typeof searchAliases.$inferSelect
+    const aliasRows: SearchAliasRow[] = await db
+      .select()
+      .from(searchAliases)
+      .catch((): SearchAliasRow[] => [])
     // Phase 1 tables are newer than the base schema: databases that have not
     // run migration 0020 yet keep serving the catalog with these degrading
     // to empty. Writes to the new endpoints require 0020 (400/500 honestly
@@ -2300,6 +2879,16 @@ export class PostgresCatalogRepository implements CatalogRepository {
       variantOptionValues: linkRows.map((r) => ({
         variantId: r.variantId,
         valueId: r.valueId,
+      })),
+      searchAliases: aliasRows.map((r) => ({
+        id: r.id,
+        term: r.term,
+        target: r.target,
+        type: r.type,
+        status: r.status,
+        reviewerId: r.reviewerId,
+        reviewedAt: r.reviewedAt ? r.reviewedAt.toISOString() : null,
+        createdAt: r.createdAt ? r.createdAt.toISOString() : new Date(0).toISOString(),
       })),
       attributeDefinitions: attrDefRows.map((r) => ({
         id: r.id,
@@ -2528,6 +3117,7 @@ export class PostgresCatalogRepository implements CatalogRepository {
       }
       throw err
     }
+    await this.recordOutboxEvent("product", productId, "upsert")
     invalidateSnapshot(this.wdb, this.db)
     // Read back via primary: the cached catalog binding may not see the insert yet.
     const created = await this.loadOwnedVendorProduct(input.sellerId, productId, this.wdb)
@@ -2611,6 +3201,7 @@ export class PostgresCatalogRepository implements CatalogRepository {
         await tx.update(products).set({ status: "proposed" }).where(eq(products.id, productId))
       }
     })
+    await this.recordOutboxEvent("product", productId, "upsert")
     invalidateSnapshot(this.wdb, this.db)
     return this.loadOwnedVendorProduct(sellerId, productId, this.wdb)
   }
@@ -2644,6 +3235,7 @@ export class PostgresCatalogRepository implements CatalogRepository {
       await tx.delete(shopViews).where(eq(shopViews.productId, productId))
       await tx.delete(products).where(eq(products.id, productId))
     })
+    await this.recordOutboxEvent("product", productId, "delete")
     invalidateSnapshot(this.wdb, this.db)
     return true
   }
@@ -2688,6 +3280,7 @@ export class PostgresCatalogRepository implements CatalogRepository {
     if (!owned) return null
     const next = proposeProduct(owned.product.status)
     await this.wdb.update(products).set({ status: next }).where(eq(products.id, productId))
+    await this.recordOutboxEvent("product", productId, "propose")
     invalidateSnapshot(this.wdb, this.db)
     return this.loadOwnedVendorProduct(sellerId, productId, this.wdb)
   }
@@ -2746,6 +3339,7 @@ export class PostgresCatalogRepository implements CatalogRepository {
     if (Object.keys(offerPatch).length > 0) {
       await this.wdb.update(offers).set(offerPatch).where(eq(offers.id, row.offerId))
     }
+    await this.recordOutboxEvent("offer", variantId, "upsert")
     invalidateSnapshot(this.wdb, this.db)
     return this.loadOwnedVendorProduct(sellerId, productId, this.wdb)
   }
@@ -2834,6 +3428,7 @@ export class PostgresCatalogRepository implements CatalogRepository {
     if (createdCombos > 0 && product.status === "published") {
       await this.wdb.update(products).set({ status: "proposed" }).where(eq(products.id, productId))
     }
+    await this.recordOutboxEvent("product", productId, "options")
     invalidateSnapshot(this.wdb, this.db)
     return this.loadOwnedVendorProduct(sellerId, productId, this.wdb)
   }
@@ -2976,6 +3571,7 @@ export class PostgresCatalogRepository implements CatalogRepository {
     if (!product) return null
     const next = nextModerationStatus(product.status, action)
     await this.wdb.update(products).set({ status: next }).where(eq(products.id, productId))
+    await this.recordOutboxEvent("product", productId, "moderate")
     invalidateSnapshot(this.wdb, this.db)
     return { ...toAdminProductDto(product), status: next }
   }
@@ -3040,6 +3636,7 @@ export class PostgresCatalogRepository implements CatalogRepository {
       sortOrder,
       version: 1,
     })
+    await this.recordOutboxEvent("category", id, "upsert")
     invalidateSnapshot(this.wdb, this.db)
     return {
       id,
@@ -3111,6 +3708,7 @@ export class PostgresCatalogRepository implements CatalogRepository {
     }
     set["version"] = (row.version ?? 1) + 1
     await this.wdb.update(categories).set(set).where(eq(categories.id, id))
+    await this.recordOutboxEvent("category", id, "upsert")
     invalidateSnapshot(this.wdb, this.db)
     const fresh = await this.load(this.wdb)
     const updated = fresh.categories.find((c) => c.id === id)!
@@ -3138,6 +3736,7 @@ export class PostgresCatalogRepository implements CatalogRepository {
         version: (row.version ?? 1) + 1,
       })
       .where(eq(categories.id, id))
+    await this.recordOutboxEvent("category", id, "deprecate")
     invalidateSnapshot(this.wdb, this.db)
     const fresh = await this.load(this.wdb)
     return toTaxonomyNodeDto(fresh.categories.find((c) => c.id === id)!)
@@ -3172,6 +3771,7 @@ export class PostgresCatalogRepository implements CatalogRepository {
     if (patch.productType !== undefined) set["productType"] = cleanText(patch.productType)
     if (Object.keys(set).length > 0) {
       await this.wdb.update(products).set(set).where(eq(products.id, productId))
+    await this.recordOutboxEvent("product", productId, "identity")
       invalidateSnapshot(this.wdb, this.db)
     }
     const fresh = await this.load(this.wdb)
@@ -3201,6 +3801,7 @@ export class PostgresCatalogRepository implements CatalogRepository {
       .update(products)
       .set({ identityConfidence: next, identityProvenance: provenance })
       .where(eq(products.id, productId))
+    await this.recordOutboxEvent("product", productId, "identity-promote")
     invalidateSnapshot(this.wdb, this.db)
     const fresh = await this.load(this.wdb)
     return identityOfProduct(fresh.products.find((p) => p.id === productId)!)
@@ -3249,6 +3850,7 @@ export class PostgresCatalogRepository implements CatalogRepository {
       visibleOnPdp: input.visibleOnPdp ?? true,
     }
     await this.wdb.insert(attributeDefinitions).values(row)
+    await this.recordOutboxEvent("attribute_definition", id, "upsert")
     invalidateSnapshot(this.wdb, this.db)
     return definitionDto({ ...row, allowedValues: row.allowedValues ?? null })
   }
@@ -3293,6 +3895,7 @@ export class PostgresCatalogRepository implements CatalogRepository {
         required: link.required ?? false,
       })
     }
+    await this.recordOutboxEvent("attribute_profile", id, "upsert")
     invalidateSnapshot(this.wdb, this.db)
     const fresh = await this.load(this.wdb)
     return profileDto(
@@ -3360,6 +3963,7 @@ export class PostgresCatalogRepository implements CatalogRepository {
           set: row,
         })
     }
+    await this.recordOutboxEvent("product", productId, "attributes")
     invalidateSnapshot(this.wdb, this.db)
     const fresh = await this.load(this.wdb)
     return fresh.productAttributeValues
@@ -3406,6 +4010,7 @@ export class PostgresCatalogRepository implements CatalogRepository {
       reviewedAt: null,
       createdAt: now,
     })
+    await this.recordOutboxEvent("product_match", id, "proposed")
     invalidateSnapshot(this.wdb, this.db)
     return {
       id,
@@ -3467,9 +4072,176 @@ export class PostgresCatalogRepository implements CatalogRepository {
         }
       }
     }
+    await this.recordOutboxEvent("product_match", id, decision)
     invalidateSnapshot(this.wdb, this.db)
     const fresh = await this.load(this.wdb)
     const updated = fresh.matchCandidates.find((m) => m.id === id)!
     return toMatchCandidateDto(updated)
+  }
+
+  // ── Phase 2A: outbox (Postgres) ──
+
+  async recordOutboxEvent(
+    entity: string,
+    entityId: string,
+    op: string,
+    payload?: Record<string, unknown> | null,
+  ): Promise<void> {
+    // Best-effort: the outbox accelerates the projection worker, which also
+    // rebuilds from source tables. A missing 0021 migration must never break
+    // catalog writes — apply via POST /admin/migrate/blueprint-phase2.
+    try {
+      await this.wdb.insert(searchOutbox).values({
+        id: crypto.randomUUID(),
+        entity,
+        entityId,
+        op,
+        payload: payload ?? null,
+        status: "pending",
+        attempts: 0,
+      })
+    } catch {
+      /* outbox unavailable — projection rebuild covers */
+    }
+  }
+
+  async outboxStatus(): Promise<{ pending: number; lastAt: string | null }> {
+    try {
+      const rows = await this.wdb
+        .select({ id: searchOutbox.id, createdAt: searchOutbox.createdAt })
+        .from(searchOutbox)
+        .where(eq(searchOutbox.status, "pending"))
+      const last = rows
+        .map((r) => r.createdAt?.getTime() ?? 0)
+        .reduce((a, b) => Math.max(a, b), 0)
+      return {
+        pending: rows.length,
+        lastAt: last > 0 ? new Date(last).toISOString() : null,
+      }
+    } catch {
+      return { pending: 0, lastAt: null }
+    }
+  }
+
+  // ── Phase 2: search + facets (Postgres; reads via snapshot) ──
+
+  async searchProducts(input: StoreSearchInput): Promise<StoreSearchDto> {
+    const data = await this.load()
+    const limit = Math.min(100, Math.max(1, Math.trunc(input.limit) || 20))
+    const offset = Math.max(0, Math.trunc(input.offset) || 0)
+    return searchFrom(data, { ...input, limit, offset })
+  }
+
+  async catalogFacets(category?: string): Promise<CatalogFacetsDto> {
+    const data = await this.load()
+    return facetsFrom(data, category)
+  }
+
+  // ── Phase 2C: alias governance (Postgres) ──
+
+  async listSearchAliases(
+    status?: "proposed" | "approved" | "rejected",
+  ): Promise<SearchAliasDto[]> {
+    const data = await this.load()
+    return data.searchAliases
+      .filter((a) => !status || a.status === status)
+      .map(toSearchAliasDto)
+  }
+
+  async proposeSearchAlias(
+    term: string,
+    target: string,
+    type: "synonym" | "redirect",
+  ): Promise<SearchAliasDto> {
+    const data = await this.load(this.wdb)
+    const cleanTerm = term.trim().toLowerCase()
+    const cleanTarget = target.trim()
+    if (!cleanTerm) throw new CatalogValidationError("term required")
+    if (!cleanTarget) throw new CatalogValidationError("target required")
+    const live = data.searchAliases.find(
+      (a) => a.term.toLowerCase() === cleanTerm && a.status !== "rejected",
+    )
+    if (live) throw new CatalogConflictError("term already governed")
+    const id = crypto.randomUUID()
+    const now = new Date()
+    await this.wdb.insert(searchAliases).values({
+      id,
+      term: term.trim(),
+      target: cleanTarget,
+      type,
+      status: "proposed",
+    })
+    await this.recordOutboxEvent("search_alias", id, "proposed", { term: term.trim() })
+    await this.recordOutboxEvent("search_alias", id, "proposed")
+    invalidateSnapshot(this.wdb, this.db)
+    return {
+      id,
+      term: term.trim(),
+      target: cleanTarget,
+      type,
+      status: "proposed",
+      reviewerId: null,
+      reviewedAt: null,
+      createdAt: now.toISOString(),
+    }
+  }
+
+  async reviewSearchAlias(
+    id: string,
+    decision: "approved" | "rejected",
+    reviewerId: string,
+  ): Promise<SearchAliasDto | null> {
+    const data = await this.load(this.wdb)
+    const row = data.searchAliases.find((a) => a.id === id)
+    if (!row) return null
+    if (row.status !== "proposed") {
+      throw new CatalogValidationError("only proposed aliases can be reviewed")
+    }
+    if (!reviewerId.trim()) throw new CatalogValidationError("reviewer required")
+    const reviewedAt = new Date()
+    await this.wdb
+      .update(searchAliases)
+      .set({ status: decision, reviewerId, reviewedAt })
+      .where(eq(searchAliases.id, id))
+    await this.recordOutboxEvent("search_alias", id, decision)
+    await this.recordOutboxEvent("search_alias", id, decision)
+    invalidateSnapshot(this.wdb, this.db)
+    const fresh = await this.load(this.wdb)
+    const updated = fresh.searchAliases.find((a) => a.id === id)!
+    return toSearchAliasDto(updated)
+  }
+
+  // ── Phase 2D: query telemetry (Postgres) ──
+
+  async logSearchQuery(query: string, resultCount: number): Promise<void> {
+    const q = query.trim()
+    if (!q) return
+    try {
+      await this.wdb.insert(searchQueryLog).values({
+        id: crypto.randomUUID(),
+        query: q.slice(0, 200),
+        resultCount,
+      })
+    } catch {
+      /* telemetry loss is acceptable; search must not fail */
+    }
+  }
+
+  async listZeroResultQueries(limit = 20): Promise<ZeroResultQueryDto[]> {
+    try {
+      const rows = await this.wdb
+        .select()
+        .from(searchQueryLog)
+        .where(eq(searchQueryLog.resultCount, 0))
+        .orderBy(desc(searchQueryLog.createdAt))
+        .limit(Math.min(100, Math.max(1, limit)))
+      return rows.map((r) => ({
+        query: r.query,
+        resultCount: r.resultCount,
+        at: r.createdAt ? r.createdAt.toISOString() : new Date(0).toISOString(),
+      }))
+    } catch {
+      return []
+    }
   }
 }

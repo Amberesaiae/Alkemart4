@@ -3,7 +3,7 @@
  * Never invents product IDs; only renders API hits.
  */
 import { getAlkemartApiUrl, getBackendUrl, getPublishableKey } from "./env"
-import { listStoreProducts, type StoreProductCard } from "./products"
+import { listStoreProducts, mapCfProductCard, type StoreProductCard } from "./products"
 
 function useWorkersSearch(): boolean {
   return Boolean(getAlkemartApiUrl())
@@ -33,8 +33,17 @@ export type SearchResponse = {
   query: string
   estimatedTotalHits: number
   facetDistribution: FacetDistribution
-  engine: "meilisearch" | "medusa" | "disabled" | "error"
+  engine: "workers" | "meilisearch" | "medusa" | "disabled" | "error"
   processingTimeMs?: number
+  /** Canonical target when a redirect alias matched (client navigates). */
+  redirect?: string | null
+  /** Provenance when a synonym alias rewrote the query. */
+  appliedAlias?: { term: string; kind: "synonym" | "redirect" } | null
+  /** Recovery candidates on zero results (categories/shops only, never filler). */
+  suggestions?: {
+    categories: Array<{ id: string; name: string; slug: string }>
+    shops: Array<{ handle: string; name: string }>
+  }
 }
 
 export type SearchFilters = {
@@ -88,32 +97,115 @@ export async function searchCatalog(opts: {
   const offset = opts.offset ?? 0
 
   if (useWorkersSearch()) {
-    const list = await listStoreProducts({
-      limit,
-      offset,
-      q: q || undefined,
-      categoryHandle: opts.filters?.category_handles?.[0],
-      sellerHandle: opts.filters?.seller_handles?.[0],
+    // Phase 2 Workers search: alias-aware, definition-backed facets with
+    // server counts. No Medusa fallback on this path by design.
+    const base = getAlkemartApiUrl()!.replace(/\/$/, "")
+    const params = new URLSearchParams({
+      q,
+      limit: String(limit),
+      offset: String(offset),
     })
-    return {
-      hits: list.products.map((p) => ({
-        id: p.id,
-        title: p.title,
-        description: p.description ?? undefined,
-        handle: p.handle,
-        thumbnail: p.thumbnail,
-        seller_id: p.seller?.id ?? null,
-        seller_handle: p.seller?.handle ?? null,
-        seller_name: p.seller?.name ?? null,
-        min_price: p.amount ?? null,
-        currency_code: p.currencyCode ?? null,
-        has_offer: Boolean(p.offerId),
-      })),
-      products: list.products,
-      query: q,
-      estimatedTotalHits: list.count,
-      facetDistribution: {},
-      engine: "disabled",
+    const category = opts.filters?.category_handles?.[0]?.trim()
+    if (category) params.set("category", category)
+    if (opts.filters?.min_price != null) {
+      params.set("priceMin", String(Math.round(Number(opts.filters.min_price) * 100)))
+    }
+    if (opts.filters?.max_price != null) {
+      params.set("priceMax", String(Math.round(Number(opts.filters.max_price) * 100)))
+    }
+    try {
+      const res = await fetch(`${base}/store/search?${params.toString()}`, {
+        headers: { Accept: "application/json" },
+      })
+      if (!res.ok) {
+        return {
+          hits: [],
+          products: [],
+          query: q,
+          estimatedTotalHits: 0,
+          facetDistribution: {},
+          engine: "error",
+        }
+      }
+      const data = (await res.json()) as {
+        items?: {
+          productId: string
+          title: string
+          imageUrl?: string | null
+          fromPricePesewas?: string
+          currency?: string
+          sellerId?: string
+          sellerHandle?: string
+          sellerName?: string
+          categoryHandle?: string
+          categoryName?: string
+        }[]
+        total?: number
+        redirect?: string | null
+        appliedAlias?: { term: string; kind: "synonym" | "redirect" } | null
+        facetDistribution?: FacetDistribution
+        suggestions?: SearchResponse["suggestions"]
+      }
+      let products = (data.items ?? []).map((item) =>
+        mapCfProductCard({
+          productId: item.productId,
+          title: item.title,
+          imageUrl: item.imageUrl ?? null,
+          fromPricePesewas: item.fromPricePesewas ?? "0",
+          bestOfferId: "",
+          offerCount: 1,
+          sellerId: item.sellerId ?? "",
+          sellerHandle: item.sellerHandle ?? "",
+          sellerName: item.sellerName ?? "",
+          availableQty: 1,
+          createdAt: null,
+          currency: "ghs",
+          categoryHandle: item.categoryHandle ?? "",
+          categoryName: item.categoryName ?? "",
+        }),
+      )
+      // Seller-handle narrowing has no server filter yet (shops are a
+      // separate result type in Doc 03); narrow the real result set locally.
+      const sellerHandles = (opts.filters?.seller_handles ?? [])
+        .map((h) => h.trim().toLowerCase())
+        .filter(Boolean)
+      if (sellerHandles.length > 0) {
+        products = products.filter((p) =>
+          sellerHandles.includes((p.seller?.handle ?? "").toLowerCase()),
+        )
+      }
+      return {
+        hits: products.map((p) => ({
+          id: p.id,
+          title: p.title,
+          description: p.description ?? undefined,
+          handle: p.handle,
+          thumbnail: p.thumbnail,
+          seller_id: p.seller?.id ?? null,
+          seller_handle: p.seller?.handle ?? null,
+          seller_name: p.seller?.name ?? null,
+          min_price: p.amount ?? null,
+          currency_code: p.currencyCode ?? null,
+          has_offer: Boolean(p.offerId),
+        })),
+        products,
+        query: q,
+        estimatedTotalHits: sellerHandles.length > 0 ? products.length : (data.total ?? 0),
+        facetDistribution: data.facetDistribution ?? {},
+        engine: "workers",
+        redirect: data.redirect ?? null,
+        appliedAlias: data.appliedAlias ?? null,
+        suggestions: data.suggestions,
+      }
+    } catch {
+      return {
+        hits: [],
+        products: [],
+        query: q,
+        estimatedTotalHits: 0,
+        facetDistribution: {},
+        engine: "error",
+      }
     }
   }
 

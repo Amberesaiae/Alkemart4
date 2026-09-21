@@ -121,3 +121,12 @@ catalog.get("/popular", async (c) => {
   return c.json({ items: withRatings(items, totals), total: items.length })
 })
 
+/**
+ * Phase 2B — definition-backed facets with server counts for a category
+ * (or the whole sellable catalogue). Never derived from free-form JSON.
+ */
+catalog.get("/facets", async (c) => {
+  const category = c.req.query("category")?.trim() || undefined
+  return c.json(await c.get("repo").catalogFacets(category))
+})
+
