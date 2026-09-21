@@ -157,11 +157,16 @@ export function productJsonLd(p: {
   currencyCode?: string | null
   path: string
   sellerName?: string | null
+  /** True manufacturer/product brand (Phase 1 `products.brand`). Omit when unknown. */
+  brandName?: string | null
 }): Record<string, unknown> {
   const url = absoluteUrl(p.path)
   const desc = p.description
     ? truncateMeta(stripHtml(p.description), 300)
     : undefined
+
+  const seller = p.sellerName?.trim() || undefined
+  const brand = p.brandName?.trim() || undefined
 
   const offers: Record<string, unknown> | undefined =
     p.amount != null && p.currencyCode
@@ -171,6 +176,10 @@ export function productJsonLd(p: {
           priceCurrency: p.currencyCode.toUpperCase(),
           availability: "https://schema.org/InStock",
           url,
+          // Seller identity belongs to the offer, never to Brand.
+          ...(seller
+            ? { seller: { "@type": "Organization", name: seller } }
+            : {}),
         }
       : undefined
 
@@ -182,9 +191,9 @@ export function productJsonLd(p: {
     image: p.thumbnail ? [p.thumbnail] : undefined,
     sku: p.id,
     url,
-    brand: p.sellerName
-      ? { "@type": "Brand", name: p.sellerName }
-      : { "@type": "Brand", name: SITE },
+    // Brand is the manufacturer/product brand only. Omitted when unknown —
+    // never the seller, never the marketplace fallback (blueprint Doc 08).
+    ...(brand ? { brand: { "@type": "Brand", name: brand } } : {}),
     offers,
   }
 }

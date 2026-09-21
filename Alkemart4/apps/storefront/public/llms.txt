@@ -3,16 +3,16 @@
 > Multi-vendor marketplace for Ghana — compare multi-seller prices and shop with cash on delivery.
 
 ## Site
-- Home: https://alkemart-storefront.vercel.app/
-- About: https://alkemart-storefront.vercel.app/about
-- Contact: https://alkemart-storefront.vercel.app/contact
-- Catalog: https://alkemart-storefront.vercel.app/categories/all
-- Shops: https://alkemart-storefront.vercel.app/shops
-- Help: https://alkemart-storefront.vercel.app/help
-- Privacy: https://alkemart-storefront.vercel.app/privacy
-- Sell: https://alkemart-storefront.vercel.app/sell
-- Partners: https://alkemart-storefront.vercel.app/partners
-- Sitemap: https://alkemart-storefront.vercel.app/sitemap.xml
+- Home: https://alkemart4-storefront.pages.dev/
+- About: https://alkemart4-storefront.pages.dev/about
+- Contact: https://alkemart4-storefront.pages.dev/contact
+- Catalog: https://alkemart4-storefront.pages.dev/categories/all
+- Shops: https://alkemart4-storefront.pages.dev/shops
+- Help: https://alkemart4-storefront.pages.dev/help
+- Privacy: https://alkemart4-storefront.pages.dev/privacy
+- Sell: https://alkemart4-storefront.pages.dev/sell
+- Partners: https://alkemart4-storefront.pages.dev/partners
+- Sitemap: https://alkemart4-storefront.pages.dev/sitemap.xml
 
 ## API
 - Health: https://alkemart-api-production.up.railway.app/health

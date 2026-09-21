@@ -1,4 +1,4 @@
-import { bigint, boolean, integer, pgTable, text, uniqueIndex } from "drizzle-orm/pg-core"
+import { bigint, boolean, integer, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core"
 import { productVariants, products } from "./products"
 import { sellers } from "./sellers"
 
@@ -21,6 +21,20 @@ export const offers = pgTable(
     reserved: integer("reserved").notNull().default(0),
     currency: text("currency").notNull().default("ghs"),
     active: boolean("active").notNull().default(true),
+    // ── Phase 3A additions (nullable; unknown stays honest, never fabricated) ──
+    /** `new` | `locally_used` | `refurbished` … governed per category. */
+    condition: text("condition"),
+    /** Real reference price; %-off labels require provenance (domain rule). */
+    compareAtPesewas: bigint("compare_at_pesewas", { mode: "bigint" }),
+    compareAtProvenance: text("compare_at_provenance"),
+    /** Where fulfillment originates (shop/warehouse + area). */
+    fulfillmentOrigin: text("fulfillment_origin"),
+    warrantyRef: text("warranty_ref"),
+    returnsRef: text("returns_ref"),
+    deliveryPromise: text("delivery_promise"),
+    /** Last verified price/stock signal; stale offers suppress. */
+    freshnessAt: timestamp("freshness_at", { withTimezone: true }),
+    publishedAt: timestamp("published_at", { withTimezone: true }),
   },
   (table) => [
     uniqueIndex("offers_seller_product_variant_uidx").on(

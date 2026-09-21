@@ -12,4 +12,4 @@ Disallow: /login
 Disallow: /signin
 
 # Sitemap (absolute production origin)
-Sitemap: https://alkemart-storefront.vercel.app/sitemap.xml
+Sitemap: https://alkemart4-storefront.pages.dev/sitemap.xml

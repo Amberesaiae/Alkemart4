@@ -6,52 +6,52 @@
 -->
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://alkemart-storefront.vercel.app/</loc>
+    <loc>https://alkemart4-storefront.pages.dev/</loc>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://alkemart-storefront.vercel.app/about</loc>
+    <loc>https://alkemart4-storefront.pages.dev/about</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://alkemart-storefront.vercel.app/contact</loc>
+    <loc>https://alkemart4-storefront.pages.dev/contact</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://alkemart-storefront.vercel.app/categories/all</loc>
+    <loc>https://alkemart4-storefront.pages.dev/categories/all</loc>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://alkemart-storefront.vercel.app/shops</loc>
+    <loc>https://alkemart4-storefront.pages.dev/shops</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://alkemart-storefront.vercel.app/search</loc>
+    <loc>https://alkemart4-storefront.pages.dev/search</loc>
     <changefreq>weekly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
-    <loc>https://alkemart-storefront.vercel.app/sell</loc>
+    <loc>https://alkemart4-storefront.pages.dev/sell</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://alkemart-storefront.vercel.app/partners</loc>
+    <loc>https://alkemart4-storefront.pages.dev/partners</loc>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
-    <loc>https://alkemart-storefront.vercel.app/help</loc>
+    <loc>https://alkemart4-storefront.pages.dev/help</loc>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
-    <loc>https://alkemart-storefront.vercel.app/privacy</loc>
+    <loc>https://alkemart4-storefront.pages.dev/privacy</loc>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
   </url>

@@ -1,8 +1,26 @@
 export { markets } from "./markets"
-export { categories } from "./categories"
+export { taxonomyStatusEnum, categories } from "./categories"
 export { sellerStatusEnum, sellerAvailabilityEnum, sellers } from "./sellers"
-export { productStatusEnum, products, productVariants } from "./products"
+export {
+  productStatusEnum,
+  identityConfidenceEnum,
+  products,
+  productVariants,
+} from "./products"
 export { offers } from "./offers"
+export {
+  attributeTypeEnum,
+  attributeDefinitions,
+  attributeProfiles,
+  profileAttributes,
+  productAttributeValues,
+} from "./attribute-definitions"
+export { matchCandidateStatusEnum, productMatchCandidates } from "./product-matches"
+export {
+  collectionVisibilityEnum,
+  collections,
+  collectionProducts,
+} from "./collections"
 export { userRoleEnum, users, sellerMemberRoleEnum, sellerMembers } from "./users"
 export { carts, cartItems } from "./carts"
 export {

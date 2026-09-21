@@ -1,4 +1,11 @@
-import { jsonb, pgEnum, pgTable, text, timestamp } from "drizzle-orm/pg-core"
+import {
+  integer,
+  jsonb,
+  pgEnum,
+  pgTable,
+  text,
+  timestamp,
+} from "drizzle-orm/pg-core"
 import { categories } from "./categories"
 import { sellers } from "./sellers"
 
@@ -7,6 +14,13 @@ export const productStatusEnum = pgEnum("product_status", [
   "proposed",
   "published",
   "rejected",
+])
+
+/** Blueprint Phase 1B — product identity confidence (ADR-002). */
+export const identityConfidenceEnum = pgEnum("identity_confidence", [
+  "identified",
+  "matched",
+  "seller_specific",
 ])
 
 /** Canonical catalog content. Price and stock live on offers, never here. */
@@ -24,6 +38,21 @@ export const products = pgTable("products", {
   /** Structured facts about the item ({label, value}[]), not variant axes. */
   attributes: jsonb("attributes").$type<{ label: string; value: string }[]>(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  // ── Phase 1B additions (nullable; legacy rows read as seller_specific) ──
+  /** Manufacturer / product brand — the ONLY source for JSON-LD Brand. */
+  brand: text("brand"),
+  /** Model / product family, e.g. `Spark 20`. */
+  model: text("model"),
+  gtin: text("gtin"),
+  mpn: text("mpn"),
+  manufacturer: text("manufacturer"),
+  /** Governed product type, e.g. `smartphone`. */
+  productType: text("product_type"),
+  identityConfidence: identityConfidenceEnum("identity_confidence").notNull().default(
+    "seller_specific",
+  ),
+  /** How confidence was established (rule id, reviewer, evidence refs). */
+  identityProvenance: jsonb("identity_provenance").$type<Record<string, unknown>>(),
 })
 
 export const productVariants = pgTable("product_variants", {
@@ -33,4 +62,10 @@ export const productVariants = pgTable("product_variants", {
     .references(() => products.id),
   sku: text("sku").unique(),
   title: text("title"),
+  // ── Phase 1B additions ──
+  /** Variant-specific image; falls back to product image when null. */
+  imageUrl: text("image_url"),
+  weightGrams: integer("weight_grams"),
+  /** Variant-level identifier (GTIN/SKU override) when known. */
+  gtin: text("gtin"),
 })

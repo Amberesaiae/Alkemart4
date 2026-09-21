@@ -230,3 +230,138 @@ export function trackSellerStoreViewed(p: {
     seller_id: p.sellerId ?? undefined,
   })
 }
+
+/**
+ * Blueprint Doc 10 canonical discovery/comparison/merchandising vocabulary.
+ * Additive only — legacy `AnalyticsEvents` names above are untouched.
+ * All functions are env-gated no-ops without a PostHog key and never throw.
+ */
+
+export function trackCategoryViewed(p: {
+  categoryId: string
+  slug?: string | null
+}): void {
+  track("category_viewed", {
+    category_id: p.categoryId,
+    slug: p.slug ?? undefined,
+  })
+}
+
+export function trackCollectionViewed(p: {
+  collectionId: string
+  sellerId?: string | null
+}): void {
+  track("collection_viewed", {
+    collection_id: p.collectionId,
+    seller_id: p.sellerId ?? undefined,
+  })
+}
+
+export function trackFilterApplied(p: {
+  dimension: string
+  value: string
+  categoryId?: string | null
+}): void {
+  track("filter_applied", {
+    dimension: p.dimension,
+    value: p.value,
+    category_id: p.categoryId ?? undefined,
+  })
+}
+
+export function trackFilterRemoved(p: {
+  dimension: string
+  value: string
+}): void {
+  track("filter_removed", { dimension: p.dimension, value: p.value })
+}
+
+export function trackSearchZeroResults(p: { query: string }): void {
+  const query = p.query.trim()
+  if (!query) return
+  track("search_zero_results", { query })
+}
+
+export function trackSearchRefined(p: { query: string; fromQuery?: string }): void {
+  const query = p.query.trim()
+  if (!query) return
+  track("search_refined", { query, from_query: p.fromQuery ?? undefined })
+}
+
+export function trackComparisonOpened(p: {
+  productId: string
+  variantId?: string | null
+  offerCount: number
+}): void {
+  track("comparison_opened", {
+    product_id: p.productId,
+    variant_id: p.variantId ?? undefined,
+    offer_count: p.offerCount,
+  })
+}
+
+export function trackOfferSelected(p: {
+  productId: string
+  variantId?: string | null
+  offerId: string
+  sellerId?: string | null
+}): void {
+  track("offer_selected", {
+    product_id: p.productId,
+    variant_id: p.variantId ?? undefined,
+    offer_id: p.offerId,
+    seller_id: p.sellerId ?? undefined,
+  })
+}
+
+export function trackVariantSelected(p: {
+  productId: string
+  variantId: string
+}): void {
+  track("variant_selected", {
+    product_id: p.productId,
+    variant_id: p.variantId,
+  })
+}
+
+export function trackDeliveryChecked(p: {
+  productId?: string | null
+  offerId?: string | null
+  area?: string | null
+  eligible?: boolean
+}): void {
+  track("delivery_checked", {
+    product_id: p.productId ?? undefined,
+    offer_id: p.offerId ?? undefined,
+    area: p.area ?? undefined,
+    eligible: p.eligible ?? undefined,
+  })
+}
+
+export function trackPromotionViewed(p: {
+  placementId: string
+  campaignId: string
+  creativeId?: string | null
+  position?: number | null
+}): void {
+  track("view_promotion", {
+    placement_id: p.placementId,
+    campaign_id: p.campaignId,
+    creative_id: p.creativeId ?? undefined,
+    position: p.position ?? undefined,
+  })
+}
+
+export function trackPromotionSelected(p: {
+  placementId: string
+  campaignId: string
+  creativeId?: string | null
+  position?: number | null
+}): void {
+  track("select_promotion", {
+    placement_id: p.placementId,
+    campaign_id: p.campaignId,
+    creative_id: p.creativeId ?? undefined,
+    position: p.position ?? undefined,
+  })
+}
