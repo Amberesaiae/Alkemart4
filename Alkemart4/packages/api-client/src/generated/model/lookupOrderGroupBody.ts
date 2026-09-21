@@ -13,11 +13,7 @@ Checkout charge/initialize is documented under /store/checkout.
  * OpenAPI spec version: 0.5.0
  */
 
-export interface CategoryNode {
-  id: string;
-  handle: string;
-  name: string;
-  /** @nullable */
-  parentId: string | null;
-  children: CategoryNode[];
-}
+export type LookupOrderGroupBody = {
+  orderId: string;
+  email: string;
+};

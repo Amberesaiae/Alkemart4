@@ -1,4 +1,4 @@
-CREATE TABLE "content_pages" (
+CREATE TABLE IF NOT EXISTS "content_pages" (
   "key" text PRIMARY KEY NOT NULL,
   "revision" integer DEFAULT 1 NOT NULL,
   "draft_sections" jsonb DEFAULT '[]'::jsonb NOT NULL,

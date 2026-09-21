@@ -34,10 +34,12 @@ export type AppHeaderProps = {
 /**
  * MOWAFER-shaped commerce header:
  *
- *   [Logo]  [======== Search ========]  [Account] [Cart]
- *   [Deliver to] [Departments........................] [Stores]
+ *   [Logo] [Deliver to] [======== Search ========] [Account] [Cart]
+ *   [Departments................................................] [Stores]
  *
- * Mobile: logo + account/cart; full-width search; location + browse context.
+ * Mobile: logo + account/cart; full-width search; taxonomy context row.
+ * Delivery area sits in the primary row (compact) so eligibility and total
+ * cost are visible before any product decision (blueprint Doc 03).
  */
 export function AppHeader({
   cartCount,
@@ -293,7 +295,7 @@ export function AppHeader({
                         search: { category: [category.handle || category.id] },
                       })
                     }}
-                    className="flex min-h-12 items-center gap-2 rounded-xl border border-border px-3 text-left text-sm font-bold transition hover:border-primary hover:bg-primary/5"
+                    className="flex min-h-12 items-center gap-2 rounded-xl border border-border px-3 text-left text-sm font-bold transition hover:border-primary hover:bg-muted"
                   >
                     <IconSafe name={iconForCategory(category.name, category.handle)} size={17} className="text-primary" />
                     <span className="line-clamp-2">{category.name}</span>

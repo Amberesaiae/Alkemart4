@@ -8,9 +8,9 @@ Money fields are integer pesewas encoded as decimal strings.
 No major-unit `price` fields.
 Seller payouts use Paystack transfer recipients (`recipientCode`) only —
 never Stripe, Flutterwave, or a generic multi-PSP interface.
-Checkout charge/initialize is Plan 3 (not documented here).
+Checkout charge/initialize is documented under /store/checkout.
 
- * OpenAPI spec version: 0.4.0
+ * OpenAPI spec version: 0.5.0
  */
 import type {
   AddCartItemBody,
@@ -23,10 +23,15 @@ import type {
   CreateAdminPayoutBody,
   CreateCart201,
   CreateCheckoutBody,
+  CreateStoreReviewBody,
   CreateVendorProductRequest,
   Credentials,
   GetCatalogParams,
+  GetCheckoutStatusParams,
+  GetPopularProducts200,
+  GetPopularProductsParams,
   GhanaSetupRequest,
+  LookupOrderGroupBody,
   PatchVendorProductRequest,
   PaystackWebhookBody,
   ProductDetail,
@@ -101,6 +106,69 @@ export const getCatalog = async (params?: GetCatalogParams, options?: RequestIni
 
 
 /**
+ * window=7d ranks by units sold in the last week (Trending); no window
+ranks all time (Most ordered). Products with no orders never appear —
+an empty shelf renders empty rather than degrading into an arbitrary
+catalogue slice dressed up as popular.
+
+ * @summary Popularity shelves from real orders only
+ */
+export const getGetPopularProductsUrl = (params?: GetPopularProductsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/store/catalog/popular?${stringifiedParams}` : `/store/catalog/popular`
+}
+
+export const getPopularProducts = async (params?: GetPopularProductsParams, options?: RequestInit): Promise<GetPopularProducts200> => {
+  
+  return customFetch<GetPopularProducts200>(getGetPopularProductsUrl(params),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+/**
+ * Serves the published Studio snapshot (content_pages compat reader).
+Cacheable: max-age=60, stale-while-revalidate=300.
+
+ * @summary Published homepage sections
+ */
+export const getGetStoreHomepageUrl = () => {
+
+
+  
+
+  return `/store/homepage`
+}
+
+export const getStoreHomepage = async ( options?: RequestInit): Promise<void> => {
+  
+  return customFetch<void>(getGetStoreHomepageUrl(),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+/**
  * Returns product content plus all sellable peer offers, cheapest first.
 `offers` may be empty when the product exists but none are sellable.
 Never includes a product-level price field.
@@ -118,6 +186,35 @@ export const getGetProductUrl = (id: string,) => {
 export const getProduct = async (id: string, options?: RequestInit): Promise<ProductDetail> => {
   
   return customFetch<ProductDetail>(getGetProductUrl(id),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+/**
+ * Everything a buyer needs to choose a shop without opening it.
+Aggregates are batched (one review roll-up, one order roll-up, one
+featured-picks read). Ratings are omitted — never zeroed — when a shop
+is unreviewed. Paused shops are marked, not hidden.
+
+ * @summary Open-shop cards for the Stores index
+ */
+export const getListSellerShopsUrl = () => {
+
+
+  
+
+  return `/store/sellers`
+}
+
+export const listSellerShops = async ( options?: RequestInit): Promise<void> => {
+  
+  return customFetch<void>(getListSellerShopsUrl(),
   {      
     ...options,
     method: 'GET'
@@ -798,6 +895,145 @@ export const createCheckout = async (createCheckoutBody: CreateCheckoutBody, opt
     headers: { 'Content-Type': 'application/json', ...options?.headers },
     body: JSON.stringify(
       createCheckoutBody,)
+  }
+);}
+
+
+
+/**
+ * MoMo/card intents re-verify with Paystack when pending, so a poll
+that arrives before the webhook can still complete. Statuses:
+completed | failed | payment_pending.
+
+ * @summary Poll payment intent state by cart
+ */
+export const getGetCheckoutStatusUrl = (params?: GetCheckoutStatusParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/store/checkout/status?${stringifiedParams}` : `/store/checkout/status`
+}
+
+export const getCheckoutStatus = async (params?: GetCheckoutStatusParams, options?: RequestInit): Promise<void> => {
+  
+  return customFetch<void>(getGetCheckoutStatusUrl(params),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+/**
+ * Order must be delivered and the email must match the order group.
+One review per order (409 on duplicate). New reviews start pending
+for admin moderation.
+
+ * @summary Verified-purchase review (delivered orders only)
+ */
+export const getCreateStoreReviewUrl = () => {
+
+
+  
+
+  return `/store/reviews`
+}
+
+export const createStoreReview = async (createStoreReviewBody: CreateStoreReviewBody, options?: RequestInit): Promise<void> => {
+  
+  return customFetch<void>(getCreateStoreReviewUrl(),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      createStoreReviewBody,)
+  }
+);}
+
+
+
+/**
+ * @summary Buyer order groups for the signed-in user
+ */
+export const getListBuyerOrdersUrl = () => {
+
+
+  
+
+  return `/store/orders`
+}
+
+export const listBuyerOrders = async ( options?: RequestInit): Promise<void> => {
+  
+  return customFetch<void>(getListBuyerOrdersUrl(),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+/**
+ * Same 404 whether the order is missing or the email mismatches (anti-enumeration).
+ * @summary Guest order lookup by order/group id + email
+ */
+export const getLookupOrderGroupUrl = () => {
+
+
+  
+
+  return `/store/orders/lookup`
+}
+
+export const lookupOrderGroup = async (lookupOrderGroupBody: LookupOrderGroupBody, options?: RequestInit): Promise<void> => {
+  
+  return customFetch<void>(getLookupOrderGroupUrl(),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      lookupOrderGroupBody,)
+  }
+);}
+
+
+
+/**
+ * Bearer JWT must match the group buyer email; otherwise 404 (guest flow uses POST /store/orders/lookup).
+ * @summary Order group by group id or order id
+ */
+export const getGetOrderGroupUrl = (id: string,) => {
+
+
+  
+
+  return `/store/orders/${id}`
+}
+
+export const getOrderGroup = async (id: string, options?: RequestInit): Promise<void> => {
+  
+  return customFetch<void>(getGetOrderGroupUrl(id),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
   }
 );}
 

@@ -13,11 +13,11 @@ Checkout charge/initialize is documented under /store/checkout.
  * OpenAPI spec version: 0.5.0
  */
 
-export interface CategoryNode {
-  id: string;
-  handle: string;
-  name: string;
-  /** @nullable */
-  parentId: string | null;
-  children: CategoryNode[];
-}
+export type GetPopularProductsWindow = typeof GetPopularProductsWindow[keyof typeof GetPopularProductsWindow];
+
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export const GetPopularProductsWindow = {
+  '7d': '7d',
+  '30d': '30d',
+} as const;

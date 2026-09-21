@@ -8,9 +8,9 @@ Money fields are integer pesewas encoded as decimal strings.
 No major-unit `price` fields.
 Seller payouts use Paystack transfer recipients (`recipientCode`) only —
 never Stripe, Flutterwave, or a generic multi-PSP interface.
-Checkout charge/initialize is Plan 3 (not documented here).
+Checkout charge/initialize is documented under /store/checkout.
 
- * OpenAPI spec version: 0.4.0
+ * OpenAPI spec version: 0.5.0
  */
 
 export * from './addCartItemBody';
@@ -32,6 +32,7 @@ export * from './createCheckoutBody';
 export * from './createCheckoutBodyMethod';
 export * from './createCheckoutBodyMomo';
 export * from './createCheckoutBodyMomoProvider';
+export * from './createStoreReviewBody';
 export * from './createVendorProductRequest';
 export * from './credentials';
 export * from './currency';
@@ -39,8 +40,13 @@ export * from './errorResponse';
 export * from './forbiddenResponse';
 export * from './getCatalogParams';
 export * from './getCatalogSort';
+export * from './getCheckoutStatusParams';
+export * from './getPopularProducts200';
+export * from './getPopularProductsParams';
+export * from './getPopularProductsWindow';
 export * from './ghanaSetupRequest';
 export * from './ghanaSetupRequestMomo';
+export * from './lookupOrderGroupBody';
 export * from './notFoundResponse';
 export * from './patchVendorProductRequest';
 export * from './paystackMomoProvider';

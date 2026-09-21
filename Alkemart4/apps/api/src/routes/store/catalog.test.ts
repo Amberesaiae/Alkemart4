@@ -32,7 +32,7 @@ describe("GET /store/catalog", () => {
 
   it("joins published ratings onto cards and leaves unrated cards bare", async () => {
     const data = snapshotFromJson(fixture as JsonCatalogSnapshot)
-    const checkoutRepo = new InMemoryCheckoutRepository()
+    const checkoutRepo = new InMemoryCheckoutRepository(data)
     const app = createApp({ repo: new InMemoryCatalogRepository(data), checkoutRepo })
 
     const review = await checkoutRepo.createReview({

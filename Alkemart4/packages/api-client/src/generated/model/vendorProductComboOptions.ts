@@ -8,9 +8,9 @@ Money fields are integer pesewas encoded as decimal strings.
 No major-unit `price` fields.
 Seller payouts use Paystack transfer recipients (`recipientCode`) only —
 never Stripe, Flutterwave, or a generic multi-PSP interface.
-Checkout charge/initialize is Plan 3 (not documented here).
+Checkout charge/initialize is documented under /store/checkout.
 
- * OpenAPI spec version: 0.4.0
+ * OpenAPI spec version: 0.5.0
  */
 
 /**

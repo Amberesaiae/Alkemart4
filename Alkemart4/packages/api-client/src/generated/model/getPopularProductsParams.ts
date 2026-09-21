@@ -12,12 +12,13 @@ Checkout charge/initialize is documented under /store/checkout.
 
  * OpenAPI spec version: 0.5.0
  */
+import type { GetPopularProductsWindow } from './getPopularProductsWindow';
 
-export interface CategoryNode {
-  id: string;
-  handle: string;
-  name: string;
-  /** @nullable */
-  parentId: string | null;
-  children: CategoryNode[];
-}
+export type GetPopularProductsParams = {
+window?: GetPopularProductsWindow;
+/**
+ * @minimum 1
+ * @maximum 48
+ */
+limit?: number;
+};

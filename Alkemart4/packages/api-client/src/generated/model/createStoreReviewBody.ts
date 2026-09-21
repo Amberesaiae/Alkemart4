@@ -13,11 +13,19 @@ Checkout charge/initialize is documented under /store/checkout.
  * OpenAPI spec version: 0.5.0
  */
 
-export interface CategoryNode {
-  id: string;
-  handle: string;
-  name: string;
-  /** @nullable */
-  parentId: string | null;
-  children: CategoryNode[];
-}
+export type CreateStoreReviewBody = {
+  orderId: string;
+  buyerEmail: string;
+  /**
+   * @minimum 1
+   * @maximum 5
+   */
+  rating: number;
+  /**
+   * @maxLength 120
+   * @nullable
+   */
+  title?: string | null;
+  /** @maxLength 2000 */
+  body: string;
+};

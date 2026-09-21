@@ -27,16 +27,25 @@ describe("global commerce header", () => {
   })
 
   it("uses icon-only search actions in desktop and mobile forms", () => {
-    expect(headerSource.match(/aria-label="Search"/g)).toHaveLength(2)
+    // Both search forms expose the filter sheet via an icon-only button;
+    // there are no text-labeled "Search" submit buttons (submit is Enter).
+    expect(headerSource.match(/aria-label="Open search filters"/g)).toHaveLength(2)
     expect(headerSource).not.toMatch(/>\s*Search\s*</)
   })
 
-  it("keeps location outside the primary commerce row", () => {
+  it("keeps delivery area visible in the primary commerce row", () => {
+    // Redesign decision (bc9fe17): compact DeliverToPicker lives in the
+    // primary row so delivery eligibility is visible before any product
+    // decision; the taxonomy row below carries browse context only.
     const primaryStart = headerSource.indexOf("Primary commerce row")
-    const contextStart = headerSource.indexOf("Mowafer-style taxonomy row")
+    const contextStart = headerSource.indexOf(
+      "Full-width, horizontally scrollable taxonomy row.",
+    )
     const picker = headerSource.indexOf("<DeliverToPicker", primaryStart)
     expect(primaryStart).toBeGreaterThan(-1)
     expect(contextStart).toBeGreaterThan(primaryStart)
-    expect(picker).toBeGreaterThan(contextStart)
+    expect(picker).toBeGreaterThan(primaryStart)
+    expect(picker).toBeLessThan(contextStart)
+    expect(headerSource.match(/<DeliverToPicker/g)).toHaveLength(1)
   })
 })
