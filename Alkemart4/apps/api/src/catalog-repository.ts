@@ -62,8 +62,9 @@ import {
   type ProductDetailDto,
   type ProductStatus,
 } from "@alkemart/domain"
-import { and, desc, eq, ilike, inArray, or } from "drizzle-orm"
+import { and, desc, eq, ilike, inArray, or, sql } from "drizzle-orm"
 import { withTransientRetry } from "./db"
+import { SEARCH_CONFIG } from "./config"
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js"
 import { flagCatalogProduct, flaggingContext, type ProductFlag } from "./moderation-flags"
 import {
@@ -517,6 +518,12 @@ export type StoreSearchInput = {
   sort?: CatalogSort
   limit: number
   offset: number
+  /**
+   * Trigram-ranked product ids (best first). When present, token scoring is
+   * bypassed: typo matches would score 0 on exact tokens. Order is preserved
+   * through to cards unless an explicit sort overrides it.
+   */
+  rankedIds?: string[]
 }
 
 export type StoreSearchDto = {
@@ -1933,10 +1940,20 @@ export function searchFrom(data: SearchableData, input: StoreSearchInput): Store
   }
 
   // Relevance pre-sort (cardsFor title-sorts, so score here first).
-  let scored = rows.map((p) => ({ p, score: tokens.length > 0 ? scoreProduct(p, tokens) : 1 }))
-  if (tokens.length > 0) scored = scored.filter((s) => s.score > 0)
-  scored.sort((a, b) => b.score - a.score || a.p.title.localeCompare(b.p.title))
-  rows = scored.map((s) => s.p)
+  // Trigram path: ids arrive pre-ranked (typo matches score 0 on exact
+  // tokens, so scoring must not run). Unknown ids sink, never vanish silently.
+  if (input.rankedIds) {
+    const rank = new Map(input.rankedIds.map((id, i) => [id, i] as const))
+    rows.sort(
+      (a, b) =>
+        (rank.get(a.id) ?? Number.MAX_SAFE_INTEGER) - (rank.get(b.id) ?? Number.MAX_SAFE_INTEGER),
+    )
+  } else {
+    let scored = rows.map((p) => ({ p, score: tokens.length > 0 ? scoreProduct(p, tokens) : 1 }))
+    if (tokens.length > 0) scored = scored.filter((s) => s.score > 0)
+    scored.sort((a, b) => b.score - a.score || a.p.title.localeCompare(b.p.title))
+    rows = scored.map((s) => s.p)
+  }
 
   // Typed attribute filters (unknown codes match nothing — routes 400 first).
   const defByCode = new Map(data.attributeDefinitions.map((d) => [d.code.toLowerCase(), d]))
@@ -2842,6 +2859,7 @@ export class InMemoryCatalogRepository implements CatalogRepository {
     const offset = Math.max(0, Math.trunc(input.offset) || 0)
     return searchFrom(this.data, { ...input, limit, offset })
   }
+
 
   async catalogFacets(category?: string): Promise<CatalogFacetsDto> {
     return facetsFrom(this.data, category)
@@ -5042,10 +5060,144 @@ export class PostgresCatalogRepository implements CatalogRepository {
   // ── Phase 2: search + facets (Postgres; reads via snapshot) ──
 
   async searchProducts(input: StoreSearchInput): Promise<StoreSearchDto> {
-    const data = await this.load()
     const limit = Math.min(100, Math.max(1, Math.trunc(input.limit) || 20))
     const offset = Math.max(0, Math.trunc(input.offset) || 0)
-    return searchFrom(data, { ...input, limit, offset })
+    const { slice, rankedIds } = await this.searchSlice(input)
+    return searchFrom(slice, { ...input, limit, offset, rankedIds })
+  }
+
+  /**
+   * Search slice dispatcher. Alias resolution runs first (synonyms rewrite
+   * the ranked query; redirects short-circuit to an empty slice and
+   * `searchFrom` returns the redirect DTO). Empty queries browse all
+   * published; text queries rank via trigram.
+   */
+  private async searchSlice(
+    input: StoreSearchInput,
+  ): Promise<{ slice: CatalogSnapshot; rankedIds?: string[] }> {
+    const raw = normalizeQuery(input.q)
+    const aliasRows = await this.db.select().from(searchAliases)
+    const approved = aliasRows
+      .filter((a) => a.status === "approved")
+      .map((a) => ({ term: a.term, target: a.target, type: a.type }))
+    const applied = applyAliases(raw, approved)
+    if (applied.kind === "redirect") {
+      return { slice: await this.sliceForSearch([]), rankedIds: [] }
+    }
+    const q = applied.kind === "synonym" ? applied.query : raw
+    if (queryTokens(q).length === 0) return { slice: await this.sliceForSearch(null) }
+    const ids = await this.rankedProductIds(q)
+    return { slice: await this.sliceForSearch(ids), rankedIds: ids }
+  }
+
+  /**
+   * Trigram-ranked candidate product ids (agnostic plan Phase 5). Threshold
+   * is session-scoped (SET LOCAL in-tx) so concurrent workloads keep their
+   * own tuning; `%` + ILIKE keep the GIN indexes hot. Ordered by `<->`
+   * distance (best first). Cap is a safety valve, never silent (warns).
+   */
+  private async rankedProductIds(q: string): Promise<string[]> {
+    const like = `%${escapeLike(q)}%`
+    const rows = await withTransientRetry(() =>
+      this.db.transaction(async (tx) => {
+        await tx.execute(
+          sql`SET LOCAL pg_trgm.similarity_threshold = ${SEARCH_CONFIG.trgmThreshold}`,
+        )
+        return tx.execute<{ id: string }>(sql`
+          SELECT p.id AS id FROM products p
+          WHERE p.status = 'published'
+            AND (p.title % ${q} OR p.title ILIKE ${like} OR p.description ILIKE ${like})
+          ORDER BY p.title <-> ${q}
+          LIMIT ${SEARCH_CONFIG.trgmMaxCandidates}
+        `)
+      }),
+    )
+    if (rows.length >= SEARCH_CONFIG.trgmMaxCandidates) {
+      console.warn(JSON.stringify({ job: "search-cap-hit", q: q.slice(0, 60) }))
+    }
+    return rows.map((r) => r.id)
+  }
+
+  /**
+   * Search slice: trgm-matched products (or all published when ids is null)
+   * plus exactly the tables `searchFrom` reads — offers/variants/values by
+   * product id (indexed), small dimensions whole. Never a fact-table scan.
+   */
+  private async sliceForSearch(ids: string[] | null): Promise<CatalogSnapshot> {
+    const slice = emptyCatalogSlice()
+    const [categoryRows, sellerRows, defRows, profileRows, aliasRows] = await Promise.all([
+      this.db.select().from(categories),
+      this.db.select().from(sellers),
+      this.db.select().from(attributeDefinitions),
+      this.db.select().from(attributeProfiles),
+      this.db.select().from(searchAliases),
+    ])
+    slice.categories = categoryRows.map(toSnapshotCategory)
+    slice.sellers = sellerRows.map(toSnapshotSeller)
+    slice.attributeDefinitions = defRows.map((r) => ({
+      id: r.id,
+      code: r.code,
+      label: r.label,
+      type: r.type,
+      unitFamily: r.unitFamily ?? null,
+      allowedValues: (r.allowedValues as string[] | null) ?? null,
+      filterable: r.filterable,
+      searchable: r.searchable,
+      required: r.required,
+      variantAxis: r.variantAxis,
+      visibleOnCard: r.visibleOnCard,
+      visibleOnPdp: r.visibleOnPdp,
+    }))
+    slice.attributeProfiles = profileRows.map((r) => ({
+      id: r.id,
+      name: r.name,
+      categoryId: r.categoryId ?? null,
+      version: r.version,
+    }))
+    slice.searchAliases = aliasRows.map((r) => ({
+      id: r.id,
+      term: r.term,
+      target: r.target,
+      type: r.type,
+      status: r.status,
+      reviewerId: r.reviewerId,
+      reviewedAt: r.reviewedAt ? r.reviewedAt.toISOString() : null,
+      createdAt: r.createdAt ? r.createdAt.toISOString() : new Date(0).toISOString(),
+    }))
+    const productRows =
+      ids === null
+        ? await this.db
+            .select()
+            .from(products)
+            .where(eq(products.status, "published"))
+            .orderBy(desc(products.createdAt))
+        : ids.length > 0
+          ? await this.db.select().from(products).where(inArray(products.id, ids))
+          : []
+    slice.products = productRows.map(toSnapshotProduct)
+    const productIds = slice.products.map((p) => p.id)
+    if (productIds.length === 0) return slice
+    const [offerRows, variantRows, valueRows] = await Promise.all([
+      this.db.select().from(offers).where(inArray(offers.productId, productIds)),
+      this.db.select().from(productVariants).where(inArray(productVariants.productId, productIds)),
+      this.db
+        .select()
+        .from(productAttributeValues)
+        .where(inArray(productAttributeValues.productId, productIds)),
+    ])
+    slice.offers = offerRows.map(toSnapshotOffer)
+    slice.variants = variantRows.map(toSnapshotVariant)
+    slice.productAttributeValues = valueRows.map((r) => ({
+      id: r.id,
+      productId: r.productId,
+      definitionId: r.definitionId,
+      textValue: r.textValue ?? null,
+      numberValue: r.numberValue ?? null,
+      booleanValue: r.booleanValue ?? null,
+      optionValues: (r.optionValues as string[] | null) ?? null,
+      unit: r.unit ?? null,
+    }))
+    return slice
   }
 
   async catalogFacets(category?: string): Promise<CatalogFacetsDto> {
