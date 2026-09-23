@@ -3,9 +3,38 @@ main = "src/index.ts"
 compatibility_date = "2026-08-28"
 compatibility_flags = ["nodejs_compat"]
 
-# Expire abandoned pending payment intents + release their stock (hourly).
-[triggers]
-crons = ["0 * * * *"]
+# Async jobs ride Cloudflare Queues (agnostic plan Phase 2), not cron: per-intent
+# delayed expiry messages replace the hourly sweep, and confirm-path producers
+# trigger notification dispatch. Zero cron slots consumed, so deploys stay green
+# on any plan. Create once (needs API access):
+#   wrangler queues create alkemart-jobs-intent-expiry
+#   wrangler queues create alkemart-jobs-intent-expiry-dlq
+#   wrangler queues create alkemart-jobs-notifications
+#   wrangler queues create alkemart-jobs-notifications-dlq
+# `scheduled()` is kept as a dormant compat entrypoint (see index.ts); the
+# admin fallback POST /admin/migrate/expire-payment-intents remains the
+# no-queue backstop.
+[[queues.producers]]
+binding = "JOBS_INTENT_EXPIRY"
+queue = "alkemart-jobs-intent-expiry"
+
+[[queues.producers]]
+binding = "JOBS_NOTIFICATIONS"
+queue = "alkemart-jobs-notifications"
+
+[[queues.consumers]]
+queue = "alkemart-jobs-intent-expiry"
+max_batch_size = 100
+max_retries = 3
+retry_delay = 60
+dead_letter_queue = "alkemart-jobs-intent-expiry-dlq"
+
+[[queues.consumers]]
+queue = "alkemart-jobs-notifications"
+max_batch_size = 100
+max_retries = 3
+retry_delay = 60
+dead_letter_queue = "alkemart-jobs-notifications-dlq"
 
 # Local: `bun run dev:api` → http://127.0.0.1:8787 (see docs/architecture/workers/LOCAL-DEV.md)
 # Secrets for local: apps/api/.dev.vars (from .dev.vars.example)

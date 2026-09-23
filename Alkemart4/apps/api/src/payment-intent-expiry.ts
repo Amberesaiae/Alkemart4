@@ -8,7 +8,7 @@ import { PostgresCheckoutRepository } from "./postgres-checkout-repository"
  * reservations. Idempotent: CAS in updatePaymentIntentStatus makes double-fires
  * harmless.
  */
-const PAYMENT_INTENT_STALE_AFTER_MS = 60 * 60 * 1000
+export const PAYMENT_INTENT_STALE_AFTER_MS = 60 * 60 * 1000
 
 export async function runPaymentIntentExpiry(event: unknown, env: unknown, ctx: unknown) {
   const parsed = parseEnv(env as Record<string, unknown>)

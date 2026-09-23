@@ -48,6 +48,18 @@ See `docs/ops/PAYMENTS-LAUNCH-GATE.md` for live MoMo/card money matrix. Lab COD 
 
 ## Known gaps
 
-- Abandoned pending intent expiry job  
 - Refund / partial refund API  
 - Chargeback handling  
+
+## Async jobs (Queues, not cron)
+
+- Intent create (momo/card) publishes a delayed `intent-expiry` message
+  (`delaySeconds` = stale threshold); the consumer CAS-expires stale
+  pending/initiated intents + releases stock, acks terminal/COD/mid-confirm
+  as noop, and re-schedules early redeliveries for the remaining time.
+- Every confirm path (COD, poll, webhook) publishes a `notification-sweep`;
+  the consumer runs the idempotent outbox claim (`claimPendingNotifications`).
+- At-least-once: redeliveries converge (CAS + claims); poison rides retries
+  to the DLQ; producers never throw into the request path (`publishJob`).
+- `scheduled()` stays as a dormant compat entrypoint; no cron slots consumed.
+  Backstop: `POST /admin/migrate/expire-payment-intents` (admin JWT).

@@ -4,6 +4,7 @@ import {
   type PaystackConfig,
 } from "@alkemart/paystack"
 import type { CheckoutRepository } from "../checkout-repository"
+import { notificationSweepMessage, publishJob, type JobProducer } from "../jobs"
 
 export type VerifyPaystackTransaction = typeof verifyPaystackTransaction
 
@@ -14,6 +15,8 @@ export async function confirmCheckoutFromPaystack(
     paymentIntentId: string
     paystackSecretKey: string
     verify?: VerifyPaystackTransaction
+    /** When present, a notification sweep is published after confirm. */
+    jobs?: JobProducer
   },
 ) {
   const intent = await checkout.getPaymentIntent(opts.paymentIntentId)
@@ -41,5 +44,6 @@ export async function confirmCheckoutFromPaystack(
     await checkout.updatePaymentIntentStatus(intent.id, "succeeded")
   }
   const result = await checkout.confirmPaidOrder(intent.id)
+  if (opts.jobs) await publishJob(opts.jobs, "notifications", notificationSweepMessage())
   return { ...result, alreadyConfirmed: false }
 }

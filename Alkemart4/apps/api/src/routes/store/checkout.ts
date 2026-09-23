@@ -7,6 +7,12 @@ import { HTTPException } from "hono/http-exception"
 import { z } from "zod"
 import type { AppEnv } from "../../context"
 import { confirmCheckoutFromPaystack } from "../../lib/checkout-confirm"
+import {
+  expiryDelaySeconds,
+  intentExpiryMessage,
+  notificationSweepMessage,
+  publishJob,
+} from "../../jobs"
 
 const ShippingAddress = z.object({
   first_name: z.string().trim().min(1).max(80),
@@ -100,6 +106,7 @@ export const storeCheckout = new Hono<AppEnv>()
             paymentIntentId: intent.id,
             paystackSecretKey: secretKey,
             verify: c.get("verifyPaystackTransaction"),
+            jobs: c.get("jobs"),
           })
           return c.json({
             status: "completed",
@@ -217,6 +224,7 @@ export const storeCheckout = new Hono<AppEnv>()
         shippingAddress,
       })
       const { orderGroup, orders } = await checkout.confirmPaidOrder(intentId)
+      await publishJob(c.get("jobs"), "notifications", notificationSweepMessage())
       return c.json({
         paymentIntentId: intentId,
         status: "completed",
@@ -248,6 +256,12 @@ export const storeCheckout = new Hono<AppEnv>()
       momoProvider: momo?.provider ?? null,
       momoPhone: momo?.phone ?? null,
       shippingAddress,
+    })
+    // Delayed per-intent expiry replaces the hourly sweep: when this fires the
+    // intent is either terminal (noop) or stale (CAS-expire + release). Early
+    // redeliveries re-schedule themselves for the remaining time.
+    await publishJob(c.get("jobs"), "expiry", intentExpiryMessage(intentId), {
+      delaySeconds: expiryDelaySeconds(),
     })
 
     /** Mark the intent failed, then surface the error to the buyer. */

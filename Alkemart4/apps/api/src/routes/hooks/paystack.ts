@@ -76,6 +76,7 @@ export const paystackHooks = new Hono<AppEnv>().post("/", async (c) => {
       paymentIntentId: intent.id,
       paystackSecretKey: secret,
       verify: c.get("verifyPaystackTransaction"),
+      jobs: c.get("jobs"),
     })
   } catch (err) {
     throw new HTTPException(502, {

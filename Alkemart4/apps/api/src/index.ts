@@ -109,6 +109,15 @@ import { vendorTasks } from "./routes/vendor/tasks"
 import { adminUploads, serveMedia, vendorUploads } from "./routes/vendor/uploads"
 import { runPaymentIntentExpiry } from "./payment-intent-expiry"
 import { runNotificationDispatch } from "./notifications-dispatch"
+import {
+  JOB_QUEUE_BINDINGS,
+  cfJobProducer,
+  consumeJobMessage,
+  inlineJobProducer,
+  type JobProducer,
+  type QueueLike,
+} from "./jobs"
+import { smsProviderFromEnv } from "./sms"
 
 export { runNotificationDispatch, runPaymentIntentExpiry }
 
@@ -135,6 +144,9 @@ export function createApp(
     initializePaystackTransaction?: InitializePaystackTransaction
     verifyPaystackTransaction?: VerifyPaystackTransaction
     webhookDedup?: WebhookDedup
+    /** Test seam: synchronous producer double. Defaults to queue bindings,
+     * else inline-immediate so work is never silently dropped. */
+    jobs?: JobProducer
   } = {},
 ) {
   const app = new Hono<AppEnv>()
@@ -268,6 +280,29 @@ export function createApp(
     } else {
       const env = parseEnv(c.env as unknown as Record<string, unknown>)
       c.set("checkoutRepo", new PostgresCheckoutRepository(primaryDb(env)))
+    }
+    // Job producers ride alongside checkout: every produce site already has
+    // bindCheckout mounted, so no mount edits are needed anywhere.
+    if (options.jobs) {
+      c.set("jobs", options.jobs)
+    } else {
+      const raw = (c.env ?? {}) as Record<string, unknown>
+      const expiry = raw[JOB_QUEUE_BINDINGS.expiry] as QueueLike | undefined
+      const notifications = raw[JOB_QUEUE_BINDINGS.notifications] as QueueLike | undefined
+      if (expiry && notifications) {
+        c.set("jobs", cfJobProducer({ expiry, notifications }))
+      } else {
+        console.warn(
+          JSON.stringify({ job: "producer-fallback", mode: "inline-immediate" }),
+        )
+        const checkout = c.get("checkoutRepo")
+        const sms = smsProviderFromEnv({
+          AT_USERNAME: raw.AT_USERNAME as string | undefined,
+          AT_API_KEY: raw.AT_API_KEY as string | undefined,
+          AT_SENDER_ID: raw.AT_SENDER_ID as string | undefined,
+        })
+        c.set("jobs", inlineJobProducer(async () => ({ checkout, sms })))
+      }
     }
     if (options.chargePaystackMobileMoney) {
       c.set("chargePaystackMobileMoney", options.chargePaystackMobileMoney)
@@ -444,5 +479,42 @@ export default {
   async scheduled(event: ScheduledController, env: unknown, ctx: ExecutionContext) {
     await runPaymentIntentExpiry(event, env, ctx)
     await runNotificationDispatch(event, env, ctx)
+  },
+  /**
+   * Queue consumer (agnostic plan Phase 2). Per-message ack after idempotent
+   * commit; a throw rides retries into the DLQ. Already-acked siblings in a
+   * failed batch are never redelivered (first-call-wins precedence).
+   */
+  async queue(
+    batch: { messages: { body: unknown; attempts: number; ack: () => void; retry: (opts?: { delaySeconds?: number }) => void }[] },
+    env: unknown,
+  ) {
+    const parsed = parseEnv(env as Record<string, unknown>)
+    const checkout = new PostgresCheckoutRepository(primaryDb(parsed))
+    const sms = smsProviderFromEnv({
+      AT_USERNAME: parsed.AT_USERNAME,
+      AT_API_KEY: parsed.AT_API_KEY,
+      AT_SENDER_ID: parsed.AT_SENDER_ID,
+    })
+    for (const msg of batch.messages) {
+      try {
+        await consumeJobMessage(
+          { checkout, sms },
+          msg.body,
+          { attempts: msg.attempts, ack: () => msg.ack(), retry: (opts) => msg.retry(opts) },
+        )
+      } catch (error) {
+        // Implicit retry → DLQ after max_retries. Per-message acks above keep
+        // converged siblings out of the redelivery.
+        console.error(
+          JSON.stringify({
+            job: "consume-failed",
+            attempts: msg.attempts,
+            error: error instanceof Error ? error.message : String(error),
+          }),
+        )
+        throw error
+      }
+    }
   },
 }

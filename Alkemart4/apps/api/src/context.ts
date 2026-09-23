@@ -12,6 +12,7 @@ import type { AuthRepository } from "./auth-repository"
 import type { TrafficStore } from "./traffic"
 import type { CatalogRepository } from "./catalog-repository"
 import type { CheckoutRepository } from "./checkout-repository"
+import type { JobProducer } from "./jobs"
 import type { ApiEnv } from "./env"
 import type { SessionClaims } from "./lib/jwt"
 
@@ -72,6 +73,7 @@ export type AppEnv = {
     repo: CatalogRepository
     authRepo: AuthRepository
     checkoutRepo: CheckoutRepository
+    jobs: JobProducer
     auditLog: AdminAuditLog
     traffic: TrafficStore
     appeals: AppealStore
