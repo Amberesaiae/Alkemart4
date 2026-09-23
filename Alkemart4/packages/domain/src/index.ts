@@ -1,5 +1,5 @@
-export type { Pesewas } from "./money"
-export { asPesewas } from "./money"
+export type { CurrencyCode, Money, Pesewas } from "./money"
+export { addMoney, asCurrencyCode, asMoney, asPesewas, assertSameCurrency, feeFor, zeroMoney } from "./money"
 export type { CategoryNode, TaxonomyNodeRow, TaxonomyStatus } from "./taxonomy"
 export type {
   AttributeDefinitionLike,

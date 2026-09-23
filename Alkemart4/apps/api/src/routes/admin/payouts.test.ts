@@ -60,7 +60,7 @@ describe("admin Paystack payouts", () => {
       method: "cod",
       status: "initiated",
       amountPesewas: quote.totalPesewas,
-      currency: "ghs",
+      currency: "GHS",
       paystackReference: null,
       buyerEmail: "buyer@t.test",
       momoProvider: null,

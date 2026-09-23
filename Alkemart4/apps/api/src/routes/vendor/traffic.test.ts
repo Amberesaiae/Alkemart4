@@ -37,7 +37,7 @@ function catalogWithProduct(): CatalogSnapshot {
     ],
     variants: [{ id: "v-1", productId: "p-1", sku: null, title: "Default" }],
     offers: [
-      { id: "o-1", sellerId: "seller-1", productId: "p-1", variantId: "v-1", pricePesewas: 25000n, onHand: 5, reserved: 0, currency: "ghs", active: true },
+      { id: "o-1", sellerId: "seller-1", productId: "p-1", variantId: "v-1", pricePesewas: 25000n, onHand: 5, reserved: 0, currency: "GHS", active: true },
     ],
     productOptions: [],
     productOptionValues: [],

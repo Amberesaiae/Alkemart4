@@ -1,4 +1,5 @@
 import { computePayoutBatch } from "@alkemart/domain"
+import { marketCurrency } from "@alkemart/shared/markets"
 import { Hono } from "hono"
 import { HTTPException } from "hono/http-exception"
 import type { AppEnv } from "../../context"
@@ -84,7 +85,8 @@ export const vendorPayouts = new Hono<AppEnv>()
     return c.json({
       sellerId,
       commissionBps: seller.commissionBps,
-      currency: "ghs",
+      // Display currency for single-market today; ledger rows resolve per order.
+      currency: marketCurrency(),
       totals: {
         pendingGrossPesewas: sum(pending.map((l) => BigInt(l.subtotalPesewas))).toString(),
         pendingNetPesewas: sum(pending.map((l) => BigInt(l.netPesewas))).toString(),

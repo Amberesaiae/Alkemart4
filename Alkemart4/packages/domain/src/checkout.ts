@@ -17,7 +17,7 @@ export type SellerQuote = {
 export type CartQuote = {
   sellers: SellerQuote[]
   totalPesewas: bigint
-  currency: "ghs"
+  currency: string
 }
 
 export type QuoteLineInput = {
@@ -28,7 +28,7 @@ export type QuoteLineInput = {
   deliveryFeePesewas: bigint
 }
 
-export function quoteCart(lines: QuoteLineInput[]): CartQuote {
+export function quoteCart(lines: QuoteLineInput[], currency: string): CartQuote {
   const bySeller = new Map<
     string,
     { lines: QuoteLine[]; deliveryFeePesewas: bigint }
@@ -75,7 +75,7 @@ export function quoteCart(lines: QuoteLineInput[]): CartQuote {
     totalPesewas += sellerTotalPesewas
   }
 
-  return { sellers, totalPesewas, currency: "ghs" }
+  return { sellers, totalPesewas, currency }
 }
 
 export type PaymentIntentStatus =

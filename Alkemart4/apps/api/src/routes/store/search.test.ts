@@ -28,7 +28,7 @@ function searchSnapshot(): CatalogSnapshot {
     pricePesewas: 2000n,
     onHand: 5,
     reserved: 0,
-    currency: "ghs",
+    currency: "GHS",
     active: true,
     condition: "new",
   })

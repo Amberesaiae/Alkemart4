@@ -66,7 +66,6 @@ export const returnStatusEnum = pgEnum("return_status", [
   "rejected",
   "refunded",
 ])
-
 export const returns = pgTable("returns", {
   id: text("id").primaryKey(),
   orderId: text("order_id")
@@ -77,5 +76,28 @@ export const returns = pgTable("returns", {
     .references(() => sellers.id),
   status: returnStatusEnum("status").notNull().default("requested"),
   reason: text("reason"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+})
+
+/**
+ * Append-only money ledger (agnostic plan Phase 4). Every pesewa movement is
+ * a row written in the SAME transaction as the state change it records:
+ * disputes are answered with SELECT, never with code re-execution.
+ * Idempotency keys make redelivered work converge (INSERT … ON CONFLICT
+ * DO NOTHING). Currency is ISO-4217 uppercase; market_code names the market
+ * whose config priced the movement (multi-market ready, single-market today).
+ */
+export const ledgerEntries = pgTable("ledger_entries", {
+  id: text("id").primaryKey(),
+  idempotencyKey: text("idempotency_key").notNull().unique(),
+  marketCode: text("market_code").notNull(),
+  sellerId: text("seller_id")
+    .notNull()
+    .references(() => sellers.id),
+  orderId: text("order_id").references(() => orders.id),
+  intentId: text("intent_id"),
+  kind: text("kind").notNull(),
+  amountMinor: bigint("amount_minor", { mode: "bigint" }).notNull(),
+  currency: text("currency").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 })

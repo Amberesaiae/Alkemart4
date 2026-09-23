@@ -22,6 +22,7 @@ const threeOffers = [
     onHand: 4,
     reserved: 0,
     deliveryFeePesewas: asPesewas(800),
+    currency: "GHS",
   },
   {
     offerId: "offer-cheap",
@@ -32,6 +33,7 @@ const threeOffers = [
     onHand: 10,
     reserved: 1,
     deliveryFeePesewas: asPesewas(500),
+    currency: "GHS",
   },
   {
     offerId: "offer-high",
@@ -42,6 +44,7 @@ const threeOffers = [
     onHand: 2,
     reserved: 0,
     deliveryFeePesewas: asPesewas(1200),
+    currency: "GHS",
   },
 ]
 
@@ -57,7 +60,7 @@ describe("toProductCard", () => {
       categoryHandle: "phones",
       categoryName: "Phones",
       imageUrl: "https://cdn.example/phone.jpg",
-      currency: "ghs",
+      currency: "GHS",
     })
   })
 
@@ -78,7 +81,7 @@ describe("toProductDetail", () => {
       sellerHandle: "accra-mart",
       pricePesewas: "1500",
       available: 9,
-      currency: "ghs",
+      currency: "GHS",
     })
     expect(detail).toMatchObject({
       productId: "prod-phone",

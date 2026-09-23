@@ -110,15 +110,15 @@ describe("GET /store/products/:id/peers (Phase 3B)", () => {
     snapshot.offers.push(
       {
         id: "offer-1", sellerId: "seller-1", productId: "product-1", variantId: "variant-1",
-        pricePesewas: 10000n, onHand: 5, reserved: 0, currency: "ghs", active: true,
+        pricePesewas: 10000n, onHand: 5, reserved: 0, currency: "GHS", active: true,
       },
       {
         id: "offer-2", sellerId: "seller-2", productId: "product-1", variantId: "variant-1",
-        pricePesewas: 9000n, onHand: 5, reserved: 0, currency: "ghs", active: true,
+        pricePesewas: 9000n, onHand: 5, reserved: 0, currency: "GHS", active: true,
       },
       {
         id: "offer-c", sellerId: "seller-1", productId: "product-c", variantId: "variant-c",
-        pricePesewas: 7000n, onHand: 5, reserved: 0, currency: "ghs", active: true,
+        pricePesewas: 7000n, onHand: 5, reserved: 0, currency: "GHS", active: true,
       },
     )
     const app = createApp({

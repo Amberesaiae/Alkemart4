@@ -1,6 +1,7 @@
 import { sellerMembers, sellers, users } from "@alkemart/db"
 import type { SellerStatus } from "@alkemart/domain"
 import type { PaystackMomoProvider } from "@alkemart/shared/ghana"
+import { resolveMarket } from "@alkemart/shared/markets"
 import { eq } from "drizzle-orm"
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js"
 
@@ -278,7 +279,8 @@ export class InMemoryAuthRepository implements AuthRepository {
       banner: null,
       metadata: null,
       status: "pending_approval",
-      commissionBps: 700,
+      // Market-resolved default (single-market today); admins adjust per seller.
+      commissionBps: resolveMarket().defaultCommissionBps,
       createdAt: new Date(),
       availability: "open",
       pausedUntil: null,
@@ -474,6 +476,8 @@ export class PostgresAuthRepository implements AuthRepository {
             handle: input.seller.handle,
             name: input.seller.name,
             status: "pending_approval",
+            // Explicit, not the DB default: the market owns this number.
+            commissionBps: resolveMarket().defaultCommissionBps,
           })
           .returning()
         if (!sellerRow) throw new Error("failed to create seller")

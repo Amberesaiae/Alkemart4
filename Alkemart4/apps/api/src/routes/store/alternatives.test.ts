@@ -70,7 +70,7 @@ function variantOffer(snap: CatalogSnapshot, productId: string, sellerId: string
     pricePesewas: price,
     onHand,
     reserved: 0,
-    currency: "ghs",
+    currency: "GHS",
     active: true,
   })
 }

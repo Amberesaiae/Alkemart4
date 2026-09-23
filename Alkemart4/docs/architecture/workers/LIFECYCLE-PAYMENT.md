@@ -52,7 +52,6 @@ See `docs/ops/PAYMENTS-LAUNCH-GATE.md` for live MoMo/card money matrix. Lab COD 
 - Chargeback handling  
 
 ## Async jobs (Queues, not cron)
-
 - Intent create (momo/card) publishes a delayed `intent-expiry` message
   (`delaySeconds` = stale threshold); the consumer CAS-expires stale
   pending/initiated intents + releases stock, acks terminal/COD/mid-confirm
@@ -63,3 +62,17 @@ See `docs/ops/PAYMENTS-LAUNCH-GATE.md` for live MoMo/card money matrix. Lab COD 
   to the DLQ; producers never throw into the request path (`publishJob`).
 - `scheduled()` stays as a dormant compat entrypoint; no cron slots consumed.
   Backstop: `POST /admin/migrate/expire-payment-intents` (admin JWT).
+
+## Money ledger (append-only)
+
+- `ledger_entries(idempotency_key PK, market_code, seller_id, order_id,
+  intent_id, kind, amount_minor, currency, created_at)` — every movement is a
+  row written in the SAME transaction as the state change it records.
+- `confirmPaidOrder` appends `sale` + `platform_fee` per seller order (fee =
+  seller's `commissionBps`, integer math); `createPayout` appends `payout`
+  (net, currency resolved from the batch's paid intent, asserted uniform).
+- Replay converges: confirmed groups early-return, and keys (`sale:{order}`,
+  `platform_fee:{order}`, `payout:{id}`) dedupe via `ON CONFLICT DO NOTHING`.
+- Currency is ISO-4217 uppercase end-to-end (`Money` domain type; market
+  config owns defaults — no `"ghs"` literals in write paths). Disputes are
+  answered with `SELECT over ledger_entries`, never code re-execution.

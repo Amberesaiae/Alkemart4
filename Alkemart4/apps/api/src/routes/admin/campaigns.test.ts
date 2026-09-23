@@ -177,7 +177,7 @@ describe("admin campaigns (Phase 5A)", () => {
       pricePesewas: 20000n,
       onHand: 2,
       reserved: 0,
-      currency: "ghs",
+      currency: "GHS",
       active: true,
     })
     const g1 = await liveCampaign(post, "Grid A", "promo_grid", 1)
@@ -242,7 +242,7 @@ describe("admin campaigns (Phase 5A)", () => {
       pricePesewas: 5000n,
       onHand: 3,
       reserved: 0,
-      currency: "ghs",
+      currency: "GHS",
       active: true,
     })
     const id = await liveCampaign(post, "Mixed", "hero", 0)

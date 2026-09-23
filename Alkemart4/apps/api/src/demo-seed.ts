@@ -1,5 +1,6 @@
 import { GHANA_CATEGORY_SEED, type CategorySeedRow } from "@alkemart/db"
 import type { ProductStatus, SellerStatus } from "@alkemart/domain"
+import { marketCurrency } from "@alkemart/shared/markets"
 
 export type CatalogCategory = CategorySeedRow & {
   /** Lifecycle (Phase 1A); absent on rows that predate the columns. */
@@ -305,7 +306,7 @@ export function demoCatalog(): CatalogSnapshot {
         pricePesewas: 1500n,
         onHand: 10,
         reserved: 0,
-        currency: "ghs",
+        currency: marketCurrency(),
         active: true,
       },
       {
@@ -316,7 +317,7 @@ export function demoCatalog(): CatalogSnapshot {
         pricePesewas: 3000n,
         onHand: 4,
         reserved: 0,
-        currency: "ghs",
+        currency: marketCurrency(),
         active: true,
       },
     ],

@@ -19,7 +19,7 @@ export type ProductCardDto = {
   availableQty: number
   /** ISO timestamp of product creation; null when the row predates the column. */
   createdAt: string | null
-  currency: "ghs"
+  currency: string
   /**
    * Mean of published review ratings for this product, and how many there are.
    *
@@ -123,6 +123,8 @@ export type CardOfferInput = {
   sellerName: string
   onHand: number
   reserved: number
+  /** ISO-4217 (uppercase) — the card prices in the best offer's currency. */
+  currency: string
 }
 
 export function toProductCard(
@@ -148,7 +150,7 @@ export function toProductCard(
     sellerName: best.sellerName,
     availableQty: best.onHand - best.reserved,
     createdAt: product.createdAt ?? null,
-    currency: "ghs",
+    currency: best.currency,
   }
 }
 

@@ -44,7 +44,7 @@ async function createIntent(
     method: overrides.method ?? "momo",
     status: overrides.status ?? "pending",
     amountPesewas: 45000n,
-    currency: "ghs",
+    currency: "GHS",
     paystackReference: "alk_ref",
     buyerEmail: "buyer@alkemart.test",
     momoProvider: "mtn",

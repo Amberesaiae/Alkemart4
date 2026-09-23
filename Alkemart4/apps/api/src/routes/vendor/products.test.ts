@@ -157,7 +157,7 @@ describe("POST /vendor/products", () => {
     expect(body.offer.sellerId).toBe(seller.sellerId)
     expect(body.offer.pricePesewas).toBe("159900")
     expect(body.offer.onHand).toBe(3)
-    expect(body.offer.currency).toBe("ghs")
+    expect(body.offer.currency).toBe("GHS")
     expect(body.variant.id).toBeTruthy()
   })
 

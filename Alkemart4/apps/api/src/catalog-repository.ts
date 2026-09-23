@@ -77,6 +77,7 @@ import {
   type OptionSpec,
 } from "./variant-matrix"
 import { attributesFromJson } from "@alkemart/shared/product-attributes"
+import { marketCurrency } from "@alkemart/shared/markets"
 import type {
   CatalogAttributeDefinition,
   CatalogAttributeProfile,
@@ -157,7 +158,7 @@ export type VendorOfferDto = {
   pricePesewas: string
   onHand: number
   reserved: number
-  currency: "ghs"
+  currency: string
   active: boolean
   /** Offer terms (Phase 3A); null reads as unknown — never fabricated. */
   condition: string | null
@@ -309,7 +310,7 @@ export type FeedProductDto = {
   productType: string | null
   condition: string | null
   pricePesewas: string
-  currency: "ghs"
+  currency: string
   availableQty: number
   inStock: boolean
   sellerId: string
@@ -804,7 +805,7 @@ function toOfferDto(offer: CatalogOffer): VendorOfferDto {
     pricePesewas: offer.pricePesewas.toString(),
     onHand: offer.onHand,
     reserved: offer.reserved,
-    currency: "ghs",
+    currency: offer.currency,
     active: offer.active,
     condition: offer.condition ?? null,
     compareAtPesewas: offer.compareAtPesewas?.toString() ?? null,
@@ -1413,6 +1414,7 @@ function sellablePeerOffers(
       onHand: offer.onHand,
       reserved: offer.reserved,
       deliveryFeePesewas: seller.deliveryFeePesewas,
+      currency: offer.currency,
       condition: offer.condition ?? null,
       fulfillmentOrigin: offer.fulfillmentOrigin ?? null,
       warrantyRef: offer.warrantyRef ?? null,
@@ -1619,6 +1621,7 @@ function feedRowsFrom(data: CatalogSnapshot): FeedProductDto[] {
         onHand: offer.onHand,
         reserved: offer.reserved,
         deliveryFeePesewas: seller.deliveryFeePesewas,
+        currency: offer.currency,
       }
       if (!best || input.pricePesewas < best.pricePesewas) {
         best = input
@@ -1643,7 +1646,7 @@ function feedRowsFrom(data: CatalogSnapshot): FeedProductDto[] {
       productType: product.productType ?? null,
       condition: bestCondition,
       pricePesewas: best.pricePesewas.toString(),
-      currency: "ghs",
+      currency: best.currency,
       availableQty: best.onHand - best.reserved,
       inStock: best.onHand - best.reserved > 0,
       sellerId: seller.id,
@@ -2316,7 +2319,7 @@ export class InMemoryCatalogRepository implements CatalogRepository {
         pricePesewas: input.pricePesewas,
         onHand: input.onHand,
         reserved: 0,
-        currency: "ghs",
+        currency: marketCurrency(),
         active: true,
       }
       const clash = this.data.offers.some(
@@ -2370,7 +2373,7 @@ export class InMemoryCatalogRepository implements CatalogRepository {
         pricePesewas: r.pricePesewas,
         onHand: r.onHand,
         reserved: 0,
-        currency: "ghs",
+        currency: marketCurrency(),
         active: true,
       })
     })
@@ -3174,7 +3177,7 @@ export class InMemoryCatalogRepository implements CatalogRepository {
         pricePesewas: sibling ? BigInt(sibling.offer.pricePesewas) : 0n,
         onHand: 0,
         reserved: 0,
-        currency: "ghs",
+        currency: marketCurrency(),
         active: true,
       })
       created += 1
@@ -3355,6 +3358,7 @@ export class InMemoryCatalogRepository implements CatalogRepository {
         onHand: offer.onHand,
         reserved: offer.reserved,
         deliveryFeePesewas: seller.deliveryFeePesewas,
+        currency: offer.currency,
         condition: offer.condition ?? null,
         fulfillmentOrigin: offer.fulfillmentOrigin ?? null,
         warrantyRef: offer.warrantyRef ?? null,
@@ -3382,6 +3386,7 @@ export class InMemoryCatalogRepository implements CatalogRepository {
         onHand: o.onHand,
         reserved: o.reserved,
         deliveryFeePesewas: o.deliveryFeePesewas,
+        currency: o.currency,
         condition: o.condition,
         fulfillmentOrigin: o.fulfillmentOrigin,
         warrantyRef: o.warrantyRef,
@@ -3919,7 +3924,7 @@ export class PostgresCatalogRepository implements CatalogRepository {
             pricePesewas: input.pricePesewas,
             onHand: input.onHand,
             reserved: 0,
-            currency: "ghs",
+            currency: marketCurrency(),
             active: true,
           })
           return
@@ -3961,7 +3966,7 @@ export class PostgresCatalogRepository implements CatalogRepository {
             pricePesewas: r.pricePesewas,
             onHand: r.onHand,
             reserved: 0,
-            currency: "ghs",
+            currency: marketCurrency(),
             active: true,
           })
         }
@@ -4420,7 +4425,7 @@ export class PostgresCatalogRepository implements CatalogRepository {
         pricePesewas: sibling ? BigInt(sibling.offer.pricePesewas) : 0n,
         onHand: 0,
         reserved: 0,
-        currency: "ghs",
+        currency: marketCurrency(),
         active: true,
       })
       created += 1
@@ -5213,6 +5218,7 @@ export class PostgresCatalogRepository implements CatalogRepository {
         onHand: offer.onHand,
         reserved: offer.reserved,
         deliveryFeePesewas: toBigInt(seller.deliveryFeePesewas),
+        currency: offer.currency,
         condition: offer.condition ?? null,
         fulfillmentOrigin: offer.fulfillmentOrigin ?? null,
         warrantyRef: offer.warrantyRef ?? null,
@@ -5239,6 +5245,7 @@ export class PostgresCatalogRepository implements CatalogRepository {
         onHand: o.onHand,
         reserved: o.reserved,
         deliveryFeePesewas: o.deliveryFeePesewas,
+        currency: o.currency,
         condition: o.condition,
         fulfillmentOrigin: o.fulfillmentOrigin,
         warrantyRef: o.warrantyRef,

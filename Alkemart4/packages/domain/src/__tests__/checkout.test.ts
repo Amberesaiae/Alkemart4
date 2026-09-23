@@ -29,7 +29,7 @@ describe("quoteCart", () => {
         unitPricePesewas: 2000n,
         deliveryFeePesewas: 800n,
       },
-    ])
+    ], "GHS")
 
     expect(quote.sellers).toHaveLength(2)
     const s1 = quote.sellers.find((s) => s.sellerId === "s1")!
@@ -39,7 +39,7 @@ describe("quoteCart", () => {
     expect(s1.sellerTotalPesewas).toBe(2800n)
     expect(s2.sellerTotalPesewas).toBe(2800n)
     expect(quote.totalPesewas).toBe(5600n)
-    expect(quote.currency).toBe("ghs")
+    expect(quote.currency).toBe("GHS")
   })
 })
 

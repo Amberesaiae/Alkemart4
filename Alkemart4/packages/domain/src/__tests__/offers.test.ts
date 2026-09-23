@@ -46,6 +46,7 @@ describe("toPeerOffer", () => {
       onHand: 8,
       reserved: 3,
       deliveryFeePesewas: asPesewas(500),
+      currency: "GHS",
     })
     expect(dto).toEqual({
       offerId: "offer-a",
@@ -53,7 +54,7 @@ describe("toPeerOffer", () => {
       sellerHandle: "accra-mart",
       sellerName: "Accra Mart",
       pricePesewas: "1500",
-      currency: "ghs",
+      currency: "GHS",
       available: 5,
       deliveryFeePesewas: "500",
       options: {},

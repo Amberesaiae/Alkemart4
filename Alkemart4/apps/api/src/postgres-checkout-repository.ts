@@ -30,6 +30,8 @@ import {
 } from "@alkemart/domain"
 import { and, asc, desc, eq, gte, inArray, isNull, sql } from "drizzle-orm"
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js"
+import { marketCurrency } from "@alkemart/shared/markets"
+import { PostgresLedgerStore, payoutEntry, saleEntries, type LedgerStore } from "./ledger"
 import type {
   CartItemRow,
   CartRow,
@@ -89,13 +91,16 @@ function mapIntent(row: typeof paymentIntents.$inferSelect): PaymentIntentRow {
 }
 
 export class PostgresCheckoutRepository implements CheckoutRepository {
-  constructor(private readonly db: Db) {}
+  constructor(
+    private readonly db: Db,
+    readonly ledger: LedgerStore = new PostgresLedgerStore(db),
+  ) {}
 
   async createCart(): Promise<CartRow> {
     const id = crypto.randomUUID()
     const [row] = await this.db
       .insert(carts)
-      .values({ id, currency: "ghs", buyerEmail: null })
+      .values({ id, currency: marketCurrency(), buyerEmail: null })
       .returning()
     if (!row) throw new Error("failed to create cart")
     return { id: row.id, currency: row.currency, buyerEmail: row.buyerEmail }
@@ -237,7 +242,9 @@ export class PostgresCheckoutRepository implements CheckoutRepository {
 
   async quote(cartId: string) {
     const items = await this.listCartItems(cartId)
-    if (items.length === 0) return quoteCart([])
+    const [cart] = await this.db.select().from(carts).where(eq(carts.id, cartId)).limit(1)
+    const currency = cart?.currency ?? marketCurrency()
+    if (items.length === 0) return quoteCart([], currency)
     const views = await this.getOfferViews(items.map((i) => i.offerId))
     const lines = items.map((item) => {
       const view = views.get(item.offerId)
@@ -250,7 +257,7 @@ export class PostgresCheckoutRepository implements CheckoutRepository {
         deliveryFeePesewas: view.deliveryFeePesewas,
       }
     })
-    return quoteCart(lines)
+    return quoteCart(lines, currency)
   }
 
   async createPaymentIntent(
@@ -502,7 +509,7 @@ export class PostgresCheckoutRepository implements CheckoutRepository {
           productTitle: joined.productTitle,
         })
       }
-      const quote = quoteCart(quoteLines)
+      const quote = quoteCart(quoteLines, intent.currency)
       if (quote.totalPesewas !== intent.amountPesewas) {
         throw new Error("quote total mismatch")
       }
@@ -562,6 +569,28 @@ export class PostgresCheckoutRepository implements CheckoutRepository {
       await tx
         .delete(stockReservations)
         .where(eq(stockReservations.paymentIntentId, paymentIntentId))
+
+      // Ledger in the same tx: sale + platform_fee per seller order. Replay
+      // converges via the early-return above and idempotency keys.
+      const txLedger = new PostgresLedgerStore(tx)
+      for (const order of createdOrders) {
+        const [seller] = await tx
+          .select({ commissionBps: sellers.commissionBps })
+          .from(sellers)
+          .where(eq(sellers.id, order.sellerId))
+          .limit(1)
+        if (!seller) throw new Error(`seller missing for ledger: ${order.sellerId}`)
+        for (const entry of saleEntries({
+          orderId: order.id,
+          intentId: paymentIntentId,
+          sellerId: order.sellerId,
+          subtotalMinor: order.subtotalPesewas,
+          currency: intent.currency,
+          commissionBps: seller.commissionBps,
+        })) {
+          await txLedger.append(entry)
+        }
+      }
 
       let nextStatus = intent.status as PaymentIntentStatus
       if (nextStatus === "pending") {
@@ -794,6 +823,28 @@ export class PostgresCheckoutRepository implements CheckoutRepository {
           netPesewas: line.netPesewas,
         })
       }
+
+      // Ledger payout row in the same tx. Currency resolves from the batch's
+      // paid intents and must be uniform — a mixed-currency batch is a future
+      // case that fails loudly here instead of recording ambiguously.
+      const intentCurrencies = await tx
+        .select({ currency: paymentIntents.currency })
+        .from(orders)
+        .innerJoin(orderGroups, eq(orderGroups.id, orders.orderGroupId))
+        .innerJoin(paymentIntents, eq(paymentIntents.id, orderGroups.paymentIntentId))
+        .where(inArray(orders.id, batch.lines.map((l) => l.orderId)))
+      const currencies = new Set(intentCurrencies.map((r) => r.currency))
+      if (currencies.size !== 1 || !batch.lines.length) {
+        throw new Error("payout batch must resolve to exactly one currency")
+      }
+      await new PostgresLedgerStore(tx).append(
+        payoutEntry({
+          payoutId,
+          sellerId: input.sellerId,
+          netMinor: batch.netPesewas,
+          currency: [...currencies][0] as string,
+        }),
+      )
 
       const result: PayoutRow = {
         id: payout.id,

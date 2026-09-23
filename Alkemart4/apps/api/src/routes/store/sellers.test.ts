@@ -47,7 +47,7 @@ function withSellerAOnlyProduct(data: CatalogSnapshot): CatalogSnapshot {
         pricePesewas: 8000n,
         onHand: 20,
         reserved: 0,
-        currency: "ghs",
+        currency: "GHS",
         active: true,
       },
     ],

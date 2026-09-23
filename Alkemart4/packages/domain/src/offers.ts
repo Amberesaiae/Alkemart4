@@ -4,7 +4,7 @@ export type PeerOfferDto = {
   sellerHandle: string
   sellerName: string
   pricePesewas: string
-  currency: "ghs"
+  currency: string
   available: number
   deliveryFeePesewas: string
   /** Combination option map (V1 matrix); empty for legacy offers. */
@@ -29,6 +29,8 @@ export type PeerOfferInput = {
   onHand: number
   reserved: number
   deliveryFeePesewas: bigint
+  /** ISO-4217 (uppercase) — resolved from the market, never assumed. */
+  currency: string
   options?: Record<string, string>
   condition?: string | null
   fulfillmentOrigin?: string | null
@@ -67,7 +69,7 @@ export function toPeerOffer(offer: PeerOfferInput): PeerOfferDto {
     sellerHandle: offer.sellerHandle,
     sellerName: offer.sellerName,
     pricePesewas: offer.pricePesewas.toString(),
-    currency: "ghs",
+    currency: offer.currency,
     available: offer.onHand - offer.reserved,
     deliveryFeePesewas: offer.deliveryFeePesewas.toString(),
     options: offer.options ?? {},

@@ -195,7 +195,7 @@ describe("subscriptions (Phase 7B)", () => {
       method: "cod",
       status: "initiated",
       amountPesewas: 1000n,
-      currency: "ghs",
+      currency: "GHS",
       paystackReference: null,
       buyerEmail: "buyer@alkemart.test",
       momoProvider: null,

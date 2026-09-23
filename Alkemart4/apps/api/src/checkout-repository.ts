@@ -9,6 +9,8 @@ import {
   type PaymentIntentStatus,
 } from "@alkemart/domain"
 import type { CatalogOffer, CatalogSnapshot } from "./demo-seed"
+import { marketCurrency } from "@alkemart/shared/markets"
+import { InMemoryLedgerStore, payoutEntry, saleEntries, type LedgerStore } from "./ledger"
 
 export type CartItemRow = {
   id: string
@@ -411,10 +413,13 @@ export class InMemoryCheckoutRepository implements CheckoutRepository {
   private experiments = new Map<string, ExperimentDto>()
   private exposures = new Map<string, { experimentId: string; unitId: string; bucket: "control" | "exposed" }>()
 
-  constructor(private readonly catalog: CatalogSnapshot) {}
+  constructor(
+    private readonly catalog: CatalogSnapshot,
+    readonly ledger: LedgerStore = new InMemoryLedgerStore(),
+  ) {}
 
   async createCart(): Promise<CartRow> {
-    const cart: CartRow = { id: crypto.randomUUID(), currency: "ghs", buyerEmail: null }
+    const cart: CartRow = { id: crypto.randomUUID(), currency: marketCurrency(), buyerEmail: null }
     this.carts.set(cart.id, cart)
     this.items.set(cart.id, [])
     return cart
@@ -516,7 +521,7 @@ export class InMemoryCheckoutRepository implements CheckoutRepository {
         deliveryFeePesewas: view.deliveryFeePesewas,
       })
     }
-    return quoteCart(lines)
+    return quoteCart(lines, this.carts.get(cartId)?.currency ?? marketCurrency())
   }
 
   async createPaymentIntent(
@@ -690,6 +695,24 @@ export class InMemoryCheckoutRepository implements CheckoutRepository {
     this.orders.set(orderGroup.id, createdOrders)
     this.reservations.delete(paymentIntentId)
 
+    // Ledger: one sale + one platform_fee row per seller order, same unit of
+    // work. Replay converges: early-return above skips confirmed groups, and
+    // idempotency keys dedupe any double-append.
+    for (const order of createdOrders) {
+      const seller = this.catalog.sellers.find((s) => s.id === order.sellerId)
+      if (!seller) throw new Error(`seller missing for ledger: ${order.sellerId}`)
+      for (const entry of saleEntries({
+        orderId: order.id,
+        intentId: paymentIntentId,
+        sellerId: order.sellerId,
+        subtotalMinor: order.subtotalPesewas,
+        currency: intent.currency,
+        commissionBps: seller.commissionBps,
+      })) {
+        await this.ledger.append(entry)
+      }
+    }
+
     // MoMo: pending → succeeded → completed; COD: initiated → completed
     if (intent.status === "pending") {
       assertPaymentTransition(intent.status, "succeeded")
@@ -836,6 +859,19 @@ export class InMemoryCheckoutRepository implements CheckoutRepository {
       const live = this.orderIndex.get(order.id)
       if (live) live.payoutId = payout.id
     }
+    const group = this.orderGroups.get(unpaid[0]?.orderGroupId ?? "")
+    const groupIntent = group ? this.intents.get(group.paymentIntentId) : undefined
+    // Currency resolves from the paid intent — never a literal, never a guess.
+    // A missing intent row is a data-integrity fault: fail loudly, not silently.
+    if (!groupIntent) throw new Error("payment intent missing for payout ledger")
+    await this.ledger.append(
+      payoutEntry({
+        payoutId: payout.id,
+        sellerId: input.sellerId,
+        netMinor: payout.netPesewas,
+        currency: groupIntent.currency,
+      }),
+    )
     return { ...payout }
   }
 

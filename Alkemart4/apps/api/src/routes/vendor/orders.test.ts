@@ -60,7 +60,7 @@ describe("vendor order fulfillment", () => {
       method: "cod",
       status: "initiated",
       amountPesewas: (await checkoutRepo.quote(cart.id)).totalPesewas,
-      currency: "ghs",
+      currency: "GHS",
       paystackReference: null,
       buyerEmail: "buyer@t.test",
       momoProvider: null,

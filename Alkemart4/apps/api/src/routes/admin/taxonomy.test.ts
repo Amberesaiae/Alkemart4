@@ -256,7 +256,7 @@ describe("Phase 1C — typed attributes", () => {
       pricePesewas: 1000n,
       onHand: 1,
       reserved: 0,
-      currency: "ghs",
+      currency: "GHS",
       active: true,
     })
     data.variants.push({ id: "v1", productId: "p1", sku: null, title: "Default" })

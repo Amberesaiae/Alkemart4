@@ -238,7 +238,7 @@
       "pricePesewas": "1500",
       "onHand": 10,
       "reserved": 0,
-      "currency": "ghs",
+      "currency": "GHS",
       "active": true
     },
     {
@@ -249,7 +249,7 @@
       "pricePesewas": "3000",
       "onHand": 4,
       "reserved": 0,
-      "currency": "ghs",
+      "currency": "GHS",
       "active": true
     }
   ]

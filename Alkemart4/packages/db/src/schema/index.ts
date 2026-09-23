@@ -45,6 +45,7 @@ export {
 } from "./payments"
 export { orderStatusEnum, orderGroups, orders, orderItems } from "./orders"
 export {
+  ledgerEntries,
   payoutHoldStatusEnum,
   payoutHolds,
   payoutStatusEnum,

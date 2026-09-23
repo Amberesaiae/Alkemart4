@@ -90,7 +90,7 @@ describe("GET /admin/taxonomy/proposals/review (Phase 8D)", () => {
           pricePesewas: 1000n,
           onHand: 2,
           reserved: 0,
-          currency: "ghs",
+          currency: "GHS",
           active: true,
         },
         {
@@ -101,7 +101,7 @@ describe("GET /admin/taxonomy/proposals/review (Phase 8D)", () => {
           pricePesewas: 2000n,
           onHand: 2,
           reserved: 0,
-          currency: "ghs",
+          currency: "GHS",
           active: true,
         },
       ],

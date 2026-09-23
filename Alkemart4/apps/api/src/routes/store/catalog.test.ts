@@ -28,7 +28,7 @@ describe("GET /store/catalog", () => {
     expect(card.offerCount).toBe(2)
     expect(card.fromPricePesewas).toBe("1500")
     expect(card.bestOfferId).toBe("offer-a")
-    expect(card.currency).toBe("ghs")
+    expect(card.currency).toBe("GHS")
     expect(card).not.toHaveProperty("price")
     expect(card).not.toHaveProperty("pricePesewas")
   })

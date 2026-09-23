@@ -8,6 +8,7 @@
     ".": "./src/index.ts",
     "./category-art": "./src/category-art.ts",
     "./ghana": "./src/ghana/index.ts",
+    "./markets": "./src/markets.ts",
     "./homepage": "./src/homepage.ts",
     "./storefront-badges": "./src/storefront-badges.ts",
     "./product-attributes": "./src/product-attributes.ts"
