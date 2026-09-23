@@ -48,6 +48,7 @@ import type {
 } from "./context"
 import { catalogDb, primaryDb } from "./db"
 import { parseEnv } from "./env"
+import { noStoreHeaders } from "./lib/edge-cache"
 import { requireAdmin, requireSeller } from "./middleware/auth"
 import { corsMiddleware } from "./middleware/cors"
 import { errorHandler } from "./middleware/error"
@@ -347,35 +348,36 @@ export function createApp(
   }
 
   const store = new Hono<AppEnv>()
-  store.route("/auth", withBind(bindAuth, storeAuth))
+  store.route("/auth", withBind(bindAuth, withBind(noStoreHeaders, storeAuth)))
   store.route("/categories", withBind(bindCatalog, categories))
   store.route("/catalog", withBind(bindCatalog, withBind(bindCheckout, catalog)))
   store.route("/search", withBind(bindCatalog, storeSearch))
   store.route("/products", withBind(bindCatalog, withBind(bindCheckout, products)))
   store.route("/sellers", withBind(bindAuth, withBind(bindCatalog, withBind(bindCheckout, sellers))))
   store.route("/homepage", withBind(bindCatalog, storeHomepage))
-  store.route("/cart", withBind(bindCheckout, storeCart))
-  store.route("/checkout", withBind(bindAuth, withBind(bindCheckout, storeCheckout)))
+  store.route("/cart", withBind(bindCheckout, withBind(noStoreHeaders, storeCart)))
+  store.route("/checkout", withBind(bindAuth, withBind(bindCheckout, withBind(noStoreHeaders, storeCheckout))))
   store.route("/reviews", withBind(bindCheckout, storeReviews))
   store.route("/collections", withBind(bindCatalog, storeCollections))
   store.route("/course", withBind(bindCatalog, withBind(bindCheckout, storeCourse)))
   store.route("/feed", withBind(bindCatalog, storeFeed))
   store.route("/guides", withBind(bindCatalog, storeGuides))
-  store.route("/experiments", withBind(bindCheckout, storeExperiments))
-  store.route("/preferences", withBind(bindAuth, withBind(bindCheckout, storePreferences)))
+  store.route("/experiments", withBind(bindCheckout, withBind(noStoreHeaders, storeExperiments)))
+  store.route("/preferences", withBind(bindAuth, withBind(bindCheckout, withBind(noStoreHeaders, storePreferences))))
   store.route(
     "/subscriptions",
-    withBind(bindAuth, withBind(bindCatalog, withBind(bindCheckout, storeSubscriptions))),
+    withBind(bindAuth, withBind(bindCatalog, withBind(bindCheckout, withBind(noStoreHeaders, storeSubscriptions)))),
   )
   store.route("/sitemap", withBind(bindCatalog, storeSitemap))
   store.route(
     "/orders",
-    withBind(bindAuth, withBind(bindCheckout, storeOrders)),
+    withBind(bindAuth, withBind(bindCheckout, withBind(noStoreHeaders, storeOrders))),
   )
   app.route("/store", store)
 
   const vendor = new Hono<AppEnv>()
   vendor.use("*", bindAuth)
+  vendor.use("*", noStoreHeaders)
   vendor.route("/auth", vendorAuth)
   vendor.route("/onboarding", vendorOnboarding)
   vendor.route("/products", withBind(bindCatalog, withBind(bindCheckout, vendorProducts)))
@@ -395,6 +397,7 @@ export function createApp(
 
   const admin = new Hono<AppEnv>()
   admin.use("*", bindAuth)
+  admin.use("*", noStoreHeaders)
   admin.route("/auth", adminAuth)
   admin.get("/me", requireAdmin, (c) => c.json(c.get("auth")))
   admin.route("/sellers", withBind(bindCatalog, withBind(bindCheckout, adminSellers)))
@@ -427,7 +430,7 @@ export function createApp(
   )
   app.route("/admin", admin)
 
-  app.route("/hooks/paystack", withBind(bindCheckout, paystackHooks))
+  app.route("/hooks/paystack", withBind(bindCheckout, withBind(noStoreHeaders, paystackHooks)))
 
   app.get("/media/*", (c) => serveMedia(c))
 
