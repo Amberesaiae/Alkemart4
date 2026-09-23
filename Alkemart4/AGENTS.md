@@ -52,6 +52,19 @@ bun run smoke:acid
 bun run smoke:local    # local API :8787 (SKIP_PAGES)
 ```
 
+## Tests (worker cap is load-bearing)
+
+```bash
+bun run test:api       # 45 files — capped at 2 workers, do NOT uncap
+bun run test:domain
+```
+
+Uncapped, 45 isolates starve small dev boxes and tests fail
+non-deterministically (different files each run; every file passes alone).
+Per vitest docs: right-size workers to the machine, keep isolate:true
+(singletons like the rate limiter must not leak across files). If you have
+a bigger box, override per-run (`--maxWorkers=4`), don't edit the scripts.
+
 ## Ghana locale
 
 `packages/shared` (`@alkemart/shared/ghana`) is canonical for geography, currency, phone, MoMo providers.

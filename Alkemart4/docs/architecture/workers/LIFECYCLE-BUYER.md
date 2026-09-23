@@ -13,6 +13,21 @@
 | GET | `/store/categories` | Nav tree |
 | GET | `/store/catalog?q=&category=&limit=&offset=` | Browse/search |
 | GET | `/store/products/:id` | PDP + peer offers |
+| GET | `/store/products/:id/peers?variant_id=&sort=` | Variant-safe comparison (`total`/`price`/`delivery`/`trust`) + explanation + per-offer price history; Level C → `comparisonEligible: false` |
+| GET | `/store/sellers/:handle/verifications` | Decomposed verification evidence (`meaning` per badge) |
+| GET | `/store/collections?seller_id=` | Live shop shelves with ranked cards |
+| GET | `/store/collections/:id?seller_id=` | One live shelf (draft/scheduled/expired → 404) |
+| GET | `/store/course` | Resolved placements (winning campaigns + cards) + rule shelves |
+| POST | `/store/course/events` | View/select beacon (no PII, 202) |
+| GET | `/store/sitemap` | Live indexable URL set (products/categories/shops/collections) |
+| GET | `/store/feed` | Merchant feed rows (JSON; XML renders at build) |
+| GET | `/store/guides` | Published buying guides |
+| GET | `/store/guides/:slug` | Guide with live catalog picks |
+| GET | `/store/products/:id/alternatives` | Governed similar products (sellable-only, ≤2 per seller) |
+| GET/PUT | `/store/preferences` | Preference center (promo opt-in, operational opt-out; transactional locked) |
+| GET/POST | `/store/subscriptions` | Stock/price alert subscriptions (contact from session; one-shot) |
+| DELETE | `/store/subscriptions/:id` | Unsubscribe |
+| GET | `/store/experiments/assign?experiment=&unit=` | Deterministic bucket (control holdout default) |
 | GET | `/store/sellers` / `/store/sellers/:handle` | Shops |
 | POST | `/store/cart` | Create |
 | POST | `/store/cart/:id/items` | `{ offerId, qty }` |

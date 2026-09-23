@@ -49,7 +49,7 @@ export function HomeDeliveryBand({
         />
         <AssuranceFact
           icon={<Storefront size={19} weight="duotone" />}
-          title="Verified sellers"
+          title="Independent shops"
           detail="Shop from independent Ghanaian businesses"
         />
       </ul>

@@ -39,7 +39,9 @@ export function QuickBuyDialog({
   const [error, setError] = useState<string | null>(null)
   const [added, setAdded] = useState(false)
 
-  const detailId = product.handle?.trim() || product.id
+  const detailId = product.slug?.trim()
+    ? `${product.slug.trim()}-${product.id}`
+    : product.handle?.trim() || product.id
 
   // The card has no attributes — those live on the detail payload. Fetch them
   // only once the dialog is actually open.

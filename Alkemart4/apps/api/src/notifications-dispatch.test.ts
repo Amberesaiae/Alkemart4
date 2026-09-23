@@ -8,6 +8,9 @@ import { createApp } from "./index"
 import { signSessionJwt } from "./lib/jwt"
 import { dispatchPendingNotifications } from "./notifications-dispatch"
 import { InMemorySmsProvider } from "./sms"
+import { resetRateLimits } from "./middleware/security"
+// Rate-limit counters are per-process: reset so files stay isolated.
+resetRateLimits()
 
 const JWT = "test-jwt-secret-that-is-at-least-32-chars-long"
 
@@ -118,7 +121,10 @@ describe("fulfillment SMS outbox", () => {
     })
     expect(deliver.status).toBe(200)
     const keys = (await checkoutRepo.claimPendingNotifications(10)).map((n) => n.key).sort()
-    expect(keys).toEqual([`${orderId}:delivered`, `${orderId}:shipped`].sort())
+    // Delivering also queues the one-shot verified-review request (Phase 7B).
+    expect(keys).toEqual(
+      [`${orderId}:delivered`, `${orderId}:review-request`, `${orderId}:shipped`].sort(),
+    )
   })
 
   it("no phone → no message, no error", async () => {

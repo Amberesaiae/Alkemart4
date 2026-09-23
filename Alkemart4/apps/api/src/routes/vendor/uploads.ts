@@ -38,6 +38,23 @@ const ALLOWED: Record<string, { ext: string; magic: (b: Uint8Array) => boolean }
   },
 }
 
+/**
+ * Sniff image bytes to their true MIME type (magic bytes, not declared
+ * headers). Exported for unit tests: runtimes may normalize the declared
+ * `file.type` at parse time, so the route binds sniffed-vs-declared and
+ * the spoof matrix is pinned here instead of over HTTP.
+ */
+export function sniffImageType(bytes: Uint8Array): keyof typeof ALLOWED | null {
+  for (const [mime, spec] of Object.entries(ALLOWED)) {
+    try {
+      if (spec.magic(bytes)) return mime as keyof typeof ALLOWED
+    } catch {
+      /* malformed input never matches */
+    }
+  }
+  return null
+}
+
 function bucketOrThrow(c: { env: AppEnv["Bindings"] }): R2Bucket {
   const bucket = c.env.MEDIA_BUCKET
   if (!bucket) throw new HTTPException(501, { message: "media storage unavailable" })
@@ -113,13 +130,18 @@ async function storeUploadedImage(
       ? (kindRaw as MediaKind)
       : defaultKind
 
-  const spec = ALLOWED[file.type]
-  if (!spec) throw new HTTPException(415, { message: "only PNG, JPG, WebP, or GIF images are accepted" })
-  if (file.size <= 0 || file.size > MAX_UPLOAD_BYTES) {
+  const bytes = new Uint8Array(await file.arrayBuffer())
+  if (bytes.length <= 0 || bytes.length > MAX_UPLOAD_BYTES) {
     throw new HTTPException(413, { message: "image must be smaller than 5 MB" })
   }
-  const bytes = new Uint8Array(await file.arrayBuffer())
-  if (!spec.magic(bytes)) throw new HTTPException(415, { message: "file content does not match its type" })
+  // Bind sniffed content to the declared type: runtimes may normalize
+  // file.type at parse time, so a mismatch here is the spoof signal.
+  const sniffed = sniffImageType(bytes)
+  if (!sniffed || sniffed !== file.type) {
+    throw new HTTPException(415, { message: "file content does not match its type" })
+  }
+  const spec = ALLOWED[file.type]
+  if (!spec) throw new HTTPException(415, { message: "only PNG, JPG, WebP, or GIF images are accepted" })
 
   const origin = new URL(c.req.url).origin
   const base = `${kind}/${ownerId}/${crypto.randomUUID()}`

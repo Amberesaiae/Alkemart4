@@ -29,7 +29,7 @@ export function HomeAdvertiseBand({
   return (
     <section
       className={cn(
-        "relative overflow-hidden rounded-2xl bg-primary px-6 py-7 text-primary-foreground sm:px-10 sm:py-8 shadow-md",
+        "relative overflow-hidden rounded-xl bg-primary px-6 py-7 text-primary-foreground sm:px-10 sm:py-8 shadow-md",
         className,
       )}
     >

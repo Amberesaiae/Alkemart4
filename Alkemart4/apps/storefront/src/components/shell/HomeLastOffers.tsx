@@ -28,7 +28,6 @@ type Props = {
 export function HomeLastOffers({ products, categories, loading, className }: Props) {
   const [tab, setTab] = useState<OfferTabId | "all">("all")
   const [sort, setSort] = useState<OfferSort>("featured")
-  const [view, setView] = useState<OfferView>("grid")
 
   const tabs = useMemo(
     () => availableOfferTabs(categories ?? []),
@@ -51,8 +50,6 @@ export function HomeLastOffers({ products, categories, loading, className }: Pro
         onChange={setTab}
         sort={sort}
         onSortChange={setSort}
-        view={view}
-        onViewChange={setView}
         tabs={tabs}
       />
 
@@ -60,19 +57,11 @@ export function HomeLastOffers({ products, categories, loading, className }: Pro
 
       {!loading && visible.length > 0 ? (
         <div className="space-y-4">
-          {view === "list" ? (
-            <div className="grid gap-2.5 sm:grid-cols-2">
-              {visible.map((p) => (
-                <ProductCard key={p.id} product={p} size="row" />
-              ))}
-            </div>
-          ) : (
-            <ProductGridShell>
-              {visible.map((p) => (
-                <ProductCard key={p.id} product={p} size="tile" />
-              ))}
-            </ProductGridShell>
-          )}
+          <ProductGridShell>
+            {visible.map((p) => (
+              <ProductCard key={p.id} product={p} size="tile" />
+            ))}
+          </ProductGridShell>
 
           <ViewMore
             to="/categories/$slug"

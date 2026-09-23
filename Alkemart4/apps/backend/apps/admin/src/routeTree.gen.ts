@@ -26,6 +26,7 @@ import { Route as AuthenticatedFeaturedProductsRouteImport } from './routes/_aut
 import { Route as AuthenticatedDisputesRouteImport } from './routes/_authenticated/disputes'
 import { Route as AuthenticatedCommissionRatesRouteImport } from './routes/_authenticated/commission-rates'
 import { Route as AuthenticatedCategoriesRouteImport } from './routes/_authenticated/categories'
+import { Route as AuthenticatedCampaignsRouteImport } from './routes/_authenticated/campaigns'
 import { Route as AuthenticatedAppealsRouteImport } from './routes/_authenticated/appeals'
 import { Route as AuthenticatedAnalyticsRouteImport } from './routes/_authenticated/analytics'
 import { Route as AuthenticatedSellersIndexRouteImport } from './routes/_authenticated/sellers.index'
@@ -121,6 +122,11 @@ const AuthenticatedCategoriesRoute = AuthenticatedCategoriesRouteImport.update({
   path: '/categories',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedCampaignsRoute = AuthenticatedCampaignsRouteImport.update({
+  id: '/campaigns',
+  path: '/campaigns',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedAppealsRoute = AuthenticatedAppealsRouteImport.update({
   id: '/appeals',
   path: '/appeals',
@@ -153,6 +159,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/analytics': typeof AuthenticatedAnalyticsRoute
   '/appeals': typeof AuthenticatedAppealsRoute
+  '/campaigns': typeof AuthenticatedCampaignsRoute
   '/categories': typeof AuthenticatedCategoriesRoute
   '/commission-rates': typeof AuthenticatedCommissionRatesRoute
   '/disputes': typeof AuthenticatedDisputesRoute
@@ -176,6 +183,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/analytics': typeof AuthenticatedAnalyticsRoute
   '/appeals': typeof AuthenticatedAppealsRoute
+  '/campaigns': typeof AuthenticatedCampaignsRoute
   '/categories': typeof AuthenticatedCategoriesRoute
   '/commission-rates': typeof AuthenticatedCommissionRatesRoute
   '/disputes': typeof AuthenticatedDisputesRoute
@@ -201,6 +209,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/_authenticated/analytics': typeof AuthenticatedAnalyticsRoute
   '/_authenticated/appeals': typeof AuthenticatedAppealsRoute
+  '/_authenticated/campaigns': typeof AuthenticatedCampaignsRoute
   '/_authenticated/categories': typeof AuthenticatedCategoriesRoute
   '/_authenticated/commission-rates': typeof AuthenticatedCommissionRatesRoute
   '/_authenticated/disputes': typeof AuthenticatedDisputesRoute
@@ -226,6 +235,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/analytics'
     | '/appeals'
+    | '/campaigns'
     | '/categories'
     | '/commission-rates'
     | '/disputes'
@@ -249,6 +259,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/analytics'
     | '/appeals'
+    | '/campaigns'
     | '/categories'
     | '/commission-rates'
     | '/disputes'
@@ -273,6 +284,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/_authenticated/analytics'
     | '/_authenticated/appeals'
+    | '/_authenticated/campaigns'
     | '/_authenticated/categories'
     | '/_authenticated/commission-rates'
     | '/_authenticated/disputes'
@@ -419,6 +431,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedCategoriesRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/campaigns': {
+      id: '/_authenticated/campaigns'
+      path: '/campaigns'
+      fullPath: '/campaigns'
+      preLoaderRoute: typeof AuthenticatedCampaignsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/appeals': {
       id: '/_authenticated/appeals'
       path: '/appeals'
@@ -471,6 +490,7 @@ const AuthenticatedOrdersRouteWithChildren =
 interface AuthenticatedRouteChildren {
   AuthenticatedAnalyticsRoute: typeof AuthenticatedAnalyticsRoute
   AuthenticatedAppealsRoute: typeof AuthenticatedAppealsRoute
+  AuthenticatedCampaignsRoute: typeof AuthenticatedCampaignsRoute
   AuthenticatedCategoriesRoute: typeof AuthenticatedCategoriesRoute
   AuthenticatedCommissionRatesRoute: typeof AuthenticatedCommissionRatesRoute
   AuthenticatedDisputesRoute: typeof AuthenticatedDisputesRoute
@@ -492,6 +512,7 @@ interface AuthenticatedRouteChildren {
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedAnalyticsRoute: AuthenticatedAnalyticsRoute,
   AuthenticatedAppealsRoute: AuthenticatedAppealsRoute,
+  AuthenticatedCampaignsRoute: AuthenticatedCampaignsRoute,
   AuthenticatedCategoriesRoute: AuthenticatedCategoriesRoute,
   AuthenticatedCommissionRatesRoute: AuthenticatedCommissionRatesRoute,
   AuthenticatedDisputesRoute: AuthenticatedDisputesRoute,

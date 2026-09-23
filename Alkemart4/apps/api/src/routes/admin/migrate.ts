@@ -270,6 +270,120 @@ export const adminMigrate = new Hono<AppEnv>()
     return c.json({ ok: true, applied })
   })
   /**
+   * Blueprint Phase 3 foundations (verification evidence + price history).
+   * Idempotent — mirrors
+   * packages/db/src/migrations/0022_blueprint_phase3.sql.
+   */
+  .post("/blueprint-phase3", async (c) => {
+    const env = parseEnv(c.env as unknown as Record<string, unknown>)
+    const db = primaryDb(env)
+    const applied: string[] = []
+    const exec = async (label: string, statement: ReturnType<typeof sql>) => {
+      await db.execute(statement)
+      applied.push(label)
+    }
+    await exec("verification_kind", sql`DO $$ BEGIN CREATE TYPE verification_kind AS ENUM('contact', 'identity', 'business', 'brand_auth', 'fulfillment_proven'); EXCEPTION WHEN duplicate_object THEN NULL; END $$`)
+    await exec("verification_status", sql`DO $$ BEGIN CREATE TYPE verification_status AS ENUM('pending', 'verified', 'revoked', 'expired'); EXCEPTION WHEN duplicate_object THEN NULL; END $$`)
+    await exec("seller_verifications", sql`CREATE TABLE IF NOT EXISTS seller_verifications (id text PRIMARY KEY, seller_id text NOT NULL REFERENCES sellers(id), kind verification_kind NOT NULL, status verification_status NOT NULL DEFAULT 'pending', evidence text, issued_by text, issued_at timestamptz, expires_at timestamptz, revoked_at timestamptz, revoke_reason text, created_at timestamptz NOT NULL DEFAULT now())`)
+    await exec("seller_verifications_seller_idx", sql`CREATE INDEX IF NOT EXISTS seller_verifications_seller_idx ON seller_verifications (seller_id, status)`)
+    await exec("offer_price_history", sql`CREATE TABLE IF NOT EXISTS offer_price_history (id text PRIMARY KEY, offer_id text NOT NULL REFERENCES offers(id), old_price_pesewas bigint NOT NULL, new_price_pesewas bigint NOT NULL, changed_by text, created_at timestamptz NOT NULL DEFAULT now())`)
+    await exec("offer_price_history_offer_idx", sql`CREATE INDEX IF NOT EXISTS offer_price_history_offer_idx ON offer_price_history (offer_id, created_at)`)
+    return c.json({ ok: true, applied })
+  })
+  /**
+   * Blueprint Phase 4 foundations (payout holds with reasons).
+   * Idempotent — mirrors
+   * packages/db/src/migrations/0023_blueprint_phase4.sql.
+   */
+  .post("/blueprint-phase4", async (c) => {
+    const env = parseEnv(c.env as unknown as Record<string, unknown>)
+    const db = primaryDb(env)
+    const applied: string[] = []
+    const exec = async (label: string, statement: ReturnType<typeof sql>) => {
+      await db.execute(statement)
+      applied.push(label)
+    }
+    await exec("payout_hold_status", sql`DO $$ BEGIN CREATE TYPE payout_hold_status AS ENUM('held', 'released'); EXCEPTION WHEN duplicate_object THEN NULL; END $$`)
+    await exec("payout_holds", sql`CREATE TABLE IF NOT EXISTS payout_holds (id text PRIMARY KEY, seller_id text NOT NULL REFERENCES sellers(id), order_id text REFERENCES orders(id), amount_pesewas bigint, reason text NOT NULL, status payout_hold_status NOT NULL DEFAULT 'held', created_by text, released_by text, released_at timestamptz, created_at timestamptz NOT NULL DEFAULT now())`)
+    await exec("payout_holds_seller_idx", sql`CREATE INDEX IF NOT EXISTS payout_holds_seller_idx ON payout_holds (seller_id, status)`)
+    await exec("vendor_imports", sql`CREATE TABLE IF NOT EXISTS vendor_imports (id text PRIMARY KEY, seller_id text NOT NULL REFERENCES sellers(id), import_key text NOT NULL, row_count integer NOT NULL DEFAULT 0, created_count integer NOT NULL DEFAULT 0, success integer NOT NULL DEFAULT 0, summary jsonb, created_at timestamptz NOT NULL DEFAULT now(), UNIQUE (seller_id, import_key))`)
+    return c.json({ ok: true, applied })
+  })
+  /**
+   * Blueprint Phase 5 foundations (campaign engine entities + seeds).
+   * Idempotent — mirrors
+   * packages/db/src/migrations/0024_blueprint_phase5.sql.
+   */
+  .post("/blueprint-phase5", async (c) => {
+    const env = parseEnv(c.env as unknown as Record<string, unknown>)
+    const db = primaryDb(env)
+    const applied: string[] = []
+    const exec = async (label: string, statement: ReturnType<typeof sql>) => {
+      await db.execute(statement)
+      applied.push(label)
+    }
+    await exec("campaign_status", sql`DO $$ BEGIN CREATE TYPE campaign_status AS ENUM('draft', 'review', 'scheduled', 'live', 'ended'); EXCEPTION WHEN duplicate_object THEN NULL; END $$`)
+    await exec("campaign_objective", sql`DO $$ BEGIN CREATE TYPE campaign_objective AS ENUM('sale', 'launch', 'clearance', 'brand'); EXCEPTION WHEN duplicate_object THEN NULL; END $$`)
+    await exec("campaign_event", sql`DO $$ BEGIN CREATE TYPE campaign_event AS ENUM('view', 'select'); EXCEPTION WHEN duplicate_object THEN NULL; END $$`)
+    await exec("placements", sql`CREATE TABLE IF NOT EXISTS placements (code text PRIMARY KEY, job text NOT NULL, max_live integer NOT NULL DEFAULT 1, constraints jsonb)`)
+    await exec("promotion_terms", sql`CREATE TABLE IF NOT EXISTS promotion_terms (id text PRIMARY KEY, label text NOT NULL, summary text NOT NULL, fine_print text, starts_at timestamptz, ends_at timestamptz, created_at timestamptz NOT NULL DEFAULT now())`)
+    await exec("campaigns", sql`CREATE TABLE IF NOT EXISTS campaigns (id text PRIMARY KEY, name text NOT NULL, tracking_id text NOT NULL UNIQUE, objective campaign_objective NOT NULL DEFAULT 'sale', placement_code text NOT NULL REFERENCES placements(code), status campaign_status NOT NULL DEFAULT 'draft', priority integer NOT NULL DEFAULT 0, sponsored integer NOT NULL DEFAULT 0, frequency_cap integer, terms_id text REFERENCES promotion_terms(id), starts_at timestamptz, ends_at timestamptz, created_by text, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now())`)
+    await exec("campaigns_placement_status_idx", sql`CREATE INDEX IF NOT EXISTS campaigns_placement_status_idx ON campaigns (placement_code, status)`)
+    await exec("creatives", sql`CREATE TABLE IF NOT EXISTS creatives (id text PRIMARY KEY, campaign_id text NOT NULL REFERENCES campaigns(id), slot text NOT NULL DEFAULT 'desktop', title text NOT NULL, subtitle text, image_url text, link text, position integer NOT NULL DEFAULT 0)`)
+    await exec("product_sets", sql`CREATE TABLE IF NOT EXISTS product_sets (id text PRIMARY KEY, campaign_id text NOT NULL REFERENCES campaigns(id), name text NOT NULL)`)
+    await exec("product_set_items", sql`CREATE TABLE IF NOT EXISTS product_set_items (id text PRIMARY KEY, set_id text NOT NULL REFERENCES product_sets(id), product_id text NOT NULL REFERENCES products(id), position integer NOT NULL DEFAULT 0, UNIQUE (set_id, product_id))`)
+    await exec("seller_sets", sql`CREATE TABLE IF NOT EXISTS seller_sets (id text PRIMARY KEY, campaign_id text NOT NULL REFERENCES campaigns(id), name text NOT NULL)`)
+    await exec("seller_set_items", sql`CREATE TABLE IF NOT EXISTS seller_set_items (id text PRIMARY KEY, set_id text NOT NULL REFERENCES seller_sets(id), seller_id text NOT NULL REFERENCES sellers(id), position integer NOT NULL DEFAULT 0, UNIQUE (set_id, seller_id))`)
+    await exec("campaign_audit", sql`CREATE TABLE IF NOT EXISTS campaign_audit (id text PRIMARY KEY, campaign_id text NOT NULL REFERENCES campaigns(id), actor text, action text NOT NULL, detail jsonb, created_at timestamptz NOT NULL DEFAULT now())`)
+    await exec("campaign_audit_campaign_idx", sql`CREATE INDEX IF NOT EXISTS campaign_audit_campaign_idx ON campaign_audit (campaign_id, created_at)`)
+    await exec("campaign_events", sql`CREATE TABLE IF NOT EXISTS campaign_events (id text PRIMARY KEY, campaign_id text NOT NULL REFERENCES campaigns(id), placement_code text NOT NULL, creative_id text, position integer, event campaign_event NOT NULL, created_at timestamptz NOT NULL DEFAULT now())`)
+    await exec("campaign_events_campaign_idx", sql`CREATE INDEX IF NOT EXISTS campaign_events_campaign_idx ON campaign_events (campaign_id, event, created_at)`)
+    await exec("placements_seed", sql`INSERT INTO placements (code, job, max_live, constraints) VALUES ('hero', 'Homepage hero', 1, '{"minProducts": 1, "requiresImage": true}'), ('deal_rail', 'Deal rail', 1, '{"minProducts": 2, "requiresImage": true}'), ('promo_grid', 'Promo grid', 2, '{"minProducts": 2, "requiresImage": false}'), ('promo_band', 'Promo band', 1, '{"minProducts": 1, "requiresImage": false}'), ('marquee', 'Marquee strip', 1, '{"minProducts": 0, "requiresImage": false}') ON CONFLICT (code) DO NOTHING`)
+    return c.json({ ok: true, applied })
+  })
+  /**
+   * Blueprint Phase 6 foundations (editorial guides). Idempotent — mirrors
+   * packages/db/src/migrations/0025_blueprint_phase6.sql (tables only; the
+   * pilot cluster seeds through 0025 itself).
+   */
+  .post("/blueprint-phase6", async (c) => {
+    const env = parseEnv(c.env as unknown as Record<string, unknown>)
+    const db = primaryDb(env)
+    const applied: string[] = []
+    const exec = async (label: string, statement: ReturnType<typeof sql>) => {
+      await db.execute(statement)
+      applied.push(label)
+    }
+    await exec("guide_status", sql`DO $$ BEGIN CREATE TYPE guide_status AS ENUM('draft', 'published'); EXCEPTION WHEN duplicate_object THEN NULL; END $$`)
+    await exec("guides", sql`CREATE TABLE IF NOT EXISTS guides (slug text PRIMARY KEY, title text NOT NULL, excerpt text NOT NULL, author text NOT NULL, status guide_status NOT NULL DEFAULT 'draft', revision integer NOT NULL DEFAULT 1, sections jsonb NOT NULL DEFAULT '[]', related_guides jsonb NOT NULL DEFAULT '[]', refresh_after timestamptz, published_at timestamptz, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now())`)
+    return c.json({ ok: true, applied })
+  })
+  /**
+   * Blueprint Phase 7 foundations (preference center, alert
+   * subscriptions, experiment registry). Idempotent — mirrors
+   * packages/db/src/migrations/0026_blueprint_phase7.sql.
+   */
+  .post("/blueprint-phase7", async (c) => {
+    const env = parseEnv(c.env as unknown as Record<string, unknown>)
+    const db = primaryDb(env)
+    const applied: string[] = []
+    const exec = async (label: string, statement: ReturnType<typeof sql>) => {
+      await db.execute(statement)
+      applied.push(label)
+    }
+    await exec("notification_preferences", sql`CREATE TABLE IF NOT EXISTS notification_preferences (id text PRIMARY KEY, owner_type text NOT NULL, owner_id text NOT NULL, channel text NOT NULL DEFAULT 'sms', category text NOT NULL, topic text, opted_in integer NOT NULL DEFAULT 1, frequency_cap integer, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now())`)
+    await exec("notification_preferences_owner_uidx", sql`CREATE UNIQUE INDEX IF NOT EXISTS notification_preferences_owner_uidx ON notification_preferences (owner_type, owner_id, channel, category, (COALESCE(topic, '')))`)
+    await exec("notification_preferences_owner_idx", sql`CREATE INDEX IF NOT EXISTS notification_preferences_owner_idx ON notification_preferences (owner_type, owner_id)`)
+    await exec("notifications_category", sql`ALTER TABLE notifications ADD COLUMN IF NOT EXISTS category text NOT NULL DEFAULT 'transactional'`)
+    await exec("stock_subscriptions", sql`CREATE TABLE IF NOT EXISTS stock_subscriptions (id text PRIMARY KEY, buyer_email text NOT NULL, product_id text NOT NULL REFERENCES products(id), offer_id text REFERENCES offers(id), kind text NOT NULL, below_pesewas bigint, channel text NOT NULL DEFAULT 'sms', created_at timestamptz NOT NULL DEFAULT now())`)
+    await exec("stock_subscriptions_offer_idx", sql`CREATE INDEX IF NOT EXISTS stock_subscriptions_offer_idx ON stock_subscriptions (offer_id)`)
+    await exec("experiment_status", sql`DO $$ BEGIN CREATE TYPE experiment_status AS ENUM('draft', 'running', 'paused', 'ended'); EXCEPTION WHEN duplicate_object THEN NULL; END $$`)
+    await exec("experiments", sql`CREATE TABLE IF NOT EXISTS experiments (id text PRIMARY KEY, key text NOT NULL UNIQUE, name text NOT NULL, description text, status experiment_status NOT NULL DEFAULT 'draft', control_pct integer NOT NULL DEFAULT 50, primary_metric text, guardrails jsonb, started_at timestamptz, ended_at timestamptz, created_by text, created_at timestamptz NOT NULL DEFAULT now())`)
+    await exec("experiment_exposures", sql`CREATE TABLE IF NOT EXISTS experiment_exposures (id text PRIMARY KEY, experiment_id text NOT NULL REFERENCES experiments(id), unit_id text NOT NULL, bucket text NOT NULL, created_at timestamptz NOT NULL DEFAULT now(), UNIQUE (experiment_id, unit_id))`)
+    await exec("experiment_exposures_exp_idx", sql`CREATE INDEX IF NOT EXISTS experiment_exposures_exp_idx ON experiment_exposures (experiment_id, bucket)`)
+    return c.json({ ok: true, applied })
+  })
+  /**
    * Blueprint Phase 1C — seed the governed Phones attribute profile.
    * Idempotent: existing codes/profiles are reused, never duplicated.
    * Category linkage stays null until taxonomy assignment (Phase 1A UI).

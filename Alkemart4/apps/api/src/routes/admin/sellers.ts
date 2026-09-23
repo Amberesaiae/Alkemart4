@@ -2,7 +2,7 @@ import { Hono } from "hono"
 import { HTTPException } from "hono/http-exception"
 import { z } from "zod"
 import type { AuthSeller } from "../../auth-repository"
-import type { AdminProductDto } from "../../catalog-repository"
+import { CatalogValidationError, type AdminProductDto } from "../../catalog-repository"
 import type { OrderRow } from "../../checkout-repository"
 import type { AppEnv } from "../../context"
 import { readJsonBody } from "../../lib/session"
@@ -10,6 +10,17 @@ import { requireAdmin } from "../../middleware/auth"
 
 const CommissionBody = z.object({
   commissionBps: z.number().int().min(0).max(10_000),
+})
+
+const IssueVerificationBody = z.object({
+  kind: z.enum(["contact", "identity", "business", "brand_auth", "fulfillment_proven"]),
+  evidence: z.string().trim().min(1).max(2000).optional().nullable(),
+  issuedBy: z.string().trim().min(1).max(200).optional(),
+  expiresAt: z.string().trim().min(1).max(64).optional().nullable(),
+})
+
+const RevokeVerificationBody = z.object({
+  reason: z.string().trim().min(1).max(1000),
 })
 
 function publicSeller(seller: AuthSeller) {
@@ -26,15 +37,30 @@ function publicSeller(seller: AuthSeller) {
 export const adminSellers = new Hono<AppEnv>()
   .use("*", requireAdmin)
   .get("/", async (c) => {
+    const authRepo = c.get("authRepo")
     const [sellers, totals] = await Promise.all([
-      c.get("authRepo").listSellers(),
+      authRepo.listSellers(),
       c.get("checkoutRepo").orderTotalsBySeller().catch(() => new Map()),
     ])
+    // Owner contact per shop for the ops queue. One members read per shop —
+    // admin-scale only, never on a shopper path.
+    const owners = await Promise.all(
+      sellers.map((s) =>
+        authRepo
+          .listSellerMembers(s.id)
+          .then(
+            (members) =>
+              members.find((m) => m.role === "owner")?.email ?? members[0]?.email ?? null,
+          )
+          .catch(() => null),
+      ),
+    )
     return c.json({
-      items: sellers.map((s) => {
+      items: sellers.map((s, i) => {
         const t = (totals as Map<string, { orders: number; gmvPesewas: bigint }>).get(s.id)
         return {
           ...publicSeller(s),
+          ownerEmail: owners[i],
           orderCount: t?.orders ?? 0,
           gmvPesewas: (t?.gmvPesewas ?? 0n).toString(),
         }
@@ -170,4 +196,66 @@ export const adminSellers = new Hono<AppEnv>()
       detail: { commissionBps: seller.commissionBps },
     })
     return c.json({ seller: publicSeller(seller) })
+  })
+  /**
+   * Phase 3D — verification evidence governance. Issuing records what was
+   * checked (contact/identity/business/brand_auth/fulfillment_proven);
+   * revoking names a reason. Both are audit-logged.
+   */
+  .get("/:id/verifications", async (c) => {
+    const seller = await c.get("authRepo").findSellerById(c.req.param("id"))
+    if (!seller) throw new HTTPException(404, { message: "seller not found" })
+    const verifications = await c.get("repo").listSellerVerifications(seller.id)
+    return c.json({ sellerId: seller.id, verifications })
+  })
+  .post("/:id/verifications", async (c) => {
+    const parsed = IssueVerificationBody.safeParse(await readJsonBody(c))
+    if (!parsed.success) throw new HTTPException(400, { message: "invalid body" })
+    const seller = await c.get("authRepo").findSellerById(c.req.param("id"))
+    if (!seller) throw new HTTPException(404, { message: "seller not found" })
+    try {
+      const verification = await c
+        .get("repo")
+        .issueSellerVerification(seller.id, parsed.data.kind, {
+          evidence: parsed.data.evidence ?? null,
+          issuedBy: parsed.data.issuedBy ?? c.get("auth").userId,
+          expiresAt: parsed.data.expiresAt ?? null,
+        })
+      await c.get("auditLog").log({
+        adminUserId: c.get("auth").userId,
+        action: "seller.verification.issue",
+        targetType: "seller",
+        targetId: seller.id,
+        detail: { kind: verification.kind, verificationId: verification.id },
+      })
+      return c.json({ verification }, 201)
+    } catch (err) {
+      if (err instanceof CatalogValidationError) throw new HTTPException(400, { message: err.message })
+      throw err
+    }
+  })
+  .post("/:id/verifications/:verificationId/revoke", async (c) => {
+    const parsed = RevokeVerificationBody.safeParse(await readJsonBody(c))
+    if (!parsed.success) throw new HTTPException(400, { message: "invalid body" })
+    const seller = await c.get("authRepo").findSellerById(c.req.param("id"))
+    if (!seller) throw new HTTPException(404, { message: "seller not found" })
+    try {
+      const verification = await c.get("repo").revokeSellerVerification(c.req.param("verificationId"), {
+        reason: parsed.data.reason,
+        revokedBy: c.get("auth").userId,
+      })
+      if (!verification) throw new HTTPException(404, { message: "verification not found" })
+      await c.get("auditLog").log({
+        adminUserId: c.get("auth").userId,
+        action: "seller.verification.revoke",
+        targetType: "seller",
+        targetId: seller.id,
+        detail: { verificationId: verification.id, reason: parsed.data.reason },
+      })
+      return c.json({ verification })
+    } catch (err) {
+      if (err instanceof HTTPException) throw err
+      if (err instanceof CatalogValidationError) throw new HTTPException(400, { message: err.message })
+      throw err
+    }
   })

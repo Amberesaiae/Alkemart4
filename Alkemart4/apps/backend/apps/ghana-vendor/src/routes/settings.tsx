@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { useState, useEffect, useRef } from "react"
-import { useSellerProfile, useUpdateProfile, useUpdateAddress, useUpdatePayment, useUploadImage } from "../lib/hooks"
+import { useSellerProfile, useUpdateProfile, useUpdateAddress, useUpdatePayment, useUploadImage, useAlertPrefs, useSetAlertPref } from "../lib/hooks"
 import { Card, CardHeader, CardTitle, CardContent, CardFooter, Button, Input, Label, Skeleton, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui"
 import { PageShell } from "../components/page-shell"
 import { PageHeader } from "../components/page-header"
@@ -35,20 +35,21 @@ import {
 
 export const Route = createFileRoute('/settings')({
   validateSearch: (search: Record<string, unknown>) => {
-    const result: { tab?: "profile" | "dispatch" | "momo" } = {}
+    const result: { tab?: "profile" | "dispatch" | "momo" | "alerts" } = {}
     const raw = search.tab
-    if (raw === "profile" || raw === "dispatch" || raw === "momo") result.tab = raw
+    if (raw === "profile" || raw === "dispatch" || raw === "momo" || raw === "alerts") result.tab = raw
     return result
   },
   component: SettingsPage,
 })
 
-type StepTab = "profile" | "dispatch" | "momo"
+type StepTab = "profile" | "dispatch" | "momo" | "alerts"
 
 const STEPS: { id: StepTab; label: string; number: number }[] = [
   { id: "profile", label: "Shop Profile", number: 1 },
   { id: "dispatch", label: "Dispatch Address", number: 2 },
   { id: "momo", label: "MoMo Payout", number: 3 },
+  { id: "alerts", label: "Alerts", number: 4 },
 ]
 
 function SettingsPage() {
@@ -726,7 +727,66 @@ function SettingsPage() {
           </form>
         </Card>
       )}
+      {activeTab === "alerts" && (
+        <AlertsCard />
+      )}
     </PageShell>
+  )
+}
+
+const ALERT_TOPIC_COPY: Record<string, { label: string; hint: string }> = {
+  stock: { label: "Low stock", hint: "Combinations running at 5 or fewer units." },
+  price: { label: "Stale prices", hint: "Published prices unverified for 72h+." },
+  sla: { label: "Order delays", hint: "Placed orders waiting over a day." },
+  order: { label: "Order events", hint: "Dispatch reminders and payout failures." },
+  payout: { label: "Payout failures", hint: "Failed transfers that need support." },
+}
+
+/**
+ * Alert topics (Phase 7C): which journey tasks appear on the dashboard.
+ * Everything is on by default; switching a topic off hides its tasks.
+ */
+function AlertsCard() {
+  const { data, isLoading, isError } = useAlertPrefs()
+  const setPref = useSetAlertPref()
+  const topics = data?.topics ?? []
+  return (
+    <Card className="border-border/80 shadow-xs">
+      <CardHeader className="pb-4">
+        <CardTitle className="text-base font-bold">Alert topics</CardTitle>
+        <p className="text-xs text-muted-foreground">
+          Choose which jobs appear on your dashboard. Order SMS to buyers is unaffected.
+        </p>
+      </CardHeader>
+      <CardContent className="space-y-1">
+        {isLoading ? (
+          <Skeleton className="h-12 w-full rounded-xl" />
+        ) : isError ? (
+          <p className="text-sm text-destructive">Could not load alert settings.</p>
+        ) : (
+          topics.map((t) => {
+            const copy = ALERT_TOPIC_COPY[t.topic] ?? { label: t.topic, hint: "" }
+            return (
+              <label key={t.topic} className="flex items-start gap-3 rounded-xl px-2 py-2.5 hover:bg-muted/50">
+                <input
+                  type="checkbox"
+                  className="mt-1 h-4 w-4"
+                  checked={t.optedIn}
+                  disabled={setPref.isPending}
+                  onChange={(e) => setPref.mutate({ topic: t.topic, optedIn: e.target.checked })}
+                />
+                <span>
+                  <span className="block text-sm font-bold">{copy.label}</span>
+                  {copy.hint ? (
+                    <span className="block text-xs text-muted-foreground">{copy.hint}</span>
+                  ) : null}
+                </span>
+              </label>
+            )
+          })
+        )}
+      </CardContent>
+    </Card>
   )
 }
 

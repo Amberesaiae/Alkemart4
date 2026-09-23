@@ -33,13 +33,13 @@ export function EmptyState({
   return (
     <div
       className={cn(
-        "rounded-2xl border border-dashed border-border bg-card px-6 py-12 text-center sm:py-14 shadow-xs",
+        "rounded-xl border border-dashed border-border bg-card px-6 py-12 text-center sm:py-14 shadow-xs",
         className,
       )}
     >
       {art ? (
         <div className="mb-5 flex justify-center">
-          <Illustration name={art} size="md" className="rounded-2xl" />
+          <Illustration name={art} size="md" className="rounded-xl" />
         </div>
       ) : null}
       <p className="text-lg font-bold tracking-tight text-foreground">{title}</p>

@@ -45,6 +45,34 @@ export type SellerApplication = {
   created_at: string; status: "pending" | "active" | "suspended"
 }
 
+// Taxonomy node (Workers `/admin/taxonomy`)
+export type AdminTaxonomyNode = {
+  id: string
+  code: string | null
+  canonicalName: string
+  displayName: string | null
+  slug: string | null
+  handle: string
+  parentId: string | null
+  level: number
+  status: "proposed" | "active" | "deprecated"
+  isBrowseable: boolean
+  isAssignable: boolean
+  isNavVisible: boolean
+  attributeProfileId: string | null
+  replacementNodeId: string | null
+  sortOrder: number
+  version: number
+}
+
+export type TaxonomyProposal = {
+  kind: "other_bucket" | "failed_match" | "thin_category"
+  ref: string
+  reason: string
+  count: number
+  sample: string[]
+}
+
 // Order (admin view)
 export type AdminOrder = {
   id: string; display_id: number; status: string; fulfillment_status: string
@@ -160,6 +188,7 @@ type WorkersSeller = {
   status: string
   commissionBps?: number
   createdAt?: string
+  ownerEmail?: string | null
   orderCount?: number
   gmvPesewas?: string
 }
@@ -403,37 +432,54 @@ export const moderation = {
   getProduct: (id: string) => apiFetch<AdminProductDetail>(`/admin/products/${id}`),
 }
 
+// Taxonomy (Workers `/admin/taxonomy`)
+export const adminTaxonomy = {
+  list: () => apiFetch<{ items: AdminTaxonomyNode[] }>("/admin/taxonomy"),
+  create: (data: { code: string; name: string; parentId?: string | null; slug?: string; handle?: string }) =>
+    apiFetch<{ node: AdminTaxonomyNode }>("/admin/taxonomy", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  deprecate: (id: string, replacementId: string) =>
+    apiFetch<{ node: AdminTaxonomyNode }>(`/admin/taxonomy/${id}/deprecate`, {
+      method: "POST",
+      body: JSON.stringify({ replacementId }),
+    }),
+  proposals: () =>
+    apiFetch<{ proposals: TaxonomyProposal[]; count: number }>("/admin/taxonomy/proposals/review"),
+}
+
 // Seller queue — Workers `/admin/sellers` (+ legacy Mercur path fallback)
 export const sellerQueue = {
   list: async () => {
+    const toApplication = (s: WorkersSeller, status: "pending" | "suspended") => ({
+      id: s.id,
+      name: s.name,
+      handle: s.handle,
+      member: { email: s.ownerEmail ?? "", first_name: "", last_name: "" },
+      created_at: s.createdAt ?? "",
+      status,
+    })
     if (isWorkersApi) {
       const data = await apiFetch<{ items: WorkersSeller[] }>("/admin/sellers")
       const pending = (data.items ?? [])
         .filter((s) => s.status === "pending_approval")
-        .map((s) => ({
-          id: s.id,
-          name: s.name,
-          handle: s.handle,
-          member: { email: "", first_name: "", last_name: "" },
-          created_at: "",
-          status: "pending" as const,
-        }))
-      return { pending, rejected_applications: [] as SellerApplication[] }
+        .map((s) => toApplication(s, "pending"))
+      const rejected_applications = (data.items ?? [])
+        .filter((s) => s.status === "suspended")
+        .map((s) => toApplication(s, "suspended"))
+      return { pending, rejected_applications }
     }
     try {
       const data = await apiFetch<{ items: WorkersSeller[] }>("/admin/sellers")
       if (Array.isArray(data.items)) {
         const pending = data.items
           .filter((s) => s.status === "pending_approval")
-          .map((s) => ({
-            id: s.id,
-            name: s.name,
-            handle: s.handle,
-            member: { email: "", first_name: "", last_name: "" },
-            created_at: "",
-            status: "pending" as const,
-          }))
-        return { pending, rejected_applications: [] as SellerApplication[] }
+          .map((s) => toApplication(s, "pending"))
+        const rejected_applications = data.items
+          .filter((s) => s.status === "suspended")
+          .map((s) => toApplication(s, "suspended"))
+        return { pending, rejected_applications }
       }
     } catch {
       /* fall through to Mercur path */
@@ -1020,4 +1066,116 @@ export const adminReviews = {
       method: "POST",
       body: JSON.stringify({ action }),
     }),
+}
+
+export type AdminPlacement = {
+  code: string
+  job: string
+  maxLive: number
+  constraints: { minProducts: number; requiresImage: boolean }
+}
+
+export type AdminCampaign = {
+  id: string
+  name: string
+  trackingId: string
+  objective: "sale" | "launch" | "clearance" | "brand"
+  placementCode: string
+  status: "draft" | "review" | "scheduled" | "live" | "ended"
+  priority: number
+  sponsored: boolean
+  frequencyCap: number | null
+  termsId: string | null
+  startsAt: string | null
+  endsAt: string | null
+  createdBy: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export type AdminCreative = {
+  id: string
+  campaignId: string
+  slot: string
+  title: string
+  subtitle: string | null
+  imageUrl: string | null
+  link: string | null
+  position: number
+}
+
+export type AdminTerms = {
+  id: string
+  label: string
+  summary: string
+  finePrint: string | null
+  startsAt: string | null
+  endsAt: string | null
+}
+
+export type AdminCampaignDetail = {
+  campaign: AdminCampaign
+  creatives: AdminCreative[]
+  productSet: { id: string; name: string; productIds: string[] } | null
+  sellerSet: { id: string; name: string; sellerIds: string[] } | null
+  terms: AdminTerms | null
+  audit: { id: string; actor: string | null; action: string; detail: unknown; createdAt: string }[]
+}
+
+export type AdminCampaignReport = {
+  campaignId: string
+  views: number
+  selects: number
+  byPlacement: { placementCode: string; views: number; selects: number }[]
+  byCreative: { creativeId: string; views: number; selects: number }[]
+}
+
+const campaignBase = "/admin/campaigns"
+
+export const adminCampaigns = {
+  placements: () => apiFetch<{ items: AdminPlacement[] }>(`${campaignBase}/placements`),
+  list: (status?: string) =>
+    apiFetch<{ items: AdminCampaign[] }>(
+      status ? `${campaignBase}?status=${encodeURIComponent(status)}` : campaignBase,
+    ),
+  get: (id: string) => apiFetch<AdminCampaignDetail>(`${campaignBase}/${id}`),
+  create: (input: {
+    name: string
+    placementCode: string
+    objective?: AdminCampaign["objective"]
+    priority?: number
+    sponsored?: boolean
+    termsId?: string | null
+    startsAt?: string | null
+    endsAt?: string | null
+  }) => apiFetch<{ campaign: AdminCampaign }>(campaignBase, { method: "POST", body: JSON.stringify(input) }),
+  patch: (id: string, patch: Partial<Pick<AdminCampaign, "name" | "objective" | "placementCode" | "priority" | "sponsored" | "termsId" | "startsAt" | "endsAt">>) =>
+    apiFetch<{ campaign: AdminCampaign }>(`${campaignBase}/${id}`, { method: "PATCH", body: JSON.stringify(patch) }),
+  transition: (id: string, action: "submit" | "approve" | "publish" | "end" | "reopen") =>
+    apiFetch<{ campaign: AdminCampaign }>(`${campaignBase}/${id}/transitions`, {
+      method: "POST",
+      body: JSON.stringify({ action }),
+    }),
+  remove: (id: string) => apiFetch<{ deleted: boolean }>(`${campaignBase}/${id}`, { method: "DELETE" }),
+  addCreative: (id: string, input: { slot?: "desktop" | "mobile"; title: string; subtitle?: string | null; imageUrl?: string | null; link?: string | null }) =>
+    apiFetch<{ creative: AdminCreative }>(`${campaignBase}/${id}/creatives`, {
+      method: "POST",
+      body: JSON.stringify(input),
+    }),
+  removeCreative: (id: string, creativeId: string) =>
+    apiFetch<{ deleted: boolean }>(`${campaignBase}/${id}/creatives/${creativeId}`, { method: "DELETE" }),
+  setProducts: (id: string, productIds: string[]) =>
+    apiFetch<{ set: { id: string; name: string; productIds: string[] } }>(`${campaignBase}/${id}/products`, {
+      method: "POST",
+      body: JSON.stringify({ productIds }),
+    }),
+  setSellers: (id: string, sellerIds: string[]) =>
+    apiFetch<{ set: { id: string; name: string; sellerIds: string[] } }>(`${campaignBase}/${id}/sellers`, {
+      method: "POST",
+      body: JSON.stringify({ sellerIds }),
+    }),
+  report: (id: string) => apiFetch<AdminCampaignReport>(`${campaignBase}/${id}/report`),
+  listTerms: () => apiFetch<{ items: AdminTerms[] }>(`${campaignBase}/terms`),
+  createTerms: (input: { label: string; summary: string; finePrint?: string | null; startsAt?: string | null; endsAt?: string | null }) =>
+    apiFetch<{ terms: AdminTerms }>(`${campaignBase}/terms`, { method: "POST", body: JSON.stringify(input) }),
 }

@@ -15,6 +15,7 @@ import { Route as ReviewsRouteImport } from './routes/reviews'
 import { Route as ReturnsRouteImport } from './routes/returns'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as QuickSellRouteImport } from './routes/quick-sell'
+import { Route as MoneyRouteImport } from './routes/money'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProductsIndexRouteImport } from './routes/products/index'
@@ -52,6 +53,11 @@ const QuickSellRoute = QuickSellRouteImport.update({
   path: '/quick-sell',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MoneyRoute = MoneyRouteImport.update({
+  id: '/money',
+  path: '/money',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
@@ -86,6 +92,7 @@ const OrdersIdRoute = OrdersIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/money': typeof MoneyRoute
   '/quick-sell': typeof QuickSellRoute
   '/register': typeof RegisterRoute
   '/returns': typeof ReturnsRoute
@@ -100,6 +107,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/money': typeof MoneyRoute
   '/quick-sell': typeof QuickSellRoute
   '/register': typeof RegisterRoute
   '/returns': typeof ReturnsRoute
@@ -115,6 +123,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/money': typeof MoneyRoute
   '/quick-sell': typeof QuickSellRoute
   '/register': typeof RegisterRoute
   '/returns': typeof ReturnsRoute
@@ -131,6 +140,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/login'
+    | '/money'
     | '/quick-sell'
     | '/register'
     | '/returns'
@@ -145,6 +155,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/login'
+    | '/money'
     | '/quick-sell'
     | '/register'
     | '/returns'
@@ -159,6 +170,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/login'
+    | '/money'
     | '/quick-sell'
     | '/register'
     | '/returns'
@@ -174,6 +186,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   LoginRoute: typeof LoginRoute
+  MoneyRoute: typeof MoneyRoute
   QuickSellRoute: typeof QuickSellRoute
   RegisterRoute: typeof RegisterRoute
   ReturnsRoute: typeof ReturnsRoute
@@ -230,6 +243,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof QuickSellRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/money': {
+      id: '/money'
+      path: '/money'
+      fullPath: '/money'
+      preLoaderRoute: typeof MoneyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
@@ -278,6 +298,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   LoginRoute: LoginRoute,
+  MoneyRoute: MoneyRoute,
   QuickSellRoute: QuickSellRoute,
   RegisterRoute: RegisterRoute,
   ReturnsRoute: ReturnsRoute,

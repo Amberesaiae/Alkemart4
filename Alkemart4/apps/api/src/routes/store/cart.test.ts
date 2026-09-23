@@ -3,6 +3,9 @@ import { InMemoryCatalogRepository } from "../../catalog-repository"
 import { InMemoryCheckoutRepository } from "../../checkout-repository"
 import { demoCatalog } from "../../demo-seed"
 import { createApp } from "../../index"
+import { resetRateLimits } from "../../middleware/security"
+// Rate-limit counters are per-process: reset so files stay isolated.
+resetRateLimits()
 
 describe("store cart", () => {
   it("requires offerId and quotes multi-seller cart", async () => {

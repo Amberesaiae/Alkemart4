@@ -21,6 +21,13 @@ import type { ProductDetailIdentity } from './productDetailIdentity';
 export interface ProductDetail {
   productId: string;
   title: string;
+  /**
+   * URL handle; null on rows predating slugs.
+   * @nullable
+   */
+  slug: string | null;
+  /** Slug-id ref the UI must link, share, and index. */
+  canonicalRef: string;
   /** @nullable */
   description: string | null;
   categoryHandle: string;

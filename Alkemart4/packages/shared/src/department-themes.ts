@@ -41,8 +41,18 @@ export const DEPARTMENT_THEMES: readonly DepartmentTheme[] = [
 
 const BY_ID = new Map(DEPARTMENT_THEMES.map((t) => [t.departmentId, t]))
 
+const DEPARTMENT_ALIASES: Record<string, string> = {
+  "food-groceries": "groceries",
+  "phones-electronics": "electronics",
+  "fashion-apparel": "fashion",
+  "home-living": "home-appliances",
+  "health-beauty": "beauty",
+  "baby": "baby-kids",
+}
+
 export function departmentTheme(departmentId: string): DepartmentTheme | null {
-  return BY_ID.get(departmentId) ?? null
+  const canonical = DEPARTMENT_ALIASES[departmentId] ?? departmentId
+  return BY_ID.get(canonical) ?? null
 }
 
 function luminance(hex: string): number {

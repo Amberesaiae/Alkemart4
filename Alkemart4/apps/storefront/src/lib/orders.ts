@@ -27,6 +27,8 @@ type WorkersOrderItem = {
 type WorkersOrder = {
   id: string
   sellerId: string
+  sellerName?: string | null
+  sellerHandle?: string | null
   status: string
   subtotalPesewas: string
   deliveryFeePesewas: string
@@ -48,6 +50,11 @@ type WorkersOrderGroup = {
 function mapWorkersOrderGroup(group: WorkersOrderGroup): StoreOrder {
   const items: OrderItem[] = []
   for (const order of group.orders ?? []) {
+    // Seller identity comes from the server; a missing name reads as unknown
+    // (grouped under "Items"), never as a raw id string.
+    const seller = order.sellerName
+      ? { id: order.sellerId, name: order.sellerName, handle: order.sellerHandle ?? null }
+      : null
     for (const item of order.items ?? []) {
       items.push({
         id: item.id,
@@ -56,11 +63,7 @@ function mapWorkersOrderGroup(group: WorkersOrderGroup): StoreOrder {
         unitPrice: pesewasToMajor(item.unitPricePesewas),
         productId: item.productId ?? null,
         thumbnail: null,
-        seller: item.sellerId
-          ? { id: item.sellerId, name: item.sellerId, handle: null }
-          : order.sellerId
-            ? { id: order.sellerId, name: order.sellerId, handle: null }
-            : null,
+        seller,
       })
     }
   }

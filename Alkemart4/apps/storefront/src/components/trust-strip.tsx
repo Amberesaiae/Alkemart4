@@ -17,9 +17,9 @@ const DEFAULT_CHECKOUT_ITEMS: TrustItem[] = [
     body: "Cash to the rider when it arrives.",
   },
   {
-    icon: "truck",
+    icon: "delivery-truck",
     title: "Seller delivery",
-    body: "Fees from the seller’s options.",
+    body: "Fees from the seller's options.",
   },
   {
     icon: "secure",
@@ -65,7 +65,7 @@ export function TrustStrip({
         {list.map((item) => (
           <li
             key={item.title}
-            className="flex flex-col rounded-2xl border border-border bg-card p-4 shadow-sm"
+            className="flex flex-col rounded-xl border border-border bg-card p-4 shadow-sm"
           >
             <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-muted">
               <IconSafe name={item.icon} size={28} />

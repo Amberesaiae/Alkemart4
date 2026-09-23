@@ -10,6 +10,10 @@ import {
   opensAtLabel,
   sellerBadges,
 } from "@alkemart/shared/storefront-badges"
+import { resetRateLimits } from "./middleware/security"
+
+// Rate-limit counters are per-process: reset so files stay isolated.
+resetRateLimits()
 
 /** Wednesday 2026-09-16, 14:30 local. */
 const WED_1430 = new Date(2026, 8, 16, 14, 30)

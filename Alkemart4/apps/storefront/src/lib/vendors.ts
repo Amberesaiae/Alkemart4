@@ -1,6 +1,8 @@
 import { getAlkemartApiUrl, getBackendUrl, getPublishableKey } from "./env"
 import { getSellerShop, setBaseUrl } from "./api-client"
 import type { StorefrontBadge } from "@alkemart/shared/storefront-badges"
+import type { StoreProductCard } from "./products"
+import { pesewasToMajor } from "@alkemart/shared/ghana"
 import type { StoreCardFeatured } from "@workspace/ui"
 
 function ensureWorkersBaseUrl() {
@@ -268,5 +270,180 @@ export async function getStoreVendorBySlug(slug: string): Promise<{
       bio: data.vendor.bio ?? null,
     },
     featuredProductIds: [],
+  }
+}
+
+export type SellerVerification = {
+  id: string
+  kind: "contact" | "identity" | "business" | "brand_auth" | "fulfillment_proven"
+  status: "pending" | "verified" | "revoked" | "expired"
+  /** Buyer-facing line naming exactly what was checked. */
+  meaning: string
+  issuedAt: string | null
+  expiresAt: string | null
+}
+
+/**
+ * Decomposed verification evidence for one shop (Phase 3D read path).
+ * Only earned (`verified`) badges surface to buyers; an empty (or failed)
+ * read is valid — new sellers simply show no badges, never invented ones.
+ */
+export async function getSellerVerifications(slug: string): Promise<SellerVerification[]> {
+  const handle = slug.trim()
+  if (!handle || !useWorkersVendors()) return []
+  const base = getAlkemartApiUrl()
+  if (!base) return []
+  try {
+    const res = await fetch(
+      `${base}/store/sellers/${encodeURIComponent(handle)}/verifications`,
+      { headers: { Accept: "application/json" } },
+    )
+    if (!res.ok) return []
+    const data = (await res.json()) as { verifications?: unknown }
+    if (!Array.isArray(data.verifications)) return []
+    const out: SellerVerification[] = []
+    for (const v of data.verifications) {
+      if (!v || typeof v !== "object") continue
+      const row = v as Record<string, unknown>
+      if (typeof row.id !== "string") continue
+      if (typeof row.kind !== "string" || typeof row.status !== "string") continue
+      if (row.status !== "verified") continue
+      out.push({
+        id: row.id,
+        kind: row.kind as SellerVerification["kind"],
+        status: "verified",
+        meaning: typeof row.meaning === "string" ? row.meaning : "",
+        issuedAt: typeof row.issuedAt === "string" ? row.issuedAt : null,
+        expiresAt: typeof row.expiresAt === "string" ? row.expiresAt : null,
+      })
+    }
+    return out
+  } catch {
+    return []
+  }
+}
+
+export type StoreCollection = {
+  id: string
+  sellerId: string
+  name: string
+  slug: string
+  description: string | null
+  imageUrl: string | null
+  cards: StoreProductCard[]
+}
+
+function mapCollectionCard(c: Record<string, unknown>): StoreProductCard | null {
+  const id = typeof c.productId === "string" ? c.productId : null
+  const title = typeof c.title === "string" ? c.title.trim() : ""
+  if (!id || !title) return null
+  const num = (v: unknown): number | null =>
+    typeof v === "number" && Number.isFinite(v) ? v : null
+  const str = (v: unknown): string | null =>
+    typeof v === "string" && v.trim() ? v.trim() : null
+  const amount =
+    typeof c.fromPricePesewas === "string" && c.fromPricePesewas !== ""
+      ? (() => {
+          try {
+            return pesewasToMajor(Number(c.fromPricePesewas))
+          } catch {
+            return null
+          }
+        })()
+      : null
+  const sellerName = str(c.sellerName)
+  return {
+    id,
+    title,
+    thumbnail: str(c.imageUrl),
+    amount,
+    currencyCode: typeof c.currency === "string" ? c.currency : "ghs",
+    seller: sellerName
+      ? {
+          id: str(c.sellerId),
+          name: sellerName,
+          handle: str(c.sellerHandle),
+        }
+      : null,
+    offerCount: num(c.offerCount) ?? 0,
+    ratingAvg: num(c.ratingAvg),
+    ratingCount: num(c.ratingCount) ?? 0,
+  }
+}
+
+function mapStoreCollection(item: unknown): StoreCollection | null {
+  if (!item || typeof item !== "object") return null
+  const row = item as Record<string, unknown>
+  const c = row.collection as Record<string, unknown> | undefined
+  if (!c || typeof c.id !== "string" || typeof c.name !== "string") return null
+  const str = (v: unknown): string | null =>
+    typeof v === "string" && v.trim() ? v.trim() : null
+  const cards: StoreProductCard[] = []
+  if (Array.isArray(row.cards)) {
+    for (const card of row.cards) {
+      if (!card || typeof card !== "object") continue
+      const mapped = mapCollectionCard(card as Record<string, unknown>)
+      if (mapped) cards.push(mapped)
+    }
+  }
+  return {
+    id: c.id,
+    sellerId: typeof c.sellerId === "string" ? c.sellerId : "",
+    name: c.name,
+    slug: typeof c.slug === "string" ? c.slug : "",
+    description: str(c.description),
+    imageUrl: str(c.imageUrl),
+    cards,
+  }
+}
+
+async function fetchCollections(path: string): Promise<StoreCollection[]> {
+  const base = getAlkemartApiUrl()
+  if (!base) throw new Error("VITE_ALKEMART_API_URL is not set")
+  const res = await fetch(`${base}${path}`, { headers: { Accept: "application/json" } })
+  if (!res.ok) throw new Error(`collections ${res.status}`)
+  const data = (await res.json()) as { items?: unknown }
+  if (!Array.isArray(data.items)) return []
+  const out: StoreCollection[] = []
+  for (const item of data.items) {
+    const mapped = mapStoreCollection(item)
+    if (mapped) out.push(mapped)
+  }
+  return out
+}
+
+/**
+ * Live buyer-visible shelves for one shop (Phase 4A). Empty when the shop
+ * has none — the section hides, never renders placeholder shelves.
+ */
+export async function listStoreCollections(sellerId: string): Promise<StoreCollection[]> {
+  const id = sellerId.trim()
+  if (!id || !useWorkersVendors()) return []
+  try {
+    return await fetchCollections(`/store/collections?seller_id=${encodeURIComponent(id)}`)
+  } catch {
+    return []
+  }
+}
+
+/** One live shelf with its cards; null when unknown, draft, or out of window. */
+export async function getStoreCollection(
+  sellerId: string,
+  collectionId: string,
+): Promise<StoreCollection | null> {
+  const id = sellerId.trim()
+  const cid = collectionId.trim()
+  if (!id || !cid || !useWorkersVendors()) return null
+  try {
+    const base = getAlkemartApiUrl()
+    if (!base) return null
+    const res = await fetch(
+      `${base}/store/collections/${encodeURIComponent(cid)}?seller_id=${encodeURIComponent(id)}`,
+      { headers: { Accept: "application/json" } },
+    )
+    if (!res.ok) return null
+    return mapStoreCollection(await res.json())
+  } catch {
+    return null
   }
 }

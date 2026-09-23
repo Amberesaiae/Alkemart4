@@ -46,7 +46,7 @@ export function HomeMarketPromise() {
         to={campaign.to}
         params={campaign.slug ? { slug: campaign.slug } : undefined}
         aria-label={campaign.label}
-        className="block aspect-[3/1] min-h-64 overflow-hidden rounded-2xl bg-muted ring-1 ring-black/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+        className="block aspect-[3/1] min-h-64 overflow-hidden rounded-xl bg-muted ring-1 ring-black/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
       >
         <img key={campaign.image} src={campaign.image} alt="" className="h-full w-full object-cover" />
       </Link>

@@ -937,16 +937,37 @@ function VariantsSection({ productId }: { productId: string }) {
 
   const combos: ProductCombo[] = product?.combos ?? []
   const options = product?.productOptions ?? []
-  const [edits, setEdits] = useState<Record<string, { price: string; stock: string }>>({})
+  type ComboEdit = {
+    price: string
+    stock: string
+    condition: string
+    compareAt: string
+    compareAtSource: string
+    deliveryPromise: string
+    warrantyRef: string
+    returnsRef: string
+    fulfillmentOrigin: string
+  }
+  const [edits, setEdits] = useState<Record<string, ComboEdit>>({})
   const [savingId, setSavingId] = useState<string | null>(null)
   const [newValue, setNewValue] = useState("")
   const [newOption, setNewOption] = useState("")
   const [existingValue, setExistingValue] = useState("")
   const [addingOption, setAddingOption] = useState(false)
 
-  const editOf = (combo: ProductCombo) =>
-    edits[combo.variantId] ?? { price: combo.priceGhs > 0 ? String(combo.priceGhs) : "", stock: String(combo.onHand) }
-  const setEdit = (variantId: string, patch: Partial<{ price: string; stock: string }>) => {
+  const editOf = (combo: ProductCombo): ComboEdit =>
+    edits[combo.variantId] ?? {
+      price: combo.priceGhs > 0 ? String(combo.priceGhs) : "",
+      stock: String(combo.onHand),
+      condition: combo.condition ?? "unspecified",
+      compareAt: combo.compareAtGhs != null && combo.compareAtGhs > 0 ? String(combo.compareAtGhs) : "",
+      compareAtSource: combo.compareAtSource ?? "",
+      deliveryPromise: combo.deliveryPromise ?? "",
+      warrantyRef: combo.warrantyRef ?? "",
+      returnsRef: combo.returnsRef ?? "",
+      fulfillmentOrigin: combo.fulfillmentOrigin ?? "",
+    }
+  const setEdit = (variantId: string, patch: Partial<ComboEdit>) => {
     const current = combos.find((c) => c.variantId === variantId)
     if (!current) return
     setEdits((p) => ({ ...p, [variantId]: { ...editOf(current), ...patch } }))
@@ -954,12 +975,33 @@ function VariantsSection({ productId }: { productId: string }) {
   const isDirty = (combo: ProductCombo) => {
     const e = edits[combo.variantId]
     if (!e) return false
-    return e.price !== (combo.priceGhs > 0 ? String(combo.priceGhs) : "") || e.stock !== String(combo.onHand)
+    const fresh: ComboEdit = {
+      price: combo.priceGhs > 0 ? String(combo.priceGhs) : "",
+      stock: String(combo.onHand),
+      condition: combo.condition ?? "unspecified",
+      compareAt: combo.compareAtGhs != null && combo.compareAtGhs > 0 ? String(combo.compareAtGhs) : "",
+      compareAtSource: combo.compareAtSource ?? "",
+      deliveryPromise: combo.deliveryPromise ?? "",
+      warrantyRef: combo.warrantyRef ?? "",
+      returnsRef: combo.returnsRef ?? "",
+      fulfillmentOrigin: combo.fulfillmentOrigin ?? "",
+    }
+    return (Object.keys(fresh) as (keyof ComboEdit)[]).some((k) => e[k] !== fresh[k])
   }
 
   const handleSaveCombo = async (combo: ProductCombo) => {
     const e = editOf(combo)
-    const patch: { pricePesewas?: string; onHand?: number } = {}
+    const patch: {
+      pricePesewas?: string
+      onHand?: number
+      condition?: string | null
+      compareAtPesewas?: string | null
+      compareAtProvenance?: string | null
+      fulfillmentOrigin?: string | null
+      warrantyRef?: string | null
+      returnsRef?: string | null
+      deliveryPromise?: string | null
+    } = {}
     if (e.price.trim() !== "") {
       const price = parseFloat(e.price)
       if (isNaN(price) || price < 0) {
@@ -976,6 +1018,30 @@ function VariantsSection({ productId }: { productId: string }) {
       }
       patch.onHand = qty
     }
+    // Offer terms (Phase 3A): a was-price without a source is rejected —
+    // the discount must reference something real.
+    const text = (v: string) => (v.trim() ? v.trim() : null)
+    patch.condition = e.condition === "unspecified" ? null : e.condition
+    if (e.compareAt.trim() !== "") {
+      const was = parseFloat(e.compareAt)
+      if (isNaN(was) || was <= 0) {
+        toast.error("Enter a valid was-price.")
+        return
+      }
+      if (!text(e.compareAtSource)) {
+        toast.error("A was-price needs a source (e.g. supplier list price).")
+        return
+      }
+      patch.compareAtPesewas = String(Math.round(was * 100))
+      patch.compareAtProvenance = text(e.compareAtSource)
+    } else {
+      patch.compareAtPesewas = null
+      patch.compareAtProvenance = null
+    }
+    patch.deliveryPromise = text(e.deliveryPromise)
+    patch.warrantyRef = text(e.warrantyRef)
+    patch.returnsRef = text(e.returnsRef)
+    patch.fulfillmentOrigin = text(e.fulfillmentOrigin)
     setSavingId(combo.variantId)
     try {
       await updateVariant.mutateAsync({ productId, variantId: combo.variantId, patch })
@@ -1061,7 +1127,7 @@ function VariantsSection({ productId }: { productId: string }) {
           <p className="text-xs text-muted-foreground mt-0.5">
             {options.length === 0
               ? "Single listing. Add an option type to sell variations."
-              : "Price & stock per combination - edits stay live, no re-review."}
+              : "Price, stock & offer terms per combination - edits stay live, no re-review."}
           </p>
         </div>
       </div>
@@ -1081,6 +1147,16 @@ function VariantsSection({ productId }: { productId: string }) {
                   {combo.sku && (
                     <span className="text-[11px] font-mono text-muted-foreground">{combo.sku}</span>
                   )}
+                  {combo.condition && combo.condition !== "unspecified" ? (
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
+                      {combo.condition === "locally_used" ? "Locally used" : combo.condition === "new" ? "New" : "Refurbished"}
+                    </span>
+                  ) : null}
+                  {combo.compareAtGhs != null && combo.compareAtGhs > 0 ? (
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-muted text-muted-foreground tabular-nums">
+                      Was GH₵{combo.compareAtGhs.toFixed(2)}
+                    </span>
+                  ) : null}
                   <span
                     className={"ml-auto text-[10px] font-bold px-2 py-0.5 rounded-full " + (combo.active ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300" : "bg-muted text-muted-foreground")}
                   >
@@ -1142,6 +1218,115 @@ function VariantsSection({ productId }: { productId: string }) {
                     </Button>
                   </div>
                 </div>
+                <details className="rounded-xl border border-border/60 bg-background/60 px-3 py-2">
+                  <summary className="cursor-pointer text-xs font-bold text-muted-foreground hover:text-foreground">
+                    Offer terms — condition, was-price, delivery & policy refs
+                  </summary>
+                  <div className="grid gap-3 pt-3 sm:grid-cols-2">
+                    <div className="space-y-1.5">
+                      <Label htmlFor={"combo-condition-" + combo.variantId} className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                        Condition
+                      </Label>
+                      <Select
+                        value={e.condition}
+                        onValueChange={(v) => setEdit(combo.variantId, { condition: v })}
+                      >
+                        <SelectTrigger id={"combo-condition-" + combo.variantId} className="h-10 bg-background rounded-xl text-sm">
+                          <SelectValue placeholder="Unspecified" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="unspecified">Unspecified</SelectItem>
+                          <SelectItem value="new">New</SelectItem>
+                          <SelectItem value="locally_used">Locally used</SelectItem>
+                          <SelectItem value="refurbished">Refurbished</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor={"combo-delivery-" + combo.variantId} className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                        Delivery promise
+                      </Label>
+                      <Input
+                        id={"combo-delivery-" + combo.variantId}
+                        maxLength={200}
+                        placeholder="e.g. 2–3 days in Accra"
+                        className="h-10 text-sm bg-background rounded-xl"
+                        value={e.deliveryPromise}
+                        onChange={(ev) => setEdit(combo.variantId, { deliveryPromise: ev.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor={"combo-was-" + combo.variantId} className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                        Was-price (GHS)
+                      </Label>
+                      <Input
+                        id={"combo-was-" + combo.variantId}
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        placeholder="Optional"
+                        className="h-10 text-sm bg-background rounded-xl tabular-nums"
+                        value={e.compareAt}
+                        onChange={(ev) => setEdit(combo.variantId, { compareAt: ev.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor={"combo-source-" + combo.variantId} className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                        Was-price source
+                      </Label>
+                      <Input
+                        id={"combo-source-" + combo.variantId}
+                        maxLength={500}
+                        placeholder="Required when was-price is set"
+                        className="h-10 text-sm bg-background rounded-xl"
+                        value={e.compareAtSource}
+                        onChange={(ev) => setEdit(combo.variantId, { compareAtSource: ev.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor={"combo-warranty-" + combo.variantId} className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                        Warranty ref
+                      </Label>
+                      <Input
+                        id={"combo-warranty-" + combo.variantId}
+                        maxLength={500}
+                        placeholder="e.g. 6-month shop warranty"
+                        className="h-10 text-sm bg-background rounded-xl"
+                        value={e.warrantyRef}
+                        onChange={(ev) => setEdit(combo.variantId, { warrantyRef: ev.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor={"combo-returns-" + combo.variantId} className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                        Returns ref
+                      </Label>
+                      <Input
+                        id={"combo-returns-" + combo.variantId}
+                        maxLength={500}
+                        placeholder="e.g. 7-day returns"
+                        className="h-10 text-sm bg-background rounded-xl"
+                        value={e.returnsRef}
+                        onChange={(ev) => setEdit(combo.variantId, { returnsRef: ev.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-1.5 sm:col-span-2">
+                      <Label htmlFor={"combo-origin-" + combo.variantId} className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                        Fulfillment origin
+                      </Label>
+                      <Input
+                        id={"combo-origin-" + combo.variantId}
+                        maxLength={200}
+                        placeholder="e.g. Accra warehouse"
+                        className="h-10 text-sm bg-background rounded-xl"
+                        value={e.fulfillmentOrigin}
+                        onChange={(ev) => setEdit(combo.variantId, { fulfillmentOrigin: ev.target.value })}
+                      />
+                    </div>
+                  </div>
+                  <p className="pt-2 text-[11px] leading-relaxed text-muted-foreground">
+                    Was-prices show to buyers only with a source. Empty fields stay empty — never invent a warranty buyers can't claim.
+                  </p>
+                </details>
               </li>
             )
           })}

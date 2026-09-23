@@ -24,6 +24,8 @@ export type StoreProductCard = {
   id: string
   title: string
   handle?: string | null
+  /** URL handle for /product/{slug}-{id}; null on rows predating slugs. */
+  slug?: string | null
   thumbnail?: string | null
   images?: { url: string }[] | null
   description?: string | null
@@ -88,6 +90,8 @@ export type StoreProductCard = {
   identity?: {
     brand?: string | null
     model?: string | null
+    gtin?: string | null
+    mpn?: string | null
     manufacturer?: string | null
     productType?: string | null
     identityConfidence?: "identified" | "matched" | "seller_specific" | null
@@ -129,11 +133,18 @@ function readCardRating(c: CfProductCard): { ratingAvg: number | null; ratingCou
   return avg == null ? { ratingAvg: null, ratingCount: 0 } : { ratingAvg: avg, ratingCount: count }
 }
 
-function mapCfProductCard(c: CfProductCard): StoreProductCard {
+/** Map a Workers catalog card to the storefront product shape (shared by PLP + search). */
+export function productPath(card: { id: string; slug?: string | null }): string {
+  const slug = card.slug?.trim()
+  return `/product/${slug ? `${slug}-${card.id}` : card.id}`
+}
+
+export function mapCfProductCard(c: CfProductCard): StoreProductCard {
   return {
     id: c.productId,
     title: c.title,
     handle: null,
+    slug: c.slug ?? null,
     thumbnail: c.imageUrl ?? null,
     thumbUrl: c.imageUrl ?? null,
     offerId: c.bestOfferId,
@@ -211,6 +222,10 @@ function mapCfDetail(d: CfProductDetail): StoreProductCard {
       ? {
           brand: d.identity.brand ?? null,
           model: d.identity.model ?? null,
+          // GTIN/MPN ship on the API response but postdate the generated
+          // client type — read defensively like attributes above.
+          gtin: (d.identity as { gtin?: unknown }).gtin as string | null ?? null,
+          mpn: (d.identity as { mpn?: unknown }).mpn as string | null ?? null,
           manufacturer: d.identity.manufacturer ?? null,
           productType: d.identity.productType ?? null,
           identityConfidence: d.identity.identityConfidence ?? null,
@@ -228,6 +243,8 @@ function mapCfDetail(d: CfProductDetail): StoreProductCard {
 }
 
 function mapCfPeer(o: CfPeerOffer, productId: string): PeerOffer {
+  // The generated client type predates offer terms — read defensively.
+  const raw = o as unknown as { deliveryFeePesewas?: unknown }
   return {
     offerId: o.offerId,
     options: o.options ?? {},
@@ -239,6 +256,9 @@ function mapCfPeer(o: CfPeerOffer, productId: string): PeerOffer {
     },
     amount: pesewasStringToMajor(o.pricePesewas),
     currencyCode: o.currency === "ghs" ? "ghs" : o.currency,
+    deliveryAmount: pesewasStringToMajor(
+      typeof raw.deliveryFeePesewas === "string" ? raw.deliveryFeePesewas : null,
+    ),
   }
 }
 
@@ -1194,7 +1214,7 @@ export async function listPopularProducts(opts?: {
   limit?: number
   window?: "7d" | "30d"
 }): Promise<{ products: StoreProductCard[] }> {
-  if (!useCloudflareCatalog()) return { products: DEMO_CATALOG_PRODUCTS.slice(0, opts?.limit ?? 8) }
+  if (!useCloudflareCatalog()) return { products: [] }
   ensureCloudflareBaseUrl()
   const base = getAlkemartApiUrl()
   const params = new URLSearchParams()
@@ -1204,17 +1224,16 @@ export async function listPopularProducts(opts?: {
     const res = await fetch(`${base}/store/catalog/popular?${params.toString()}`, {
       headers: { Accept: "application/json" },
     })
-    if (!res.ok) return { products: DEMO_CATALOG_PRODUCTS.slice(0, opts?.limit ?? 8) }
+    if (!res.ok) return { products: [] }
     const data = (await res.json()) as { items?: unknown[] }
     const mapped = (data.items ?? []).map((item) =>
       mapCfProductCard(item as Parameters<typeof mapCfProductCard>[0]),
     )
-    const combined = mapped.length >= 4 ? mapped : [...mapped, ...DEMO_CATALOG_PRODUCTS.filter((d) => !mapped.some((m) => m.id === d.id))]
     return {
-      products: combined.slice(0, opts?.limit ?? 8),
+      products: mapped.slice(0, opts?.limit ?? 8),
     }
   } catch {
-    return { products: DEMO_CATALOG_PRODUCTS.slice(0, opts?.limit ?? 8) }
+    return { products: [] }
   }
 }
 
@@ -1272,10 +1291,9 @@ export async function listStoreProducts(opts?: {
       ...(opts?.sort ? { sort: opts.sort } : {}),
     })
     const mapped = (res.items ?? []).map(mapCfProductCard)
-    const combined = mapped.length >= 4 ? mapped : [...mapped, ...DEMO_CATALOG_PRODUCTS.filter((d) => !mapped.some((m) => m.id === d.id))]
     return {
-      products: combined.slice(0, limit),
-      count: Math.max(res.total ?? 0, combined.length),
+      products: mapped.slice(0, limit),
+      count: res.total ?? mapped.length,
     }
   }
 
@@ -1447,21 +1465,199 @@ export type PeerOffer = {
   seller: SellerRef
   amount?: number | null
   currencyCode?: string | null
+  /** Delivery fee in major units, when the API reports it. */
+  deliveryAmount?: number | null
+  /** Item + delivery total in major units, when both legs are known. */
+  totalAmount?: number | null
+  /** Offer terms (Phase 3A); null reads as unknown — never fabricated. */
+  condition?: string | null
+  compareAtAmount?: number | null
+  /** Shown only when the reference price carries provenance (else null). */
+  discountPercent?: number | null
+  deliveryPromise?: string | null
+  warrantyRef?: string | null
+  returnsRef?: string | null
+  fulfillmentOrigin?: string | null
 }
 
-export async function listPeerOffersForProduct(
+/** Buyer-controlled peer ordering (Phase 3C). */
+export type PeerSort = "total" | "price" | "delivery" | "trust"
+
+/** One append-only price move (Phase 3A integrity trail), major units. */
+export type PriceMove = {
+  oldAmount: number | null
+  newAmount: number | null
+  createdAt: string | null
+}
+
+/**
+ * Variant-safe comparison payload from `GET /store/products/:id/peers`.
+ * Level C listings arrive with `comparisonEligible: false` and no offers —
+ * the UI must render no comparison claims in that case.
+ */
+export type PeerComparison = {
+  offers: PeerOffer[]
+  explanation: string | null
+  comparisonEligible: boolean
+  sort: PeerSort
+  divergenceNeedsReview: boolean
+  /** Recent integrity trail per offer id; absent when the price never moved. */
+  priceHistory: Record<string, PriceMove[]>
+}
+
+const PEER_SORTS: PeerSort[] = ["total", "price", "delivery", "trust"]
+
+function peerString(v: unknown): string | null {
+  return typeof v === "string" && v.trim() ? v.trim() : null
+}
+
+function peerDiscount(v: unknown): number | null {
+  return typeof v === "number" && Number.isFinite(v) && v > 0 ? Math.round(v) : null
+}
+
+/**
+ * Map the Workers peers payload defensively — an older API that returns
+ * `{offers}` without terms yields rows with null terms rather than zeros.
+ * Pure (no I/O) so it is unit-testable. Never throws on malformed rows:
+ * rows without an offer id or seller name are skipped.
+ */
+export function mapWorkersPeersResponse(data: unknown, productId: string): PeerComparison | null {
+  if (!data || typeof data !== "object") return null
+  const d = data as Record<string, unknown>
+  const rawOffers = Array.isArray(d.offers) ? d.offers : []
+  const offers: PeerOffer[] = []
+  for (const item of rawOffers) {
+    if (!item || typeof item !== "object") continue
+    const o = item as Record<string, unknown>
+    const offerId = typeof o.offerId === "string" ? o.offerId : null
+    const sellerName = typeof o.sellerName === "string" ? o.sellerName.trim() : ""
+    if (!offerId || !sellerName) continue
+    const amount = pesewasStringToMajor(
+      typeof o.pricePesewas === "string" ? o.pricePesewas : null,
+    )
+    const delivery = pesewasStringToMajor(
+      typeof o.deliveryFeePesewas === "string" ? o.deliveryFeePesewas : null,
+    )
+    // Integer math on the minor units first so GHS 100.10 + 5.05 never
+    // drifts through float addition.
+    let total: number | null = amount
+    try {
+      const priceN = typeof o.pricePesewas === "string" ? Number(o.pricePesewas) : NaN
+      const delN = typeof o.deliveryFeePesewas === "string" ? Number(o.deliveryFeePesewas) : NaN
+      total =
+        Number.isFinite(priceN) && Number.isFinite(delN)
+          ? pesewasToMajor(Math.round(priceN) + Math.round(delN))
+          : amount
+    } catch {
+      total = amount
+    }
+    const sellerHandle = typeof o.sellerHandle === "string" ? o.sellerHandle : null
+    const sellerId = typeof o.sellerId === "string" ? o.sellerId : null
+    offers.push({
+      offerId,
+      options: (o.options as Record<string, string> | undefined) ?? {},
+      productId,
+      seller: { id: sellerId, name: sellerName, handle: sellerHandle },
+      amount,
+      currencyCode: "ghs",
+      deliveryAmount: delivery,
+      totalAmount: total,
+      condition: peerString(o.condition),
+      compareAtAmount: pesewasStringToMajor(
+        typeof o.compareAtPesewas === "string" ? o.compareAtPesewas : null,
+      ),
+      discountPercent: peerDiscount(o.discountPercent),
+      deliveryPromise: peerString(o.deliveryPromise),
+      warrantyRef: peerString(o.warrantyRef),
+      returnsRef: peerString(o.returnsRef),
+      fulfillmentOrigin: peerString(o.fulfillmentOrigin),
+    })
+  }
+  const rawSort = typeof d.sort === "string" ? d.sort : "total"
+  const sort: PeerSort = (PEER_SORTS as string[]).includes(rawSort) ? (rawSort as PeerSort) : "total"
+  const priceHistory: Record<string, PriceMove[]> = {}
+  const rawHistory = (d as Record<string, unknown>).priceHistory
+  if (rawHistory && typeof rawHistory === "object") {
+    for (const [offerId, entries] of Object.entries(rawHistory)) {
+      if (!Array.isArray(entries)) continue
+      const moves: PriceMove[] = []
+      for (const item of entries) {
+        if (!item || typeof item !== "object") continue
+        const h = item as Record<string, unknown>
+        moves.push({
+          oldAmount: pesewasStringToMajor(
+            typeof h.oldPricePesewas === "string" ? h.oldPricePesewas : null,
+          ),
+          newAmount: pesewasStringToMajor(
+            typeof h.newPricePesewas === "string" ? h.newPricePesewas : null,
+          ),
+          createdAt: typeof h.createdAt === "string" ? h.createdAt : null,
+        })
+      }
+      if (moves.length > 0) priceHistory[offerId] = moves
+    }
+  }
+  return {
+    offers,
+    explanation: peerString(d.explanation),
+    comparisonEligible: d.comparisonEligible !== false,
+    sort,
+    divergenceNeedsReview: d.divergenceNeedsReview === true,
+    priceHistory,
+  }
+}
+
+/**
+ * Variant-safe comparison from the Workers catalog when configured:
+ * `GET /store/products/:id/peers` (confidence-gated, server-sorted, with
+ * terms + explanation). Falls back to the PDP detail offers, then to the
+ * legacy Medusa peer list. Never throws — an empty comparison renders as
+ * "no comparison available", never as invented sellers.
+ */
+export async function getPeerComparison(
   productId: string,
-): Promise<PeerOffer[]> {
+  opts?: { sort?: PeerSort },
+): Promise<PeerComparison> {
   const pid = productId.trim()
-  if (!pid) return []
+  const sort = opts?.sort ?? "total"
+  const empty = (eligible: boolean): PeerComparison => ({
+    offers: [],
+    explanation: null,
+    comparisonEligible: eligible,
+    sort,
+    divergenceNeedsReview: false,
+    priceHistory: {},
+  })
+  if (!pid) return empty(true)
 
   if (useCloudflareCatalog()) {
+    const base = getAlkemartApiUrl()
+    if (base) {
+      try {
+        const res = await fetch(
+          `${base}/store/products/${encodeURIComponent(pid)}/peers?sort=${sort}`,
+          { headers: { Accept: "application/json" } },
+        )
+        if (!res.ok) throw new Error(`peers ${res.status}`)
+        const mapped = mapWorkersPeersResponse(await res.json(), pid)
+        if (mapped) return { ...mapped, sort }
+      } catch {
+        /* fall through to the detail-offers mapping below */
+      }
+    }
     try {
       ensureCloudflareBaseUrl()
       const detail = await getProduct(pid)
-      return (detail.offers ?? []).map((o) => mapCfPeer(o, pid))
+      return {
+        offers: (detail.offers ?? []).map((o) => mapCfPeer(o, pid)),
+        explanation: null,
+        comparisonEligible: detail.identity?.comparisonEligible !== false,
+        sort,
+        divergenceNeedsReview: false,
+        priceHistory: {},
+      }
     } catch {
-      return []
+      return empty(true)
     }
   }
 
@@ -1478,7 +1674,7 @@ export async function listPeerOffersForProduct(
         },
       },
     )
-    if (!res.ok) return []
+    if (!res.ok) return empty(true)
     const data = (await res.json()) as {
       offers?: {
         id?: string
@@ -1506,6 +1702,50 @@ export async function listPeerOffersForProduct(
         amount: o.amount != null ? Number(o.amount) : null,
         currencyCode: o.currency_code ?? null,
       })
+    }
+    return { ...empty(true), offers: out }
+  } catch {
+    return empty(true)
+  }
+}
+
+export async function listPeerOffersForProduct(
+  productId: string,
+): Promise<PeerOffer[]> {
+  return (await getPeerComparison(productId)).offers
+}
+
+/**
+ * Governed alternatives (Phase 8A): attribute-aware similar products for
+ * the PDP rail — never peer offers. Sellable-only with per-seller
+ * diversity caps, served by the API. Empty when unknown; the PDP falls
+ * back to its legacy related list.
+ */
+export async function listSimilarAlternatives(
+  productId: string,
+  limit = 8,
+): Promise<StoreProductCard[]> {
+  const pid = productId.trim()
+  if (!pid || !useCloudflareCatalog()) return []
+  const base = getAlkemartApiUrl()
+  if (!base) return []
+  try {
+    const res = await fetch(
+      `${base}/store/products/${encodeURIComponent(pid)}/alternatives?limit=${Math.min(12, Math.max(1, limit))}`,
+      { headers: { Accept: "application/json" } },
+    )
+    if (!res.ok) return []
+    const data = (await res.json()) as { alternatives?: unknown }
+    if (!Array.isArray(data.alternatives)) return []
+    const out: StoreProductCard[] = []
+    for (const item of data.alternatives) {
+      if (!item || typeof item !== "object") continue
+      try {
+        const card = mapCfProductCard(item as unknown as CfProductCard)
+        if (card.id && card.title && card.id !== pid) out.push(card)
+      } catch {
+        /* skip malformed rows */
+      }
     }
     return out
   } catch {
@@ -1656,35 +1896,24 @@ export async function listStoreCategories(): Promise<StoreCategory[]> {
         parentCategoryId: c.parent_category_id ?? null,
       }))
   } catch {
-    // Some builds expose product-categories differently
-    const base = (await import("./env")).getBackendUrl()
-    const pk = (await import("./env")).getPublishableKey()
-    const http = await fetch(`${base}/store/product-categories?limit=50`, {
-      headers: {
-        Accept: "application/json",
-        "x-publishable-api-key": pk,
-      },
-    })
-    if (!http.ok) return []
-    const data = (await http.json()) as {
-      product_categories?: {
-        id: string
-        name?: string
-        handle?: string
-        rank?: number
-        description?: string
-        parent_category_id?: string | null
-      }[]
-    }
-    return (data.product_categories ?? [])
-      .filter((c) => c?.id && c?.name)
-      .map((c) => ({
-        id: c.id,
-        name: c.name!,
-        handle: c.handle ?? null,
-        rank: c.rank ?? null,
-        description: c.description ?? null,
-        parentCategoryId: c.parent_category_id ?? null,
-      }))
+    return []
   }
+}
+
+export async function listStoreSellers(): Promise<{ handle: string; name: string }[]> {
+  if (useCloudflareCatalog()) {
+    try {
+      ensureCloudflareBaseUrl()
+      const base = getAlkemartApiUrl().replace(/\/$/, "")
+      const res = await fetch(`${base}/store/sellers`, {
+        headers: { Accept: "application/json" },
+      })
+      if (!res.ok) return []
+      const data = (await res.json()) as { sellers?: { handle: string; name: string }[] }
+      return (data.sellers ?? []).map((s) => ({ handle: s.handle, name: s.name }))
+    } catch {
+      return []
+    }
+  }
+  return []
 }

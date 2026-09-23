@@ -3,6 +3,7 @@ import {
   attributeProfiles,
   categories,
   moderationAppeals,
+  offerPriceHistory,
   offers,
   productAttributeValues,
   productMatchCandidates,
@@ -15,6 +16,7 @@ import {
   searchAliases,
   searchOutbox,
   searchQueryLog,
+  sellerVerifications,
   sellers,
   shopFeatured,
   shopViews,
@@ -25,25 +27,37 @@ import {
   applyAliases,
   approveProduct,
   assertAssignableCategory,
+  assertCompareAt,
   assertLeafCategory,
+  attributeSignature,
   buildNavTree,
   canShowComparison,
   deprecateCategory,
+  evaluateCampaignEligibility,
   isSellable,
+  scoreSimilarity,
   normalizeQuery,
+  parseProductRef,
+  priceDivergenceNeedsReview,
+  slugifyTitle,
   promoteIdentityConfidence,
   proposeProduct,
   queryTokens,
+  rankPeerOffers,
   rejectProduct,
   requestProductChanges,
   resolveCategoryRedirect,
+  toPeerOffer,
   toProductCard,
   toProductDetail,
   validateAttributeValue,
+  verificationMeaning,
   type AttributeType,
   type CategoryNode,
   type IdentityConfidence,
+  type PeerOfferDto,
   type PeerOfferInput,
+  type SimilarProductInput,
   type ProductCardDto,
   type ProductDetailDto,
   type ProductStatus,
@@ -67,9 +81,11 @@ import type {
   CatalogAttributeProfile,
   CatalogMatchCandidate,
   CatalogOffer,
+  CatalogPriceHistory,
   CatalogProduct,
   CatalogProductAttributeValue,
   CatalogSearchAlias,
+  CatalogSellerVerification,
   CatalogSnapshot,
   CatalogVariant,
 } from "./demo-seed"
@@ -142,6 +158,16 @@ export type VendorOfferDto = {
   reserved: number
   currency: "ghs"
   active: boolean
+  /** Offer terms (Phase 3A); null reads as unknown — never fabricated. */
+  condition: string | null
+  compareAtPesewas: string | null
+  compareAtProvenance: string | null
+  fulfillmentOrigin: string | null
+  warrantyRef: string | null
+  returnsRef: string | null
+  deliveryPromise: string | null
+  /** Last verified price/stock signal; stale offers suppress. */
+  freshnessAt: string | null
 }
 
 export type ProductOptionDto = {
@@ -218,6 +244,76 @@ export type UpdateProductVariantInput = {
   pricePesewas?: bigint
   onHand?: number
   active?: boolean
+  /** Phase 3A offer terms (compare-at requires provenance). */
+  condition?: string | null
+  compareAtPesewas?: bigint | null
+  compareAtProvenance?: string | null
+  fulfillmentOrigin?: string | null
+  warrantyRef?: string | null
+  returnsRef?: string | null
+  deliveryPromise?: string | null
+}
+
+/** Phase 3B — variant-safe peer comparison payload. */
+export type ProductPeersDto = {
+  productId: string
+  variantId: string | null
+  identityConfidence: "identified" | "matched" | "seller_specific"
+  comparisonEligible: boolean
+  offers: PeerOfferDto[]
+  /** Requested ordering + buyer-visible explanation. */
+  sort: "total" | "price" | "delivery" | "trust"
+  explanation: string
+  /** True when price spread across peers needs human review. */
+  divergenceNeedsReview: boolean
+}
+
+/** Phase 3D — verification evidence row. */
+export type SellerVerificationDto = {
+  id: string
+  sellerId: string
+  kind: "contact" | "identity" | "business" | "brand_auth" | "fulfillment_proven"
+  status: "pending" | "verified" | "revoked" | "expired"
+  evidence: string | null
+  meaning: string
+  issuedAt: string | null
+  expiresAt: string | null
+}
+
+/** Phase 3A — one append-only price move (buyer-visible integrity trail). */
+export type OfferPriceHistoryDto = {
+  id: string
+  offerId: string
+  oldPricePesewas: string
+  newPricePesewas: string
+  changedBy: string | null
+  createdAt: string
+}
+
+/** Phase 6D — one merchant-feed row. Unknown facts stay null so the feed
+ * omits the tag instead of asserting a brand, condition, or identifier. */
+export type FeedProductDto = {
+  productId: string
+  title: string
+  slug: string | null
+  description: string | null
+  imageUrl: string | null
+  categoryHandle: string
+  categoryName: string
+  brand: string | null
+  gtin: string | null
+  mpn: string | null
+  productType: string | null
+  condition: string | null
+  pricePesewas: string
+  currency: "ghs"
+  availableQty: number
+  inStock: boolean
+  sellerId: string
+  sellerHandle: string
+  sellerName: string
+  deliveryFeePesewas: string
+  identityConfidence: "identified" | "matched" | "seller_specific"
 }
 
 export type AddOptionValueInput = {
@@ -483,7 +579,7 @@ export class CatalogValidationError extends Error {
 const SNAPSHOT_TTL_MS = 5_000
 const catalogSnapshotCache = new WeakMap<
   PostgresJsDatabase,
-  { at: number; data: CatalogSnapshot }
+  { at: number; data: CatalogSnapshot; inflight: Promise<CatalogSnapshot> | null }
 >()
 
 function invalidateSnapshot(...dbs: PostgresJsDatabase[]): void {
@@ -512,7 +608,7 @@ export interface CatalogRepository {
     sellerId: string,
     productId: string,
     variantId: string,
-    patch: { pricePesewas?: bigint; onHand?: number; active?: boolean },
+    patch: UpdateProductVariantInput,
   ): Promise<VendorProductDto | null>
   addProductOptionValue(
     sellerId: string,
@@ -617,6 +713,45 @@ export interface CatalogRepository {
   // ── Phase 2D: query telemetry ──
   logSearchQuery(query: string, resultCount: number): Promise<void>
   listZeroResultQueries(limit?: number): Promise<ZeroResultQueryDto[]>
+  // ── Phase 3B: peer comparison ──
+  peersForProduct(
+    productId: string,
+    variantId?: string,
+    sort?: "total" | "price" | "delivery" | "trust",
+  ): Promise<ProductPeersDto | null>
+  // ── Phase 3D: verification evidence ──
+  listSellerVerifications(sellerId: string): Promise<SellerVerificationDto[]>
+  issueSellerVerification(
+    sellerId: string,
+    kind: SellerVerificationDto["kind"],
+    input: { evidence?: string | null; issuedBy: string; expiresAt?: string | null },
+  ): Promise<SellerVerificationDto>
+  revokeSellerVerification(
+    id: string,
+    input: { reason: string; revokedBy: string },
+  ): Promise<SellerVerificationDto | null>
+  // ── Phase 3A: price-history read (append-only log; newest first) ──
+  listOfferPriceHistory(offerId: string, limit?: number): Promise<OfferPriceHistoryDto[]>
+  // ── Phase 5A: campaign eligibility + price-drop sourcing ──
+  checkCampaignEligibility(
+    productIds: string[],
+  ): Promise<Map<string, { eligible: boolean; reasons: string[] }>>
+  listRecentPriceDrops(
+    since: Date,
+    limit?: number,
+  ): Promise<
+    {
+      productId: string
+      offerId: string
+      oldPricePesewas: string
+      newPricePesewas: string
+      createdAt: string
+    }[]
+  >
+  // ── Phase 6D: merchant feed rows (sellable products only) ──
+  listFeedProducts(limit?: number, offset?: number): Promise<FeedProductDto[]>
+  // ── Phase 8A/8C: governed alternatives (similarity + diversity caps) ──
+  listSimilarProducts(productId: string, limit?: number): Promise<ProductCardDto[]>
 }
 function toBigInt(value: bigint | string | number): bigint {
   return typeof value === "bigint" ? value : BigInt(value)
@@ -668,6 +803,14 @@ function toOfferDto(offer: CatalogOffer): VendorOfferDto {
     reserved: offer.reserved,
     currency: "ghs",
     active: offer.active,
+    condition: offer.condition ?? null,
+    compareAtPesewas: offer.compareAtPesewas?.toString() ?? null,
+    compareAtProvenance: offer.compareAtProvenance ?? null,
+    fulfillmentOrigin: offer.fulfillmentOrigin ?? null,
+    warrantyRef: offer.warrantyRef ?? null,
+    returnsRef: offer.returnsRef ?? null,
+    deliveryPromise: offer.deliveryPromise ?? null,
+    freshnessAt: offer.freshnessAt ?? null,
   }
 }
 
@@ -990,11 +1133,52 @@ function ensurePhase1Arrays(data: CatalogSnapshot): void {
   data.profileAttributes ??= []
   data.productAttributeValues ??= []
   data.matchCandidates ??= []
+  data.verifications ??= []
+  data.priceHistory ??= []
 }
 
 function cleanText(v: string | null | undefined): string | null {
   const t = v?.trim()
   return t ? t : null
+}
+
+function slugRoot(title: string, id: string): string {
+  return slugifyTitle(title) || `product-${id.slice(0, 8)}`
+}
+
+/**
+ * Slug insert with deterministic dedup (base, base-2, …). The UNIQUE index
+ * is the arbiter — retries only fire on real 23505 collisions.
+ */
+async function withUniqueSlug(
+  root: string,
+  insert: (slug: string) => Promise<unknown>,
+): Promise<string> {
+  for (let attempt = 0; attempt < 6; attempt++) {
+    const slug = attempt === 0 ? root : `${root}-${attempt + 1}`
+    try {
+      await insert(slug)
+      return slug
+    } catch (e) {
+      if (attempt < 5 && (e as { code?: string })?.code === "23505") continue
+      throw e
+    }
+  }
+  throw new CatalogConflictError("slug exhausted")
+}
+
+/** Synchronous twin of withUniqueSlug for the in-memory snapshot. */
+function uniqueInMemorySlug(
+  products: { slug?: string | null }[],
+  root: string,
+): string {
+  const taken = new Set(products.map((p) => p.slug).filter(Boolean))
+  if (!taken.has(root)) return root
+  for (let n = 2; n < 100; n++) {
+    const candidate = `${root}-${n}`
+    if (!taken.has(candidate)) return candidate
+  }
+  throw new CatalogConflictError("slug exhausted")
 }
 
 function slugify(input: string): string {
@@ -1096,10 +1280,248 @@ function sellablePeerOffers(
       onHand: offer.onHand,
       reserved: offer.reserved,
       deliveryFeePesewas: seller.deliveryFeePesewas,
+      condition: offer.condition ?? null,
+      fulfillmentOrigin: offer.fulfillmentOrigin ?? null,
+      warrantyRef: offer.warrantyRef ?? null,
+      returnsRef: offer.returnsRef ?? null,
+      deliveryPromise: offer.deliveryPromise ?? null,
+      compareAtPesewas: offer.compareAtPesewas ?? null,
+      compareAtProvenance: offer.compareAtProvenance ?? null,
     })
     byProduct.set(offer.productId, list)
   }
   return byProduct
+}
+
+/** Phase 5A — per-offer campaign eligibility; a product rides when any offer does. */
+function campaignEligibilityFrom(
+  data: CatalogSnapshot,
+  productIds: string[],
+): Map<string, { eligible: boolean; reasons: string[] }> {
+  const sellerById = new Map(data.sellers.map((s) => [s.id, s]))
+  const out = new Map<string, { eligible: boolean; reasons: string[] }>()
+  for (const pid of productIds) {
+    const product = data.products.find((p) => p.id === pid)
+    if (!product) {
+      out.set(pid, { eligible: false, reasons: ["unknown product"] })
+      continue
+    }
+    const hasImage = !!product.imageUrl
+    const candidates: { price: bigint; eligible: boolean; reasons: string[] }[] = []
+    for (const offer of data.offers) {
+      if (offer.productId !== pid) continue
+      const seller = sellerById.get(offer.sellerId)
+      if (!seller) continue
+      const result = evaluateCampaignEligibility({
+        productId: pid,
+        pricePesewas: toBigInt(offer.pricePesewas),
+        hasImage,
+        onHand: offer.onHand,
+        reserved: offer.reserved,
+        productStatus: product.status,
+        sellerStatus: seller.status,
+        offerActive: offer.active,
+      })
+      candidates.push({ price: toBigInt(offer.pricePesewas), ...result })
+    }
+    if (candidates.length === 0) {
+      out.set(pid, { eligible: false, reasons: ["no sellable offer"] })
+      continue
+    }
+    const winner = candidates.find((c) => c.eligible)
+    if (winner) {
+      out.set(pid, { eligible: true, reasons: [] })
+      continue
+    }
+    candidates.sort((a, b) => (a.price < b.price ? -1 : 1))
+    out.set(pid, { eligible: false, reasons: candidates[0]!.reasons })
+  }
+  return out
+}
+
+/** Phase 5D — genuine price drops (new < old) since a cutoff, newest first. */
+function recentPriceDropsFrom(
+  data: CatalogSnapshot,
+  since: Date,
+  limit: number,
+): {
+  productId: string
+  offerId: string
+  oldPricePesewas: string
+  newPricePesewas: string
+  createdAt: string
+}[] {
+  const productByOffer = new Map(data.offers.map((o) => [o.id, o.productId]))
+  const n = Math.min(100, Math.max(1, limit))
+  const out: {
+    productId: string
+    offerId: string
+    oldPricePesewas: string
+    newPricePesewas: string
+    createdAt: string
+  }[] = []
+  for (const h of data.priceHistory) {
+    const productId = productByOffer.get(h.offerId)
+    if (!productId || !h.createdAt) continue
+    let at: Date
+    try {
+      at = new Date(h.createdAt)
+      if (Number.isNaN(at.getTime()) || at < since) continue
+      if (BigInt(h.newPricePesewas) >= BigInt(h.oldPricePesewas)) continue
+    } catch {
+      continue
+    }
+    out.push({
+      productId,
+      offerId: h.offerId,
+      oldPricePesewas: h.oldPricePesewas,
+      newPricePesewas: h.newPricePesewas,
+      createdAt: h.createdAt,
+    })
+  }
+  out.sort((a, b) => b.createdAt.localeCompare(a.createdAt) || a.offerId.localeCompare(b.offerId))
+  return out.slice(0, n)
+}
+
+/**
+ * Phase 8A/8C — governed alternatives. Similarity rides product type +
+ * typed attributes; guardrails keep the rail honest: sellable products
+ * only (cards-gated downstream), at most 2 per seller (no duplicate
+ * flooding), source never included, deterministic order.
+ */
+function similarProductIdsFrom(
+  data: CatalogSnapshot,
+  productId: string,
+  limit: number,
+): string[] {
+  const MAX_PER_SELLER = 2
+  const n = Math.min(24, Math.max(1, limit))
+  const source = data.products.find((p) => p.id === productId)
+  if (!source) return []
+  const defById = new Map(data.attributeDefinitions.map((d) => [d.id, d]))
+  const signatures = (pid: string): Map<string, string> => {
+    const out = new Map<string, string>()
+    for (const row of data.productAttributeValues) {
+      if (row.productId !== pid) continue
+      const def = defById.get(row.definitionId)
+      if (!def) continue
+      out.set(row.definitionId, attributeSignature(def.type, row))
+    }
+    return out
+  }
+  const offersByProduct = sellablePeerOffers(data)
+  const priceOf = (pid: string): bigint | null => {
+    const list = offersByProduct.get(pid) ?? []
+    if (list.length === 0) return null
+    return list.reduce((a, b) => (a.pricePesewas < b.pricePesewas ? a : b)).pricePesewas
+  }
+  const toInput = (p: CatalogProduct): SimilarProductInput | null => ({
+    productId: p.id,
+    primaryCategoryId: p.primaryCategoryId,
+    productType: p.productType ?? null,
+    brand: p.brand ?? null,
+    pricePesewas: priceOf(p.id),
+    attributes: signatures(p.id),
+  })
+  const sourceInput = toInput(source)
+  if (!sourceInput) return []
+  const ranked: { id: string; sellerId: string; score: number }[] = []
+  for (const candidate of data.products) {
+    if (candidate.id === productId) continue
+    if (!offersByProduct.has(candidate.id)) continue
+    const input = toInput(candidate)
+    if (!input) continue
+    const { score } = scoreSimilarity(sourceInput, input)
+    if (score < 0) continue
+    const sellerId =
+      (offersByProduct.get(candidate.id) ?? [])
+        .slice()
+        .sort((a, b) => (a.pricePesewas < b.pricePesewas ? -1 : 1))[0]?.sellerId ?? ""
+    ranked.push({ id: candidate.id, sellerId, score })
+  }
+  ranked.sort((a, b) => b.score - a.score || a.id.localeCompare(b.id))
+  const perSeller = new Map<string, number>()
+  const out: string[] = []
+  for (const r of ranked) {
+    if (out.length >= n) break
+    const used = perSeller.get(r.sellerId) ?? 0
+    if (used >= MAX_PER_SELLER) continue
+    perSeller.set(r.sellerId, used + 1)
+    out.push(r.id)
+  }
+  return out
+}
+
+/** Phase 6D — feed rows from the cheapest sellable offer per product. */
+function feedRowsFrom(data: CatalogSnapshot): FeedProductDto[] {
+  const sellerById = new Map(data.sellers.map((s) => [s.id, s]))
+  const cats = categoryById(data)
+  const rows: FeedProductDto[] = []
+  for (const product of data.products) {
+    if (product.status !== "published") continue
+    let best: PeerOfferInput | null = null
+    let bestCondition: string | null = null
+    for (const offer of data.offers) {
+      if (offer.productId !== product.id) continue
+      const seller = sellerById.get(offer.sellerId)
+      if (!seller) continue
+      if (
+        !isSellable({
+          productStatus: product.status,
+          sellerStatus: seller.status,
+          offerActive: offer.active,
+          onHand: offer.onHand,
+          reserved: offer.reserved,
+          pricePesewas: offer.pricePesewas,
+        })
+      ) {
+        continue
+      }
+      const input: PeerOfferInput = {
+        offerId: offer.id,
+        sellerId: seller.id,
+        sellerHandle: seller.handle,
+        sellerName: seller.name,
+        pricePesewas: offer.pricePesewas,
+        onHand: offer.onHand,
+        reserved: offer.reserved,
+        deliveryFeePesewas: seller.deliveryFeePesewas,
+      }
+      if (!best || input.pricePesewas < best.pricePesewas) {
+        best = input
+        bestCondition = offer.condition ?? null
+      }
+    }
+    if (!best) continue
+    const seller = sellerById.get(best.sellerId)
+    if (!seller) continue
+    const cat = cats.get(product.primaryCategoryId)
+    rows.push({
+      productId: product.id,
+      title: product.title,
+      slug: product.slug ?? null,
+      description: product.description ?? null,
+      imageUrl: product.imageUrl ?? null,
+      categoryHandle: cat?.handle ?? product.primaryCategoryId,
+      categoryName: cat?.name ?? product.primaryCategoryId,
+      brand: product.brand ?? null,
+      gtin: product.gtin ?? null,
+      mpn: product.mpn ?? null,
+      productType: product.productType ?? null,
+      condition: bestCondition,
+      pricePesewas: best.pricePesewas.toString(),
+      currency: "ghs",
+      availableQty: best.onHand - best.reserved,
+      inStock: best.onHand - best.reserved > 0,
+      sellerId: seller.id,
+      sellerHandle: seller.handle,
+      sellerName: seller.name,
+      deliveryFeePesewas: best.deliveryFeePesewas.toString(),
+      identityConfidence: (product.identityConfidence ?? "seller_specific") as FeedProductDto["identityConfidence"],
+    })
+  }
+  rows.sort((a, b) => a.title.localeCompare(b.title) || a.productId.localeCompare(b.productId))
+  return rows
 }
 
 function cardInput(
@@ -1110,6 +1532,7 @@ function cardInput(
   return {
     productId: product.id,
     title: product.title,
+    slug: product.slug ?? null,
     categoryHandle: cat?.handle ?? product.primaryCategoryId,
     categoryName: cat?.name ?? product.primaryCategoryId,
     imageUrl: product.imageUrl ?? null,
@@ -1542,10 +1965,19 @@ export function listCatalogFrom(data: CatalogSnapshot, query: CatalogListQuery):
 
 export function getProductFrom(
   data: CatalogSnapshot,
-  id: string,
+  ref: string,
   reviews: { rating: number; title: string | null; body: string; vendorResponse: string | null; createdAt: Date }[] = [],
 ): ProductDetailDto | null {
-  const product = data.products.find((p) => p.id === id)
+  // URL refs serialize as {slug}-{id}; the trailing id stays authoritative
+  // so renames never break links, and bare ids keep resolving. The final
+  // raw-id fallback preserves legacy non-UUID fixture ids.
+  const { slug, id } = parseProductRef(ref)
+  const key = ref.trim()
+  const product = (id
+    ? data.products.find((p) => p.id === id)
+    : undefined)
+    ?? (slug ? data.products.find((p) => p.slug === slug) : undefined)
+    ?? data.products.find((p) => p.id === key)
   if (!product) return null
   const cat = categoryById(data).get(product.primaryCategoryId)
   const extras = assembleExtras(data, product.id)
@@ -1563,6 +1995,7 @@ export function getProductFrom(
       productId: product.id,
       title: product.title,
       description: product.description,
+      slug: product.slug ?? null,
       categoryHandle: cat?.handle ?? product.primaryCategoryId,
       categoryName: cat?.name ?? product.primaryCategoryId,
       imageUrls: product.imageUrl ? [product.imageUrl] : [],
@@ -1718,6 +2151,7 @@ export class InMemoryCatalogRepository implements CatalogRepository {
       id: productId,
       title: input.title,
       description: input.description,
+      slug: uniqueInMemorySlug(this.data.products, slugRoot(input.title, productId)),
       status: "proposed",
       primaryCategoryId: input.primaryCategoryId,
       sellerId: input.sellerId,
@@ -2412,9 +2846,8 @@ export class InMemoryCatalogRepository implements CatalogRepository {
     if (!variant) return null
     const offer = this.data.offers.find((o) => o.variantId === variantId)
     if (!offer) return null
-    if (patch.pricePesewas !== undefined) {
-      if (patch.pricePesewas < 0n) throw new CatalogValidationError("price must be >= 0")
-      offer.pricePesewas = patch.pricePesewas
+    if (patch.pricePesewas !== undefined && patch.pricePesewas < 0n) {
+      throw new CatalogValidationError("price must be >= 0")
     }
     if (patch.onHand !== undefined) {
       if (!Number.isInteger(patch.onHand) || patch.onHand < 0) {
@@ -2423,6 +2856,37 @@ export class InMemoryCatalogRepository implements CatalogRepository {
       offer.onHand = patch.onHand
     }
     if (patch.active !== undefined) offer.active = patch.active
+    // ── Phase 3A: offer terms (compare-at requires provenance) ──
+    const nextPrice = patch.pricePesewas ?? offer.pricePesewas
+    const nextCompareAt = patch.compareAtPesewas !== undefined ? patch.compareAtPesewas : (offer.compareAtPesewas ?? null)
+    const nextProvenance =
+      patch.compareAtProvenance !== undefined ? patch.compareAtProvenance : (offer.compareAtProvenance ?? null)
+    try {
+      assertCompareAt(nextPrice, nextCompareAt, nextProvenance)
+    } catch (err) {
+      throw new CatalogValidationError(err instanceof Error ? err.message : "invalid compare-at price")
+    }
+    if (patch.pricePesewas !== undefined && patch.pricePesewas !== offer.pricePesewas) {
+      ensurePhase1Arrays(this.data)
+      const oldPrice = offer.pricePesewas
+      offer.pricePesewas = patch.pricePesewas
+      this.data.priceHistory.push({
+        id: crypto.randomUUID(),
+        offerId: offer.id,
+        oldPricePesewas: oldPrice.toString(),
+        newPricePesewas: patch.pricePesewas.toString(),
+        changedBy: sellerId,
+        createdAt: new Date().toISOString(),
+      })
+      offer.freshnessAt = new Date().toISOString()
+    }
+    if (patch.compareAtPesewas !== undefined) offer.compareAtPesewas = patch.compareAtPesewas
+    if (patch.compareAtProvenance !== undefined) offer.compareAtProvenance = cleanText(patch.compareAtProvenance)
+    if (patch.condition !== undefined) offer.condition = cleanText(patch.condition)
+    if (patch.fulfillmentOrigin !== undefined) offer.fulfillmentOrigin = cleanText(patch.fulfillmentOrigin)
+    if (patch.warrantyRef !== undefined) offer.warrantyRef = cleanText(patch.warrantyRef)
+    if (patch.returnsRef !== undefined) offer.returnsRef = cleanText(patch.returnsRef)
+    if (patch.deliveryPromise !== undefined) offer.deliveryPromise = cleanText(patch.deliveryPromise)
     await this.recordOutboxEvent("offer", offer.id, "upsert", { productId })
     return toVendorProductDto(product, variant, offer, assembleExtras(this.data, productId))
   }
@@ -2702,6 +3166,243 @@ export class InMemoryCatalogRepository implements CatalogRepository {
     product.status = nextModerationStatus(product.status, action)
     return toAdminProductDto(product)
   }
+
+  // ── Phase 3B/3D (in-memory) ──
+
+  async peersForProduct(
+    productId: string,
+    variantId?: string,
+    sort: "total" | "price" | "delivery" | "trust" = "total",
+  ): Promise<ProductPeersDto | null> {
+    ensurePhase1Arrays(this.data)
+    const product = this.data.products.find((p) => p.id === productId)
+    if (!product) return null
+    const confidence = (product.identityConfidence ?? "seller_specific") as ProductPeersDto["identityConfidence"]
+    if (variantId) {
+      const variant = this.data.variants.find((v) => v.id === variantId && v.productId === productId)
+      if (!variant) return null
+    }
+    if (!canShowComparison(confidence as IdentityConfidence)) {
+      return {
+        productId,
+        variantId: variantId ?? null,
+        identityConfidence: confidence,
+        comparisonEligible: false,
+        offers: [],
+        sort,
+        explanation: "Comparison is unavailable until this product's identity is reviewed.",
+        divergenceNeedsReview: false,
+      }
+    }
+    const sellerById = new Map(this.data.sellers.map((s) => [s.id, s]))
+    const inputs: PeerOfferInput[] = []
+    for (const offer of this.data.offers) {
+      if (offer.productId !== productId) continue
+      if (variantId && offer.variantId !== variantId) continue
+      const seller = sellerById.get(offer.sellerId)
+      if (!seller) continue
+      if (
+        !isSellable({
+          productStatus: product.status,
+          sellerStatus: seller.status,
+          offerActive: offer.active,
+          onHand: offer.onHand,
+          reserved: offer.reserved,
+          pricePesewas: offer.pricePesewas,
+        })
+      ) {
+        continue
+      }
+      inputs.push({
+        offerId: offer.id,
+        sellerId: seller.id,
+        sellerHandle: seller.handle,
+        sellerName: seller.name,
+        pricePesewas: offer.pricePesewas,
+        onHand: offer.onHand,
+        reserved: offer.reserved,
+        deliveryFeePesewas: seller.deliveryFeePesewas,
+        condition: offer.condition ?? null,
+        fulfillmentOrigin: offer.fulfillmentOrigin ?? null,
+        warrantyRef: offer.warrantyRef ?? null,
+        returnsRef: offer.returnsRef ?? null,
+        deliveryPromise: offer.deliveryPromise ?? null,
+        compareAtPesewas: offer.compareAtPesewas ?? null,
+        compareAtProvenance: offer.compareAtProvenance ?? null,
+      })
+    }
+    const rankable = inputs.map((o) => ({
+      ...o,
+      sellerRatingAvg: null,
+      sellerRatingCount: 0,
+      sellerCompletedOrders: 0,
+    }))
+    const ordered =
+      sort === "total" ? rankPeerOffers(rankable) : rankPeerOffers(rankable, sort)
+    const offers = ordered.map((o) =>
+      toPeerOffer({
+        offerId: o.offerId,
+        sellerId: o.sellerId,
+        sellerHandle: o.sellerHandle,
+        sellerName: o.sellerName,
+        pricePesewas: o.pricePesewas,
+        onHand: o.onHand,
+        reserved: o.reserved,
+        deliveryFeePesewas: o.deliveryFeePesewas,
+        condition: o.condition,
+        fulfillmentOrigin: o.fulfillmentOrigin,
+        warrantyRef: o.warrantyRef,
+        returnsRef: o.returnsRef,
+        deliveryPromise: o.deliveryPromise,
+        compareAtPesewas: o.compareAtPesewas,
+        compareAtProvenance: o.compareAtProvenance,
+      }),
+    )
+    const explanation =
+      sort === "price"
+        ? "Sorted by item price, lowest first. Delivery fees are shown per offer."
+        : sort === "delivery"
+          ? "Sorted by delivery fee, lowest first. Item prices are shown per offer."
+          : sort === "trust"
+            ? "Sorted by seller track record (verified ratings and completed orders)."
+            : "Sorted by total payable cost: item price plus delivery fee."
+    return {
+      productId,
+      variantId: variantId ?? null,
+      identityConfidence: confidence,
+      comparisonEligible: true,
+      offers,
+      sort,
+      explanation,
+      divergenceNeedsReview: priceDivergenceNeedsReview(inputs.map((o) => o.pricePesewas)),
+    }
+  }
+
+  async listSellerVerifications(sellerId: string): Promise<SellerVerificationDto[]> {
+    ensurePhase1Arrays(this.data)
+    return this.data.verifications
+      .filter((v) => v.sellerId === sellerId)
+      .map((v) => ({
+        id: v.id,
+        sellerId: v.sellerId,
+        kind: v.kind,
+        status: v.status,
+        evidence: v.evidence ?? null,
+        meaning: verificationMeaning(v.kind),
+        issuedAt: v.issuedAt ?? null,
+        expiresAt: v.expiresAt ?? null,
+      }))
+      .sort((a, b) => a.id.localeCompare(b.id))
+  }
+
+  async issueSellerVerification(
+    sellerId: string,
+    kind: SellerVerificationDto["kind"],
+    input: { evidence?: string | null; issuedBy: string; expiresAt?: string | null },
+  ): Promise<SellerVerificationDto> {
+    ensurePhase1Arrays(this.data)
+    if (!this.data.sellers.some((s) => s.id === sellerId)) {
+      throw new CatalogValidationError("unknown seller")
+    }
+    if (!input.issuedBy?.trim()) throw new CatalogValidationError("issuedBy required")
+    const now = new Date().toISOString()
+    const row: CatalogSellerVerification = {
+      id: crypto.randomUUID(),
+      sellerId,
+      kind,
+      status: "pending",
+      evidence: input.evidence ?? null,
+      issuedBy: input.issuedBy.trim(),
+      issuedAt: now,
+      expiresAt: input.expiresAt ?? null,
+      revokedAt: null,
+      revokeReason: null,
+      createdAt: now,
+    }
+    this.data.verifications.push(row)
+    await this.recordOutboxEvent("seller_verification", row.id, "upsert", { sellerId, kind })
+    return {
+      id: row.id,
+      sellerId: row.sellerId,
+      kind: row.kind,
+      status: row.status,
+      evidence: row.evidence ?? null,
+      meaning: verificationMeaning(row.kind),
+      issuedAt: row.issuedAt ?? null,
+      expiresAt: row.expiresAt ?? null,
+    }
+  }
+
+  async revokeSellerVerification(
+    id: string,
+    input: { reason: string; revokedBy: string },
+  ): Promise<SellerVerificationDto | null> {
+    ensurePhase1Arrays(this.data)
+    const row = this.data.verifications.find((v) => v.id === id)
+    if (!row) return null
+    if (!input.reason?.trim()) throw new CatalogValidationError("reason required")
+    row.status = "revoked"
+    row.revokedAt = new Date().toISOString()
+    row.revokeReason = input.reason.trim()
+    await this.recordOutboxEvent("seller_verification", row.id, "revoke", { reason: row.revokeReason })
+    return {
+      id: row.id,
+      sellerId: row.sellerId,
+      kind: row.kind,
+      status: row.status,
+      evidence: row.evidence ?? null,
+      meaning: verificationMeaning(row.kind),
+      issuedAt: row.issuedAt ?? null,
+      expiresAt: row.expiresAt ?? null,
+    }
+  }
+
+  async listOfferPriceHistory(offerId: string, limit = 10): Promise<OfferPriceHistoryDto[]> {
+    ensurePhase1Arrays(this.data)
+    const n = Math.min(50, Math.max(1, limit))
+    return this.data.priceHistory
+      .filter((h) => h.offerId === offerId)
+      .sort((a, b) => (b.createdAt ?? "").localeCompare(a.createdAt ?? "") || a.id.localeCompare(b.id))
+      .slice(0, n)
+      .map((h) => ({
+        id: h.id,
+        offerId: h.offerId,
+        oldPricePesewas: h.oldPricePesewas,
+        newPricePesewas: h.newPricePesewas,
+        changedBy: h.changedBy ?? null,
+        createdAt: h.createdAt,
+      }))
+  }
+
+  async checkCampaignEligibility(
+    productIds: string[],
+  ): Promise<Map<string, { eligible: boolean; reasons: string[] }>> {
+    ensurePhase1Arrays(this.data)
+    return campaignEligibilityFrom(this.data, [...new Set(productIds)])
+  }
+
+  async listRecentPriceDrops(since: Date, limit = 20) {
+    ensurePhase1Arrays(this.data)
+    return recentPriceDropsFrom(this.data, since, limit)
+  }
+
+  async listFeedProducts(limit = 200, offset = 0): Promise<FeedProductDto[]> {
+    ensurePhase1Arrays(this.data)
+    const n = Math.min(500, Math.max(1, limit))
+    const start = Math.max(0, offset)
+    return feedRowsFrom(this.data).slice(start, start + n)
+  }
+
+  async listSimilarProducts(productId: string, limit = 8): Promise<ProductCardDto[]> {
+    ensurePhase1Arrays(this.data)
+    const ids = similarProductIdsFrom(this.data, productId, limit)
+    if (ids.length === 0) return []
+    const byId = await this.productCardsByIds(ids).catch(() => new Map<string, ProductCardDto>())
+    return ids.flatMap((id) => {
+      const card = byId.get(id)
+      return card ? [card] : []
+    })
+  }
 }
 
 export class PostgresCatalogRepository implements CatalogRepository {
@@ -2725,11 +3426,25 @@ export class PostgresCatalogRepository implements CatalogRepository {
     if (db === this.db) {
       // Full-catalog snapshot cache (per isolate, short TTL). Public reads hit
       // this multiple times per request; writes invalidate via invalidateSnapshot.
+      // Singleflight: concurrent cold-miss callers share one in-flight load so a
+      // request never runs two full snapshot loads against the database at once.
       const cached = catalogSnapshotCache.get(db)
-      if (cached && Date.now() - cached.at < SNAPSHOT_TTL_MS) return cached.data
-      const fresh = await this.loadFresh(db)
-      catalogSnapshotCache.set(db, { at: Date.now(), data: fresh })
-      return fresh
+      if (cached) {
+        if (cached.data && Date.now() - cached.at < SNAPSHOT_TTL_MS) return cached.data
+        if (cached.inflight) return cached.inflight
+      }
+      const inflight = this.loadFresh(db).then(
+        (fresh) => {
+          catalogSnapshotCache.set(db, { at: Date.now(), data: fresh, inflight: null })
+          return fresh
+        },
+        (err) => {
+          catalogSnapshotCache.delete(db)
+          throw err
+        },
+      )
+      catalogSnapshotCache.set(db, { at: cached?.at ?? 0, data: cached?.data as CatalogSnapshot, inflight })
+      return inflight
     }
     return this.loadFresh(db)
   }
@@ -2761,6 +3476,14 @@ export class PostgresCatalogRepository implements CatalogRepository {
       .select()
       .from(searchAliases)
       .catch((): SearchAliasRow[] => [])
+    // Phase 3 tables degrade the same way when 0022 is not yet applied.
+    type VerificationRow = typeof sellerVerifications.$inferSelect
+    type PriceHistoryRow = typeof offerPriceHistory.$inferSelect
+    const [verificationRows, priceHistoryRows]: [VerificationRow[], PriceHistoryRow[]] =
+      await Promise.all([
+        db.select().from(sellerVerifications).catch((): VerificationRow[] => []),
+        db.select().from(offerPriceHistory).catch((): PriceHistoryRow[] => []),
+      ])
     // Phase 1 tables are newer than the base schema: databases that have not
     // run migration 0020 yet keep serving the catalog with these degrading
     // to empty. Writes to the new endpoints require 0020 (400/500 honestly
@@ -2819,6 +3542,7 @@ export class PostgresCatalogRepository implements CatalogRepository {
         id: r.id,
         title: r.title,
         description: r.description,
+        slug: r.slug ?? null,
         status: r.status,
         primaryCategoryId: r.primaryCategoryId,
         sellerId: r.sellerId,
@@ -2888,6 +3612,27 @@ export class PostgresCatalogRepository implements CatalogRepository {
         status: r.status,
         reviewerId: r.reviewerId,
         reviewedAt: r.reviewedAt ? r.reviewedAt.toISOString() : null,
+        createdAt: r.createdAt ? r.createdAt.toISOString() : new Date(0).toISOString(),
+      })),
+      verifications: verificationRows.map((r) => ({
+        id: r.id,
+        sellerId: r.sellerId,
+        kind: r.kind,
+        status: r.status,
+        evidence: r.evidence,
+        issuedBy: r.issuedBy,
+        issuedAt: r.issuedAt ? r.issuedAt.toISOString() : null,
+        expiresAt: r.expiresAt ? r.expiresAt.toISOString() : null,
+        revokedAt: r.revokedAt ? r.revokedAt.toISOString() : null,
+        revokeReason: r.revokeReason,
+        createdAt: r.createdAt ? r.createdAt.toISOString() : new Date(0).toISOString(),
+      })),
+      priceHistory: priceHistoryRows.map((r) => ({
+        id: r.id,
+        offerId: r.offerId,
+        oldPricePesewas: r.oldPricePesewas.toString(),
+        newPricePesewas: r.newPricePesewas.toString(),
+        changedBy: r.changedBy,
         createdAt: r.createdAt ? r.createdAt.toISOString() : new Date(0).toISOString(),
       })),
       attributeDefinitions: attrDefRows.map((r) => ({
@@ -3026,11 +3771,13 @@ export class PostgresCatalogRepository implements CatalogRepository {
     }
     try {
       await this.wdb.transaction(async (tx) => {
-        await tx.insert(products).values({
-          id: productId,
-          title: input.title,
-          description: input.description,
-          status: "proposed",
+        await withUniqueSlug(slugRoot(input.title, productId), (slug) =>
+          tx.insert(products).values({
+            id: productId,
+            title: input.title,
+            description: input.description,
+            slug,
+            status: "proposed",
           primaryCategoryId: input.primaryCategoryId,
           sellerId: input.sellerId,
           imageUrl: input.imageUrl ?? null,
@@ -3042,7 +3789,8 @@ export class PostgresCatalogRepository implements CatalogRepository {
           manufacturer: cleanText(input.identity?.manufacturer),
           productType: cleanText(input.identity?.productType),
           identityConfidence: "seller_specific",
-        })
+          })
+        )
         if (specs.length === 0) {
           const variantId = crypto.randomUUID()
           await tx.insert(productVariants).values({
@@ -3312,7 +4060,13 @@ export class PostgresCatalogRepository implements CatalogRepository {
     patch: UpdateProductVariantInput,
   ): Promise<VendorProductDto | null> {
     const found = await this.wdb
-      .select({ variantId: productVariants.id, offerId: offers.id })
+      .select({
+        variantId: productVariants.id,
+        offerId: offers.id,
+        pricePesewas: offers.pricePesewas,
+        compareAtPesewas: offers.compareAtPesewas,
+        compareAtProvenance: offers.compareAtProvenance,
+      })
       .from(productVariants)
       .innerJoin(products, eq(products.id, productVariants.productId))
       .innerJoin(offers, eq(offers.variantId, productVariants.id))
@@ -3332,12 +4086,57 @@ export class PostgresCatalogRepository implements CatalogRepository {
     if (patch.onHand !== undefined && (!Number.isInteger(patch.onHand) || patch.onHand < 0)) {
       throw new CatalogValidationError("stock must be a whole number >= 0")
     }
-    const offerPatch: Partial<{ pricePesewas: bigint; onHand: number; active: boolean }> = {}
+    // ── Phase 3A: compare-at requires provenance (honest %-off only) ──
+    const nextPrice = patch.pricePesewas ?? row.pricePesewas
+    const nextCompareAt = patch.compareAtPesewas !== undefined ? patch.compareAtPesewas : row.compareAtPesewas
+    const nextProvenance =
+      patch.compareAtProvenance !== undefined ? patch.compareAtProvenance : row.compareAtProvenance
+    try {
+      assertCompareAt(nextPrice, nextCompareAt, nextProvenance)
+    } catch (err) {
+      throw new CatalogValidationError(err instanceof Error ? err.message : "invalid compare-at price")
+    }
+    const offerPatch: Partial<{
+      pricePesewas: bigint
+      onHand: number
+      active: boolean
+      condition: string | null
+      compareAtPesewas: bigint | null
+      compareAtProvenance: string | null
+      fulfillmentOrigin: string | null
+      warrantyRef: string | null
+      returnsRef: string | null
+      deliveryPromise: string | null
+      freshnessAt: Date
+    }> = {}
     if (patch.pricePesewas !== undefined) offerPatch.pricePesewas = patch.pricePesewas
     if (patch.onHand !== undefined) offerPatch.onHand = patch.onHand
     if (patch.active !== undefined) offerPatch.active = patch.active
+    if (patch.condition !== undefined) offerPatch.condition = cleanText(patch.condition)
+    if (patch.compareAtPesewas !== undefined) offerPatch.compareAtPesewas = patch.compareAtPesewas
+    if (patch.compareAtProvenance !== undefined) offerPatch.compareAtProvenance = cleanText(patch.compareAtProvenance)
+    if (patch.fulfillmentOrigin !== undefined) offerPatch.fulfillmentOrigin = cleanText(patch.fulfillmentOrigin)
+    if (patch.warrantyRef !== undefined) offerPatch.warrantyRef = cleanText(patch.warrantyRef)
+    if (patch.returnsRef !== undefined) offerPatch.returnsRef = cleanText(patch.returnsRef)
+    if (patch.deliveryPromise !== undefined) offerPatch.deliveryPromise = cleanText(patch.deliveryPromise)
+    const priceChanged = patch.pricePesewas !== undefined && patch.pricePesewas !== row.pricePesewas
+    if (priceChanged) offerPatch.freshnessAt = new Date()
     if (Object.keys(offerPatch).length > 0) {
       await this.wdb.update(offers).set(offerPatch).where(eq(offers.id, row.offerId))
+    }
+    if (priceChanged) {
+      // Append-only price log; degrades silently when 0022 is not applied.
+      try {
+        await this.wdb.insert(offerPriceHistory).values({
+          id: crypto.randomUUID(),
+          offerId: row.offerId,
+          oldPricePesewas: row.pricePesewas,
+          newPricePesewas: patch.pricePesewas as bigint,
+          changedBy: sellerId,
+        })
+      } catch {
+        /* history loss is acceptable; the price write above already landed */
+      }
     }
     await this.recordOutboxEvent("offer", variantId, "upsert")
     invalidateSnapshot(this.wdb, this.db)
@@ -4243,5 +5042,253 @@ export class PostgresCatalogRepository implements CatalogRepository {
     } catch {
       return []
     }
+  }
+
+  // ── Phase 3B/3D (Postgres; reads degrade via snapshot when 0022 is absent) ──
+
+  async peersForProduct(
+    productId: string,
+    variantId?: string,
+    sort: "total" | "price" | "delivery" | "trust" = "total",
+  ): Promise<ProductPeersDto | null> {
+    // Snapshot already merges verifications/priceHistory with degraded reads;
+    // peer math is snapshot-pure so Postgres and memory agree.
+    const data = await this.load()
+    ensurePhase1Arrays(data)
+    const product = data.products.find((p) => p.id === productId)
+    if (!product) return null
+    const confidence = (product.identityConfidence ?? "seller_specific") as ProductPeersDto["identityConfidence"]
+    if (variantId && !data.variants.some((v) => v.id === variantId && v.productId === productId)) {
+      return null
+    }
+    if (!canShowComparison(confidence as IdentityConfidence)) {
+      return {
+        productId,
+        variantId: variantId ?? null,
+        identityConfidence: confidence,
+        comparisonEligible: false,
+        offers: [],
+        sort,
+        explanation: "Comparison is unavailable until this product's identity is reviewed.",
+        divergenceNeedsReview: false,
+      }
+    }
+    const sellerById = new Map(data.sellers.map((s) => [s.id, s]))
+    const inputs: PeerOfferInput[] = []
+    for (const offer of data.offers) {
+      if (offer.productId !== productId) continue
+      if (variantId && offer.variantId !== variantId) continue
+      const seller = sellerById.get(offer.sellerId)
+      if (!seller) continue
+      if (
+        !isSellable({
+          productStatus: product.status,
+          sellerStatus: seller.status,
+          offerActive: offer.active,
+          onHand: offer.onHand,
+          reserved: offer.reserved,
+          pricePesewas: toBigInt(offer.pricePesewas),
+        })
+      ) {
+        continue
+      }
+      inputs.push({
+        offerId: offer.id,
+        sellerId: seller.id,
+        sellerHandle: seller.handle,
+        sellerName: seller.name,
+        pricePesewas: toBigInt(offer.pricePesewas),
+        onHand: offer.onHand,
+        reserved: offer.reserved,
+        deliveryFeePesewas: toBigInt(seller.deliveryFeePesewas),
+        condition: offer.condition ?? null,
+        fulfillmentOrigin: offer.fulfillmentOrigin ?? null,
+        warrantyRef: offer.warrantyRef ?? null,
+        returnsRef: offer.returnsRef ?? null,
+        deliveryPromise: offer.deliveryPromise ?? null,
+        compareAtPesewas: offer.compareAtPesewas != null ? toBigInt(offer.compareAtPesewas) : null,
+        compareAtProvenance: offer.compareAtProvenance ?? null,
+      })
+    }
+    const rankable = inputs.map((o) => ({
+      ...o,
+      sellerRatingAvg: null,
+      sellerRatingCount: 0,
+      sellerCompletedOrders: 0,
+    }))
+    const ordered = sort === "total" ? rankPeerOffers(rankable) : rankPeerOffers(rankable, sort)
+    const offers = ordered.map((o) =>
+      toPeerOffer({
+        offerId: o.offerId,
+        sellerId: o.sellerId,
+        sellerHandle: o.sellerHandle,
+        sellerName: o.sellerName,
+        pricePesewas: o.pricePesewas,
+        onHand: o.onHand,
+        reserved: o.reserved,
+        deliveryFeePesewas: o.deliveryFeePesewas,
+        condition: o.condition,
+        fulfillmentOrigin: o.fulfillmentOrigin,
+        warrantyRef: o.warrantyRef,
+        returnsRef: o.returnsRef,
+        deliveryPromise: o.deliveryPromise,
+        compareAtPesewas: o.compareAtPesewas,
+        compareAtProvenance: o.compareAtProvenance,
+      }),
+    )
+    const explanation =
+      sort === "price"
+        ? "Sorted by item price, lowest first. Delivery fees are shown per offer."
+        : sort === "delivery"
+          ? "Sorted by delivery fee, lowest first. Item prices are shown per offer."
+          : sort === "trust"
+            ? "Sorted by seller track record (verified ratings and completed orders)."
+            : "Sorted by total payable cost: item price plus delivery fee."
+    return {
+      productId,
+      variantId: variantId ?? null,
+      identityConfidence: confidence,
+      comparisonEligible: true,
+      offers,
+      sort,
+      explanation,
+      divergenceNeedsReview: priceDivergenceNeedsReview(inputs.map((o) => o.pricePesewas)),
+    }
+  }
+
+  async listSellerVerifications(sellerId: string): Promise<SellerVerificationDto[]> {
+    const data = await this.load()
+    ensurePhase1Arrays(data)
+    return data.verifications
+      .filter((v) => v.sellerId === sellerId)
+      .map((v) => ({
+        id: v.id,
+        sellerId: v.sellerId,
+        kind: v.kind,
+        status: v.status,
+        evidence: v.evidence ?? null,
+        meaning: verificationMeaning(v.kind),
+        issuedAt: v.issuedAt ?? null,
+        expiresAt: v.expiresAt ?? null,
+      }))
+      .sort((a, b) => a.id.localeCompare(b.id))
+  }
+
+  async issueSellerVerification(
+    sellerId: string,
+    kind: SellerVerificationDto["kind"],
+    input: { evidence?: string | null; issuedBy: string; expiresAt?: string | null },
+  ): Promise<SellerVerificationDto> {
+    if (!input.issuedBy?.trim()) throw new CatalogValidationError("issuedBy required")
+    const now = new Date()
+    const id = crypto.randomUUID()
+    try {
+      await this.wdb.insert(sellerVerifications).values({
+        id,
+        sellerId,
+        kind,
+        status: "pending",
+        evidence: input.evidence ?? null,
+        issuedBy: input.issuedBy.trim(),
+        issuedAt: now,
+        expiresAt: input.expiresAt ? new Date(input.expiresAt) : null,
+      })
+    } catch {
+      throw new CatalogValidationError("verification store unavailable - POST /admin/migrate/blueprint-phase3")
+    }
+    await this.recordOutboxEvent("seller_verification", id, "upsert", { sellerId, kind })
+    invalidateSnapshot(this.wdb, this.db)
+    return {
+      id,
+      sellerId,
+      kind,
+      status: "pending",
+      evidence: input.evidence ?? null,
+      meaning: verificationMeaning(kind),
+      issuedAt: now.toISOString(),
+      expiresAt: input.expiresAt ?? null,
+    }
+  }
+
+  async revokeSellerVerification(
+    id: string,
+    input: { reason: string; revokedBy: string },
+  ): Promise<SellerVerificationDto | null> {
+    if (!input.reason?.trim()) throw new CatalogValidationError("reason required")
+    const data = await this.load(this.wdb)
+    const row = data.verifications.find((v) => v.id === id)
+    if (!row) return null
+    try {
+      await this.wdb
+        .update(sellerVerifications)
+        .set({ status: "revoked", revokedAt: new Date(), revokeReason: input.reason.trim() })
+        .where(eq(sellerVerifications.id, id))
+    } catch {
+      throw new CatalogValidationError("verification store unavailable - POST /admin/migrate/blueprint-phase3")
+    }
+    await this.recordOutboxEvent("seller_verification", id, "revoke", { reason: input.reason.trim() })
+    invalidateSnapshot(this.wdb, this.db)
+    return {
+      id: row.id,
+      sellerId: row.sellerId,
+      kind: row.kind,
+      status: "revoked",
+      evidence: row.evidence ?? null,
+      meaning: verificationMeaning(row.kind),
+      issuedAt: row.issuedAt ?? null,
+      expiresAt: row.expiresAt ?? null,
+    }
+  }
+
+  async listOfferPriceHistory(offerId: string, limit = 10): Promise<OfferPriceHistoryDto[]> {
+    const data = await this.load()
+    ensurePhase1Arrays(data)
+    const n = Math.min(50, Math.max(1, limit))
+    return data.priceHistory
+      .filter((h) => h.offerId === offerId)
+      .sort((a, b) => (b.createdAt ?? "").localeCompare(a.createdAt ?? "") || a.id.localeCompare(b.id))
+      .slice(0, n)
+      .map((h) => ({
+        id: h.id,
+        offerId: h.offerId,
+        oldPricePesewas: h.oldPricePesewas,
+        newPricePesewas: h.newPricePesewas,
+        changedBy: h.changedBy ?? null,
+        createdAt: h.createdAt,
+      }))
+  }
+
+  async checkCampaignEligibility(
+    productIds: string[],
+  ): Promise<Map<string, { eligible: boolean; reasons: string[] }>> {
+    const data = await this.load()
+    ensurePhase1Arrays(data)
+    return campaignEligibilityFrom(data, [...new Set(productIds)])
+  }
+
+  async listRecentPriceDrops(since: Date, limit = 20) {
+    const data = await this.load()
+    ensurePhase1Arrays(data)
+    return recentPriceDropsFrom(data, since, limit)
+  }
+
+  async listFeedProducts(limit = 200, offset = 0): Promise<FeedProductDto[]> {
+    const data = await this.load()
+    ensurePhase1Arrays(data)
+    const n = Math.min(500, Math.max(1, limit))
+    const start = Math.max(0, offset)
+    return feedRowsFrom(data).slice(start, start + n)
+  }
+
+  async listSimilarProducts(productId: string, limit = 8): Promise<ProductCardDto[]> {
+    const data = await this.load()
+    ensurePhase1Arrays(data)
+    const ids = similarProductIdsFrom(data, productId, limit)
+    if (ids.length === 0) return []
+    const byId = await this.productCardsByIds(ids).catch(() => new Map<string, ProductCardDto>())
+    return ids.flatMap((id) => {
+      const card = byId.get(id)
+      return card ? [card] : []
+    })
   }
 }

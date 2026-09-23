@@ -117,6 +117,18 @@
   --tone-scarce-fg: #ffffff;
   --tone-scarce-soft: #efe1da;
   --tone-scarce-ink: #a7471a;  /* solid 4.62 · soft 4.62 · card 5.90 */
+  /* ─── Price hierarchy (commerce voice — read top-down, never remix) ───
+   * Current price:  tone-brand-ink (#926501), black weight, tabular. The ONLY
+   *   gold text on the page; CTAs stay solid gold fills so price and action
+   *   never compete.
+   * Compare-at:     muted strikethrough at 0.85em. Never colored — color
+   *   would promote a dead price to live information.
+   * Discount −%:    tone-scarce. Solid scarce + white as a badge, scarce-ink
+   *   as inline text. Warm red-orange reads "deal" universally (Jumia orange);
+   *   green would misread as trust/go, gold would dissolve into the price.
+   * Savings:        scarce-ink, always paired with the badge, never alone.
+   * Stock in:       success-ink. Low: scarce-ink + "Few left". Out: neutral.
+   * Stars:          warning glyphs (decorative, never priced). */
   /* ─── Alkemart premium palette ───
    * Charcoal ink + premium-white paper + hero gold + neutral stone.
    * Every dark surface shares the ink's warm undertone so gold sits in
@@ -197,8 +209,9 @@ body {
  *  h6     14px/700/20px — kickers, group labels.
  *  h5     24px/700/36px — section titles.
  *  h2     32px/700/48px — PDP / store titles (24px on small screens).
- * Weights stop at 700 — Montserrat ships 400·500·600·700, anything heavier
- * fakes it. Letter-spacing stays normal (no tight tracking).
+ *  display 900 — prices, hero figures, score numerals ONLY. Montserrat ships
+ *  400·500·600·700·800·900 (index.html); anything heavier fakes it.
+ *  Letter-spacing stays normal (no tight tracking).
  * Never go below 12px except .deliver-to-kicker.
  */
 .type-meta {
@@ -224,27 +237,37 @@ body {
 }
 .type-section {
   font-size: 1.5rem; /* 24 */
-  line-height: 1.5;
+  line-height: 1.25;
   font-weight: 700;
-  letter-spacing: normal;
+  letter-spacing: -0.01em;
 }
 .type-band {
   font-size: 1.5rem; /* 24 */
-  line-height: 1.5;
-  font-weight: 700;
-  letter-spacing: normal;
-}
-/* PDP / store title: 32px/700/48px (24px on phones). */
-.type-pdp-title {
-  font-size: 1.75rem;
   line-height: 1.25;
   font-weight: 700;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.01em;
+}
+/* Micro-kicker: eyebrows, badges, table heads. Always uppercase + tracked. */
+.type-kicker {
+  font-size: 0.6875rem; /* 11 */
+  line-height: 1.4;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+/* PDP / store title: 32px/800/43px (28px on phones). Display voice: black
+   weight, tight tracking — body and metadata stay 400·500 so the title owns
+   the loudest register on the page. */
+.type-pdp-title {
+  font-size: 1.75rem;
+  line-height: 1.15;
+  font-weight: 800;
+  letter-spacing: -0.03em;
 }
 @media (min-width: 640px) {
   .type-pdp-title {
     font-size: 2.25rem;
-    line-height: 1.2;
+    line-height: 1.15;
   }
 }
 
@@ -374,7 +397,7 @@ html {
 }
 .theme-dept-pet {
   --dept-bg: #f03351;
-  --dept-fg: #000000;
+  --dept-fg: #ffffff;
   --dept-soft: #fdebed;
   --dept-ink: #bd1734;
 }
@@ -397,27 +420,32 @@ html {
   --dept-ink: #66605d;
 }
 .theme-dept-fashion {
-  --dept-bg: #c4693b;
+  --dept-bg: #6d28d9;
   --dept-fg: #ffffff;
-  --dept-soft: #f8ece3;
-  --dept-ink: #ac5c34;
+  --dept-soft: #f0eafb;
+  --dept-ink: #5b21b6;
 }
 .theme-dept-home {
-  --dept-bg: #c2574b;
+  --dept-bg: #b42318;
   --dept-fg: #ffffff;
-  --dept-soft: #f9e9e4;
-  --dept-ink: #be4d41;
+  --dept-soft: #fdecea;
+  --dept-ink: #991b1b;
 }
 .theme-dept-default {
-  --dept-bg: #3e9ea0;
+  --dept-bg: #0e7c86;
   --dept-fg: #ffffff;
   --dept-soft: #e8f2f0;
-  --dept-ink: #307b7d;
+  --dept-ink: #0a565d;
 }
 
 .dept-panel {
   background-color: var(--dept-bg);
   color: var(--dept-fg);
+}
+
+.brands-panel {
+  background-color: #3c3c3b;
+  color: #ffffff;
 }
 
 /* ─── Facet panels ───

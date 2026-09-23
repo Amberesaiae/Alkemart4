@@ -2,6 +2,9 @@ import { describe, expect, it } from "vitest"
 import { InMemoryCatalogRepository } from "../../catalog-repository"
 import { demoCatalog, type CatalogSnapshot } from "../../demo-seed"
 import { createApp } from "../../index"
+import { resetRateLimits } from "../../middleware/security"
+// Rate-limit counters are per-process: reset so files stay isolated.
+resetRateLimits()
 
 function searchSnapshot(): CatalogSnapshot {
   const data = demoCatalog()

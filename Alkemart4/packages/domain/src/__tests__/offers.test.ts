@@ -57,6 +57,13 @@ describe("toPeerOffer", () => {
       available: 5,
       deliveryFeePesewas: "500",
       options: {},
+      condition: null,
+      fulfillmentOrigin: null,
+      warrantyRef: null,
+      returnsRef: null,
+      deliveryPromise: null,
+      compareAtPesewas: null,
+      discountPercent: null,
     })
   })
 })

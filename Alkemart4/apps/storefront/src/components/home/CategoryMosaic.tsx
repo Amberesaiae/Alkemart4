@@ -58,9 +58,10 @@ function DynamicMosaicTile({
     <Link
       to="/categories/$slug"
       params={{ slug: slot.slug }}
+      aria-label={`Shop ${slot.title}`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      className="group relative block h-full w-full overflow-hidden rounded-2xl bg-black/5 ring-1 ring-black/[0.06] shadow-2xs transition-all duration-300 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+      className="group relative block h-full w-full overflow-hidden rounded-xl bg-black/5 ring-1 ring-black/[0.06] shadow-2xs transition-all duration-300 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
     >
       <div className="relative h-full w-full aspect-[4/3] sm:aspect-[16/10] lg:aspect-auto overflow-hidden">
         {/* Hard swap, not a crossfade: two art layers compositing at rest

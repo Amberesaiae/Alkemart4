@@ -6,6 +6,9 @@ import type { CatalogRepository } from "../../catalog-repository"
 import type { CheckoutRepository } from "../../checkout-repository"
 import type { ApiEnv } from "../../env"
 import { createApp } from "../../index"
+import { resetRateLimits } from "../../middleware/security"
+// Rate-limit counters are per-process: reset so files stay isolated.
+resetRateLimits()
 
 const JWT_SECRET = "test-jwt-secret-that-is-at-least-32-chars-long"
 

@@ -10,7 +10,7 @@ type ProductThumbnailProps = {
 const sizeClass = {
   sm: "h-12 w-12 rounded-lg",
   md: "h-16 w-16 rounded-xl",
-  lg: "aspect-square w-full rounded-2xl",
+  lg: "aspect-square w-full rounded-xl",
 } as const
 
 function ProductThumbnail({ src, alt, className, size = "md" }: ProductThumbnailProps) {

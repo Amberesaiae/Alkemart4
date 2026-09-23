@@ -520,11 +520,31 @@ type WorkersProductItem = {
     onHand: number
     currency?: string
     active?: boolean
+    /** Offer terms (Phase 3A); null reads as unknown — never fabricated. */
+    condition?: string | null
+    compareAtPesewas?: string | null
+    compareAtProvenance?: string | null
+    fulfillmentOrigin?: string | null
+    warrantyRef?: string | null
+    returnsRef?: string | null
+    deliveryPromise?: string | null
   }
   options?: { id: string; name: string; values: ProductOptionValue[] }[]
   variants?: {
     variant: { id: string; sku: string | null; title: string | null }
-    offer: { id: string; pricePesewas: string; onHand: number; active: boolean }
+    offer: {
+      id: string
+      pricePesewas: string
+      onHand: number
+      active: boolean
+      condition?: string | null
+      compareAtPesewas?: string | null
+      compareAtProvenance?: string | null
+      fulfillmentOrigin?: string | null
+      warrantyRef?: string | null
+      returnsRef?: string | null
+      deliveryPromise?: string | null
+    }
     options: Record<string, string>
   }[]
 }
@@ -538,6 +558,14 @@ export type ProductCombo = {
   priceGhs: number
   onHand: number
   active: boolean
+  /** Offer terms (Phase 3A); null reads as unknown — never fabricated. */
+  condition: string | null
+  compareAtGhs: number | null
+  compareAtSource: string | null
+  fulfillmentOrigin: string | null
+  warrantyRef: string | null
+  returnsRef: string | null
+  deliveryPromise: string | null
 }
 
 type WorkersOrderItem = {
@@ -585,6 +613,16 @@ function mapWorkersProduct(item: WorkersProductItem): Product {
       priceGhs: Number(c.offer.pricePesewas) / 100,
       onHand: Number(c.offer.onHand),
       active: c.offer.active,
+      condition: c.offer.condition ?? null,
+      compareAtGhs:
+        c.offer.compareAtPesewas != null && c.offer.compareAtPesewas !== ""
+          ? Number(c.offer.compareAtPesewas) / 100
+          : null,
+      compareAtSource: c.offer.compareAtProvenance ?? null,
+      fulfillmentOrigin: c.offer.fulfillmentOrigin ?? null,
+      warrantyRef: c.offer.warrantyRef ?? null,
+      returnsRef: c.offer.returnsRef ?? null,
+      deliveryPromise: c.offer.deliveryPromise ?? null,
     })),
     productOptions: item.options ?? [],
     attributes: item.product.attributes ?? [],
@@ -928,9 +966,21 @@ export const products = {
    */
   /**
    * PATCH /vendor/products/:id/variants/:variantId — per-combination
-   * price/stock/visibility. Never triggers re-review.
+   * price/stock/visibility + offer terms. Never triggers re-review.
+   * Compare-at requires provenance (400 otherwise).
    */
-  updateVariant: (productId: string, variantId: string, patch: { pricePesewas?: string; onHand?: number; active?: boolean }) => {
+  updateVariant: (productId: string, variantId: string, patch: {
+    pricePesewas?: string
+    onHand?: number
+    active?: boolean
+    condition?: string | null
+    compareAtPesewas?: string | null
+    compareAtProvenance?: string | null
+    fulfillmentOrigin?: string | null
+    warrantyRef?: string | null
+    returnsRef?: string | null
+    deliveryPromise?: string | null
+  }) => {
     return patchJson<{ product: unknown }>(`/vendor/products/${productId}/variants/${variantId}`, patch)
   },
 
@@ -1396,6 +1446,104 @@ export const health = {
 export const tasks = {
   /** GET /vendor/tasks — what needs this seller's attention. */
   list: () => get<{ tasks: VendorTask[] }>("/vendor/tasks"),
+}
+
+export type VendorAlertTopic = {
+  topic: string
+  optedIn: boolean
+  channel: string
+}
+
+export const alertPrefs = {
+  /** GET /vendor/preferences — dashboard alert topics (all on by default). */
+  list: () => get<{ topics: VendorAlertTopic[] }>("/vendor/preferences"),
+  /** PUT /vendor/preferences — toggle one alert topic. */
+  set: (topic: string, optedIn: boolean) =>
+    patchJson<{ topic: string; optedIn: boolean }>("/vendor/preferences", { topic, optedIn }),
+}
+
+export type VendorCollection = {
+  id: string
+  sellerId: string
+  name: string
+  slug: string
+  description: string | null
+  imageUrl: string | null
+  visibility: "draft" | "published"
+  position: number
+  startsAt: string | null
+  endsAt: string | null
+  createdAt: string
+  productIds: string[]
+}
+
+export const collections = {
+  /** GET /vendor/collections — own shelves with membership. */
+  list: () => get<{ items: VendorCollection[] }>("/vendor/collections"),
+  /** POST /vendor/collections — create a draft shelf (auto-slug). */
+  create: (input: { name: string; description?: string | null; visibility?: "draft" | "published" }) =>
+    post<{ item: VendorCollection }>("/vendor/collections", input),
+  /** PATCH /vendor/collections/:id — rename, visibility, schedule. */
+  update: (id: string, patch: {
+    name?: string
+    slug?: string | null
+    description?: string | null
+    imageUrl?: string | null
+    visibility?: "draft" | "published"
+    position?: number
+    startsAt?: string | null
+    endsAt?: string | null
+  }) => patchJson<{ item: VendorCollection }>(`/vendor/collections/${id}`, patch),
+  /** DELETE /vendor/collections/:id. */
+  remove: (id: string) =>
+    apiFetch<{ deleted: boolean }>(`/vendor/collections/${id}`, { method: "DELETE" }),
+  /** PUT /vendor/collections/:id/products — replace membership wholesale. */
+  setProducts: (id: string, productIds: string[]) =>
+    apiFetch<{ item: VendorCollection }>(`/vendor/collections/${id}/products`, {
+      method: "PUT",
+      body: JSON.stringify({ productIds }),
+    }),
+}
+
+export type PayoutStatementLine = {
+  orderId: string
+  orderGroupId: string
+  orderedAt: string | null
+  status: string
+  state: "paid" | "pending" | "held"
+  subtotalPesewas: string
+  commissionPesewas: string
+  netPesewas: string
+  holdReason: string | null
+  payoutId: string | null
+  payoutStatus: string | null
+  paidAt: string | null
+}
+
+export type PayoutStatement = {
+  sellerId: string
+  commissionBps: number
+  currency: "ghs"
+  totals: {
+    pendingGrossPesewas: string
+    pendingNetPesewas: string
+    heldNetPesewas: string
+    paidNetPesewas: string
+    lineCount: number
+  }
+  holds: {
+    id: string
+    orderId: string | null
+    amountPesewas: string | null
+    reason: string
+    createdAt: string
+  }[]
+  lines: PayoutStatementLine[]
+}
+
+export const payouts = {
+  /** GET /vendor/payouts/statement — own money: pending/held/paid lines. */
+  statement: () => get<PayoutStatement>("/vendor/payouts/statement"),
 }
 
 export type ShopTraffic = {

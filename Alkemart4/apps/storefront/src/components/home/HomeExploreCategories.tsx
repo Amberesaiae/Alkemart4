@@ -15,7 +15,7 @@ export function HomeExploreCategories({
   return (
     <section
       aria-labelledby="explore-categories-title"
-      className="overflow-hidden rounded-2xl bg-foreground text-background"
+      className="overflow-hidden rounded-xl bg-foreground text-background"
     >
       <div className="grid lg:grid-cols-[0.72fr_1.28fr]">
         <div className="flex flex-col justify-between border-b border-background/15 p-6 sm:p-8 lg:min-h-80 lg:border-b-0 lg:border-r">

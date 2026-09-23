@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest"
 import { attributesFromJson, parseProductAttributes } from "@alkemart/shared/product-attributes"
+import { resetRateLimits } from "./middleware/security"
+// Rate-limit counters are per-process: reset so files stay isolated.
+resetRateLimits()
 
 describe("product attributes", () => {
   it("normalises labels so weight, Wt. and WEIGHT collapse", () => {

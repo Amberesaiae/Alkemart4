@@ -72,9 +72,9 @@ export type CategoryTheme = {
 }
 
 const LEGACY: Record<DeptThemeId, CategoryTheme> = {
-  electronics: { bg: "#50D1C8", fg: "#ffffff", soft: "#e6faf8" },
-  food: { bg: "#FEBF31", fg: "#3C3C3B", soft: "#fff8e0" },
-  pet: { bg: "#F0295A", fg: "#ffffff", soft: "#fde8ee" },
+  electronics: { bg: "#0E7C86", fg: "#ffffff", soft: "#e6f4f5" },
+  food: { bg: "#166534", fg: "#ffffff", soft: "#e7f3ea" },
+  pet: { bg: "#9D174D", fg: "#ffffff", soft: "#fbe9f1" },
   beverages: { bg: "#9AC63B", fg: "#ffffff", soft: "#f0f8e0" },
   personal: { bg: "#F5A3C7", fg: "#3C3C3B", soft: "#fdeef5" },
   baby: { bg: "#3B82F6", fg: "#ffffff", soft: "#e8f1fe" },
@@ -89,6 +89,15 @@ export function themeForCategory(
   _index = 0,
 ): CategoryTheme {
   return LEGACY[deptThemeId(name, handle)]
+}
+
+export function categoryColor(name: string, handle?: string | null): string {
+  if (handle) {
+    const g = governedTheme(handle)
+    if (g) return g.accent
+  }
+  const id = deptThemeId(name, handle)
+  return LEGACY[id]?.bg ?? "#3e9ea0"
 }
 
 export function categoryGlyph(name: string, handle?: string | null): string {

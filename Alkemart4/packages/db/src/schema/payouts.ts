@@ -38,6 +38,28 @@ export const payoutLines = pgTable("payout_lines", {
   netPesewas: bigint("net_pesewas", { mode: "bigint" }).notNull(),
 })
 
+export const payoutHoldStatusEnum = pgEnum("payout_hold_status", ["held", "released"])
+
+/**
+ * Blueprint Phase 4D — payout holds with reasons. A held order's net is
+ * excluded from payable totals until an admin releases it; every hold and
+ * release names its actor. No silent holds.
+ */
+export const payoutHolds = pgTable("payout_holds", {
+  id: text("id").primaryKey(),
+  sellerId: text("seller_id")
+    .notNull()
+    .references(() => sellers.id),
+  orderId: text("order_id").references(() => orders.id),
+  amountPesewas: bigint("amount_pesewas", { mode: "bigint" }),
+  reason: text("reason").notNull(),
+  status: payoutHoldStatusEnum("status").notNull().default("held"),
+  createdBy: text("created_by"),
+  releasedBy: text("released_by"),
+  releasedAt: timestamp("released_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+})
+
 export const returnStatusEnum = pgEnum("return_status", [
   "requested",
   "approved",

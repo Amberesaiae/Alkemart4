@@ -82,7 +82,7 @@ export function HomeCategoryRail({
             params={{ slug: category.handle || category.id }}
             className="group w-40 shrink-0 snap-start sm:w-44"
           >
-            <div className="overflow-hidden rounded-2xl bg-muted">
+            <div className="overflow-hidden rounded-xl bg-muted">
               <img
                 src={ART[category.handle!.toLowerCase()]}
                 alt=""

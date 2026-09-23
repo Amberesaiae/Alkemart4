@@ -41,6 +41,10 @@ export type SearchRouteSearch = {
   q?: string
   category?: string[]
   seller?: string[]
+  min_price?: number
+  max_price?: number
+  sort?: "relevance" | "price_asc" | "price_desc"
+  in_stock?: boolean
 }
 
 export const Route = createFileRoute("/search")({
@@ -48,10 +52,33 @@ export const Route = createFileRoute("/search")({
     const q = typeof search.q === "string" ? search.q : ""
     const category = parseList(search.category)
     const seller = parseList(search.seller)
+    const min_price =
+      typeof search.min_price === "number"
+        ? search.min_price
+        : typeof search.min_price === "string" && !isNaN(Number(search.min_price))
+          ? Number(search.min_price)
+          : undefined
+    const max_price =
+      typeof search.max_price === "number"
+        ? search.max_price
+        : typeof search.max_price === "string" && !isNaN(Number(search.max_price))
+          ? Number(search.max_price)
+          : undefined
+    const sort =
+      search.sort === "price_asc" || search.sort === "price_desc"
+        ? (search.sort as "price_asc" | "price_desc")
+        : undefined
+    const in_stock =
+      search.in_stock === true || search.in_stock === "true" ? true : undefined
+
     return {
       q: q || undefined,
       ...(category.length ? { category } : {}),
       ...(seller.length ? { seller } : {}),
+      ...(min_price != null ? { min_price } : {}),
+      ...(max_price != null ? { max_price } : {}),
+      ...(sort ? { sort } : {}),
+      ...(in_stock ? { in_stock } : {}),
     }
   },
   component: SearchPage,
@@ -63,6 +90,7 @@ function SearchPage() {
   const qParam = search.q ?? ""
   const category = search.category ?? []
   const seller = search.seller ?? []
+  const { min_price, max_price, sort, in_stock } = search
   const [draft, setDraft] = useState(qParam)
   const { recent, frequent, trackSearch, removeQuery } = useSearchHistory()
 
@@ -82,7 +110,11 @@ function SearchPage() {
   const hasQueryOrFilters =
     q.length > 0 ||
     active.category_handles.length > 0 ||
-    active.seller_handles.length > 0
+    active.seller_handles.length > 0 ||
+    min_price != null ||
+    max_price != null ||
+    in_stock != null ||
+    sort != null
 
   const productsQ = useQuery({
     queryKey: [
@@ -91,6 +123,8 @@ function SearchPage() {
       q,
       active.category_handles.join(","),
       active.seller_handles.join(","),
+      min_price,
+      max_price,
     ],
     queryFn: () =>
       searchCatalog({
@@ -99,10 +133,31 @@ function SearchPage() {
         filters: {
           category_handles: active.category_handles,
           seller_handles: active.seller_handles,
+          min_price,
+          max_price,
         },
       }),
     enabled: hasQueryOrFilters,
   })
+
+  const filteredProducts = useMemo(() => {
+    let prods = productsQ.data?.products ?? []
+    if (min_price != null) {
+      prods = prods.filter((p) => (p.amount ?? 0) >= min_price)
+    }
+    if (max_price != null) {
+      prods = prods.filter((p) => (p.amount ?? 0) <= max_price)
+    }
+    if (in_stock) {
+      prods = prods.filter((p) => (p.availableQty ?? 0) > 0)
+    }
+    if (sort === "price_asc") {
+      prods = [...prods].sort((a, b) => (a.amount ?? 0) - (b.amount ?? 0))
+    } else if (sort === "price_desc") {
+      prods = [...prods].sort((a, b) => (b.amount ?? 0) - (a.amount ?? 0))
+    }
+    return prods
+  }, [productsQ.data?.products, min_price, max_price, in_stock, sort])
 
   useEffect(() => {
     if (!q || !productsQ.isSuccess) return
@@ -121,16 +176,29 @@ function SearchPage() {
     q?: string
     category?: string[]
     seller?: string[]
+    min_price?: number
+    max_price?: number
+    sort?: "relevance" | "price_asc" | "price_desc"
+    in_stock?: boolean
   }) {
-    const nextQ = next.q ?? qParam
-    const nextCat = next.category ?? category
-    const nextSeller = next.seller ?? seller
+    const nextQ = next.q !== undefined ? next.q : qParam
+    const nextCat = next.category !== undefined ? next.category : category
+    const nextSeller = next.seller !== undefined ? next.seller : seller
+    const nextMin = next.min_price !== undefined ? next.min_price : min_price
+    const nextMax = next.max_price !== undefined ? next.max_price : max_price
+    const nextSort = next.sort !== undefined ? next.sort : sort
+    const nextInStock = next.in_stock !== undefined ? next.in_stock : in_stock
+
     void navigate({
       to: "/search",
       search: {
         ...(nextQ ? { q: nextQ } : {}),
         ...(nextCat.length ? { category: nextCat } : {}),
         ...(nextSeller.length ? { seller: nextSeller } : {}),
+        ...(nextMin != null ? { min_price: nextMin } : {}),
+        ...(nextMax != null ? { max_price: nextMax } : {}),
+        ...(nextSort ? { sort: nextSort } : {}),
+        ...(nextInStock ? { in_stock: nextInStock } : {}),
       },
     })
   }
@@ -228,12 +296,12 @@ function SearchPage() {
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             placeholder="Search rice, phones, fashion, shops…"
-            className="h-12 w-full rounded-full border border-border bg-background py-2 pl-11 pr-24 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-primary focus-visible:ring-2 focus-visible:ring-primary/30"
+            className="h-11 w-full rounded-md border border-border/80 bg-background py-2 pl-11 pr-24 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-primary focus-visible:ring-1 focus-visible:ring-primary"
             aria-label="Search products"
             autoComplete="off"
             enterKeyHint="search"
           />
-          <Button type="submit" size="lg" className="absolute right-1 top-1 min-h-10 px-6">
+          <Button type="submit" size="default" className="absolute right-1 top-1 h-9 rounded px-5 text-xs font-bold uppercase tracking-wider">
             Search
           </Button>
         </form>
@@ -241,13 +309,13 @@ function SearchPage() {
         <div
           className={
             hasFacets
-              ? "grid gap-8 lg:grid-cols-[220px_1fr]"
+              ? "grid gap-6 lg:grid-cols-[240px_1fr]"
               : "space-y-4"
           }
         >
           {hasFacets ? (
             <SearchFacets
-              className="rounded-2xl border border-border bg-card p-4"
+              className="rounded-md border border-border/80 bg-card p-4 shadow-2xs"
               distribution={facetDistribution ?? {}}
               active={active}
               onChange={(next) => {
@@ -278,6 +346,106 @@ function SearchPage() {
           ) : null}
 
           <div className="min-w-0 space-y-4">
+            {/* Applied filters bar */}
+            {(category.length > 0 || seller.length > 0 || min_price != null || max_price != null || in_stock || sort) && (
+              <div className="flex flex-wrap items-center gap-2 pb-2">
+                <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                  Filters:
+                </span>
+                {category.map((c) => (
+                  <span
+                    key={c}
+                    className="inline-flex items-center gap-1 rounded-lg bg-muted px-2.5 py-1 text-xs font-semibold text-foreground border border-border/80"
+                  >
+                    <span>{c}</span>
+                    <button
+                      type="button"
+                      onClick={() => setSearch({ category: category.filter((x) => x !== c) })}
+                      className="hover:text-primary-strong text-muted-foreground"
+                      aria-label={`Remove category ${c}`}
+                    >
+                      <X size={13} weight="bold" />
+                    </button>
+                  </span>
+                ))}
+                {seller.map((s) => (
+                  <span
+                    key={s}
+                    className="inline-flex items-center gap-1 rounded-lg bg-muted px-2.5 py-1 text-xs font-semibold text-foreground border border-border/80"
+                  >
+                    <span>Seller: {s}</span>
+                    <button
+                      type="button"
+                      onClick={() => setSearch({ seller: seller.filter((x) => x !== s) })}
+                      className="hover:text-primary-strong text-muted-foreground"
+                      aria-label={`Remove seller ${s}`}
+                    >
+                      <X size={13} weight="bold" />
+                    </button>
+                  </span>
+                ))}
+                {(min_price != null || max_price != null) && (
+                  <span className="inline-flex items-center gap-1 rounded-lg bg-muted px-2.5 py-1 text-xs font-semibold text-foreground border border-border/80">
+                    <span>
+                      GH₵{min_price ?? 0} – {max_price != null ? `GH₵${max_price}` : "Above"}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setSearch({ min_price: undefined, max_price: undefined })}
+                      className="hover:text-primary-strong text-muted-foreground"
+                      aria-label="Remove price filter"
+                    >
+                      <X size={13} weight="bold" />
+                    </button>
+                  </span>
+                )}
+                {in_stock && (
+                  <span className="inline-flex items-center gap-1 rounded-lg bg-muted px-2.5 py-1 text-xs font-semibold text-foreground border border-border/80">
+                    <span>In stock only</span>
+                    <button
+                      type="button"
+                      onClick={() => setSearch({ in_stock: undefined })}
+                      className="hover:text-primary-strong text-muted-foreground"
+                      aria-label="Remove in stock filter"
+                    >
+                      <X size={13} weight="bold" />
+                    </button>
+                  </span>
+                )}
+                {sort && (
+                  <span className="inline-flex items-center gap-1 rounded-lg bg-muted px-2.5 py-1 text-xs font-semibold text-foreground border border-border/80">
+                    <span>
+                      Sort: {sort === "price_asc" ? "Price: Low to High" : "Price: High to Low"}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setSearch({ sort: undefined })}
+                      className="hover:text-primary-strong text-muted-foreground"
+                      aria-label="Remove sort filter"
+                    >
+                      <X size={13} weight="bold" />
+                    </button>
+                  </span>
+                )}
+                <button
+                  type="button"
+                  onClick={() =>
+                    setSearch({
+                      category: [],
+                      seller: [],
+                      min_price: undefined,
+                      max_price: undefined,
+                      in_stock: undefined,
+                      sort: undefined,
+                    })
+                  }
+                  className="text-xs font-bold text-primary-strong hover:underline ml-1"
+                >
+                  Clear all
+                </button>
+              </div>
+            )}
+
             {productsQ.isLoading ? <ProductGridSkeleton count={8} /> : null}
 
             {productsQ.isError ? (
@@ -288,7 +456,7 @@ function SearchPage() {
               </p>
             ) : null}
 
-            {productsQ.data && productsQ.data.products.length === 0 ? (
+            {productsQ.data && filteredProducts.length === 0 ? (
               <>
                 <EmptyState
                   illustration="emptyCatalog"
@@ -318,7 +486,7 @@ function SearchPage() {
                                 key={c.id}
                                 to="/categories/$slug"
                                 params={{ slug: c.slug }}
-                                className="rounded-full border border-border bg-card px-4 py-2 text-sm font-semibold hover:border-primary"
+                                className="rounded-md border border-border/80 bg-card px-3 py-1.5 text-xs font-semibold hover:border-primary"
                               >
                                 {c.name}
                               </Link>
@@ -335,7 +503,7 @@ function SearchPage() {
                                 key={s.handle}
                                 to="/shops/$slug"
                                 params={{ slug: s.handle }}
-                                className="rounded-full border border-border bg-card px-4 py-2 text-sm font-semibold hover:border-primary"
+                                className="rounded-md border border-border/80 bg-card px-3 py-1.5 text-xs font-semibold hover:border-primary"
                               >
                                 {s.name}
                               </Link>
@@ -349,17 +517,17 @@ function SearchPage() {
               </>
             ) : null}
 
-            {productsQ.data && productsQ.data.products.length > 0 ? (
+            {productsQ.data && filteredProducts.length > 0 ? (
               <>
                 <p className="text-sm text-muted-foreground">
                   <span className="font-semibold text-foreground">
-                    {productsQ.data.estimatedTotalHits}
+                    {filteredProducts.length}
                   </span>{" "}
-                  result{productsQ.data.estimatedTotalHits === 1 ? "" : "s"}
+                  result{filteredProducts.length === 1 ? "" : "s"}
                   {q ? <> for &ldquo;{q}&rdquo;</> : null}
                 </p>
                 <ProductGridShell>
-                  {productsQ.data.products.map((p) => (
+                  {filteredProducts.map((p) => (
                     <ProductCard key={p.id} product={p} size="tile" />
                   ))}
                 </ProductGridShell>

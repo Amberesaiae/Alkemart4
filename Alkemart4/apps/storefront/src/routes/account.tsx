@@ -7,9 +7,17 @@ import { Skeleton } from "@/components/skeleton"
 import { FormField } from "@/components/form-field"
 import {
   getSessionCustomer,
+  getWorkersAccessToken,
   logout,
   updateCustomerProfile,
 } from "@/lib/auth"
+import {
+  alertsAvailable,
+  deleteSubscription,
+  listBuyerPreferences,
+  listMySubscriptions,
+  setBuyerPreference,
+} from "@/lib/notifications"
 import {
   createMyAddress,
   deleteMyAddress,
@@ -468,6 +476,125 @@ function AccountPage() {
           </form>
         ) : null}
       </section>
+      <AlertsSection />
     </div>
+  )
+}
+
+/**
+ * Preference center + alert subscriptions (Phase 7A/7B). Workers sessions
+ * only — Medusa sessions carry no Workers JWT, so the section hides there
+ * instead of erroring. Order SMS (transactional) is always on and says so.
+ */
+function AlertsSection() {
+  const queryClient = useQueryClient()
+  const available =
+    alertsAvailable() && typeof window !== "undefined" && Boolean(getWorkersAccessToken())
+  const prefsQ = useQuery({
+    queryKey: ["store", "preferences"],
+    queryFn: listBuyerPreferences,
+    enabled: available,
+    retry: false,
+  })
+  const subsQ = useQuery({
+    queryKey: ["store", "subscriptions"],
+    queryFn: listMySubscriptions,
+    enabled: available,
+    retry: false,
+  })
+  const setPref = useMutation({
+    mutationFn: setBuyerPreference,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["store", "preferences"] })
+    },
+  })
+  const unsubscribe = useMutation({
+    mutationFn: deleteSubscription,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["store", "subscriptions"] })
+    },
+  })
+  if (!available) return null
+  const prefs = prefsQ.data ?? []
+  const promo = prefs.find((p) => p.category === "promotional")
+  const operational = prefs.find((p) => p.category === "operational")
+  const subs = subsQ.data ?? []
+  return (
+    <section className="space-y-4 border border-border bg-card p-5 sm:p-6" aria-label="Alerts">
+      <div>
+        <h2 className="text-lg font-bold tracking-tight">Alerts</h2>
+        <p className="text-xs text-muted-foreground">
+          Order SMS (shipped, delivered) always stays on — it carries your own orders.
+        </p>
+      </div>
+      {prefsQ.isError || subsQ.isError ? (
+        <p className="text-sm text-destructive" role="alert">
+          Could not load alert settings.
+        </p>
+      ) : null}
+      <label className="flex items-start gap-3 text-sm">
+        <input
+          type="checkbox"
+          className="mt-1 h-4 w-4"
+          checked={promo?.optedIn ?? false}
+          disabled={setPref.isPending}
+          onChange={(e) =>
+            setPref.mutate({ category: "promotional", optedIn: e.target.checked })
+          }
+        />
+        <span>
+          <span className="font-bold">Promotions by SMS</span>
+          <span className="block text-xs text-muted-foreground">
+            Deals and campaigns. Off unless you switch it on.
+          </span>
+        </span>
+      </label>
+      <label className="flex items-start gap-3 text-sm">
+        <input
+          type="checkbox"
+          className="mt-1 h-4 w-4"
+          checked={operational?.optedIn ?? true}
+          disabled={setPref.isPending}
+          onChange={(e) =>
+            setPref.mutate({ category: "operational", optedIn: e.target.checked })
+          }
+        />
+        <span>
+          <span className="font-bold">Helpful updates</span>
+          <span className="block text-xs text-muted-foreground">
+            Review requests, back-in-stock and price-drop alerts you asked for.
+          </span>
+        </span>
+      </label>
+      <div className="space-y-2 border-t border-border/60 pt-3">
+        <h3 className="text-sm font-bold">Watched items ({subs.length})</h3>
+        {subs.length === 0 ? (
+          <p className="text-xs text-muted-foreground">
+            Nothing watched. Out-of-stock pages offer a notify-me option.
+          </p>
+        ) : (
+          <ul className="space-y-1.5">
+            {subs.map((s) => (
+              <li key={s.id} className="flex items-center gap-2 text-sm">
+                <span className="min-w-0 flex-1 truncate font-medium">
+                  {s.kind === "back_in_stock" ? "Back in stock" : "Price drop"}
+                  <span className="font-mono text-xs text-muted-foreground"> · {s.productId.slice(0, 8)}…</span>
+                </span>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 text-xs"
+                  disabled={unsubscribe.isPending}
+                  onClick={() => unsubscribe.mutate(s.id)}
+                >
+                  Stop
+                </Button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </section>
   )
 }

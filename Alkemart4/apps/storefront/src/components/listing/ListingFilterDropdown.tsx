@@ -130,7 +130,7 @@ export function ListingFilterDropdown({
                 }
                 className="h-11 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none focus:border-primary-strong focus:ring-2 focus:ring-primary/20"
               >
-                <option value="all">All {departmentLabel}</option>
+                <option value="all">All</option>
                 {subCategories.map((sub) => (
                   <option key={sub.id} value={sub.id}>
                     {sub.label}

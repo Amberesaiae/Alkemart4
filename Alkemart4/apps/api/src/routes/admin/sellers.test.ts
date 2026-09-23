@@ -7,6 +7,9 @@ import { InMemoryCheckoutRepository } from "../../checkout-repository"
 import type { CatalogSnapshot } from "../../demo-seed"
 import { GHANA_CATEGORY_SEED } from "@alkemart/db"
 import { createApp } from "../../index"
+import { resetRateLimits } from "../../middleware/security"
+// Rate-limit counters are per-process: reset so files stay isolated.
+resetRateLimits()
 
 const JWT_SECRET = "test-jwt-secret-that-is-at-least-32-chars-long"
 
@@ -32,6 +35,9 @@ async function adminApp() {
     profileAttributes: [],
     productAttributeValues: [],
     matchCandidates: [],
+    searchAliases: [],
+    verifications: [],
+    priceHistory: [],
   }
   const repo = new InMemoryCatalogRepository(snapshot)
   const auditLog = new InMemoryAdminAuditLog()
@@ -74,6 +80,22 @@ function authPost(token: string, body?: unknown) {
     ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
   }
 }
+
+describe("GET /admin/sellers", () => {
+  it("includes the owner email per shop for the ops queue", async () => {
+    const { app, token, sellerId } = await adminApp()
+    const res = await app.request("/admin/sellers", {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    expect(res.status).toBe(200)
+    const body = (await res.json()) as {
+      items: { id: string; ownerEmail: string | null; status: string }[]
+    }
+    const row = body.items.find((i) => i.id === sellerId)
+    expect(row?.status).toBe("pending_approval")
+    expect(row?.ownerEmail).toBe("seller@alkemart.test")
+  })
+})
 
 describe("POST /admin/sellers/:id/approve", () => {
   it("sets seller status to open", async () => {

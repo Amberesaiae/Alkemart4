@@ -131,6 +131,17 @@ export const sellers = new Hono<AppEnv>()
 
     return c.json({ sellers: cards, items: cards })
   })
+  /**
+   * Phase 3D — decomposed verification evidence for one shop.
+   * Every badge names what was checked (`meaning`); an empty list is
+   * honest (no badges invented for new sellers).
+   */
+  .get("/:handle/verifications", async (c) => {
+    const shop = await c.get("repo").getSellerShop(c.req.param("handle"))
+    if (!shop) throw new HTTPException(404, { message: "seller not found" })
+    const verifications = await c.get("repo").listSellerVerifications(shop.seller.id)
+    return c.json({ sellerId: shop.seller.id, verifications })
+  })
   .get("/:handle", async (c) => {    const shop = await c.get("repo").getSellerShop(c.req.param("handle"))
     if (!shop) throw new HTTPException(404, { message: "seller not found" })
     // Fire-and-forget traffic counter; reads never wait on it.

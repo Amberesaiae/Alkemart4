@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest"
 import { categoryRatioOf, categoryTilesOf, composeMarketCourse, currentDaypart, DEFAULT_HOMEPAGE_SECTIONS, isRuleSource, migrateSections, visibleSections } from "@alkemart/shared/homepage"
 import { ContentRevisionConflict, InMemoryHomepageContentStore } from "./homepage-content"
+import { resetRateLimits } from "./middleware/security"
+// Rate-limit counters are per-process: reset so files stay isolated.
+resetRateLimits()
 
 describe("homepage content", () => {
   it("keeps drafts private until publish", async () => {

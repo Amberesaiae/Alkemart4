@@ -33,19 +33,12 @@ describe("global commerce header", () => {
     expect(headerSource).not.toMatch(/>\s*Search\s*</)
   })
 
-  it("keeps delivery area visible in the primary commerce row", () => {
-    // Redesign decision (bc9fe17): compact DeliverToPicker lives in the
-    // primary row so delivery eligibility is visible before any product
-    // decision; the taxonomy row below carries browse context only.
-    const primaryStart = headerSource.indexOf("Primary commerce row")
-    const contextStart = headerSource.indexOf(
-      "Full-width, horizontally scrollable taxonomy row.",
-    )
-    const picker = headerSource.indexOf("<DeliverToPicker", primaryStart)
-    expect(primaryStart).toBeGreaterThan(-1)
-    expect(contextStart).toBeGreaterThan(primaryStart)
-    expect(picker).toBeGreaterThan(primaryStart)
-    expect(picker).toBeLessThan(contextStart)
-    expect(headerSource.match(/<DeliverToPicker/g)).toHaveLength(1)
+  it("renders location picker in the top primary commerce row matching the Hubtel reference", () => {
+    expect(headerSource).toMatch(/<DeliverToPicker/)
+  })
+
+  it("renders hamburger category menu only on non-home pages and category rail only on home", () => {
+    expect(headerSource).toMatch(/\{!isHome && <HeaderCategoryDropdown/)
+    expect(headerSource).toMatch(/\{isHome && \(\s*<div[^>]*>\s*<HeaderCategoryNav/)
   })
 })

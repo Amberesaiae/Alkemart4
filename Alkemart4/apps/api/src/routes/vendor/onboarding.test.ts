@@ -1,12 +1,22 @@
-import { describe, expect, it, vi } from "vitest"
+import { describe, expect, it } from "vitest"
 import { InMemoryAuthRepository } from "../../auth-repository"
 import type { CreatePaystackTransferRecipient } from "../../context"
 import { createApp } from "../../index"
+import { resetRateLimits } from "../../middleware/security"
+// Rate-limit counters are per-process: reset so files stay isolated.
+resetRateLimits()
 
 const JWT_SECRET = "test-jwt-secret-that-is-at-least-32-chars-long"
 
-function mockCreateRecipient(): CreatePaystackTransferRecipient {
-  return vi.fn(async () => ({ recipientCode: "RCP_test" }))
+type RecipientCall = { cfg: unknown; input: unknown }
+
+function mockCreateRecipient(
+  calls: RecipientCall[] = [],
+): CreatePaystackTransferRecipient {
+  return (async (cfg: unknown, input: unknown) => {
+    calls.push({ cfg, input })
+    return { recipientCode: "RCP_test" }
+  }) as unknown as CreatePaystackTransferRecipient
 }
 
 const ghanaSetupBody = {
@@ -74,8 +84,10 @@ describe("GET /vendor/onboarding/status", () => {
 
 describe("POST /vendor/onboarding/ghana-setup", () => {
   it("stores Paystack recipient_code from the mock and returns ready", async () => {
-    const { app, authRepo, token, sellerId, createPaystackTransferRecipient } = await vendorApp({
+    const calls: RecipientCall[] = []
+    const { app, authRepo, token, sellerId } = await vendorApp({
       paystackSecretKey: "sk_test",
+      createPaystackTransferRecipient: mockCreateRecipient(calls),
     })
     const res = await app.request(
       "/vendor/onboarding/ghana-setup",
@@ -83,16 +95,16 @@ describe("POST /vendor/onboarding/ghana-setup", () => {
     )
     expect(res.status).toBe(200)
     expect(await res.json()).toEqual({ ready: true, missing: [] })
-    expect(vi.mocked(createPaystackTransferRecipient)).toHaveBeenCalledTimes(1)
-    expect(vi.mocked(createPaystackTransferRecipient)).toHaveBeenCalledWith(
-      { secretKey: "sk_test" },
-      {
+    expect(calls).toHaveLength(1)
+    expect(calls[0]).toEqual({
+      cfg: { secretKey: "sk_test" },
+      input: {
         name: "Ama Mensah",
         accountNumber: "0244123456",
         bankCode: "MTN",
         currency: "GHS",
       },
-    )
+    })
     const seller = await authRepo.findSellerById(sellerId)
     expect(seller?.recipientCode).toBe("RCP_test")
     expect(seller?.packRegion).toBe("GH07")
@@ -103,9 +115,9 @@ describe("POST /vendor/onboarding/ghana-setup", () => {
   })
 
   it("returns 503 when PAYSTACK_SECRET_KEY is missing and does not invent a recipient", async () => {
-    const createPaystackTransferRecipient = mockCreateRecipient()
+    const calls: RecipientCall[] = []
     const { app, authRepo, token, sellerId } = await vendorApp({
-      createPaystackTransferRecipient,
+      createPaystackTransferRecipient: mockCreateRecipient(calls),
     })
     const res = await app.request(
       "/vendor/onboarding/ghana-setup",
@@ -114,7 +126,7 @@ describe("POST /vendor/onboarding/ghana-setup", () => {
     expect(res.status).toBe(503)
     const body = (await res.json()) as { error: string }
     expect(body.error).toMatch(/PAYSTACK_SECRET_KEY/)
-    expect(createPaystackTransferRecipient).not.toHaveBeenCalled()
+    expect(calls).toEqual([])
     const seller = await authRepo.findSellerById(sellerId)
     expect(seller?.recipientCode).toBeNull()
   })

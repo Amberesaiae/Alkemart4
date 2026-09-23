@@ -123,22 +123,10 @@ export const RAIL_DEPARTMENT_ORDER: readonly string[] = [
   "automotive",
   "services",
   "other",
-  "kids",
-  "phones",
-  "computing",
-  "tvs-audio",
-  "accessories",
-  "men",
-  "women",
-  "shoes",
-  "bags",
-  "staples",
-  "cooking-oil",
-  "snacks",
 ]
 
-/** Hard cap — the rail scrolls, so it fits departments + standout L2s. */
-export const RAIL_MAX = 24
+/** Hard cap — clean top-level departments only, avoiding generic subcategory clutter. */
+export const RAIL_MAX = 12
 
 /** Global chrome stays deliberately quiet: six department entries at most. */
 export const HEADER_CATEGORY_MAX = 6
@@ -279,4 +267,115 @@ export function resolveBrowseCategory(
     api.find((c) => c.name.toLowerCase() === s) ||
     null
   )
+}
+
+export const CANONICAL_NAMES: Record<string, string> = {
+  "phones-electronics": "Phones & Electronics",
+  "food-groceries": "Food & Groceries",
+  "fashion-apparel": "Fashion & Apparel",
+  "home-living": "Home & Living",
+  "health-beauty": "Health & Beauty",
+  "baby-kids": "Baby & Kids",
+  beverages: "Beverages",
+  "pet-care": "Pet Care",
+  agriculture: "Agriculture",
+  automotive: "Automotive",
+  services: "Services",
+  other: "Other",
+}
+
+export const CANONICAL_L2: Record<
+  string,
+  { id: string; label: string; handle: string }[]
+> = {
+  "phones-electronics": [
+    { id: "accessories", label: "Accessories", handle: "accessories" },
+    { id: "computing", label: "Computing", handle: "computing" },
+    { id: "tvs-audio", label: "TVs & Audio", handle: "tvs-audio" },
+    { id: "appliances", label: "Appliances", handle: "appliances" },
+  ],
+  "fashion-apparel": [
+    { id: "men", label: "Men's Fashion", handle: "men" },
+    { id: "women", label: "Women's Fashion", handle: "women" },
+    { id: "kids", label: "Kids & Teens", handle: "kids" },
+    { id: "shoes", label: "Shoes & Footwear", handle: "shoes" },
+    { id: "bags", label: "Bags & Watches", handle: "bags" },
+  ],
+  "food-groceries": [
+    { id: "fresh-produce", label: "Fresh Produce & Meat", handle: "fresh-produce" },
+    { id: "staples", label: "Rice & Staples", handle: "staples" },
+    { id: "cooking-oil", label: "Cooking Oils & Spices", handle: "cooking-oil" },
+    { id: "beverages", label: "Beverages & Drinks", handle: "beverages" },
+    { id: "snacks", label: "Snacks & Packaged", handle: "snacks" },
+  ],
+  "health-beauty": [
+    { id: "skincare", label: "Skincare & Lotions", handle: "skincare" },
+    { id: "haircare", label: "Hair Care", handle: "haircare" },
+    { id: "fragrance", label: "Fragrances", handle: "fragrance" },
+    { id: "personal-care", label: "Personal Care", handle: "personal-care" },
+  ],
+  "home-living": [
+    { id: "kitchen", label: "Kitchen & Dining", handle: "kitchen" },
+    { id: "bedding", label: "Bedding & Linens", handle: "bedding" },
+    { id: "appliances", label: "Home Appliances", handle: "appliances" },
+    { id: "storage", label: "Cleaning & Storage", handle: "storage" },
+  ],
+  "baby-kids": [
+    { id: "diapers", label: "Diapers & Care", handle: "diapers" },
+    { id: "feeding", label: "Baby Food & Feeding", handle: "feeding" },
+    { id: "clothing", label: "Kids Clothing", handle: "clothing" },
+    { id: "toys", label: "Toys & Learning", handle: "toys" },
+  ],
+}
+
+export function formatSlugTitle(s: string): string {
+  if (!s) return "Category"
+  return s
+    .split("-")
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ")
+}
+
+/**
+ * Sub-category chips — real children from store taxonomy or canonical seed.
+ * Filters out duplicate parent names (e.g. phones in phones-electronics)
+ * to avoid duplicate verbosity in visual rails and sidebar filters.
+ */
+export function resolveSubCategories(
+  category: {
+    id: string
+    handle?: string | null
+    name?: string | null
+  } | null,
+  all: { id: string; name: string; handle?: string | null; parentCategoryId?: string | null }[],
+  fallbackSlug?: string,
+): { id: string; label: string; handle: string | null }[] {
+  const key = (category?.handle || category?.id || fallbackSlug || "").toLowerCase()
+
+  if (category) {
+    const found = all
+      .filter(
+        (c) =>
+          c.parentCategoryId === category.id ||
+          (category.handle && c.parentCategoryId === category.handle),
+      )
+      .map((c) => ({ id: c.id, label: c.name, handle: c.handle ?? null }))
+
+    if (found.length > 0) {
+      return found.filter((sub) => {
+        const subHandle = (sub.handle || sub.id).toLowerCase()
+        const subLabel = sub.label.toLowerCase()
+        // Prevent duplicate verbosity when department name already contains the subcategory name
+        if (subHandle === key || subLabel === (CANONICAL_NAMES[key] ?? "").toLowerCase()) {
+          return false
+        }
+        if (key === "phones-electronics" && (subHandle === "phones" || subLabel === "phones")) {
+          return false
+        }
+        return true
+      })
+    }
+  }
+
+  return CANONICAL_L2[key] ?? []
 }

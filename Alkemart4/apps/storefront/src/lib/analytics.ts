@@ -316,11 +316,27 @@ export function trackOfferSelected(p: {
 
 export function trackVariantSelected(p: {
   productId: string
-  variantId: string
+  /** Server variant id when known; matrix picks report `options` instead. */
+  variantId?: string | null
+  /** Human option signature (e.g. "Size=M · Colour=Red") for matrix picks. */
+  options?: string | null
 }): void {
   track("variant_selected", {
     product_id: p.productId,
-    variant_id: p.variantId,
+    variant_id: p.variantId ?? undefined,
+    options: p.options ?? undefined,
+  })
+}
+
+export function trackAlternativeSelected(p: {
+  productId: string
+  alternativeId: string
+  source?: string | null
+}): void {
+  track("alternative_selected", {
+    product_id: p.productId,
+    alternative_id: p.alternativeId,
+    source: p.source ?? undefined,
   })
 }
 

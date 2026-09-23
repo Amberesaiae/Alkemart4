@@ -5,6 +5,8 @@ import {
   CatalogConflictError,
   CatalogValidationError,
 } from "../../catalog-repository"
+import { checkSendPermission } from "@alkemart/domain"
+import { toE164Ghana } from "../../sms"
 import type { AppEnv } from "../../context"
 import { readJsonBody } from "../../lib/session"
 import { requireSeller } from "../../middleware/auth"
@@ -76,6 +78,14 @@ const VariantPatchBody = z
     pricePesewas: PesewasString.optional(),
     onHand: z.number().int().min(0).optional(),
     active: z.boolean().optional(),
+    /** Phase 3A offer terms; compare-at requires provenance (400 otherwise). */
+    condition: z.string().trim().min(1).max(40).optional().nullable(),
+    compareAtPesewas: PesewasString.optional().nullable(),
+    compareAtProvenance: z.string().trim().min(1).max(500).optional().nullable(),
+    fulfillmentOrigin: z.string().trim().min(1).max(200).optional().nullable(),
+    warrantyRef: z.string().trim().min(1).max(500).optional().nullable(),
+    returnsRef: z.string().trim().min(1).max(500).optional().nullable(),
+    deliveryPromise: z.string().trim().min(1).max(200).optional().nullable(),
   })
   .refine((v) => Object.keys(v).length > 0, { message: "empty patch" })
 
@@ -119,6 +129,84 @@ function sellerIdOrThrow(c: { get: (k: "auth") => { sellerId?: string } }) {
   const sellerId = c.get("auth").sellerId
   if (!sellerId) throw new HTTPException(403, { message: "forbidden" })
   return sellerId
+}
+
+/**
+ * Phase 7B — stock/price alert fan-out. Runs after a variant write, never
+ * fails it. Subscription is consent (operational); opted-out rows are
+ * consumed, contacts resolve from the buyer's own orders, sends cap at 3
+ * per contact per day, and firing deletes the subscription (one-shot).
+ */
+async function fireStockPriceAlerts(
+  c: { get(k: "checkoutRepo"): AppEnv["Variables"]["checkoutRepo"] },
+  input: {
+    offerId: string
+    title: string
+    before: { pricePesewas: bigint; onHand: number; active: boolean }
+    after: { pricePesewas: bigint; onHand: number; active: boolean }
+  },
+): Promise<void> {
+  try {
+    const checkout = c.get("checkoutRepo")
+    const priceDown = input.after.pricePesewas < input.before.pricePesewas
+    const restocked = input.before.onHand <= 0 && input.after.onHand > 0 && input.after.active
+    if (!priceDown && !restocked) return
+    const subs = await checkout.listStockSubscriptions({ offerId: input.offerId }).catch(() => [])
+    for (const sub of subs) {
+      try {
+        if (sub.kind === "back_in_stock" && !restocked) continue
+        if (sub.kind === "price_drop") {
+          if (!priceDown) continue
+          if (sub.belowPesewas == null || input.after.pricePesewas > BigInt(sub.belowPesewas)) continue
+        }
+        const prefs = await checkout.listNotificationPreferences("buyer", sub.buyerEmail).catch(() => [])
+        const decision = checkSendPermission(
+          prefs.map((p) => ({
+            channel: p.channel,
+            category: p.category,
+            topic: p.topic,
+            optedIn: p.optedIn,
+            frequencyCap: p.frequencyCap,
+          })),
+          { channel: sub.channel, category: "operational" },
+        )
+        // Refused consent consumes the subscription: keeping it would spam
+        // someone who opted out on every future restock.
+        if (!decision.allowed) {
+          await checkout.deleteStockSubscription(sub.id, sub.buyerEmail).catch(() => {})
+          continue
+        }
+        const phoneRaw = await checkout.latestBuyerPhone(sub.buyerEmail).catch(() => null)
+        const to = phoneRaw ? toE164Ghana(phoneRaw) : null
+        // No verified contact yet: keep the subscription for next time.
+        if (!to) continue
+        const sent = await checkout
+          .countRecentSends(to, sub.channel, new Date(Date.now() - 24 * 3_600_000))
+          .catch(() => 0)
+        if (sent >= 3) continue
+        const body =
+          sub.kind === "back_in_stock"
+            ? `Alkemart: "${input.title}" is back in stock — check it before it sells through.`
+            : `Alkemart: "${input.title}" dropped to your target price — check it before it moves again.`
+        const done = await checkout
+          .enqueueNotification({
+            key: `sub:${sub.id}`,
+            recipient: to,
+            body,
+            channel: sub.channel,
+            category: "operational",
+          })
+          .catch(() => ({ inserted: false }))
+        if (done.inserted) {
+          await checkout.deleteStockSubscription(sub.id, sub.buyerEmail).catch(() => {})
+        }
+      } catch {
+        /* one bad subscription never blocks the rest */
+      }
+    }
+  } catch {
+    /* alerts never fail writes */
+  }
 }
 
 function mapCatalogWriteError(err: unknown): never {
@@ -237,19 +325,63 @@ export const vendorProducts = new Hono<AppEnv>()
     const parsed = VariantPatchBody.safeParse(await readJsonBody(c))
     if (!parsed.success) throw new HTTPException(400, { message: "invalid body" })
     const sellerId = sellerIdOrThrow(c)
+    const productId = c.req.param("id")
+    const variantId = c.req.param("variantId")
+    // Before-image for stock/price journeys (best effort; alerts never fail writes).
+    const before = await c
+      .get("repo")
+      .listVendorProducts(sellerId)
+      .then((items) => {
+        const item = items.find((p) => p.product.id === productId)
+        const combo = item?.variants.find((v) => v.variant.id === variantId)
+        if (!item || !combo) return null
+        return {
+          offerId: combo.offer.id,
+          title: item.product.title,
+          pricePesewas: BigInt(combo.offer.pricePesewas),
+          onHand: combo.offer.onHand,
+          active: combo.offer.active,
+        }
+      })
+      .catch(() => null)
     try {
       const updated = await c.get("repo").updateProductVariant(
         sellerId,
-        c.req.param("id"),
-        c.req.param("variantId"),
+        productId,
+        variantId,
         {
           pricePesewas:
             parsed.data.pricePesewas !== undefined ? BigInt(parsed.data.pricePesewas) : undefined,
           onHand: parsed.data.onHand,
           active: parsed.data.active,
+          condition: parsed.data.condition,
+          compareAtPesewas:
+            parsed.data.compareAtPesewas !== undefined && parsed.data.compareAtPesewas !== null
+              ? BigInt(parsed.data.compareAtPesewas)
+              : (parsed.data.compareAtPesewas ?? undefined),
+          compareAtProvenance: parsed.data.compareAtProvenance,
+          fulfillmentOrigin: parsed.data.fulfillmentOrigin,
+          warrantyRef: parsed.data.warrantyRef,
+          returnsRef: parsed.data.returnsRef,
+          deliveryPromise: parsed.data.deliveryPromise,
         },
       )
       if (!updated) throw new HTTPException(404, { message: "product or combination not found" })
+      if (before) {
+        const afterCombo = updated.variants.find((v) => v.variant.id === variantId)
+        if (afterCombo) {
+          void fireStockPriceAlerts(c, {
+            offerId: afterCombo.offer.id,
+            title: before.title,
+            before,
+            after: {
+              pricePesewas: BigInt(afterCombo.offer.pricePesewas),
+              onHand: afterCombo.offer.onHand,
+              active: afterCombo.offer.active,
+            },
+          })
+        }
+      }
       return c.json(updated)
     } catch (err) {
       if (err instanceof HTTPException) throw err

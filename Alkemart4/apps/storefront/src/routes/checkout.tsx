@@ -64,8 +64,8 @@ function CheckoutPendingComponent() {
       <Skeleton className="h-10 w-48 rounded-lg" />
       <Skeleton className="h-4 w-64 rounded-md" />
       <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
-        <Skeleton className="h-96 w-full rounded-2xl" />
-        <Skeleton className="h-48 w-full rounded-3xl" />
+        <Skeleton className="h-96 w-full rounded-xl" />
+        <Skeleton className="h-48 w-full rounded-xl" />
       </div>
     </div>
   )
@@ -356,7 +356,7 @@ function CheckoutPage() {
       </header>
 
       {items.length > 0 ? (
-        <div className="rounded-2xl border border-border bg-card px-3 py-4 sm:px-6">
+        <div className="rounded-xl border border-border bg-card px-3 py-4 sm:px-6">
           <CheckoutStepper current="address" />
         </div>
       ) : null}
@@ -367,8 +367,8 @@ function CheckoutPage() {
 
       {cartQ.isLoading ? (
         <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
-          <Skeleton className="h-64 w-full rounded-3xl" />
-          <Skeleton className="h-48 w-full rounded-3xl" />
+          <Skeleton className="h-64 w-full rounded-xl" />
+          <Skeleton className="h-48 w-full rounded-xl" />
         </div>
       ) : null}
 
@@ -386,7 +386,7 @@ function CheckoutPage() {
         <div className="grid items-start gap-6 lg:grid-cols-[1fr_320px]">
           <div className="space-y-5">
             {sessionQ.data && saved.length > 0 ? (
-              <section className="space-y-3 rounded-3xl border border-border bg-card p-5 shadow-sm">
+              <section className="space-y-3 rounded-xl border border-border bg-card p-5 shadow-sm">
                 <h2 className="text-base font-bold">Saved addresses</h2>
                 <ul className="space-y-2">
                   {saved.map((a) => {
@@ -400,7 +400,7 @@ function CheckoutPage() {
                             applyAddress(a, setters)
                           }}
                           className={cn(
-                            "w-full rounded-2xl border p-4 text-left text-sm transition",
+                            "w-full rounded-xl border p-4 text-left text-sm transition",
                             selected
                               ? "border-primary bg-muted ring-1 ring-primary"
                               : "border-border hover:bg-muted/40",
@@ -430,7 +430,7 @@ function CheckoutPage() {
                       type="button"
                       onClick={() => setSelectedAddressId("new")}
                       className={cn(
-                        "w-full rounded-2xl border border-dashed p-4 text-left text-sm font-medium transition",
+                        "w-full rounded-xl border border-dashed p-4 text-left text-sm font-medium transition",
                         selectedAddressId === "new"
                           ? "border-primary bg-muted ring-1 ring-primary"
                           : "border-border hover:bg-muted/40",
@@ -449,7 +449,7 @@ function CheckoutPage() {
                 </p>
               </section>
             ) : sessionQ.data ? (
-              <p className="rounded-2xl border border-border bg-muted/30 px-4 py-3 text-xs text-muted-foreground">
+              <p className="rounded-xl border border-border bg-muted/30 px-4 py-3 text-xs text-muted-foreground">
                 No saved addresses.{" "}
                 <Link to="/account" className="font-semibold underline">
                   Add one in Account
@@ -457,7 +457,7 @@ function CheckoutPage() {
                 or fill the form below.
               </p>
             ) : (
-              <p className="rounded-2xl border border-border bg-muted/30 px-4 py-3 text-xs text-muted-foreground">
+              <p className="rounded-xl border border-border bg-muted/30 px-4 py-3 text-xs text-muted-foreground">
                 <Link
                   to="/login"
                   search={{ redirect: "/checkout" }}
@@ -471,7 +471,7 @@ function CheckoutPage() {
 
             <form
               id="checkout-form"
-              className="space-y-6 rounded-2xl border border-border bg-card p-5 shadow-sm"
+              className="space-y-6 rounded-xl border border-border bg-card p-5 shadow-sm"
               onSubmit={(e) => {
                 e.preventDefault()
                 place.mutate()
@@ -552,7 +552,7 @@ function CheckoutPage() {
               <h2 id="checkout-delivery" className="text-base font-bold">
                 2 · Delivery method
               </h2>
-              <div className="space-y-2 rounded-2xl border border-border bg-muted/20 p-4 text-sm">
+              <div className="space-y-2 rounded-xl border border-border bg-muted/20 p-4 text-sm">
                 <p className="font-semibold text-muted-foreground">
                   Available options
                 </p>
@@ -597,7 +597,7 @@ function CheckoutPage() {
               <h2 id="checkout-payment" className="text-base font-bold">
                 3 · Payment method
               </h2>
-              <div className="space-y-3 rounded-2xl border border-border bg-muted/20 p-4 text-sm">
+              <div className="space-y-3 rounded-xl border border-border bg-muted/20 p-4 text-sm">
                 <label
                   className={cn(
                     "flex cursor-pointer items-start gap-3 rounded-xl border p-3",
@@ -618,7 +618,8 @@ function CheckoutPage() {
                       Cash on delivery
                     </span>
                     <span className="mt-0.5 block text-muted-foreground">
-                      Pay the rider when your order arrives.
+                      Inspect the box with the rider first — then pay cash or
+                      MoMo. Refuse free if anything is wrong.
                     </span>
                   </span>
                 </label>
@@ -680,7 +681,7 @@ function CheckoutPage() {
                       </span>
                     </label>
                     {payMethod === "momo" ? (
-                      <div className="mt-3.5 space-y-3 rounded-2xl border border-primary/20 bg-background/80 p-4 shadow-sm backdrop-blur-xs">
+                      <div className="mt-3.5 space-y-3 rounded-xl border border-primary/20 bg-background/80 p-4 shadow-sm backdrop-blur-xs">
                         <div className="flex items-center justify-between">
                           <span className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-foreground">
                             <DeviceMobile className="h-4 w-4 text-primary" />

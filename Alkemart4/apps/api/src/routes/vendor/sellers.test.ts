@@ -3,6 +3,9 @@ import { InMemoryAuthRepository } from "../../auth-repository"
 import { InMemoryShopPolicyStore } from "../../shop-policies"
 import type { ApiEnv } from "../../env"
 import { createApp } from "../../index"
+import { resetRateLimits } from "../../middleware/security"
+// Rate-limit counters are per-process: reset so files stay isolated.
+resetRateLimits()
 
 const JWT_SECRET = "test-jwt-secret-that-is-at-least-32-chars-long"
 
@@ -420,6 +423,9 @@ describe("PATCH /vendor/sellers/me/display + /contact + /featured", () => {
     profileAttributes: [],
     productAttributeValues: [],
     matchCandidates: [],
+    searchAliases: [],
+    verifications: [],
+    priceHistory: [],
     }
     const app = createApp({
       authRepo: new InMemoryAuthRepository(),
@@ -512,6 +518,9 @@ describe("PATCH /vendor/sellers/me/display + /contact + /featured", () => {
     profileAttributes: [],
     productAttributeValues: [],
     matchCandidates: [],
+    searchAliases: [],
+    verifications: [],
+    priceHistory: [],
     }
     const repo = new InMemoryCatalogRepository(snapshot)
     const app = createApp({

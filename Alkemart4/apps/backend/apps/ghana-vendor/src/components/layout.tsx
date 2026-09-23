@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router"
-import { SquaresFour, Package, ShoppingBag, Gear, SignOut, Storefront, Star } from "@phosphor-icons/react"
+import { SquaresFour, Package, ShoppingBag, Gear, SignOut, Storefront, Star, CurrencyCircleDollar } from "@phosphor-icons/react"
 import { useCurrentUser, useLogout } from "../lib/auth"
 import { useSellerProfile } from "../lib/hooks"
 import { cn, Button, Avatar, AvatarImage, AvatarFallback } from "@workspace/ui"
@@ -30,6 +30,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
     { name: "Dashboard", to: "/", icon: SquaresFour },
     { name: "Products", to: "/products", icon: Package },
     { name: "Orders", to: "/orders", icon: ShoppingBag },
+    { name: "Money", to: "/money", icon: CurrencyCircleDollar },
     { name: "Store", to: "/store", icon: Storefront },
     { name: "Reviews", to: "/reviews", icon: Star },
     { name: "Settings", to: "/settings", icon: Gear },

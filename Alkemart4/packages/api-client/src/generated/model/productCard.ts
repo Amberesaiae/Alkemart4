@@ -18,6 +18,11 @@ import type { Currency } from './currency';
 export interface ProductCard {
   productId: string;
   title: string;
+  /**
+   * URL handle for /product/{slug}-{id}; null on rows predating slugs.
+   * @nullable
+   */
+  slug: string | null;
   categoryHandle: string;
   categoryName: string;
   /** @nullable */

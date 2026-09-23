@@ -6,6 +6,9 @@ import { InMemoryCheckoutRepository } from "../../checkout-repository"
 import { demoCatalog } from "../../demo-seed"
 import { createApp } from "../../index"
 import { signSessionJwt } from "../../lib/jwt"
+import { resetRateLimits } from "../../middleware/security"
+// Rate-limit counters are per-process: reset so files stay isolated.
+resetRateLimits()
 
 const JWT = "test-jwt-secret-that-is-at-least-32-chars-long"
 

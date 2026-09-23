@@ -147,6 +147,75 @@ export function organizationJsonLd(): Record<string, unknown> {
   }
 }
 
+export type SeoOffer = {
+  price: number
+  currencyCode: string
+  sellerName?: string | null
+  /** Machine availability; unknown reads as InStock-never — omit instead. */
+  inStock?: boolean | null
+  /** Delivery fee in major units when the seller declares one. */
+  deliveryFee?: number | null
+  url?: string | null
+}
+
+export type SeoVariant = {
+  name: string
+  url?: string | null
+  image?: string | null
+}
+
+export type SeoRating = {
+  avg: number
+  count: number
+}
+
+function offerNode(
+  o: SeoOffer,
+  fallbackUrl: string | undefined,
+): Record<string, unknown> {
+  return {
+    "@type": "Offer",
+    price: o.price,
+    priceCurrency: o.currencyCode.toUpperCase(),
+    availability:
+      o.inStock === false
+        ? "https://schema.org/OutOfStock"
+        : "https://schema.org/InStock",
+    url: o.url ?? fallbackUrl,
+    // Seller identity belongs to the offer, never to Brand.
+    ...(o.sellerName?.trim()
+      ? { seller: { "@type": "Organization", name: o.sellerName.trim() } }
+      : {}),
+    ...(o.deliveryFee != null && o.deliveryFee >= 0
+      ? {
+          shippingDetails: {
+            "@type": "OfferShippingDetails",
+            shippingRate: {
+              "@type": "MonetaryAmount",
+              value: o.deliveryFee,
+              currency: o.currencyCode.toUpperCase(),
+            },
+          },
+        }
+      : {}),
+  }
+}
+
+/**
+ * Product JSON-LD from real API data only (blueprint Doc 08 + Phase 6A).
+ *
+ * - Brand is the manufacturer/product brand. Omitted when unknown — never
+ *   the seller, never the marketplace.
+ * - Multiple sellable offers collapse to an AggregateOffer (low/high/count)
+ *   with per-seller Offer nodes; a single offer renders as one Offer.
+ * - aggregateRating renders only with verified reviews on record (count > 0).
+ * - Variants render as a ProductGroup with hasVariant entries; offers stay
+ *   at the level they were measured (group aggregate, never per-variant
+ *   prices we did not verify).
+ * - Returns policy has no structured source (warranty/returns refs are free
+ *   text), so no MerchantReturnPolicy block is emitted rather than a
+ *   fabricated one.
+ */
 export function productJsonLd(p: {
   id: string
   title: string
@@ -159,33 +228,59 @@ export function productJsonLd(p: {
   sellerName?: string | null
   /** True manufacturer/product brand (Phase 1 `products.brand`). Omit when unknown. */
   brandName?: string | null
+  /** Sellable offers across sellers; replaces amount/sellerName when given. */
+  offers?: SeoOffer[] | null
+  /** Combination variants for ProductGroup output. */
+  variants?: SeoVariant[] | null
+  /** Verified-review aggregate; omitted unless count > 0. */
+  rating?: SeoRating | null
 }): Record<string, unknown> {
   const url = absoluteUrl(p.path)
   const desc = p.description
     ? truncateMeta(stripHtml(p.description), 300)
     : undefined
 
-  const seller = p.sellerName?.trim() || undefined
   const brand = p.brandName?.trim() || undefined
 
-  const offers: Record<string, unknown> | undefined =
-    p.amount != null && p.currencyCode
+  const explicit = (p.offers ?? []).filter(
+    (o) => o.price != null && Number.isFinite(o.price) && o.currencyCode,
+  )
+  const legacy =
+    explicit.length === 0 && p.amount != null && p.currencyCode
+      ? [
+          {
+            price: p.amount,
+            currencyCode: p.currencyCode,
+            sellerName: p.sellerName ?? null,
+          },
+        ]
+      : []
+  const offers = [...explicit, ...legacy]
+
+  const offerBlock: Record<string, unknown> | undefined =
+    offers.length === 0
+      ? undefined
+      : offers.length === 1
+        ? offerNode(offers[0] as SeoOffer, url)
+        : {
+            "@type": "AggregateOffer",
+            lowPrice: Math.min(...offers.map((o) => o.price)),
+            highPrice: Math.max(...offers.map((o) => o.price)),
+            offerCount: offers.length,
+            priceCurrency: offers[0]!.currencyCode.toUpperCase(),
+            offers: offers.map((o) => offerNode(o, url)),
+          }
+
+  const rating =
+    p.rating && p.rating.count > 0 && p.rating.avg > 0
       ? {
-          "@type": "Offer",
-          price: p.amount,
-          priceCurrency: p.currencyCode.toUpperCase(),
-          availability: "https://schema.org/InStock",
-          url,
-          // Seller identity belongs to the offer, never to Brand.
-          ...(seller
-            ? { seller: { "@type": "Organization", name: seller } }
-            : {}),
+          "@type": "AggregateRating",
+          ratingValue: p.rating.avg,
+          reviewCount: p.rating.count,
         }
       : undefined
 
-  return {
-    "@context": "https://schema.org",
-    "@type": "Product",
+  const base = {
     name: p.title,
     description: desc,
     image: p.thumbnail ? [p.thumbnail] : undefined,
@@ -194,7 +289,24 @@ export function productJsonLd(p: {
     // Brand is the manufacturer/product brand only. Omitted when unknown —
     // never the seller, never the marketplace fallback (blueprint Doc 08).
     ...(brand ? { brand: { "@type": "Brand", name: brand } } : {}),
-    offers,
+    ...(offerBlock ? { offers: offerBlock } : {}),
+    ...(rating ? { aggregateRating: rating } : {}),
+  }
+
+  const variants = (p.variants ?? []).filter((v) => v.name?.trim())
+  if (variants.length === 0) {
+    return { "@context": "https://schema.org", "@type": "Product", ...base }
+  }
+  return {
+    "@context": "https://schema.org",
+    "@type": "ProductGroup",
+    ...base,
+    hasVariant: variants.map((v) => ({
+      "@type": "Product",
+      name: v.name.trim(),
+      url: v.url ?? url,
+      ...(v.image ? { image: [v.image] } : {}),
+    })),
   }
 }
 
@@ -213,11 +325,49 @@ export function breadcrumbJsonLd(
   }
 }
 
+/**
+ * Category listing JSON-LD (Phase 6A): a CollectionPage naming the items
+ * actually rendered (capped). No ratings, prices, or availability here —
+ * those belong to the product pages this list links to.
+ */
+export function itemListJsonLd(list: {
+  name: string
+  description?: string | null
+  path: string
+  items: { name: string; path: string }[]
+}): Record<string, unknown> {
+  const entries = list.items
+    .filter((it) => it.name?.trim() && it.path?.trim())
+    .slice(0, 50)
+  return {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    name: list.name,
+    description: list.description
+      ? truncateMeta(stripHtml(list.description), 300)
+      : undefined,
+    url: absoluteUrl(list.path),
+    mainEntity: {
+      "@type": "ItemList",
+      numberOfItems: entries.length,
+      itemListElement: entries.map((it, i) => ({
+        "@type": "ListItem",
+        position: i + 1,
+        name: it.name.trim(),
+        url: absoluteUrl(it.path),
+      })),
+    },
+  }
+}
+
 export function storeJsonLd(s: {
   name: string
   description?: string | null
   path: string
+  /** Shop region (e.g. "Greater Accra"); omitted when unknown. */
+  location?: string | null
 }): Record<string, unknown> {
+  const location = s.location?.trim() || undefined
   return {
     "@context": "https://schema.org",
     "@type": "Store",
@@ -226,5 +376,6 @@ export function storeJsonLd(s: {
       ? truncateMeta(stripHtml(s.description), 300)
       : undefined,
     url: absoluteUrl(s.path),
+    ...(location ? { areaServed: location } : {}),
   }
 }

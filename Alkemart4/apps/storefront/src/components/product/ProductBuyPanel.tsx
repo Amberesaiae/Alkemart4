@@ -55,7 +55,7 @@ export function ProductBuyPanel({
   return (
     <div
       className={cn(
-        "space-y-4 rounded-2xl border border-border bg-card p-4 shadow-sm",
+        "space-y-4 rounded-xl border border-border bg-card p-4 shadow-sm",
         sticky && "lg:sticky lg:top-24",
         className,
       )}
@@ -69,7 +69,7 @@ export function ProductBuyPanel({
 
       {canAdd ? (
         <div className="flex items-center gap-2 text-xs font-semibold text-tone-success-ink">
-          <span className="size-2 rounded-full bg-tone-success animate-pulse" />
+          <span className="size-2 rounded-full bg-tone-success" />
           <span>In Stock · Cash on Delivery available</span>
         </div>
       ) : (

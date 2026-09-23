@@ -1,17 +1,22 @@
 import {
   carts,
   cartItems,
+  experimentExposures,
+  experiments,
+  notificationPreferences,
   notifications,
   offers,
   orders,
   orderGroups,
   orderItems,
   paymentIntents,
+  payoutHolds,
   payoutLines,
   payouts,
   products,
   reviews,
   sellers,
+  stockSubscriptions,
   stockReservations,
 } from "@alkemart/db"
 import {
@@ -23,18 +28,21 @@ import {
   type OrderFulfillmentStatus,
   type PaymentIntentStatus,
 } from "@alkemart/domain"
-import { and, desc, eq, gte, inArray, isNull, sql } from "drizzle-orm"
+import { and, asc, desc, eq, gte, inArray, isNull, sql } from "drizzle-orm"
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js"
 import type {
   CartItemRow,
   CartRow,
   CheckoutOfferView,
   CheckoutRepository,
+  ExperimentDto,
+  NotificationPreferenceDto,
   OrderGroupRow,
   PaymentIntentRow,
   PayoutRow,
   ShippingAddress,
   OrderRow,
+  StockSubscriptionDto,
 } from "./checkout-repository"
 
 type Db = PostgresJsDatabase
@@ -633,6 +641,43 @@ export class PostgresCheckoutRepository implements CheckoutRepository {
     return totals
   }
 
+  async productUnitsSince(since: Date): Promise<Map<string, number>> {
+    const rows = await this.db
+      .select({
+        productId: orderItems.productId,
+        units: sql<number>`sum(${orderItems.qty})`,
+      })
+      .from(orderItems)
+      .innerJoin(orders, eq(orders.id, orderItems.orderId))
+      .innerJoin(orderGroups, eq(orderGroups.id, orders.orderGroupId))
+      .where(and(eq(orders.status, "delivered"), gte(orderGroups.createdAt, since)))
+      .groupBy(orderItems.productId)
+    const units = new Map<string, number>()
+    for (const r of rows) {
+      if (r.productId) units.set(r.productId, Number(r.units))
+    }
+    return units
+  }
+
+  async latestBuyerPhone(buyerEmail: string): Promise<string | null> {
+    const [row] = await this.db
+      .select({
+        momoPhone: paymentIntents.momoPhone,
+        shippingAddress: paymentIntents.shippingAddress,
+      })
+      .from(paymentIntents)
+      .where(eq(paymentIntents.buyerEmail, buyerEmail.trim().toLowerCase()))
+      .orderBy(desc(paymentIntents.createdAt))
+      .limit(1)
+    const shipPhone =
+      row?.shippingAddress && typeof row.shippingAddress.phone === "string"
+        ? row.shippingAddress.phone.trim()
+        : ""
+    if (shipPhone) return shipPhone
+    const momo = row?.momoPhone?.trim()
+    return momo || null
+  }
+
   async platformOrderStats() {
     const toBig = (v: bigint | string | number): bigint =>
       typeof v === "bigint" ? v : BigInt(v)
@@ -802,13 +847,195 @@ export class PostgresCheckoutRepository implements CheckoutRepository {
     }))
   }
 
-  async enqueueNotification(input: { key: string; recipient: string; body: string }) {
+  async listPayoutsForSeller(sellerId: string) {
+    const rows = await this.db
+      .select()
+      .from(payouts)
+      .where(eq(payouts.sellerId, sellerId))
+      .orderBy(desc(payouts.createdAt))
+    return rows.map((row) => ({
+      id: row.id,
+      sellerId: row.sellerId,
+      status: row.status,
+      grossPesewas: row.grossPesewas,
+      commissionPesewas: row.commissionPesewas,
+      netPesewas: row.netPesewas,
+      commissionBps: row.commissionBps,
+      paystackTransferCode: row.paystackTransferCode,
+      paystackReference: row.paystackReference,
+      createdAt: row.createdAt,
+    }))
+  }
+
+  async listPaidLinesForSeller(sellerId: string) {
+    const rows = await this.db
+      .select({
+        payoutId: payoutLines.payoutId,
+        orderId: payoutLines.orderId,
+        grossPesewas: payoutLines.grossPesewas,
+        commissionPesewas: payoutLines.commissionPesewas,
+        netPesewas: payoutLines.netPesewas,
+        payoutStatus: payouts.status,
+        paidAt: payouts.createdAt,
+      })
+      .from(payoutLines)
+      .innerJoin(payouts, eq(payouts.id, payoutLines.payoutId))
+      .where(eq(payouts.sellerId, sellerId))
+    return rows.map((r) => ({
+      payoutId: r.payoutId,
+      orderId: r.orderId,
+      grossPesewas: r.grossPesewas,
+      commissionPesewas: r.commissionPesewas,
+      netPesewas: r.netPesewas,
+      payoutStatus: r.payoutStatus,
+      paidAt: r.paidAt,
+    }))
+  }
+
+  async listPayoutHolds(sellerId: string, activeOnly = true) {
+    const rows = await this.db
+      .select()
+      .from(payoutHolds)
+      .where(
+        activeOnly
+          ? and(eq(payoutHolds.sellerId, sellerId), eq(payoutHolds.status, "held"))
+          : eq(payoutHolds.sellerId, sellerId),
+      )
+      .orderBy(desc(payoutHolds.createdAt))
+    return rows.map((r) => ({
+      id: r.id,
+      sellerId: r.sellerId,
+      orderId: r.orderId,
+      amountPesewas: r.amountPesewas,
+      reason: r.reason,
+      status: r.status,
+      createdBy: r.createdBy,
+      releasedBy: r.releasedBy,
+      releasedAt: r.releasedAt,
+      createdAt: r.createdAt,
+    }))
+  }
+
+  async createPayoutHold(input: {
+    sellerId: string
+    orderId?: string | null
+    amountPesewas?: bigint | null
+    reason: string
+    createdBy: string
+  }) {
+    const reason = input.reason?.trim()
+    if (!reason) throw new Error("reason required")
+    if (input.orderId) {
+      const [order] = await this.db
+        .select({ id: orders.id, sellerId: orders.sellerId })
+        .from(orders)
+        .where(eq(orders.id, input.orderId))
+        .limit(1)
+      if (!order || order.sellerId !== input.sellerId) {
+        throw new Error("order not in this seller's orders")
+      }
+    }
+    if (input.amountPesewas !== undefined && input.amountPesewas !== null && input.amountPesewas < 0n) {
+      throw new Error("amount must be >= 0")
+    }
+    const id = crypto.randomUUID()
+    try {
+      const [row] = await this.db
+        .insert(payoutHolds)
+        .values({
+          id,
+          sellerId: input.sellerId,
+          orderId: input.orderId ?? null,
+          amountPesewas: input.amountPesewas ?? null,
+          reason,
+          status: "held",
+          createdBy: input.createdBy,
+        })
+        .returning()
+      if (!row) throw new Error("hold insert failed")
+      return {
+        id: row.id,
+        sellerId: row.sellerId,
+        orderId: row.orderId,
+        amountPesewas: row.amountPesewas,
+        reason: row.reason,
+        status: row.status,
+        createdBy: row.createdBy,
+        releasedBy: row.releasedBy,
+        releasedAt: row.releasedAt,
+        createdAt: row.createdAt,
+      }
+    } catch (err) {
+      // Honors the Phase 4 gate: writes require 0023, applied via
+      // POST /admin/migrate/blueprint-phase4.
+      throw new Error(
+        "payout hold store unavailable - POST /admin/migrate/blueprint-phase4",
+        { cause: err },
+      )
+    }
+  }
+
+  async releasePayoutHold(id: string, releasedBy: string) {
+    const [row] = await this.db
+      .select()
+      .from(payoutHolds)
+      .where(eq(payoutHolds.id, id))
+      .limit(1)
+    if (!row) return null
+    const [updated] = await this.db
+      .update(payoutHolds)
+      .set({ status: "released", releasedBy, releasedAt: new Date() })
+      .where(eq(payoutHolds.id, id))
+      .returning()
+    if (!updated) return null
+    return {
+      id: updated.id,
+      sellerId: updated.sellerId,
+      orderId: updated.orderId,
+      amountPesewas: updated.amountPesewas,
+      reason: updated.reason,
+      status: updated.status,
+      createdBy: updated.createdBy,
+      releasedBy: updated.releasedBy,
+      releasedAt: updated.releasedAt,
+      createdAt: updated.createdAt,
+    }
+  }
+
+  async enqueueNotification(input: {
+    key: string
+    recipient: string
+    body: string
+    channel?: string
+    category?: "transactional" | "promotional" | "operational"
+  }) {
     const inserted = await this.db
       .insert(notifications)
-      .values({ id: crypto.randomUUID(), key: input.key, recipient: input.recipient, body: input.body })
+      .values({
+        id: crypto.randomUUID(),
+        key: input.key,
+        recipient: input.recipient,
+        body: input.body,
+        channel: input.channel ?? "sms",
+        category: input.category ?? "transactional",
+      })
       .onConflictDoNothing({ target: notifications.key })
       .returning({ id: notifications.id })
     return { inserted: inserted.length > 0 }
+  }
+
+  async countRecentSends(recipient: string, channel: string, since: Date): Promise<number> {
+    const rows = await this.db
+      .select({ count: sql<number>`count(*)` })
+      .from(notifications)
+      .where(
+        and(
+          eq(notifications.recipient, recipient),
+          eq(notifications.channel, channel),
+          gte(notifications.createdAt, since),
+        ),
+      )
+    return Number(rows[0]?.count ?? 0)
   }
 
   async claimPendingNotifications(limit = 50, maxAttempts = 5) {
@@ -821,7 +1048,7 @@ export class PostgresCheckoutRepository implements CheckoutRepository {
         ORDER BY created_at ASC LIMIT ${take}
         FOR UPDATE SKIP LOCKED
       )
-      RETURNING id, key, channel, recipient, body, status, attempts, last_error, created_at, sent_at
+      RETURNING id, key, channel, recipient, body, category, status, attempts, last_error, created_at, sent_at
     `)
     return (rows as unknown as Array<{
       id: string
@@ -829,6 +1056,7 @@ export class PostgresCheckoutRepository implements CheckoutRepository {
       channel: string
       recipient: string
       body: string
+      category: string
       status: "pending" | "sent" | "failed"
       attempts: number
       last_error: string | null
@@ -840,6 +1068,7 @@ export class PostgresCheckoutRepository implements CheckoutRepository {
       channel: r.channel,
       recipient: r.recipient,
       body: r.body,
+      category: r.category,
       status: r.status,
       attempts: r.attempts,
       lastError: r.last_error,
@@ -990,6 +1219,356 @@ export class PostgresCheckoutRepository implements CheckoutRepository {
       .where(and(eq(reviews.productId, productId), eq(reviews.status, "published")))
       .orderBy(desc(reviews.createdAt))
     return rows.map((r) => this.toReviewRow(r))
+  }
+
+  // ── Phase 7A: preference center ──
+
+  private toPreferenceDto(
+    row: typeof notificationPreferences.$inferSelect,
+  ): NotificationPreferenceDto {
+    return {
+      id: row.id,
+      ownerType: row.ownerType === "seller" ? "seller" : "buyer",
+      ownerId: row.ownerId,
+      channel: row.channel,
+      category:
+        row.category === "promotional" || row.category === "operational"
+          ? row.category
+          : "transactional",
+      topic: row.topic,
+      optedIn: row.optedIn === 1,
+      frequencyCap: row.frequencyCap,
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
+    }
+  }
+
+  async listNotificationPreferences(
+    ownerType: "buyer" | "seller",
+    ownerId: string,
+  ): Promise<NotificationPreferenceDto[]> {
+    const rows = await this.db
+      .select()
+      .from(notificationPreferences)
+      .where(
+        and(
+          eq(notificationPreferences.ownerType, ownerType),
+          eq(notificationPreferences.ownerId, ownerId),
+        ),
+      )
+      .orderBy(asc(notificationPreferences.category))
+    return rows.map((r) => this.toPreferenceDto(r))
+  }
+
+  async setNotificationPreference(input: {
+    ownerType: "buyer" | "seller"
+    ownerId: string
+    channel: string
+    category: "transactional" | "promotional" | "operational"
+    topic?: string | null
+    optedIn: boolean
+    frequencyCap?: number | null
+  }): Promise<NotificationPreferenceDto> {
+    const topic = input.topic ?? null
+    const [existing] = await this.db
+      .select()
+      .from(notificationPreferences)
+      .where(
+        and(
+          eq(notificationPreferences.ownerType, input.ownerType),
+          eq(notificationPreferences.ownerId, input.ownerId),
+          eq(notificationPreferences.channel, input.channel),
+          eq(notificationPreferences.category, input.category),
+          input.topic == null
+            ? isNull(notificationPreferences.topic)
+            : eq(notificationPreferences.topic, input.topic),
+        ),
+      )
+      .limit(1)
+    const now = new Date()
+    if (existing) {
+      const [updated] = await this.db
+        .update(notificationPreferences)
+        .set({
+          optedIn: input.optedIn ? 1 : 0,
+          frequencyCap: input.frequencyCap ?? null,
+          updatedAt: now,
+        })
+        .where(eq(notificationPreferences.id, existing.id))
+        .returning()
+      if (!updated) throw new Error("preference update failed")
+      return this.toPreferenceDto(updated)
+    }
+    const [row] = await this.db
+      .insert(notificationPreferences)
+      .values({
+        id: crypto.randomUUID(),
+        ownerType: input.ownerType,
+        ownerId: input.ownerId,
+        channel: input.channel,
+        category: input.category,
+        topic,
+        optedIn: input.optedIn ? 1 : 0,
+        frequencyCap: input.frequencyCap ?? null,
+        createdAt: now,
+        updatedAt: now,
+      })
+      .returning()
+    if (!row) throw new Error("preference insert failed")
+    return this.toPreferenceDto(row)
+  }
+
+  // ── Phase 7B: alert subscriptions ──
+
+  private toSubscriptionDto(
+    row: typeof stockSubscriptions.$inferSelect,
+  ): StockSubscriptionDto {
+    return {
+      id: row.id,
+      buyerEmail: row.buyerEmail,
+      productId: row.productId,
+      offerId: row.offerId,
+      kind: row.kind === "price_drop" ? "price_drop" : "back_in_stock",
+      belowPesewas: row.belowPesewas != null ? row.belowPesewas.toString() : null,
+      channel: row.channel,
+      createdAt: row.createdAt,
+    }
+  }
+
+  async listStockSubscriptions(filters: {
+    offerId?: string
+    buyerEmail?: string
+  }): Promise<StockSubscriptionDto[]> {
+    const conds = []
+    if (filters.offerId) conds.push(eq(stockSubscriptions.offerId, filters.offerId))
+    if (filters.buyerEmail) {
+      conds.push(eq(stockSubscriptions.buyerEmail, filters.buyerEmail.trim().toLowerCase()))
+    }
+    const rows = await this.db
+      .select()
+      .from(stockSubscriptions)
+      .where(conds.length > 0 ? and(...conds) : undefined)
+      .orderBy(asc(stockSubscriptions.createdAt))
+    return rows.map((r) => this.toSubscriptionDto(r))
+  }
+
+  async createStockSubscription(input: {
+    buyerEmail: string
+    productId: string
+    offerId?: string | null
+    kind: "back_in_stock" | "price_drop"
+    belowPesewas?: bigint | null
+    channel?: string
+  }): Promise<StockSubscriptionDto> {
+    const email = input.buyerEmail.trim().toLowerCase()
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) throw new Error("invalid buyer email")
+    if (input.kind === "price_drop" && (input.belowPesewas == null || input.belowPesewas < 0n)) {
+      throw new Error("price_drop needs a target belowPesewas >= 0")
+    }
+    try {
+      const [row] = await this.db
+        .insert(stockSubscriptions)
+        .values({
+          id: crypto.randomUUID(),
+          buyerEmail: email,
+          productId: input.productId,
+          offerId: input.offerId ?? null,
+          kind: input.kind,
+          belowPesewas: input.belowPesewas ?? null,
+          channel: input.channel ?? "sms",
+        })
+        .returning()
+      if (!row) throw new Error("subscription insert failed")
+      return this.toSubscriptionDto(row)
+    } catch (err) {
+      throw new Error("subscription store unavailable - POST /admin/migrate/blueprint-phase7", {
+        cause: err,
+      })
+    }
+  }
+
+  async deleteStockSubscription(id: string, buyerEmail: string): Promise<boolean> {
+    const [row] = await this.db
+      .select({ id: stockSubscriptions.id, buyerEmail: stockSubscriptions.buyerEmail })
+      .from(stockSubscriptions)
+      .where(eq(stockSubscriptions.id, id))
+      .limit(1)
+    if (!row || row.buyerEmail !== buyerEmail.trim().toLowerCase()) return false
+    await this.db.delete(stockSubscriptions).where(eq(stockSubscriptions.id, id))
+    return true
+  }
+
+  // ── Phase 7D: experiment registry ──
+
+  private toExperimentDto(row: typeof experiments.$inferSelect): ExperimentDto {
+    return {
+      id: row.id,
+      key: row.key,
+      name: row.name,
+      description: row.description,
+      status: row.status,
+      controlPct: row.controlPct,
+      primaryMetric: row.primaryMetric,
+      guardrails: row.guardrails,
+      startedAt: row.startedAt,
+      endedAt: row.endedAt,
+      createdBy: row.createdBy,
+      createdAt: row.createdAt,
+    }
+  }
+
+  async listExperiments(status?: ExperimentDto["status"]): Promise<ExperimentDto[]> {
+    const rows = await this.db
+      .select()
+      .from(experiments)
+      .where(status ? eq(experiments.status, status) : undefined)
+      .orderBy(desc(experiments.createdAt))
+    return rows.map((r) => this.toExperimentDto(r))
+  }
+
+  async getExperiment(id: string): Promise<ExperimentDto | null> {
+    const [row] = await this.db.select().from(experiments).where(eq(experiments.id, id)).limit(1)
+    return row ? this.toExperimentDto(row) : null
+  }
+
+  async createExperiment(input: {
+    key: string
+    name: string
+    description?: string | null
+    controlPct?: number
+    primaryMetric?: string | null
+    guardrails?: unknown
+    createdBy: string
+  }): Promise<ExperimentDto> {
+    const key = input.key.trim()
+    if (!/^[a-z0-9][a-z0-9-]{1,62}[a-z0-9]$/.test(key)) {
+      throw new Error("key must be kebab-case (3-64 chars)")
+    }
+    const name = input.name?.trim()
+    if (!name) throw new Error("name required")
+    const controlPct = input.controlPct ?? 50
+    if (!Number.isInteger(controlPct) || controlPct < 0 || controlPct > 100) {
+      throw new Error("controlPct must be 0-100")
+    }
+    if (!input.createdBy?.trim()) throw new Error("createdBy required")
+    try {
+      const [row] = await this.db
+        .insert(experiments)
+        .values({
+          id: crypto.randomUUID(),
+          key,
+          name,
+          description: input.description?.trim() || null,
+          status: "draft",
+          controlPct,
+          primaryMetric: input.primaryMetric?.trim() || null,
+          guardrails: input.guardrails ?? null,
+          createdBy: input.createdBy.trim(),
+        })
+        .returning()
+      if (!row) throw new Error("experiment insert failed")
+      return this.toExperimentDto(row)
+    } catch (err) {
+      const [existing] = await this.db.select({ id: experiments.id }).from(experiments).where(eq(experiments.key, key)).limit(1).catch(() => [])
+      if (existing) throw new Error("experiment key already used")
+      throw new Error("experiment store unavailable - POST /admin/migrate/blueprint-phase7", {
+        cause: err,
+      })
+    }
+  }
+
+  async updateExperiment(id: string, patch: {
+    name?: string
+    description?: string | null
+    controlPct?: number
+    primaryMetric?: string | null
+    guardrails?: unknown
+    status?: ExperimentDto["status"]
+  }): Promise<ExperimentDto | null> {
+    const [row] = await this.db.select().from(experiments).where(eq(experiments.id, id)).limit(1)
+    if (!row) return null
+    const set: Partial<typeof experiments.$inferInsert> = {}
+    if (patch.name !== undefined) {
+      const name = patch.name.trim()
+      if (!name) throw new Error("name required")
+      set.name = name
+    }
+    if (patch.description !== undefined) set.description = patch.description?.trim() || null
+    if (patch.controlPct !== undefined) {
+      if (row.status === "running" || row.status === "ended") {
+        throw new Error("controlPct is frozen once running")
+      }
+      if (!Number.isInteger(patch.controlPct) || patch.controlPct < 0 || patch.controlPct > 100) {
+        throw new Error("controlPct must be 0-100")
+      }
+      set.controlPct = patch.controlPct
+    }
+    if (patch.primaryMetric !== undefined) set.primaryMetric = patch.primaryMetric?.trim() || null
+    if (patch.guardrails !== undefined) set.guardrails = patch.guardrails ?? null
+    if (patch.status !== undefined) {
+      const ok =
+        (row.status === "draft" && patch.status === "running") ||
+        (row.status === "running" && (patch.status === "paused" || patch.status === "ended")) ||
+        (row.status === "paused" && (patch.status === "running" || patch.status === "ended"))
+      if (!ok) throw new Error(`cannot move ${row.status} to ${patch.status}`)
+      set.status = patch.status
+      const now = new Date()
+      if (patch.status === "running" && !row.startedAt) set.startedAt = now
+      if (patch.status === "ended") set.endedAt = now
+    }
+    if (Object.keys(set).length === 0) return this.toExperimentDto(row)
+    const [fresh] = await this.db.update(experiments).set(set).where(eq(experiments.id, id)).returning()
+    if (!fresh) return null
+    return this.toExperimentDto(fresh)
+  }
+
+  async assignExperiment(
+    experimentKey: string,
+    unitId: string,
+  ): Promise<{ experimentId: string; bucket: "control" | "exposed" } | null> {
+    const [exp] = await this.db
+      .select()
+      .from(experiments)
+      .where(eq(experiments.key, experimentKey.trim()))
+      .limit(1)
+    if (!exp) return null
+    const unit = unitId.trim()
+    if (!unit) return null
+    if (exp.status !== "running") return { experimentId: exp.id, bucket: "control" }
+    const [seen] = await this.db
+      .select()
+      .from(experimentExposures)
+      .where(and(eq(experimentExposures.experimentId, exp.id), eq(experimentExposures.unitId, unit)))
+      .limit(1)
+    if (seen) return { experimentId: exp.id, bucket: seen.bucket === "exposed" ? "exposed" : "control" }
+    let hash = 2166136261
+    const input = `${exp.id}:${unit}`
+    for (let i = 0; i < input.length; i++) {
+      hash ^= input.charCodeAt(i)
+      hash = Math.imul(hash, 16777619)
+    }
+    const bucket = (hash >>> 0) % 100 < exp.controlPct ? "control" : "exposed"
+    await this.db
+      .insert(experimentExposures)
+      .values({ id: crypto.randomUUID(), experimentId: exp.id, unitId: unit, bucket })
+      .onConflictDoNothing({ target: [experimentExposures.experimentId, experimentExposures.unitId] })
+    return { experimentId: exp.id, bucket }
+  }
+
+  async reportExperiment(id: string): Promise<{ control: number; exposed: number } | null> {
+    const [exp] = await this.db.select({ id: experiments.id }).from(experiments).where(eq(experiments.id, id)).limit(1)
+    if (!exp) return null
+    const rows = await this.db
+      .select({ bucket: experimentExposures.bucket })
+      .from(experimentExposures)
+      .where(eq(experimentExposures.experimentId, id))
+    let control = 0
+    let exposed = 0
+    for (const r of rows) {
+      if (r.bucket === "exposed") exposed += 1
+      else control += 1
+    }
+    return { control, exposed }
   }
 
   async listPendingReviews() {

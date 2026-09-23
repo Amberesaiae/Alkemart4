@@ -3,6 +3,9 @@ import { hashPassword } from "@alkemart/domain"
 import { InMemoryAuthRepository } from "../../auth-repository"
 import { parseEnv } from "../../env"
 import { createApp } from "../../index"
+import { resetRateLimits } from "../../middleware/security"
+// Rate-limit counters are per-process: reset so files stay isolated.
+resetRateLimits()
 
 const JWT_SECRET = "test-jwt-secret-that-is-at-least-32-chars-long"
 

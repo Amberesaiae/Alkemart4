@@ -145,8 +145,15 @@ function OrderDetailPage() {
               <p className="mt-2 max-w-md text-sm text-muted-foreground">
                 {paidMomo
                   ? "Mobile Money payment confirmed. Save your order reference below."
-                  : "Cash on delivery — pay when you receive your items. Save your order reference below."}
+                  : "Cash on delivery — open the box with the rider and inspect before you pay. Refuse free if anything is wrong."}
               </p>
+              {!paidMomo ? (
+                <p className="mt-3 max-w-md rounded-xl border border-border bg-card p-3 text-xs leading-relaxed text-muted-foreground">
+                  <span className="font-bold text-foreground">Stay safe:</span>{" "}
+                  alkemart never asks for MoMo payment before your order
+                  arrives. Anyone demanding upfront payment is not us.
+                </p>
+              ) : null}
             </div>
           </div>
         </section>

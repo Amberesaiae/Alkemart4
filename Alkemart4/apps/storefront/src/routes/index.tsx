@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef } from "react"
 import { createFileRoute } from "@tanstack/react-router"
 import { useQuery } from "@tanstack/react-query"
 import { HomepageSections, HomepageSkeleton } from "@/components/home"
+import { CampaignCourse } from "@/components/home/CampaignCourse"
+import { assignBucket, fetchCourse, orderShelvesForBucket } from "@/lib/course"
 import { PageSeo } from "@/components/page-seo"
 import { trackHomepageViewed } from "@/lib/analytics"
 import { DEFAULT_STORE_CATEGORIES, DEMO_CATALOG_PRODUCTS, fetchFeaturedProducts, listStoreCategories } from "@/lib/products"
@@ -46,6 +48,31 @@ function HomePage() {
     initialData: DEFAULT_HOMEPAGE_SECTIONS,
     staleTime: 60_000,
   })
+  /**
+   * Resolved campaign course (Phase 5C): live placements + rule shelves.
+   * Failure collapses to nothing — the JSON course below stays the fallback.
+   */
+  const courseQ = useQuery({
+    queryKey: ["store", "homepage-course"],
+    queryFn: fetchCourse,
+    staleTime: 60_000,
+    retry: false,
+  })
+  /**
+   * Phase 7D `homepage-shelf-order` test: exposed units see trending first.
+   * Absent/unknown experiments answer control — the shelf order stays put.
+   */
+  const bucketQ = useQuery({
+    queryKey: ["store", "experiment", "homepage-shelf-order"],
+    queryFn: () => assignBucket("homepage-shelf-order"),
+    staleTime: 300_000,
+    retry: false,
+  })
+  const course = useMemo(() => {
+    const base = courseQ.data ?? null
+    if (!base || bucketQ.data !== "exposed") return base
+    return { ...base, shelves: orderShelvesForBucket(base.shelves, "exposed") }
+  }, [courseQ.data, bucketQ.data])
 
   // An empty catalogue response (API hiccup) must not blank discovery —
   // fall back to the default departments, same spirit as the DEMO products.
@@ -70,10 +97,28 @@ function HomePage() {
   )
 
   const loadingOffers = featuredQ.isLoading && featured.length === 0
-  const managedSections = useMemo(
-    () => composeMarketCourse(homepageQ.data ?? []),
-    [homepageQ.data],
-  )
+  const managedSections = useMemo(() => {
+    const all = composeMarketCourse(homepageQ.data ?? [])
+    if (!course) return all
+    // Single truth per slot (Phase 5C): JSON promo sections whose slot the
+    // course fills are skipped, so a campaign and a static block never
+    // double-serve the same beat. Shelves are beats, not slots: the course
+    // shelves render inside the managed flow (beneath the mosaic) and the
+    // product shelves stay, kept distinct by the shared claim pipeline.
+    // Editorial sections always render.
+    const slotTypes: Record<string, string[]> = {
+      hero: ["promo_hero"],
+      deal_rail: ["deal_rail"],
+      promo_grid: ["promo_grid"],
+      promo_band: ["promo_band"],
+      marquee: ["marquee"],
+    }
+    const hidden = new Set<string>()
+    for (const p of course.placements) {
+      for (const t of slotTypes[p.code] ?? []) hidden.add(t)
+    }
+    return all.filter((s) => !hidden.has(s.type))
+  }, [homepageQ.data, course])
 
   useEffect(() => {
     if (tracked.current) return
@@ -127,15 +172,21 @@ function HomePage() {
       {homepageQ.isLoading ? (
         <HomepageSkeleton />
       ) : (
-        <HomepageSections
-          sections={managedSections}
-          categories={effectiveCats}
-          products={featured}
-          productsLoading={featuredQ.isLoading}
-        />
+        <>
+          {course && course.placements.length > 0 ? (
+            <CampaignCourse course={course} />
+          ) : null}
+          <HomepageSections
+            sections={managedSections}
+            categories={effectiveCats}
+            products={featured}
+            productsLoading={featuredQ.isLoading}
+            courseShelves={course?.shelves ?? []}
+          />
+        </>
       )}
       {featuredQ.isError && !loadingOffers ? (
-        <div className="rounded-2xl border border-border bg-card p-6 text-center">
+        <div className="rounded-xl border border-border bg-card p-6 text-center">
           <p className="text-sm text-muted-foreground">
             Couldn't load the market just now.
           </p>

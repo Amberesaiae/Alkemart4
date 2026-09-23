@@ -28,21 +28,21 @@ export function DeliverToPicker({ className }: { className?: string }) {
         <button
           type="button"
           className={cn(
-            "flex min-h-10 min-w-0 shrink items-center gap-1.5 rounded-full border border-transparent px-3 py-1 text-start transition",
-            "hover:border-border hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            "flex min-w-0 shrink items-center rounded-lg px-2 py-1 text-start transition",
+            "hover:bg-muted/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
             className,
           )}
           aria-label={area ? `Delivering to ${area}. Change area` : "Choose delivery area"}
         >
           <span className="flex min-w-0 flex-col leading-tight">
-            <span className="hidden text-[0.65rem] font-bold uppercase tracking-[0.08em] text-muted-foreground sm:block">
-              Delivery area
+            <span className="text-[11px] font-medium text-muted-foreground leading-tight">
+              Deliver to
             </span>
             <span className="flex min-w-0 items-center gap-1">
-              <span className="truncate text-sm font-black text-foreground">
+              <span className="truncate text-xs sm:text-sm font-bold text-foreground max-w-[100px] xs:max-w-[130px] sm:max-w-[150px] md:max-w-[170px]">
                 {area ?? "Accra Central"}
               </span>
-              <CaretDown size={12} weight="bold" className="shrink-0 text-muted-foreground" aria-hidden />
+              <CaretDown size={13} weight="bold" className="shrink-0 text-muted-foreground" aria-hidden />
             </span>
           </span>
         </button>

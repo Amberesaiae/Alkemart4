@@ -134,9 +134,13 @@ export async function searchCatalog(opts: {
           imageUrl?: string | null
           fromPricePesewas?: string
           currency?: string
+          bestOfferId?: string | null
+          offerCount?: number | null
           sellerId?: string
           sellerHandle?: string
           sellerName?: string
+          availableQty?: number | null
+          createdAt?: string | null
           categoryHandle?: string
           categoryName?: string
         }[]
@@ -146,19 +150,24 @@ export async function searchCatalog(opts: {
         facetDistribution?: FacetDistribution
         suggestions?: SearchResponse["suggestions"]
       }
+      // Pass the server card through untouched — stock, best offer, and offer
+      // count are merchandising facts. Fabricating them here once painted
+      // "Few left" on every search result.
       let products = (data.items ?? []).map((item) =>
         mapCfProductCard({
           productId: item.productId,
           title: item.title,
           imageUrl: item.imageUrl ?? null,
           fromPricePesewas: item.fromPricePesewas ?? "0",
-          bestOfferId: "",
-          offerCount: 1,
+          bestOfferId: item.bestOfferId ?? "",
+          offerCount: typeof item.offerCount === "number" ? item.offerCount : 0,
           sellerId: item.sellerId ?? "",
           sellerHandle: item.sellerHandle ?? "",
           sellerName: item.sellerName ?? "",
-          availableQty: 1,
-          createdAt: null,
+          // The search endpoint returns the same sellable card as catalog
+          // (stock included); fallbacks only cover malformed rows.
+          availableQty: typeof item.availableQty === "number" ? item.availableQty : 0,
+          createdAt: item.createdAt ?? null,
           currency: "ghs",
           categoryHandle: item.categoryHandle ?? "",
           categoryName: item.categoryName ?? "",

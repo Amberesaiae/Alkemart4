@@ -86,9 +86,9 @@ function CartPage() {
 
       {isLoading ? (
         <div className="space-y-3" role="status" aria-label="Loading cart">
-          <Skeleton className="h-24 w-full rounded-2xl" />
-          <Skeleton className="h-24 w-full rounded-2xl" />
-          <Skeleton className="h-40 w-full rounded-2xl lg:w-80" />
+          <Skeleton className="h-24 w-full rounded-xl" />
+          <Skeleton className="h-24 w-full rounded-xl" />
+          <Skeleton className="h-40 w-full rounded-xl lg:w-80" />
         </div>
       ) : null}
 
@@ -113,7 +113,7 @@ function CartPage() {
         <div className="grid gap-8 lg:grid-cols-[1fr_300px]">
           <div className="space-y-6">
             {multiSeller ? (
-              <p className="rounded-2xl border border-primary/30 bg-muted px-4 py-3 text-xs leading-relaxed text-foreground">
+              <p className="rounded-xl border border-primary/30 bg-muted px-4 py-3 text-xs leading-relaxed text-foreground">
                 Items in this cart come from more than one seller. Shipping
                 options are chosen per seller at checkout.
               </p>
@@ -122,7 +122,7 @@ function CartPage() {
             {groups.map((group) => (
               <section
                 key={group.key}
-                className="space-y-3 rounded-2xl border border-border bg-card p-4 shadow-sm sm:p-5"
+                className="space-y-3 rounded-xl border border-border bg-card p-4 shadow-sm sm:p-5"
               >
                 <div className="flex flex-wrap items-center gap-2 border-b border-border pb-3">
                   {group.seller?.name ? (
@@ -269,7 +269,7 @@ function CartLineRow(props: {
   )
 
   return (
-    <li className="flex flex-wrap items-center gap-3 rounded-2xl border border-border/80 bg-background p-3 sm:p-4">
+    <li className="flex flex-wrap items-center gap-3 rounded-xl border border-border/80 bg-background p-3 sm:p-4">
       <ProductThumbnail src={line.thumbnail} alt="" />
       <div className="min-w-0 flex-1 space-y-1">
         {title}

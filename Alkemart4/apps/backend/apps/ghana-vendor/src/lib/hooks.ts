@@ -13,6 +13,9 @@ import {
   offers,
   inventoryItems,
   vendorReviews,
+  payouts,
+  collections,
+  alertPrefs,
 } from "./api"
 
 // --- Account health ---
@@ -25,7 +28,91 @@ export function useHealth() {
   })
 }
 
-// --- Tasks ---
+// --- Alert preferences (dashboard task topics, Phase 7C) ---
+export function useAlertPrefs() {
+  return useQuery({
+    queryKey: ["vendor", "preferences"],
+    queryFn: () => alertPrefs.list(),
+    staleTime: 60_000,
+    retry: false,
+  })
+}
+
+export function useSetAlertPref() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ topic, optedIn }: { topic: string; optedIn: boolean }) =>
+      alertPrefs.set(topic, optedIn),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["vendor", "preferences"] })
+      void qc.invalidateQueries({ queryKey: ["vendor", "tasks"] })
+    },
+  })
+}
+export function usePayoutStatement() {
+  return useQuery({
+    queryKey: ["vendor", "payouts", "statement"],
+    queryFn: () => payouts.statement(),
+    staleTime: 30_000,
+    retry: false,
+  })
+}
+
+// --- Collections (shelves) ---
+export function useCollections() {
+  return useQuery({
+    queryKey: ["vendor", "collections"],
+    queryFn: () => collections.list(),
+    staleTime: 30_000,
+    retry: false,
+  })
+}
+
+function invalidateCollections(qc: ReturnType<typeof useQueryClient>) {
+  void qc.invalidateQueries({ queryKey: ["vendor", "collections"] })
+}
+
+export function useCreateCollection() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (input: { name: string }) => collections.create(input),
+    onSuccess: () => invalidateCollections(qc),
+  })
+}
+
+export function useUpdateCollection() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, patch }: {
+      id: string
+      patch: {
+        name?: string
+        description?: string | null
+        visibility?: "draft" | "published"
+        startsAt?: string | null
+        endsAt?: string | null
+      }
+    }) => collections.update(id, patch),
+    onSuccess: () => invalidateCollections(qc),
+  })
+}
+
+export function useDeleteCollection() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => collections.remove(id),
+    onSuccess: () => invalidateCollections(qc),
+  })
+}
+
+export function useSetCollectionProducts() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, productIds }: { id: string; productIds: string[] }) =>
+      collections.setProducts(id, productIds),
+    onSuccess: () => invalidateCollections(qc),
+  })
+}
 export function useTasks() {
   return useQuery({
     queryKey: ["vendor", "tasks"],
@@ -205,7 +292,18 @@ export function useUpdateVariant() {
     mutationFn: ({ productId, variantId, patch }: {
       productId: string
       variantId: string
-      patch: { pricePesewas?: string; onHand?: number; active?: boolean }
+      patch: {
+        pricePesewas?: string
+        onHand?: number
+        active?: boolean
+        condition?: string | null
+        compareAtPesewas?: string | null
+        compareAtProvenance?: string | null
+        fulfillmentOrigin?: string | null
+        warrantyRef?: string | null
+        returnsRef?: string | null
+        deliveryPromise?: string | null
+      }
     }) => products.updateVariant(productId, variantId, patch),
     onSuccess: (_d, vars) => {
       qc.invalidateQueries({ queryKey: ["vendor", "products", vars.productId] })

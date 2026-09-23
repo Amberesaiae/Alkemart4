@@ -29,6 +29,12 @@ export {
   searchAliases,
   searchQueryLog,
 } from "./search"
+export {
+  verificationKindEnum,
+  verificationStatusEnum,
+  sellerVerifications,
+  offerPriceHistory,
+} from "./trust"
 export { userRoleEnum, users, sellerMemberRoleEnum, sellerMembers } from "./users"
 export { carts, cartItems } from "./carts"
 export {
@@ -39,6 +45,8 @@ export {
 } from "./payments"
 export { orderStatusEnum, orderGroups, orders, orderItems } from "./orders"
 export {
+  payoutHoldStatusEnum,
+  payoutHolds,
   payoutStatusEnum,
   payouts,
   payoutLines,
@@ -50,6 +58,30 @@ export { shopViews } from "./shop-views"
 export { appealStatusEnum, appealDecisionEnum, moderationAppeals } from "./moderation-appeals"
 export { shopPolicyVersions } from "./shop-policies"
 export { shopFeatured } from "./shop-featured"
+export { vendorImports } from "./imports"
+export {
+  experimentExposures,
+  experiments,
+  experimentStatusEnum,
+  notificationPreferences,
+  stockSubscriptions,
+} from "./lifecycle"
+export { guideStatusEnum, guides } from "./guides"
+export {
+  campaignAudit,
+  campaignEventEnum,
+  campaignEvents,
+  campaignObjectiveEnum,
+  campaigns,
+  campaignStatusEnum,
+  creatives,
+  placements,
+  productSetItems,
+  productSets,
+  promotionTerms,
+  sellerSetItems,
+  sellerSets,
+} from "./campaigns"
 export { notificationStatusEnum, notifications } from "./notifications"
 export { reviewStatusEnum, reviews } from "./reviews"
 export { productOptions, productOptionValues, variantOptionValues } from "./product-options"

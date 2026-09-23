@@ -93,6 +93,19 @@ export type PayoutRow = {
   paystackReference: string | null
 }
 
+export type PayoutHoldRow = {
+  id: string
+  sellerId: string
+  orderId: string | null
+  amountPesewas: bigint | null
+  reason: string
+  status: "held" | "released"
+  createdBy: string | null
+  releasedBy: string | null
+  releasedAt: Date | null
+  createdAt: Date
+}
+
 export type OrderItemRow = {
   id: string
   orderId: string
@@ -146,6 +159,13 @@ export interface CheckoutRepository {
   platformOrderStats(): Promise<PlatformOrderStats>
   /** Per-seller order counts + subtotal GMV (admin lists). */
   orderTotalsBySeller(): Promise<Map<string, { orders: number; gmvPesewas: bigint }>>
+  /** Delivered units per product since a cutoff (trending shelf). */
+  productUnitsSince(since: Date): Promise<Map<string, number>>
+  /**
+   * Phase 7B — the phone the buyer themselves put on their latest order.
+   * Alert sends resolve contacts here, never from request bodies.
+   */
+  latestBuyerPhone(buyerEmail: string): Promise<string | null>
   updateOrderStatus(
     orderId: string,
     sellerId: string,
@@ -161,16 +181,107 @@ export interface CheckoutRepository {
   getPayout(id: string): Promise<PayoutRow | null>
   /** Recent payouts for the admin ledger (newest first). */
   listRecentPayouts(limit?: number): Promise<(PayoutRow & { createdAt: Date | null })[]>
+  /** Payout batches for one seller (newest first). */
+  listPayoutsForSeller(sellerId: string): Promise<(PayoutRow & { createdAt: Date | null })[]>
+  /** Paid lines with batch status for one seller's statement. */
+  listPaidLinesForSeller(
+    sellerId: string,
+  ): Promise<
+    {
+      payoutId: string
+      orderId: string
+      grossPesewas: bigint
+      commissionPesewas: bigint
+      netPesewas: bigint
+      payoutStatus: PayoutRow["status"]
+      paidAt: Date | null
+    }[]
+  >
+  // ── Phase 4D: payout holds (admin-gated, reason-required) ──
+  listPayoutHolds(sellerId: string, activeOnly?: boolean): Promise<PayoutHoldRow[]>
+  createPayoutHold(input: {
+    sellerId: string
+    orderId?: string | null
+    amountPesewas?: bigint | null
+    reason: string
+    createdBy: string
+  }): Promise<PayoutHoldRow>
+  releasePayoutHold(id: string, releasedBy: string): Promise<PayoutHoldRow | null>
   /**
    * SMS outbox. Idempotency key (`${orderId}:${status}`) is unique:
    * double-enqueues are no-ops so retries never text twice.
    */
-  enqueueNotification(input: { key: string; recipient: string; body: string }): Promise<{ inserted: boolean }>
+  enqueueNotification(input: {
+    key: string
+    recipient: string
+    body: string
+    channel?: string
+    category?: "transactional" | "promotional" | "operational"
+  }): Promise<{ inserted: boolean }>
+  /** Sends to one recipient+channel since a cutoff (frequency caps). */
+  countRecentSends(recipient: string, channel: string, since: Date): Promise<number>
   claimPendingNotifications(limit?: number, maxAttempts?: number): Promise<NotificationRow[]>
   markNotificationSent(id: string): Promise<void>
   markNotificationFailed(id: string, error: string): Promise<void>
   /** True when any order item references the product (money trail guard). */
   productHasOrders(productId: string): Promise<boolean>
+  // ── Phase 7A: preference center ──
+  listNotificationPreferences(
+    ownerType: "buyer" | "seller",
+    ownerId: string,
+  ): Promise<NotificationPreferenceDto[]>
+  setNotificationPreference(input: {
+    ownerType: "buyer" | "seller"
+    ownerId: string
+    channel: string
+    category: "transactional" | "promotional" | "operational"
+    topic?: string | null
+    optedIn: boolean
+    frequencyCap?: number | null
+  }): Promise<NotificationPreferenceDto>
+  // ── Phase 7B: stock/price alert subscriptions (one-shot) ──
+  listStockSubscriptions(filters: {
+    offerId?: string
+    buyerEmail?: string
+  }): Promise<StockSubscriptionDto[]>
+  createStockSubscription(input: {
+    buyerEmail: string
+    productId: string
+    offerId?: string | null
+    kind: "back_in_stock" | "price_drop"
+    belowPesewas?: bigint | null
+    channel?: string
+  }): Promise<StockSubscriptionDto>
+  deleteStockSubscription(id: string, buyerEmail: string): Promise<boolean>
+  // ── Phase 7D: experiment registry ──
+  listExperiments(status?: ExperimentDto["status"]): Promise<ExperimentDto[]>
+  getExperiment(id: string): Promise<ExperimentDto | null>
+  createExperiment(input: {
+    key: string
+    name: string
+    description?: string | null
+    controlPct?: number
+    primaryMetric?: string | null
+    guardrails?: unknown
+    createdBy: string
+  }): Promise<ExperimentDto>
+  updateExperiment(id: string, patch: {
+    name?: string
+    description?: string | null
+    controlPct?: number
+    primaryMetric?: string | null
+    guardrails?: unknown
+    status?: ExperimentDto["status"]
+  }): Promise<ExperimentDto | null>
+  /**
+   * Deterministic bucket for a unit; logs exposure once (replays answer
+   * identically). Non-running experiments always answer control.
+   */
+  assignExperiment(
+    experimentKey: string,
+    unitId: string,
+  ): Promise<{ experimentId: string; bucket: "control" | "exposed" } | null>
+  reportExperiment(id: string): Promise<{ control: number; exposed: number } | null>
   /**
    * Verified-purchase reviews. One row per order (unique order_id);
    * duplicate writes return null so routes answer 409.
@@ -236,11 +347,52 @@ export type NotificationRow = {
   channel: string
   recipient: string
   body: string
+  /** Phase 7A send classification. */
+  category: string
   status: "pending" | "sent" | "failed"
   attempts: number
   lastError: string | null
   createdAt: Date
   sentAt: Date | null
+}
+
+export type NotificationPreferenceDto = {
+  id: string
+  ownerType: "buyer" | "seller"
+  ownerId: string
+  channel: string
+  category: "transactional" | "promotional" | "operational"
+  topic: string | null
+  optedIn: boolean
+  frequencyCap: number | null
+  createdAt: Date
+  updatedAt: Date
+}
+
+export type StockSubscriptionDto = {
+  id: string
+  buyerEmail: string
+  productId: string
+  offerId: string | null
+  kind: "back_in_stock" | "price_drop"
+  belowPesewas: string | null
+  channel: string
+  createdAt: Date
+}
+
+export type ExperimentDto = {
+  id: string
+  key: string
+  name: string
+  description: string | null
+  status: "draft" | "running" | "paused" | "ended"
+  controlPct: number
+  primaryMetric: string | null
+  guardrails: unknown
+  startedAt: Date | null
+  endedAt: Date | null
+  createdBy: string | null
+  createdAt: Date
 }
 
 export class InMemoryCheckoutRepository implements CheckoutRepository {
@@ -253,6 +405,11 @@ export class InMemoryCheckoutRepository implements CheckoutRepository {
   private orderItems = new Map<string, OrderItemRow[]>()
   private orderIndex = new Map<string, OrderRow>()
   private payouts = new Map<string, PayoutRow>()
+  private holds = new Map<string, PayoutHoldRow>()
+  private prefs = new Map<string, NotificationPreferenceDto>()
+  private subscriptions = new Map<string, StockSubscriptionDto>()
+  private experiments = new Map<string, ExperimentDto>()
+  private exposures = new Map<string, { experimentId: string; unitId: string; bucket: "control" | "exposed" }>()
 
   constructor(private readonly catalog: CatalogSnapshot) {}
 
@@ -573,6 +730,39 @@ export class InMemoryCheckoutRepository implements CheckoutRepository {
     return totals
   }
 
+  async productUnitsSince(since: Date): Promise<Map<string, number>> {
+    const units = new Map<string, number>()
+    for (const [orderId, items] of this.orderItems) {
+      const order = this.orderIndex.get(orderId)
+      if (!order || order.status !== "delivered") continue
+      const group = this.orderGroups.get(order.orderGroupId)
+      if (!group || group.createdAt < since) continue
+      for (const item of items) {
+        units.set(item.productId, (units.get(item.productId) ?? 0) + item.qty)
+      }
+    }
+    return units
+  }
+
+  async latestBuyerPhone(buyerEmail: string): Promise<string | null> {
+    const email = buyerEmail.trim().toLowerCase()
+    const intents = [...this.intents.values()]
+      .filter((i) => i.buyerEmail.toLowerCase() === email)
+      .sort((a, b) => {
+        const at = a.createdAt ? +a.createdAt : 0
+        const bt = b.createdAt ? +b.createdAt : 0
+        return bt - at
+      })
+    for (const intent of intents) {
+      const phone = intent.shippingAddress?.phone
+      if (typeof phone === "string" && phone.trim()) return phone.trim()
+      if (typeof intent.momoPhone === "string" && intent.momoPhone.trim()) {
+        return intent.momoPhone.trim()
+      }
+    }
+    return null
+  }
+
   async platformOrderStats(): Promise<PlatformOrderStats> {
     const groups = [...this.orderGroups.values()].map((g) => ({
       totalPesewas: g.totalPesewas,
@@ -661,16 +851,106 @@ export class InMemoryCheckoutRepository implements CheckoutRepository {
       .map((row) => ({ ...row, createdAt: null as Date | null }))
   }
 
+  async listPayoutsForSeller(sellerId: string) {
+    return [...this.payouts.values()]
+      .filter((p) => p.sellerId === sellerId)
+      .reverse()
+      .map((row) => ({ ...row, createdAt: null as Date | null }))
+  }
+
+  async listPaidLinesForSeller(sellerId: string) {
+    const out: {
+      payoutId: string
+      orderId: string
+      grossPesewas: bigint
+      commissionPesewas: bigint
+      netPesewas: bigint
+      payoutStatus: PayoutRow["status"]
+      paidAt: Date | null
+    }[] = []
+    for (const payout of this.payouts.values()) {
+      if (payout.sellerId !== sellerId) continue
+      for (const order of this.orderIndex.values()) {
+        if (order.sellerId !== sellerId || order.payoutId !== payout.id) continue
+        const commission = (order.subtotalPesewas * BigInt(payout.commissionBps)) / 10_000n
+        out.push({
+          payoutId: payout.id,
+          orderId: order.id,
+          grossPesewas: order.subtotalPesewas,
+          commissionPesewas: commission,
+          netPesewas: order.subtotalPesewas - commission,
+          payoutStatus: payout.status,
+          paidAt: null,
+        })
+      }
+    }
+    return out
+  }
+
+  async listPayoutHolds(sellerId: string, activeOnly = true): Promise<PayoutHoldRow[]> {
+    return [...this.holds.values()]
+      .filter((h) => h.sellerId === sellerId && (!activeOnly || h.status === "held"))
+      .sort((a, b) => +b.createdAt - +a.createdAt || a.id.localeCompare(b.id))
+  }
+
+  async createPayoutHold(input: {
+    sellerId: string
+    orderId?: string | null
+    amountPesewas?: bigint | null
+    reason: string
+    createdBy: string
+  }): Promise<PayoutHoldRow> {
+    const reason = input.reason?.trim()
+    if (!reason) throw new Error("reason required")
+    if (input.orderId) {
+      const order = this.orderIndex.get(input.orderId)
+      if (!order || order.sellerId !== input.sellerId) throw new Error("order not in this seller's orders")
+    }
+    if (input.amountPesewas !== undefined && input.amountPesewas !== null && input.amountPesewas < 0n) {
+      throw new Error("amount must be >= 0")
+    }
+    const hold: PayoutHoldRow = {
+      id: crypto.randomUUID(),
+      sellerId: input.sellerId,
+      orderId: input.orderId ?? null,
+      amountPesewas: input.amountPesewas ?? null,
+      reason,
+      status: "held",
+      createdBy: input.createdBy,
+      releasedBy: null,
+      releasedAt: null,
+      createdAt: new Date(),
+    }
+    this.holds.set(hold.id, hold)
+    return { ...hold }
+  }
+
+  async releasePayoutHold(id: string, releasedBy: string): Promise<PayoutHoldRow | null> {
+    const hold = this.holds.get(id)
+    if (!hold) return null
+    hold.status = "released"
+    hold.releasedBy = releasedBy
+    hold.releasedAt = new Date()
+    return { ...hold }
+  }
+
   private notifications = new Map<string, NotificationRow>()
 
-  async enqueueNotification(input: { key: string; recipient: string; body: string }) {
+  async enqueueNotification(input: {
+    key: string
+    recipient: string
+    body: string
+    channel?: string
+    category?: "transactional" | "promotional" | "operational"
+  }) {
     if (this.notifications.has(input.key)) return { inserted: false }
     this.notifications.set(input.key, {
       id: crypto.randomUUID(),
       key: input.key,
-      channel: "sms",
+      channel: input.channel ?? "sms",
       recipient: input.recipient,
       body: input.body,
+      category: input.category ?? "transactional",
       status: "pending",
       attempts: 0,
       lastError: null,
@@ -678,6 +958,14 @@ export class InMemoryCheckoutRepository implements CheckoutRepository {
       sentAt: null,
     })
     return { inserted: true }
+  }
+
+  async countRecentSends(recipient: string, channel: string, since: Date): Promise<number> {
+    let n = 0
+    for (const row of this.notifications.values()) {
+      if (row.recipient === recipient && row.channel === channel && row.createdAt >= since) n += 1
+    }
+    return n
   }
 
   async claimPendingNotifications(limit = 50, maxAttempts = 5) {
@@ -835,5 +1123,230 @@ export class InMemoryCheckoutRepository implements CheckoutRepository {
     row.vendorResponse = message
     row.respondedAt = new Date()
     return row
+  }
+
+  // ── Phase 7A: preference center ──
+
+  async listNotificationPreferences(
+    ownerType: "buyer" | "seller",
+    ownerId: string,
+  ): Promise<NotificationPreferenceDto[]> {
+    return [...this.prefs.values()]
+      .filter((p) => p.ownerType === ownerType && p.ownerId === ownerId)
+      .sort((a, b) => a.category.localeCompare(b.category) || (a.topic ?? "").localeCompare(b.topic ?? ""))
+      .map((p) => ({ ...p }))
+  }
+
+  async setNotificationPreference(input: {
+    ownerType: "buyer" | "seller"
+    ownerId: string
+    channel: string
+    category: "transactional" | "promotional" | "operational"
+    topic?: string | null
+    optedIn: boolean
+    frequencyCap?: number | null
+  }): Promise<NotificationPreferenceDto> {
+    const key = `${input.ownerType}\n${input.ownerId}\n${input.channel}\n${input.category}\n${input.topic ?? ""}`
+    const now = new Date()
+    const existing = this.prefs.get(key)
+    if (existing) {
+      existing.optedIn = input.optedIn
+      existing.frequencyCap = input.frequencyCap ?? null
+      existing.updatedAt = now
+      return { ...existing }
+    }
+    const row: NotificationPreferenceDto = {
+      id: crypto.randomUUID(),
+      ownerType: input.ownerType,
+      ownerId: input.ownerId,
+      channel: input.channel,
+      category: input.category,
+      topic: input.topic ?? null,
+      optedIn: input.optedIn,
+      frequencyCap: input.frequencyCap ?? null,
+      createdAt: now,
+      updatedAt: now,
+    }
+    this.prefs.set(key, row)
+    return { ...row }
+  }
+
+  // ── Phase 7B: alert subscriptions (one-shot) ──
+
+  async listStockSubscriptions(filters: {
+    offerId?: string
+    buyerEmail?: string
+  }): Promise<StockSubscriptionDto[]> {
+    return [...this.subscriptions.values()]
+      .filter(
+        (s) =>
+          (!filters.offerId || s.offerId === filters.offerId) &&
+          (!filters.buyerEmail || s.buyerEmail === filters.buyerEmail),
+      )
+      .map((s) => ({ ...s }))
+  }
+
+  async createStockSubscription(input: {
+    buyerEmail: string
+    productId: string
+    offerId?: string | null
+    kind: "back_in_stock" | "price_drop"
+    belowPesewas?: bigint | null
+    channel?: string
+  }): Promise<StockSubscriptionDto> {
+    const email = input.buyerEmail.trim().toLowerCase()
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) throw new Error("invalid buyer email")
+    if (input.kind === "price_drop" && (input.belowPesewas == null || input.belowPesewas < 0n)) {
+      throw new Error("price_drop needs a target belowPesewas >= 0")
+    }
+    const row: StockSubscriptionDto = {
+      id: crypto.randomUUID(),
+      buyerEmail: email,
+      productId: input.productId,
+      offerId: input.offerId ?? null,
+      kind: input.kind,
+      belowPesewas: input.belowPesewas != null ? input.belowPesewas.toString() : null,
+      channel: input.channel ?? "sms",
+      createdAt: new Date(),
+    }
+    this.subscriptions.set(row.id, row)
+    return { ...row }
+  }
+
+  async deleteStockSubscription(id: string, buyerEmail: string): Promise<boolean> {
+    const row = this.subscriptions.get(id)
+    if (!row || row.buyerEmail !== buyerEmail.trim().toLowerCase()) return false
+    this.subscriptions.delete(id)
+    return true
+  }
+
+  // ── Phase 7D: experiment registry ──
+
+  async listExperiments(status?: ExperimentDto["status"]): Promise<ExperimentDto[]> {
+    return [...this.experiments.values()]
+      .filter((e) => !status || e.status === status)
+      .sort((a, b) => +b.createdAt - +a.createdAt)
+      .map((e) => ({ ...e }))
+  }
+
+  async getExperiment(id: string): Promise<ExperimentDto | null> {
+    const row = this.experiments.get(id)
+    return row ? { ...row } : null
+  }
+
+  async createExperiment(input: {
+    key: string
+    name: string
+    description?: string | null
+    controlPct?: number
+    primaryMetric?: string | null
+    guardrails?: unknown
+    createdBy: string
+  }): Promise<ExperimentDto> {
+    const key = input.key.trim()
+    if (!/^[a-z0-9][a-z0-9-]{1,62}[a-z0-9]$/.test(key)) {
+      throw new Error("key must be kebab-case (3-64 chars)")
+    }
+    if ([...this.experiments.values()].some((e) => e.key === key)) {
+      throw new Error("experiment key already used")
+    }
+    const name = input.name?.trim()
+    if (!name) throw new Error("name required")
+    const controlPct = input.controlPct ?? 50
+    if (!Number.isInteger(controlPct) || controlPct < 0 || controlPct > 100) {
+      throw new Error("controlPct must be 0-100")
+    }
+    if (!input.createdBy?.trim()) throw new Error("createdBy required")
+    const row: ExperimentDto = {
+      id: crypto.randomUUID(),
+      key,
+      name,
+      description: input.description?.trim() || null,
+      status: "draft",
+      controlPct,
+      primaryMetric: input.primaryMetric?.trim() || null,
+      guardrails: input.guardrails ?? null,
+      startedAt: null,
+      endedAt: null,
+      createdBy: input.createdBy.trim(),
+      createdAt: new Date(),
+    }
+    this.experiments.set(row.id, row)
+    return { ...row }
+  }
+
+  async updateExperiment(id: string, patch: {
+    name?: string
+    description?: string | null
+    controlPct?: number
+    primaryMetric?: string | null
+    guardrails?: unknown
+    status?: ExperimentDto["status"]
+  }): Promise<ExperimentDto | null> {
+    const row = this.experiments.get(id)
+    if (!row) return null
+    if (patch.name !== undefined) {
+      const name = patch.name.trim()
+      if (!name) throw new Error("name required")
+      row.name = name
+    }
+    if (patch.description !== undefined) row.description = patch.description?.trim() || null
+    if (patch.controlPct !== undefined) {
+      if (row.status === "running" || row.status === "ended") {
+        throw new Error("controlPct is frozen once running")
+      }
+      if (!Number.isInteger(patch.controlPct) || patch.controlPct < 0 || patch.controlPct > 100) {
+        throw new Error("controlPct must be 0-100")
+      }
+      row.controlPct = patch.controlPct
+    }
+    if (patch.primaryMetric !== undefined) row.primaryMetric = patch.primaryMetric?.trim() || null
+    if (patch.guardrails !== undefined) row.guardrails = patch.guardrails ?? null
+    if (patch.status !== undefined) {
+      const ok =
+        (row.status === "draft" && patch.status === "running") ||
+        (row.status === "running" && (patch.status === "paused" || patch.status === "ended")) ||
+        (row.status === "paused" && (patch.status === "running" || patch.status === "ended"))
+      if (!ok) throw new Error(`cannot move ${row.status} to ${patch.status}`)
+      row.status = patch.status
+      const now = new Date()
+      if (patch.status === "running" && !row.startedAt) row.startedAt = now
+      if (patch.status === "ended") row.endedAt = now
+    }
+    return { ...row }
+  }
+
+  async assignExperiment(
+    experimentKey: string,
+    unitId: string,
+  ): Promise<{ experimentId: string; bucket: "control" | "exposed" } | null> {
+    const exp = [...this.experiments.values()].find((e) => e.key === experimentKey)
+    if (!exp) return null
+    const unit = unitId.trim()
+    if (!unit) return null
+    if (exp.status !== "running") return { experimentId: exp.id, bucket: "control" }
+    const seen = this.exposures.get(`${exp.id}\n${unit}`)
+    if (seen) return { experimentId: exp.id, bucket: seen.bucket }
+    let hash = 2166136261
+    const input = `${exp.id}:${unit}`
+    for (let i = 0; i < input.length; i++) {
+      hash ^= input.charCodeAt(i)
+      hash = Math.imul(hash, 16777619)
+    }
+    const bucket = (hash >>> 0) % 100 < exp.controlPct ? "control" : "exposed"
+    this.exposures.set(`${exp.id}\n${unit}`, { experimentId: exp.id, unitId: unit, bucket })
+    return { experimentId: exp.id, bucket }
+  }
+
+  async reportExperiment(id: string): Promise<{ control: number; exposed: number } | null> {
+    if (!this.experiments.has(id)) return null
+    let control = 0
+    let exposed = 0
+    for (const e of this.exposures.values()) {
+      if (e.experimentId !== id) continue
+      if (e.bucket === "control") control += 1
+      else exposed += 1
+    }
+    return { control, exposed }
   }
 }

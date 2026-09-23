@@ -14,47 +14,52 @@ export function HomePopularRail({
     railRef.current?.scrollBy({ left: direction * 640, behavior: "smooth" });
 
   return (
-    <section aria-labelledby="popular-picks-title" className="overflow-hidden rounded-3xl bg-[#f3eee6] ring-1 ring-black/[0.06]">
-      <div className="flex items-center justify-between gap-4 border-b border-black/10 px-5 py-4 sm:px-7">
+    <section aria-labelledby="popular-picks-title" className="space-y-3.5">
+      <div className="flex items-center justify-between gap-4">
         <div>
           <h2
             id="popular-picks-title"
-            className="text-2xl font-black tracking-tight sm:text-3xl"
+            className="text-xl sm:text-2xl font-bold tracking-tight text-foreground"
           >
             Popular Picks
           </h2>
-          <p className="mt-1 text-sm text-foreground/60">Products shoppers are returning to across the market.</p>
+          <p className="mt-0.5 text-xs sm:text-sm text-muted-foreground">
+            Products shoppers are returning to across the market.
+          </p>
         </div>
         <div className="hidden gap-2 sm:flex">
           <button
             type="button"
             aria-label="Scroll popular picks left"
             onClick={() => move(-1)}
-            className="flex size-10 items-center justify-center rounded-full border border-black/10 bg-white hover:bg-white/70"
+            className="flex size-9 items-center justify-center rounded-full border border-black/10 bg-card hover:bg-muted transition-colors shadow-2xs"
           >
-            <CaretLeft size={20} weight="bold" />
+            <CaretLeft size={18} weight="bold" />
           </button>
           <button
             type="button"
             aria-label="Scroll popular picks right"
             onClick={() => move(1)}
-            className="flex size-10 items-center justify-center rounded-full border border-black/10 bg-white hover:bg-white/70"
+            className="flex size-9 items-center justify-center rounded-full border border-black/10 bg-card hover:bg-muted transition-colors shadow-2xs"
           >
-            <CaretRight size={20} weight="bold" />
+            <CaretRight size={18} weight="bold" />
           </button>
         </div>
       </div>
       <div
         ref={railRef}
-        className="scrollbar-none flex snap-x gap-3 overflow-x-auto p-4 sm:p-6"
+        className="scrollbar-none flex snap-x gap-3 sm:gap-4 overflow-x-auto pb-2"
       >
         {products.slice(0, 8).map((product) => (
-          <div key={product.id} className="w-48 shrink-0 snap-start sm:w-52">
+          <div
+            key={product.id}
+            className="w-[calc((100vw-3.25rem)/2)] max-w-[224px] shrink-0 snap-start sm:w-56"
+          >
             <ProductCard
               product={product}
               size="tile"
               hideSellerCount
-              className="max-w-none bg-white"
+              className="max-w-none"
             />
           </div>
         ))}

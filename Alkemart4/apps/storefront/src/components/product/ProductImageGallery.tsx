@@ -57,15 +57,12 @@ export function ProductImageGallery({
   const active = all[activeIdx]
   const fallback = active?.url
 
-  // Prefer processed webp derivatives where available; fall back to raw image
-  const mainSrc = webUrl ?? thumbUrl ?? fallback
-  const srcSet = [webUrl && `${webUrl} 1600w`, thumbUrl && `${thumbUrl} 400w`, fallback && `${fallback} 1200w`]
-    .filter(Boolean)
-    .join(", ")
+  // Prefer processed webp derivatives for the primary photo, but show selected thumbnail when activeIdx changes
+  const mainSrc = activeIdx === 0 ? (webUrl ?? fallback) : fallback
 
   if (!active) {
     return (
-      <div className={cn("overflow-hidden rounded-2xl border border-border bg-card", className)}>
+      <div className={cn("overflow-hidden rounded-xl border border-border bg-card", className)}>
         <NoPhotoTile
           title={title}
           categoryLabel={categoryLabel}
@@ -77,14 +74,12 @@ export function ProductImageGallery({
 
   return (
     <div className={cn("space-y-3", className)}>
-      <div className="overflow-hidden rounded-2xl border border-border bg-card">
+      <div className="overflow-hidden rounded-lg border border-border/80 bg-white">
         {mainSrc ? (
           <img
             src={mainSrc}
-            srcSet={srcSet}
-            sizes="(max-width: 1024px) 50vw, 40vw"
             alt={title || "Product image"}
-            className="aspect-square w-full object-contain p-4 transition-opacity"
+            className="aspect-square w-full bg-white object-contain p-2 transition-opacity"
           />
         ) : (
           <NoPhotoTile
@@ -109,16 +104,16 @@ export function ProductImageGallery({
               aria-label={`View image ${i + 1}`}
               onClick={() => setActiveIdx(i)}
               className={cn(
-                "h-16 w-16 shrink-0 overflow-hidden rounded-lg border-2 bg-muted transition-colors",
+                "h-14 w-14 shrink-0 overflow-hidden rounded-md border-2 bg-white transition-colors",
                 i === activeIdx
-                  ? "border-primary"
-                  : "border-transparent hover:border-border",
+                  ? "border-primary shadow-2xs"
+                  : "border-border/70 hover:border-primary/60",
               )}
             >
               <img
                 src={img.url}
                 alt=""
-                className="h-full w-full object-cover"
+                className="h-full w-full object-contain p-0.5"
                 loading="lazy"
               />
             </button>

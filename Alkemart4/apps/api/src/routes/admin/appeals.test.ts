@@ -7,6 +7,9 @@ import { InMemoryCheckoutRepository } from "../../checkout-repository"
 import type { CatalogSnapshot } from "../../demo-seed"
 import type { ApiEnv } from "../../env"
 import { createApp } from "../../index"
+import { resetRateLimits } from "../../middleware/security"
+// Rate-limit counters are per-process: reset so files stay isolated.
+resetRateLimits()
 
 const JWT_SECRET = "test-jwt-secret-that-is-at-least-32-chars-long"
 
@@ -48,6 +51,9 @@ async function setup() {
     profileAttributes: [],
     productAttributeValues: [],
     matchCandidates: [],
+    searchAliases: [],
+    verifications: [],
+    priceHistory: [],
   }
   const app = createApp({
     authRepo,

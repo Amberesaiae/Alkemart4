@@ -2,6 +2,26 @@ import { createPaystackTransferRecipient } from "@alkemart/paystack"
 import { Hono, type MiddlewareHandler } from "hono"
 import { InMemoryAdminAuditLog, PostgresAdminAuditLog, type AdminAuditLog } from "./admin-audit"
 import { InMemoryAppealStore, PostgresAppealStore, type AppealStore } from "./appeals"
+import {
+  InMemoryCollectionsStore,
+  PostgresCollectionsStore,
+  type CollectionsStore,
+} from "./collections"
+import {
+  InMemoryCampaignStore,
+  PostgresCampaignStore,
+  type CampaignStore,
+} from "./campaigns"
+import {
+  InMemoryGuideStore,
+  PostgresGuideStore,
+  type GuideStore,
+} from "./guides"
+import {
+  InMemoryImportBatchStore,
+  PostgresImportBatchStore,
+  type ImportBatchStore,
+} from "./import-batches"
 import { InMemoryShopFeaturedStore, PostgresShopFeaturedStore, type ShopFeaturedStore } from "./shop-featured"
 import { InMemoryHomepageContentStore, PostgresHomepageContentStore, type HomepageContentStore } from "./homepage-content"
 import { InMemoryShopPolicyStore, PostgresShopPolicyStore, type ShopPolicyStore } from "./shop-policies"
@@ -38,15 +58,19 @@ import { adminAppeals } from "./routes/admin/appeals"
 import { adminAttributes } from "./routes/admin/attributes"
 import { adminMatches } from "./routes/admin/matches"
 import { adminReviews } from "./routes/admin/reviews"
+import { adminFeed } from "./routes/admin/feed"
 import { adminTaxonomy } from "./routes/admin/taxonomy"
 import { adminAuth } from "./routes/admin/auth"
 import { adminMigrate } from "./routes/admin/migrate"
 import { adminOrders } from "./routes/admin/orders"
-import { adminPayouts } from "./routes/admin/payouts"
+import { adminPayouts, adminPayoutHolds } from "./routes/admin/payouts"
 import { adminProducts } from "./routes/admin/products"
 import { adminSellers } from "./routes/admin/sellers"
 import { adminStats, adminTrafficStats } from "./routes/admin/stats"
 import { adminHomepage } from "./routes/admin/homepage"
+import { adminCampaigns } from "./routes/admin/campaigns"
+import { adminExperiments } from "./routes/admin/experiments"
+import { adminGuides } from "./routes/admin/guides"
 import { health } from "./routes/health"
 import { storeAuth } from "./routes/store/auth"
 import { storeSearch } from "./routes/store/search"
@@ -58,12 +82,24 @@ import { storeOrders } from "./routes/store/orders"
 import { storeReviews } from "./routes/store/reviews"
 import { products } from "./routes/store/products"
 import { sellers } from "./routes/store/sellers"
+import { storeCollections } from "./routes/store/collections"
+import { storeCourse } from "./routes/store/course"
+import { storeExperiments } from "./routes/store/experiments"
+import { storeFeed } from "./routes/store/feed"
+import { storeGuides } from "./routes/store/guides"
+import { storePreferences } from "./routes/store/preferences"
+import { storeSitemap } from "./routes/store/sitemap"
+import { storeSubscriptions } from "./routes/store/subscriptions"
 import { storeHomepage } from "./routes/store/homepage"
 import { paystackHooks } from "./routes/hooks/paystack"
 import { vendorAuth } from "./routes/vendor/auth"
 import { vendorOnboarding } from "./routes/vendor/onboarding"
 import { vendorOrders } from "./routes/vendor/orders"
 import { vendorProducts } from "./routes/vendor/products"
+import { vendorCollections } from "./routes/vendor/collections"
+import { vendorImports } from "./routes/vendor/imports"
+import { vendorPayouts } from "./routes/vendor/payouts"
+import { vendorPreferences } from "./routes/vendor/preferences"
 import { vendorHealth } from "./routes/vendor/health"
 import { vendorSellers } from "./routes/vendor/sellers"
 import { vendorShopStats } from "./routes/vendor/stats"
@@ -86,6 +122,10 @@ export function createApp(
     policyStore?: ShopPolicyStore
     featuredStore?: ShopFeaturedStore
     homepageStore?: HomepageContentStore
+    collectionsStore?: CollectionsStore
+    importBatchStore?: ImportBatchStore
+    campaignStore?: CampaignStore
+    guideStore?: GuideStore
     jwtSecret?: string
     paystackSecretKey?: string
     createPaystackTransferRecipient?: CreatePaystackTransferRecipient
@@ -110,6 +150,30 @@ export function createApp(
   const fallbackPolicies = options.policyStore ?? (options.repo ? new InMemoryShopPolicyStore() : undefined)
   const fallbackFeatured = options.featuredStore ?? (options.repo ? new InMemoryShopFeaturedStore() : undefined)
   const fallbackHomepage = options.homepageStore ?? (options.repo ? new InMemoryHomepageContentStore() : undefined)
+  const inMemoryRepo = options.repo instanceof InMemoryCatalogRepository ? options.repo : undefined
+  const fallbackImports = options.importBatchStore ?? (options.repo ? new InMemoryImportBatchStore() : undefined)
+  const fallbackGuides = options.guideStore ?? (options.repo ? new InMemoryGuideStore() : undefined)
+  const fallbackCampaigns =
+    options.campaignStore ??
+    (inMemoryRepo
+      ? new InMemoryCampaignStore(
+          (productId) => inMemoryRepo.snapshot().products.some((p) => p.id === productId),
+          (sellerId) => inMemoryRepo.snapshot().sellers.some((s) => s.id === sellerId),
+        )
+      : undefined)
+  const fallbackCollections =
+    options.collectionsStore ??
+    (inMemoryRepo
+      ? new InMemoryCollectionsStore((sellerId, productId) => {
+          const snap = inMemoryRepo.snapshot()
+          const product = snap.products.find((p) => p.id === productId)
+          if (!product) return false
+          return (
+            product.sellerId === sellerId ||
+            snap.offers.some((o) => o.productId === productId && o.sellerId === sellerId)
+          )
+        })
+      : undefined)
 
   const bindCatalog: MiddlewareHandler<AppEnv> = async (c, next) => {
     if (options.repo) {
@@ -159,6 +223,38 @@ export function createApp(
     } else {
       const env = parseEnv(c.env as unknown as Record<string, unknown>)
       c.set("homepage", new PostgresHomepageContentStore(primaryDb(env)))
+    }
+    if (options.collectionsStore) {
+      c.set("collections", options.collectionsStore)
+    } else if (fallbackCollections) {
+      c.set("collections", fallbackCollections)
+    } else {
+      const env = parseEnv(c.env as unknown as Record<string, unknown>)
+      c.set("collections", new PostgresCollectionsStore(primaryDb(env)))
+    }
+    if (options.importBatchStore) {
+      c.set("imports", options.importBatchStore)
+    } else if (fallbackImports) {
+      c.set("imports", fallbackImports)
+    } else {
+      const env = parseEnv(c.env as unknown as Record<string, unknown>)
+      c.set("imports", new PostgresImportBatchStore(primaryDb(env)))
+    }
+    if (options.campaignStore) {
+      c.set("campaigns", options.campaignStore)
+    } else if (fallbackCampaigns) {
+      c.set("campaigns", fallbackCampaigns)
+    } else {
+      const env = parseEnv(c.env as unknown as Record<string, unknown>)
+      c.set("campaigns", new PostgresCampaignStore(primaryDb(env)))
+    }
+    if (options.guideStore) {
+      c.set("guides", options.guideStore)
+    } else if (fallbackGuides) {
+      c.set("guides", fallbackGuides)
+    } else {
+      const env = parseEnv(c.env as unknown as Record<string, unknown>)
+      c.set("guides", new PostgresGuideStore(primaryDb(env)))
     }
     await next()
   }
@@ -261,6 +357,17 @@ export function createApp(
   store.route("/cart", withBind(bindCheckout, storeCart))
   store.route("/checkout", withBind(bindAuth, withBind(bindCheckout, storeCheckout)))
   store.route("/reviews", withBind(bindCheckout, storeReviews))
+  store.route("/collections", withBind(bindCatalog, storeCollections))
+  store.route("/course", withBind(bindCatalog, withBind(bindCheckout, storeCourse)))
+  store.route("/feed", withBind(bindCatalog, storeFeed))
+  store.route("/guides", withBind(bindCatalog, storeGuides))
+  store.route("/experiments", withBind(bindCheckout, storeExperiments))
+  store.route("/preferences", withBind(bindAuth, withBind(bindCheckout, storePreferences)))
+  store.route(
+    "/subscriptions",
+    withBind(bindAuth, withBind(bindCatalog, withBind(bindCheckout, storeSubscriptions))),
+  )
+  store.route("/sitemap", withBind(bindCatalog, storeSitemap))
   store.route(
     "/orders",
     withBind(bindAuth, withBind(bindCheckout, storeOrders)),
@@ -272,6 +379,10 @@ export function createApp(
   vendor.route("/auth", vendorAuth)
   vendor.route("/onboarding", vendorOnboarding)
   vendor.route("/products", withBind(bindCatalog, withBind(bindCheckout, vendorProducts)))
+  vendor.route("/collections", withBind(bindCatalog, vendorCollections))
+  vendor.route("/imports", withBind(bindCatalog, vendorImports))
+  vendor.route("/payouts", withBind(bindCheckout, vendorPayouts))
+  vendor.route("/preferences", withBind(bindCheckout, vendorPreferences))
   vendor.route("/orders", withBind(bindCheckout, vendorOrders))
   vendor.route("/reviews", withBind(bindCheckout, vendorReviews))
   vendor.route("/uploads", vendorUploads)
@@ -300,11 +411,19 @@ export function createApp(
   admin.route("/actions", adminActions)
   admin.route("/uploads", adminUploads)
   admin.route("/homepage", withBind(bindCatalog, adminHomepage))
+  admin.route("/campaigns", withBind(bindAuth, withBind(bindCatalog, adminCampaigns)))
+  admin.route("/experiments", withBind(bindAuth, withBind(bindCheckout, adminExperiments)))
+  admin.route("/guides", withBind(bindAuth, withBind(bindCatalog, adminGuides)))
   admin.route("/appeals", withBind(bindCatalog, adminAppeals))
   admin.route("/reviews", withBind(bindAuth, withBind(bindCheckout, adminReviews)))
+  admin.route("/feed", withBind(bindAuth, withBind(bindCatalog, adminFeed)))
   admin.route(
     "/payouts",
     withBind(bindAuth, withBind(bindCheckout, adminPayouts)),
+  )
+  admin.route(
+    "/payouts/holds",
+    withBind(bindAuth, withBind(bindCheckout, adminPayoutHolds)),
   )
   app.route("/admin", admin)
 

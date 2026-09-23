@@ -2066,6 +2066,7 @@ components:
       required:
         - productId
         - title
+        - slug
         - categoryHandle
         - categoryName
         - imageUrl
@@ -2083,6 +2084,10 @@ components:
           type: string
         title:
           type: string
+        slug:
+          type: string
+          nullable: true
+          description: URL handle for /product/{slug}-{id}; null on rows predating slugs.
         categoryHandle:
           type: string
         categoryName:
@@ -2241,6 +2246,8 @@ components:
       required:
         - productId
         - title
+        - slug
+        - canonicalRef
         - description
         - categoryHandle
         - categoryName
@@ -2257,6 +2264,13 @@ components:
           type: string
         title:
           type: string
+        slug:
+          type: string
+          nullable: true
+          description: URL handle; null on rows predating slugs.
+        canonicalRef:
+          type: string
+          description: Slug-id ref the UI must link, share, and index.
         description:
           type: string
           nullable: true

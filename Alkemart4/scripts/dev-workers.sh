@@ -26,6 +26,16 @@ if [[ -z "${CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE:-}" || -z "
   export CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE_PRIMARY="${CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE_PRIMARY:-$POOLER_URL}"
 fi
 
+# workerd's Hyperdrive emulation terminates connections whose URL carries a
+# query string (?sslmode=require → ECONNRESET on first query, dev server
+# exits). The pooler mandates TLS anyway; strip query params, keep TLS.
+strip_query() {
+  local url="$1"
+  echo "${url%%\?*}"
+}
+export CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE="$(strip_query "$CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE")"
+export CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE_PRIMARY="$(strip_query "$CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE_PRIMARY")"
+
 pids=()
 cleanup() {
   for pid in "${pids[@]:-}"; do

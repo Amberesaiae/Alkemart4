@@ -46,3 +46,34 @@ Prefer `packages/db` drizzle migrate when `DATABASE_URL` works.
 ## CORS
 
 See `docs/ops/cors-and-origins.md`.
+
+## SEO + feeds (Phase 6)
+
+- Prerender: `bun run build:seo` in `apps/storefront` with
+  `VITE_ALKEMART_API_URL` + `VITE_PUBLIC_SITE_URL` (https, production
+  origin) set. Emits shells (product/category/shop/collection),
+  `sitemap*.xml`, and `feed.xml` into `dist/`. Refuses localhost origins.
+- Live sources: `GET /store/sitemap` (indexable truth), `GET /store/feed`
+  (merchant rows), `GET /admin/feed/diagnostics` (agreement + exclusions).
+- Monitoring (weekly): Search Console index coverage + crawl errors;
+  structured-data validation (Rich Results Test on a product/category/shop
+  sample); feed disapprovals in Merchant Center; 404 rate on `/product/*`
+  (removed listings must 410/message, never redirect home).
+- Rollback: revert new routes to CSR + `noindex` (ADR-006).
+
+## Governance (Phase 0)
+
+- Taxonomy owner: approves node create/update/deprecate and reviews the
+  `GET /admin/taxonomy/proposals/review` queue weekly (Other-bucket,
+  thin leaves, rejected matches). No auto-apply, ever.
+- Promotion approver: campaign `submit → approve → publish` requires a
+  second admin (creator cannot approve their own campaign); paid
+  (Sponsored) placements get extra scrutiny on claims.
+- Trust-label issuer: verification issue/revoke is admin-only, reasoned,
+  and audit-logged. "Verified" never implies more than the evidence row.
+- Two-person rule: payouts (`POST /admin/payouts`), payout holds, and
+  trust changes need a second pair of eyes — the audit log must show two
+  distinct admin user IDs before money moves.
+- Review SLAs: moderation + appeals + reviews queues cleared within 2
+  business days; expired campaigns auto-offline but get a human glance
+  weekly via the campaigns list (`status=ended`).

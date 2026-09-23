@@ -4,6 +4,9 @@ import { InMemoryCatalogRepository } from "../../catalog-repository"
 import { InMemoryCheckoutRepository } from "../../checkout-repository"
 import { snapshotFromJson, type JsonCatalogSnapshot } from "../../demo-seed"
 import fixture from "../../fixtures/multivendor-demo.json"
+import { resetRateLimits } from "../../middleware/security"
+// Rate-limit counters are per-process: reset so files stay isolated.
+resetRateLimits()
 
 function appFromDemo() {
   const data = snapshotFromJson(fixture as JsonCatalogSnapshot)

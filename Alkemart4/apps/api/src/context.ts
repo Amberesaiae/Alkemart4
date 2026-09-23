@@ -1,6 +1,10 @@
 import type { PaystackConfig } from "@alkemart/paystack"
 import type { AdminAuditLog } from "./admin-audit"
 import type { AppealStore } from "./appeals"
+import type { CollectionsStore } from "./collections"
+import type { ImportBatchStore } from "./import-batches"
+import type { CampaignStore } from "./campaigns"
+import type { GuideStore } from "./guides"
 import type { ShopFeaturedStore } from "./shop-featured"
 import type { HomepageContentStore } from "./homepage-content"
 import type { ShopPolicyStore } from "./shop-policies"
@@ -74,6 +78,10 @@ export type AppEnv = {
     policies: ShopPolicyStore
     featured: ShopFeaturedStore
     homepage: HomepageContentStore
+    collections: CollectionsStore
+    imports: ImportBatchStore
+    campaigns: CampaignStore
+    guides: GuideStore
     jwtSecret: string
     auth: SessionClaims
     paystackSecretKey?: string

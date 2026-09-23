@@ -7,7 +7,6 @@ import {
   LastOffersTabs,
   type OfferSort,
   type OfferTabId,
-  type OfferView,
 } from "@/components/home/LastOffersTabs"
 import { filterOffersByTab, availableOfferTabs, sortOffers } from "@/lib/offer-filter"
 import type { StoreProductCard } from "@/lib/products"
@@ -29,7 +28,6 @@ type Props = {
 export function HomeLastOffers({ products, categories, loading, className }: Props) {
   const [tab, setTab] = useState<OfferTabId | "all">("all")
   const [sort, setSort] = useState<OfferSort>("featured")
-  const [view, setView] = useState<OfferView>("grid")
 
   const tabs = useMemo(
     () => availableOfferTabs(categories ?? []),
@@ -44,11 +42,13 @@ export function HomeLastOffers({ products, categories, loading, className }: Pro
   return (
     <section
       id="last-offers"
+      aria-labelledby="last-offers-heading"
       className={cn("scroll-mt-24 space-y-4", className)}
-      aria-label="Last offers"
     >
       <div className="flex flex-wrap items-end justify-between gap-2">
-        <h2 className="type-section text-foreground">Last Offers</h2>
+        <h2 id="last-offers-heading" className="type-section text-foreground">
+          Last Offers
+        </h2>
       </div>
 
       <LastOffersTabs
@@ -56,8 +56,6 @@ export function HomeLastOffers({ products, categories, loading, className }: Pro
         onChange={setTab}
         sort={sort}
         onSortChange={setSort}
-        view={view}
-        onViewChange={setView}
         tabs={tabs}
       />
 
@@ -65,31 +63,17 @@ export function HomeLastOffers({ products, categories, loading, className }: Pro
 
       {!loading && visible.length > 0 ? (
         <div className="space-y-4">
-          {view === "list" ? (
-            <div className="grid gap-2.5 sm:grid-cols-2">
-              {visible.map((p) => (
-                <ProductCard
-                  key={p.id}
-                  product={p}
-                  size="row"
-                  hideSellerCount
-                />
-              ))}
-            </div>
-          ) : (
-            <ProductGridShell className="lg:grid-cols-5 lg:gap-3">
-              {visible.map((product) => (
-                <ProductCard
-                  key={product.id}
-                  product={product}
-                  size="tile"
-                  hideSellerCount
-                  className="max-w-none"
-                />
-              ))}
-            </ProductGridShell>
-          )}
-
+          <ProductGridShell className="lg:grid-cols-5 lg:gap-3">
+            {visible.map((product) => (
+              <ProductCard
+                key={product.id}
+                product={product}
+                size="tile"
+                hideSellerCount
+                className="max-w-none"
+              />
+            ))}
+          </ProductGridShell>
         </div>
       ) : null}
 

@@ -1,8 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router"
 import { useEffect, useMemo, useState } from "react"
 import { useBlocker } from "@tanstack/react-router"
-import { useSellerProfile, useUpdateStorefront, usePauseShop, useUnpauseShop, useShopPolicies, useSavePolicy, useUpdateContact } from "../lib/hooks"
-import type { StorefrontPatch } from "../lib/api"
+import { useSellerProfile, useUpdateStorefront, usePauseShop, useUnpauseShop, useShopPolicies, useSavePolicy, useUpdateContact, useCollections, useCreateCollection, useUpdateCollection, useDeleteCollection, useSetCollectionProducts, useProducts } from "../lib/hooks"
+import type { StorefrontPatch, VendorCollection } from "../lib/api"
 import { Card, Button, Input, Label, LivePreview, Textarea, Skeleton, DatePicker } from "@workspace/ui"
 import { format } from "date-fns"
 import { PageShell } from "../components/page-shell"
@@ -557,7 +557,10 @@ function StorePage() {
 
           {/* ── Category 2: Catalog & Display ── */}
           {activeCategory === "catalog" && (
-            <ShopStudio />
+            <div className="space-y-6">
+              <CollectionsCard />
+              <ShopStudio />
+            </div>
           )}
 
           {/* ── Category 3: Policies & Operations ── */}
@@ -1021,6 +1024,306 @@ function ContactCard() {
           Save Contact Details
         </Button>
       </div>
+    </Card>
+  )
+}
+
+/**
+ * Shelves (Phase 4A): seller-owned collections over the catalog.
+ * Drafts and out-of-window shelves never reach buyers; membership is
+ * restricted to the shop's own products and never touches classification.
+ */
+function CollectionsCard() {
+  const { data, isLoading } = useCollections()
+  const { data: productsData } = useProducts({ limit: 100 })
+  const create = useCreateCollection()
+  const update = useUpdateCollection()
+  const remove = useDeleteCollection()
+  const setProducts = useSetCollectionProducts()
+  const [name, setName] = useState("")
+  const [openId, setOpenId] = useState<string | null>(null)
+  const [confirmId, setConfirmId] = useState<string | null>(null)
+  const [draft, setDraft] = useState<Record<string, { name: string; description: string; startsAt: string; endsAt: string }>>({})
+
+  const shelves = data?.items ?? []
+  const catalog = productsData?.products ?? []
+  const titleOf = (id: string) => catalog.find((p) => p.id === id)?.title ?? id.slice(0, 8)
+
+  const editOf = (shelf: VendorCollection) =>
+    draft[shelf.id] ?? {
+      name: shelf.name,
+      description: shelf.description ?? "",
+      startsAt: toLocalInput(shelf.startsAt),
+      endsAt: toLocalInput(shelf.endsAt),
+    }
+
+  const handleCreate = async () => {
+    if (!name.trim()) {
+      toast.error("Name your shelf first (e.g. New Arrivals).")
+      return
+    }
+    try {
+      await create.mutateAsync({ name: name.trim() })
+      toast.success("Shelf created as a draft — publish when it is ready.")
+      setName("")
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to create shelf.")
+    }
+  }
+
+  const handleSave = async (shelf: VendorCollection) => {
+    const e = editOf(shelf)
+    if (!e.name.trim()) {
+      toast.error("Name is required.")
+      return
+    }
+    const starts = e.startsAt ? Date.parse(e.startsAt) : NaN
+    const ends = e.endsAt ? Date.parse(e.endsAt) : NaN
+    if (e.startsAt && !Number.isFinite(starts)) {
+      toast.error("Start date is not valid.")
+      return
+    }
+    if (e.endsAt && !Number.isFinite(ends)) {
+      toast.error("End date is not valid.")
+      return
+    }
+    if (Number.isFinite(starts) && Number.isFinite(ends) && !(ends > starts)) {
+      toast.error("End must be after the start.")
+      return
+    }
+    try {
+      await update.mutateAsync({
+        id: shelf.id,
+        patch: {
+          name: e.name.trim(),
+          description: e.description.trim() || null,
+          startsAt: e.startsAt ? new Date(e.startsAt).toISOString() : null,
+          endsAt: e.endsAt ? new Date(e.endsAt).toISOString() : null,
+        },
+      })
+      toast.success("Shelf saved.")
+      setDraft((p) => {
+        const next = { ...p }
+        delete next[shelf.id]
+        return next
+      })
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to save shelf.")
+    }
+  }
+
+  const toggleVisibility = async (shelf: VendorCollection) => {
+    try {
+      await update.mutateAsync({
+        id: shelf.id,
+        patch: { visibility: shelf.visibility === "published" ? "draft" : "published" },
+      })
+      toast.success(shelf.visibility === "published" ? "Shelf hidden from buyers." : "Shelf is live.")
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to update visibility.")
+    }
+  }
+
+  const handleRemoveMember = async (shelf: VendorCollection, productId: string) => {
+    try {
+      await setProducts.mutateAsync({
+        id: shelf.id,
+        productIds: shelf.productIds.filter((id) => id !== productId),
+      })
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to remove item.")
+    }
+  }
+
+  const handleAddMember = async (shelf: VendorCollection, productId: string) => {
+    if (!productId) return
+    try {
+      await setProducts.mutateAsync({ id: shelf.id, productIds: [...shelf.productIds, productId] })
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to add item.")
+    }
+  }
+
+  const handleDelete = async (shelf: VendorCollection) => {
+    if (confirmId !== shelf.id) {
+      setConfirmId(shelf.id)
+      return
+    }
+    try {
+      await remove.mutateAsync(shelf.id)
+      toast.success("Shelf deleted.")
+      setConfirmId(null)
+      if (openId === shelf.id) setOpenId(null)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to delete shelf.")
+    }
+  }
+
+  return (
+    <Card className="p-6 space-y-5 border border-border/80 shadow-xs rounded-2xl bg-card">
+      <div className="flex items-center justify-between border-b border-border/60 pb-3">
+        <div>
+          <h2 className="font-bold text-base text-foreground">Shelves</h2>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Curated sets from your catalog — independent of marketplace categories.
+          </p>
+        </div>
+        <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-muted text-muted-foreground tabular-nums">
+          {shelves.length}
+        </span>
+      </div>
+
+      <div className="flex flex-col sm:flex-row gap-2">
+        <Input
+          value={name}
+          maxLength={81}
+          placeholder="New shelf (e.g. Harmattan Deals)"
+          onChange={(e) => setName(e.target.value)}
+          className="h-10 bg-background rounded-xl"
+          aria-label="New shelf name"
+        />
+        <Button size="sm" onClick={() => { void handleCreate() }} isLoading={create.isPending} className="rounded-xl font-bold whitespace-nowrap">
+          Add shelf
+        </Button>
+      </div>
+
+      {isLoading ? (
+        <Skeleton className="h-20 w-full rounded-xl" />
+      ) : null}
+
+      {shelves.length > 0 ? (
+        <ul className="space-y-2">
+          {shelves.map((shelf) => {
+            const e = editOf(shelf)
+            const open = openId === shelf.id
+            const candidates = catalog.filter((p) => !shelf.productIds.includes(p.id))
+            return (
+              <li key={shelf.id} className="rounded-2xl border border-border/60 bg-muted/20 p-4 space-y-3">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={() => setOpenId(open ? null : shelf.id)}
+                    className="font-bold text-sm text-left hover:text-primary"
+                    aria-expanded={open}
+                  >
+                    {shelf.name}
+                  </button>
+                  <span
+                    className={"text-[10px] font-bold px-2 py-0.5 rounded-full " + (shelf.visibility === "published" ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300" : "bg-muted text-muted-foreground")}
+                  >
+                    {shelf.visibility === "published" ? "Live" : "Draft"}
+                  </span>
+                  <span className="text-[11px] text-muted-foreground tabular-nums">
+                    {shelf.productIds.length} item{shelf.productIds.length === 1 ? "" : "s"}
+                  </span>
+                  <span className="ml-auto flex gap-2">
+                    <Button size="sm" variant="outline" className="rounded-xl h-7 text-xs" onClick={() => { void toggleVisibility(shelf) }} disabled={update.isPending}>
+                      {shelf.visibility === "published" ? "Unpublish" : "Publish"}
+                    </Button>
+                    <Button size="sm" variant={confirmId === shelf.id ? "destructive" : "outline"} className="rounded-xl h-7 text-xs" onClick={() => { void handleDelete(shelf) }} disabled={remove.isPending}>
+                      {confirmId === shelf.id ? "Confirm delete" : "Delete"}
+                    </Button>
+                  </span>
+                </div>
+                {open ? (
+                  <div className="space-y-3 rounded-xl border border-border/60 bg-background/60 p-3">
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <div className="space-y-1.5">
+                        <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Name</Label>
+                        <Input
+                          value={e.name}
+                          maxLength={81}
+                          className="h-10 text-sm bg-background rounded-xl"
+                          onChange={(ev) => setDraft((p) => ({ ...p, [shelf.id]: { ...e, name: ev.target.value } }))}
+                          aria-label="Shelf name"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Description</Label>
+                        <Input
+                          value={e.description}
+                          maxLength={2000}
+                          placeholder="Optional"
+                          className="h-10 text-sm bg-background rounded-xl"
+                          onChange={(ev) => setDraft((p) => ({ ...p, [shelf.id]: { ...e, description: ev.target.value } }))}
+                          aria-label="Shelf description"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Starts</Label>
+                        <Input
+                          type="datetime-local"
+                          value={e.startsAt}
+                          className="h-10 text-sm bg-background rounded-xl"
+                          onChange={(ev) => setDraft((p) => ({ ...p, [shelf.id]: { ...e, startsAt: ev.target.value } }))}
+                          aria-label="Shelf start"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Ends</Label>
+                        <Input
+                          type="datetime-local"
+                          value={e.endsAt}
+                          className="h-10 text-sm bg-background rounded-xl"
+                          onChange={(ev) => setDraft((p) => ({ ...p, [shelf.id]: { ...e, endsAt: ev.target.value } }))}
+                          aria-label="Shelf end"
+                        />
+                      </div>
+                    </div>
+                    <Button size="sm" className="rounded-xl font-bold" disabled={update.isPending} onClick={() => { void handleSave(shelf) }}>
+                      Save shelf
+                    </Button>
+                    <div className="space-y-2">
+                      <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Items</p>
+                      {shelf.productIds.length === 0 ? (
+                        <p className="text-xs text-muted-foreground">Empty — add your products below.</p>
+                      ) : (
+                        <ul className="space-y-1">
+                          {shelf.productIds.map((pid) => (
+                            <li key={pid} className="flex items-center gap-2 text-sm">
+                              <span className="min-w-0 flex-1 truncate font-medium">{titleOf(pid)}</span>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 rounded-xl text-xs"
+                                disabled={setProducts.isPending}
+                                onClick={() => { void handleRemoveMember(shelf, pid) }}
+                              >
+                                Remove
+                              </Button>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                      {candidates.length > 0 ? (
+                        <div className="flex gap-2">
+                          <select
+                            className="h-10 min-w-0 flex-1 rounded-xl border border-input bg-background px-3 text-sm"
+                            defaultValue=""
+                            onChange={(ev) => { void handleAddMember(shelf, ev.target.value); ev.target.value = "" }}
+                            aria-label="Add a product to this shelf"
+                          >
+                            <option value="" disabled>Add a product…</option>
+                            {candidates.map((p) => (
+                              <option key={p.id} value={p.id}>
+                                {p.title ?? p.id.slice(0, 8)}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      ) : (
+                        <p className="text-xs text-muted-foreground">Every product is already on this shelf.</p>
+                      )}
+                    </div>
+                  </div>
+                ) : null}
+              </li>
+            )
+          })}
+        </ul>
+      ) : (
+        <p className="text-sm text-muted-foreground">No shelves yet. Group slow movers, seasonal picks, or new arrivals.</p>
+      )}
     </Card>
   )
 }

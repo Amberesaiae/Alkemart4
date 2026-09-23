@@ -16,7 +16,12 @@ Payouts are **admin-triggered**, not vendor self-serve.
 | GET | `/vendor/onboarding/status` | Readiness |
 | POST | `/vendor/onboarding/ghana-setup` | MoMo + Paystack transfer recipient |
 | GET/POST | `/vendor/products` | List / create (product+variant+offer) |
+| GET | `/vendor/payouts/statement` | Own money: pending/held/paid lines + totals (Money tab) |
+| GET/POST | `/vendor/collections` | Shelf CRUD (auto-slug, schedule, visibility) |
+| PUT | `/vendor/collections/:id/products` | Replace membership (own products only, ≤30) |
+| GET/PUT | `/vendor/preferences` | Dashboard alert topics (stock/price/sla/order/payout; all on by default) |
 | PATCH | `/vendor/products/:id` | Title/price/stock/active… |
+| PATCH | `/vendor/products/:id/variants/:variantId` | Price/stock/active + offer terms (`condition`, `compareAt*` + provenance, `fulfillmentOrigin`, `warrantyRef`, `returnsRef`, `deliveryPromise`); price moves append to history |
 | POST | `/vendor/products/:id/propose` | `draft` → `proposed` |
 | GET | `/vendor/orders` / `/:id` | Seller-scoped |
 | POST | `/vendor/orders/:id/ship` | `placed` → `shipped` |

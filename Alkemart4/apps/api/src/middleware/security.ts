@@ -4,6 +4,15 @@ import type { AppEnv } from "../context"
 /** Best-effort per-isolate counters (Workers isolates are ephemeral). */
 const hits = new Map<string, { n: number; resetAt: number }>()
 
+/**
+ * Test-only reset for the per-isolate counters. Test runners share one
+ * process across files while every request arrives without a client IP,
+ * so files must reset in isolation — production isolates never call this.
+ */
+export function resetRateLimits(): void {
+  hits.clear()
+}
+
 function clientKey(c: { req: { header: (n: string) => string | undefined } }): string {
   return (
     c.req.header("cf-connecting-ip") ||

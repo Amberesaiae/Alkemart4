@@ -1,5 +1,6 @@
-import { createFileRoute, redirect } from "@tanstack/react-router"
+import { createFileRoute } from "@tanstack/react-router"
 import { isWorkersApi } from "../../lib/config"
+import { WorkersTaxonomyPage } from "./taxonomy-board"
 import { useMemo, useState } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { adminCategories } from "../../lib/api"
@@ -11,11 +12,6 @@ import { Plus, Trash, PencilSimple, Link } from "@phosphor-icons/react"
 import { toast } from "sonner"
 
 export const Route = createFileRoute("/_authenticated/categories")({
-  beforeLoad: () => {
-    if (isWorkersApi) {
-      throw redirect({ to: "/unavailable", search: { title: "Categories" } })
-    }
-  },
   component: CategoriesPage,
 })
 
@@ -31,6 +27,9 @@ function internalBadge(cat: AdminCategory) {
 }
 
 function CategoriesPage() {
+  // Workers deployments serve the taxonomy lifecycle API; legacy Mercur
+  // product-categories stay on the Mercur branch below.
+  if (isWorkersApi) return <WorkersTaxonomyPage />
   const queryClient = useQueryClient()
   const [showCreate, setShowCreate] = useState(false)
   const [editCat, setEditCat] = useState<AdminCategory | null>(null)

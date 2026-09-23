@@ -24,6 +24,9 @@ export const ICON_IDS = [
   "globe",
   "menu",
   "chevron-right",
+  "chevron-left",
+  "chevron-down",
+  "chevron-up",
   "close",
   // Commerce
   "add-cart",
@@ -42,7 +45,32 @@ export const ICON_IDS = [
   "world",
   "secure",
   "cod",
+  "wallet",
+  "flash",
+  // Food Delivery icon pack — lineal
+  "delivery-truck",
+  "delivery-moto",
+  "delivery-bike",
+  "delivery-van",
+  "delivery-scheduled",
+  "delivery-fast",
+  "delivery-handoff",
+  "delivery-location",
+  "delivery-person",
+  "order-bag",
+  "order-bag-food",
+  "order-takeout",
+  "order-takeout-box",
+  "order-container",
+  "order-hot",
+  "order-food-bag",
+  "order-app",
+  "order-phone",
+  "receipt",
+  "payment-cash",
+  "promo-food",
 ] as const
+
 
 export type IconId = (typeof ICON_IDS)[number]
 

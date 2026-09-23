@@ -50,6 +50,7 @@ import { HomeFeaturedShop } from "@/components/home/HomeFeaturedShop";
 import { HomeCategoryRail } from "@/components/home/HomeCategoryRail";
 import { HomeMarketPromise } from "@/components/home/HomeMarketPromise";
 import { resolveMosaicTiles } from "@/lib/catalog-nav";
+import type { CourseShelf } from "@/lib/course";
 
 type Props = {
   sections: HomeSection[];
@@ -57,6 +58,10 @@ type Props = {
   products: StoreProductCard[];
   /** The page's featured list is still in flight — shelves shimmer, not fake. */
   productsLoading?: boolean;
+  /** Rule-backed course shelves (Phase 5C). They render as beats directly
+   *  beneath the departments mosaic and claim products through the same
+   *  distinctness pipeline as every other rail. */
+  courseShelves?: CourseShelf[];
 };
 
 export function HomepageSections({
@@ -64,6 +69,7 @@ export function HomepageSections({
   categories,
   products,
   productsLoading,
+  courseShelves = [],
 }: Props) {
   const live = visibleSections(sections);
   const categoryById = new Map(
@@ -106,11 +112,38 @@ export function HomepageSections({
       section.type === "store_rail",
   );
 
+  /**
+   * Rule-backed course shelves sit directly beneath the departments mosaic:
+   * the art-led entry stays first, merchandised drops follow, and the
+   * comparison layer keeps its place. Cards claim through the same
+   * distinctness pipeline; a shelf left with nothing collapses.
+   */
+  const renderCourseShelves = () =>
+    courseShelves.flatMap((shelf) => {
+      const cards = takeUnseen(shelf.cards, 8);
+      if (!cards.length && !productsLoading) return [];
+      return [
+        <section key={`course-${shelf.key}`} aria-label={shelf.title} className="space-y-3">
+          <h2 className="type-section text-foreground">{shelf.title}</h2>
+          {productsLoading && !cards.length ? (
+            <ShelfSkeleton count={4} />
+          ) : (
+            <ProductGridShell className="lg:grid-cols-5 lg:gap-3">
+              {cards.map((product) => (
+                <ProductCard key={product.id} product={product} size="tile" hideSellerCount className="max-w-none" />
+              ))}
+            </ProductGridShell>
+          )}
+        </section>,
+      ];
+    });
+
+  let courseInjected = false;
+
   return (
     <div className="space-y-8 sm:space-y-12">
       {live.map((section) => {
         let content: React.ReactNode = null;
-
         if (section.type === "promo_hero")
           content = (
             <MerchPromoHero
@@ -176,11 +209,13 @@ export function HomepageSections({
           }
         } else if (section.type === "product_shelf") {
           if (section.id === decisionShelfId) {
-            const offers = takeUnseen(products, Math.min(section.limit, 12));
+            // The decision beat is the comparison layer, not another rail:
+            // it always shows the full featured set with its tabs and sort.
+            // Rails below stay distinct through takeUnseen.
             content = (
               <HomeLastOffers
                 key={section.id}
-                products={offers}
+                products={products}
                 categories={categories}
                 loading={productsLoading}
               />
@@ -216,6 +251,11 @@ export function HomepageSections({
         const desktopPrimary =
           section.type === "category_grid" || section.id === desktopDecisionId;
 
+        // Course shelves attach beneath the departments mosaic, wherever it sits.
+        const injectCourse =
+          !courseInjected && section.type === "category_grid" && courseShelves.length > 0;
+        if (section.type === "category_grid") courseInjected = true;
+
         return (
           <Fragment key={section.id}>
             {section.id === desktopDecisionId && desktopPromoBand ? (
@@ -226,6 +266,7 @@ export function HomepageSections({
             <div className={desktopPrimary ? undefined : "lg:hidden"}>
               {content}
             </div>
+            {injectCourse ? renderCourseShelves() : null}
           </Fragment>
         );
       })}
@@ -513,22 +554,22 @@ function ProductShelf({
         action={action}
       >
         {isMostOrdered ? (
-          <div className="group relative flex aspect-square sm:aspect-[4/3] w-52 sm:w-60 shrink-0 snap-start flex-col overflow-hidden rounded-2xl ring-1 ring-black/[0.06] shadow-xs">
+          <div className="group relative flex aspect-square sm:aspect-[4/3] w-52 sm:w-60 shrink-0 snap-start flex-col overflow-hidden rounded-xl ring-1 ring-black/[0.06] shadow-xs">
             <div className="relative h-3/5 w-full overflow-hidden bg-muted">
               <img
                 src="/images/categories/food.webp"
                 alt=""
                 className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
               />
-              <span className="absolute top-2.5 left-2.5 rounded-[6px] bg-[#00A99D] px-2 py-0.5 text-xs font-bold uppercase tracking-wider text-white shadow-xs">
+              <span className="absolute top-2.5 left-2.5 rounded-[6px] bg-primary px-2 py-0.5 text-xs font-bold uppercase tracking-wider text-primary-foreground shadow-xs">
                 Express Rider
               </span>
             </div>
-            <div className="flex h-2/5 flex-col justify-center bg-[#E6F7F5] dark:bg-muted/40 px-3.5 py-2">
-              <p className="text-xs sm:text-sm font-bold uppercase leading-tight text-[#00695C] dark:text-[#00A99D]">
+            <div className="flex h-2/5 flex-col justify-center bg-card dark:bg-muted/40 px-3.5 py-2">
+              <p className="text-xs sm:text-sm font-bold uppercase leading-tight text-foreground">
                 More Freedom With Each Delivery
               </p>
-              <p className="text-xs font-medium text-[#00796B]/80 dark:text-muted-foreground truncate">
+              <p className="text-xs font-medium text-muted-foreground truncate">
                 Fast doorstep dispatch across Ghana
               </p>
             </div>
@@ -537,7 +578,7 @@ function ProductShelf({
         {products.map((product) => (
           <div
             key={product.id}
-            className="w-[calc((100vw-3.25rem)/2)] max-w-[200px] shrink-0 snap-start sm:w-48"
+            className="w-[calc((100vw-3.25rem)/2)] max-w-[224px] shrink-0 snap-start sm:w-56"
           >
             <ProductCard product={product} size="store" />
           </div>

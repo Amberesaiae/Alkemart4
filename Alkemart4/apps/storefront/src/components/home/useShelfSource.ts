@@ -5,7 +5,6 @@ import {
   type HomeShelfSource,
 } from "@alkemart/shared/homepage"
 import {
-  DEMO_CATALOG_PRODUCTS,
   listPopularProducts,
   listStoreProducts,
   type StoreCategory,
@@ -142,8 +141,9 @@ export function useShelfSource(opts: {
     // In flight with nothing behind it yet: say so, so the shelf can shimmer
     // instead of flashing the stand-in catalogue and then replacing it.
     if (popularQ.isLoading && !prods.length) return { products: [], loading: true }
-    const list = prods.length ? prods : DEMO_CATALOG_PRODUCTS.slice(0, limit)
-    return { products: list.slice(0, limit), loading: false }
+    // No orders yet means no popular shelf — an empty rail hides instead
+    // of borrowing the stand-in catalogue.
+    return { products: prods.slice(0, limit), loading: false }
   }
 
   if (source === "top_rated") {

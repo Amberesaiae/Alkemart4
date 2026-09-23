@@ -4,7 +4,7 @@ import { ArrowRight, MapPin, Storefront } from "@phosphor-icons/react";
 export function HomeLocalMarket() {
   return (
     <section
-      className="relative isolate overflow-hidden rounded-2xl bg-primary text-primary-foreground"
+      className="relative isolate overflow-hidden rounded-xl bg-primary text-primary-foreground"
       aria-labelledby="local-market-title"
     >
       <div

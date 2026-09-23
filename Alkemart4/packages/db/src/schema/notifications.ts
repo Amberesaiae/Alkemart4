@@ -12,6 +12,8 @@ export const notifications = pgTable("notifications", {
   channel: text("channel").notNull().default("sms"),
   recipient: text("recipient").notNull(),
   body: text("body").notNull(),
+  /** Phase 7A send classification: transactional|promotional|operational. */
+  category: text("category").notNull().default("transactional"),
   status: notificationStatusEnum("status").notNull().default("pending"),
   attempts: integer("attempts").notNull().default(0),
   lastError: text("last_error"),

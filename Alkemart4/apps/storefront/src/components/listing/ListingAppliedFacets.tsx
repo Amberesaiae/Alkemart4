@@ -39,18 +39,18 @@ export function ListingAppliedFacets({
   return (
     <div
       className={cn(
-        "flex flex-wrap items-center gap-2 rounded-xl border border-border bg-card px-3 py-2.5",
+        "flex flex-wrap items-center gap-2 rounded-md border border-border/80 bg-card px-3 py-2 shadow-2xs",
         className,
       )}
       role="region"
       aria-label="Applied filters"
     >
-      <span className="type-sm font-semibold text-foreground">
+      <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
         {!loadingCount && typeof count === "number"
-          ? `${count} result${count === 1 ? "" : "s"}`
-          : "Filtered"}
+          ? `${count.toLocaleString()} ${count === 1 ? "result" : "results"}`
+          : "Filters:"}
       </span>
-      <span className="type-sm text-muted-foreground" aria-hidden>
+      <span className="text-xs text-muted-foreground" aria-hidden>
         ·
       </span>
 
@@ -61,18 +61,18 @@ export function ListingAppliedFacets({
               type="button"
               onClick={() => onChange(f.clear(state))}
               className={cn(
-                "inline-flex min-h-9 items-center gap-1.5 rounded-full border border-border bg-background py-1 ps-2.5 pe-2 type-sm transition",
-                "hover:border-primary-strong hover:bg-muted",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
+                "inline-flex h-7 items-center gap-1.5 rounded border border-border/90 bg-muted/60 px-2 text-xs font-medium transition",
+                "hover:border-destructive hover:bg-destructive/10 hover:text-destructive",
+                "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary",
               )}
             >
-              <span className="text-muted-foreground">{f.group}</span>
-              <span className="max-w-[12rem] truncate font-semibold text-foreground">
+              <span className="text-muted-foreground">{f.group}:</span>
+              <span className="max-w-[10rem] truncate font-semibold text-foreground">
                 {f.label}
               </span>
               <IconSafe
                 name="close"
-                size={12}
+                size={11}
                 preferAsset={false}
                 className="shrink-0 opacity-70"
               />
@@ -88,8 +88,8 @@ export function ListingAppliedFacets({
         type="button"
         onClick={onClearAll}
         className={cn(
-          "ms-auto min-h-9 shrink-0 rounded-full px-2.5 type-sm font-semibold text-foreground underline underline-offset-2",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
+          "ms-auto text-xs font-semibold text-primary-strong underline underline-offset-2 transition hover:text-foreground",
+          "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary",
         )}
       >
         Clear all

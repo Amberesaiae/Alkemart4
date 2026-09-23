@@ -32,41 +32,29 @@ export function Shimmer({ className }: { className?: string }) {
 const cardShell = "overflow-hidden rounded-lg border border-border bg-card shadow-sm"
 
 /**
- * Matches ProductCard size="store" — square art, title, seller, price, rating.
- * Used by every homepage shelf, so a shelf's placeholder is the shelf.
+ * Matches Alkemart ProductCard — square rounded-2xl art, with 4-line outside text hierarchy:
+ * 1. Product title
+ * 2. Vendor name
+ * 3. Price figure
+ * 4. Star rating
  */
 export function ProductCardSkeleton({ className }: { className?: string }) {
   return (
-    <div className={cn("flex h-full w-full flex-col", className)} aria-hidden>
-      <Shimmer className="aspect-square w-full shrink-0 rounded-2xl" />
-      <div className="flex flex-1 flex-col gap-[3px] pt-2 pb-0.5">
-        <Shimmer className="h-3.5 w-[85%]" />
-        <Shimmer className="h-3 w-[55%]" />
-        <div className="flex items-center justify-between gap-1 pt-0.5">
-          <Shimmer className="h-3.5 w-[38%]" />
-          <Shimmer className="h-3 w-[22%]" />
-        </div>
+    <div className={cn("flex h-full w-full flex-col text-left", className)} aria-hidden>
+      <Shimmer className="aspect-square w-full shrink-0 rounded-xl bg-muted/20 dark:bg-muted/40" />
+      <div className="flex flex-1 flex-col pt-2.5 pb-1 gap-1.5 min-w-0">
+        <Shimmer className="h-4 sm:h-5 w-3/4 rounded-md" />
+        <Shimmer className="h-4 sm:h-5 w-1/2 rounded-md" />
+        <Shimmer className="h-4 sm:h-5 w-1/3 rounded-md" />
+        <Shimmer className="h-4 sm:h-5 w-1/4 rounded-md" />
       </div>
     </div>
   )
 }
 
-/** Matches ProductCard size="tile" — square media + tight body. */
+/** Matches ProductCard size="tile" */
 function TileSkel({ className }: { className?: string }) {
-  return (
-    <div className={cn(cardShell, "flex h-full flex-col", className)}>
-      <Shimmer className="aspect-square w-full shrink-0 rounded-none" />
-      <div className="flex flex-1 flex-col gap-1 p-2 sm:p-2.5">
-        <Shimmer className="h-3.5 w-full" />
-        <Shimmer className="h-3.5 w-4/5" />
-        <Shimmer className="mt-0.5 h-2.5 w-1/2" />
-        <div className="mt-auto flex items-center justify-between pt-1">
-          <Shimmer className="h-3.5 w-1/3" />
-          <Shimmer className="h-8 w-8 rounded-full" />
-        </div>
-      </div>
-    </div>
-  )
+  return <ProductCardSkeleton className={className} />
 }
 
 /** One horizontal shelf of store cards — header chrome plus the card row. */
@@ -102,7 +90,7 @@ export function ShelfSkeleton({
       </div>
       <div className="scrollbar-none flex gap-3 overflow-x-hidden pb-2">
         {Array.from({ length: count }).map((_, i) => (
-          <div key={i} className="w-[calc((100vw-3.25rem)/2)] max-w-[200px] shrink-0 sm:w-48">
+          <div key={i} className="w-[calc((100vw-3.25rem)/2)] max-w-[224px] shrink-0 sm:w-56">
             <ProductCardSkeleton />
           </div>
         ))}
@@ -115,11 +103,17 @@ export function ShelfSkeleton({
 /** Store card placeholder — 16/9 cover, shop name, rating/delivery facts. */
 export function StoreCardSkeleton({ className }: { className?: string }) {
   return (
-    <div className={cn("flex flex-col", className)} aria-hidden>
-      <Shimmer className="aspect-[16/9] w-full rounded-2xl" />
-      <div className="flex flex-col gap-1.5 pt-2">
-        <Shimmer className="h-4 w-3/4" />
-        <Shimmer className="h-3.5 w-1/2" />
+    <div className={cn("flex flex-col text-left", className)} aria-hidden>
+      <Shimmer className="aspect-[16/10] w-full rounded-xl bg-muted/20 dark:bg-muted/40" />
+      <div className="flex flex-col gap-1.5 pt-2.5">
+        <div className="flex items-center justify-between">
+          <Shimmer className="h-4 sm:h-5 w-3/5 rounded-md" />
+          <Shimmer className="h-4 w-5 rounded-full" />
+        </div>
+        <div className="flex items-center gap-3 pt-0.5">
+          <Shimmer className="h-3.5 w-16 rounded-md" />
+          <Shimmer className="h-3.5 w-24 rounded-md" />
+        </div>
       </div>
     </div>
   )
@@ -135,7 +129,7 @@ export function StoreRailSkeleton({ count = 3, className }: { count?: number; cl
       </div>
       <div className="scrollbar-none flex gap-3.5 overflow-x-hidden pb-2">
         {Array.from({ length: count }).map((_, i) => (
-          <div key={i} className="w-72 shrink-0 sm:w-80 md:w-96">
+          <div key={i} className="w-72 sm:w-80 md:w-[22rem] shrink-0">
             <StoreCardSkeleton />
           </div>
         ))}

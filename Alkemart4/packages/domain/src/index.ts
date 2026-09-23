@@ -29,6 +29,18 @@ export type { ProductStatus, SellerStatus, SellableInput } from "./sellable"
 export { isSellable } from "./sellable"
 export type { PeerOfferDto, PeerOfferInput } from "./offers"
 export { pickBestOffer, sortPeerOffers, toPeerOffer } from "./offers"
+export type { PeerRankSort, RankableOffer } from "./offers"
+export {
+  PriceIntegrityError,
+  assertCompareAt,
+  discountPercent,
+  explainRanking,
+  isOfferStale,
+  priceDivergenceNeedsReview,
+  rankPeerOffers,
+} from "./offers"
+export type { VerificationKind, VerificationStatus } from "./trust"
+export { isVerificationLive, verificationMeaning } from "./trust"
 export type {
   ProductCardDto,
   ProductCardInput,
@@ -70,3 +82,15 @@ export {
   assertFulfillmentTransition,
   computePayoutBatch,
 } from "./fulfillment"
+export type { NotificationCategory, PreferenceRow } from "./notifications"
+export { checkSendPermission, withinFrequencyCap } from "./notifications"
+export type { SimilarProductInput } from "./similarity"
+export { attributeSignature, scoreSimilarity } from "./similarity"
+export { parseProductRef, slugifyTitle, toProductRef } from "./product-urls"
+export type { CampaignCandidate, CampaignProductInput } from "./campaigns"
+export {
+  dedupePlacementWinners,
+  evaluateCampaignEligibility,
+  isCampaignExpired,
+  resolvePlacement,
+} from "./campaigns"

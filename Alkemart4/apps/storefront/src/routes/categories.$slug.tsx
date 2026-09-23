@@ -8,25 +8,37 @@ import { ErrorAlert } from "@/components/error-alert"
 import { LoadMore } from "@/components/load-more"
 import { ProductGridSkeleton } from "@/components/skeleton"
 import {
+  CategoryVisualRail,
   ListingAppliedFacets,
   ListingFilterDropdown,
   ListingFilters,
   ListingLayout,
+  ListingPagination,
+  ListingQuickFilters,
   appliedFacets,
   filterListingByPrice,
   filterListingByRating,
   filterListingBySellers,
   resetFacets,
+  resolveCategoryImage,
   sortListingProducts,
   type ListingFacetState,
   type ListingSort,
-  type ListingViewMode,
 } from "@/components/listing"
+import { HomeRecentlyViewed } from "@/components/home/HomeRecentlyViewed"
 import { PageSeo } from "@/components/page-seo"
-import { listStoreCategories, listStoreProducts } from "@/lib/products"
+import { itemListJsonLd } from "@/lib/seo"
+import { listStoreCategories, listStoreProducts, listStoreSellers } from "@/lib/products"
 import { searchCatalog } from "@/lib/search"
 import { useCloudflareCatalog } from "@/lib/env"
-import { resolveBrowseCategory } from "@/lib/catalog-nav"
+import {
+  resolveBrowseCategory,
+  RAIL_DEPARTMENT_ORDER,
+  CANONICAL_NAMES,
+  formatSlugTitle,
+  resolveSubCategories,
+} from "@/lib/catalog-nav"
+import { deptThemeClass } from "@/lib/category-theme"
 
 export const Route = createFileRoute("/categories/$slug")({
   /**
@@ -101,21 +113,6 @@ function parseSort(v: unknown): ListingSort | undefined {
 const PAGE = 24
 
 /**
- * Sub-category chips — real children from the store taxonomy only.
- * Returns [] when a department has no child categories, letting the filter
- * strip omit the subcategory fieldset entirely. Never invents subcategories.
- */
-function subCategoriesFor(category: {
-  id: string
-  handle?: string | null
-} | null, all: { id: string; name: string; handle?: string | null; parentCategoryId?: string | null }[]): { id: string; label: string; handle: string | null }[] {
-  if (!category) return []
-  return all
-    .filter((c) => c.parentCategoryId === category.id)
-    .map((c) => ({ id: c.id, label: c.name, handle: c.handle ?? null }))
-}
-
-/**
  * PLP — foundational composition (MOWAFER reference).
  * No hero image card, no category rail, no big filter bar.
  * Left sidebar (Category + Sub-category + Sellers) on desktop;
@@ -129,8 +126,6 @@ function BrowsePage() {
   const search = Route.useSearch()
   const isAll = slug === "all" || slug === ""
   const [limit, setLimit] = useState(PAGE)
-  /** View mode is a presentation preference, not a facet — stays local. */
-  const [viewMode, setViewMode] = useState<ListingViewMode>("grid")
 
   /** The one facet state. Sidebar and dropdown both read and write this. */
   const facets: ListingFacetState = useMemo(
@@ -195,8 +190,8 @@ function BrowsePage() {
   const categoryHandle = category?.handle ?? (!isAll ? slug : undefined)
 
   const subCats = useMemo(
-    () => subCategoriesFor(category ?? null, categoriesQ.data ?? []),
-    [category, categoriesQ.data],
+    () => resolveSubCategories(category ?? null, categoriesQ.data ?? [], slug),
+    [category, categoriesQ.data, slug],
   )
 
   // Sub-category selects a real child category — refetch the catalog with its
@@ -205,33 +200,7 @@ function BrowsePage() {
   const effectiveCategoryId = selectedSub ? selectedSub.id : categoryId
   const effectiveCategoryHandle = selectedSub
     ? selectedSub.handle ?? selectedSub.id
-    : categoryHandle
-
-  const discoveryQ = useQuery({
-    queryKey: [
-      "store",
-      "browse-discovery",
-      slug,
-      effectiveCategoryHandle,
-      sellerFilters.join(","),
-      limit,
-    ],
-    queryFn: () =>
-      searchCatalog({
-        q: "",
-        limit,
-        filters: {
-          category_handles:
-            !isAll && effectiveCategoryHandle
-              ? [effectiveCategoryHandle]
-              : undefined,
-          seller_handles: sellerFilters.length ? sellerFilters : undefined,
-        },
-      }),
-    enabled: isAll || categoriesQ.isSuccess || categoriesQ.isError,
-  })
-
-  const useMeili = discoveryQ.data?.engine === "meilisearch"
+    : (!isAll ? (categoryHandle ?? slug) : undefined)
 
   const cfCatalog = useCloudflareCatalog()
   const productsQ = useQuery({
@@ -248,7 +217,6 @@ function BrowsePage() {
     queryFn: () =>
       listStoreProducts({
         limit: Math.max(limit, 48),
-        // Cloudflare catalog filters by handle; Medusa path still uses category id.
         ...(cfCatalog
           ? {
               categoryHandle: isAll ? undefined : effectiveCategoryHandle,
@@ -257,28 +225,37 @@ function BrowsePage() {
               categoryId: isAll ? undefined : effectiveCategoryId,
             }),
       }),
-    enabled:
-      (isAll || categoriesQ.isSuccess || categoriesQ.isError) &&
-      (discoveryQ.isSuccess || discoveryQ.isError) &&
-      !useMeili,
+    enabled: true,
+  })
+
+  const sellersQ = useQuery({
+    queryKey: ["store", "sellers"],
+    queryFn: () => listStoreSellers(),
+  })
+
+  const poolQ = useQuery({
+    queryKey: ["store", "products", "pool"],
+    queryFn: () => listStoreProducts({ limit: 12 }),
+    enabled: true,
   })
 
   const title = isAll
     ? "All products"
-    : category?.name ?? (categoriesQ.isLoading ? "…" : "Category")
+    : category?.name ?? CANONICAL_NAMES[slug.toLowerCase()] ?? formatSlugTitle(slug)
+
+  const themeClass = isAll
+    ? "theme-dept-default"
+    : deptThemeClass(category?.name ?? title, categoryHandle ?? slug)
 
   const missingCategory = !isAll && categoriesQ.isSuccess && !category
 
-  const rawProducts = useMeili
-    ? (discoveryQ.data?.products ?? [])
-    : (productsQ.data?.products ?? [])
+  const rawProducts = productsQ.data?.products ?? []
 
   /** Everything except rating — the base the grid is computed from. */
   const beforeRating = useMemo(() => {
-    let list = rawProducts
-    if (!useMeili) list = filterListingBySellers(list, facets.sellerHandles)
+    let list = filterListingBySellers(rawProducts, facets.sellerHandles)
     return filterListingByPrice(list, facets.priceMin, facets.priceMax)
-  }, [rawProducts, useMeili, facets.sellerHandles, facets.priceMin, facets.priceMax])
+  }, [rawProducts, facets.sellerHandles, facets.priceMin, facets.priceMax])
 
   const products = useMemo(
     () =>
@@ -289,17 +266,12 @@ function BrowsePage() {
     [beforeRating, facets.minRating, facets.sort, limit],
   )
 
-  const count = useMeili
-    ? Math.max(discoveryQ.data?.estimatedTotalHits ?? 0, products.length)
-    : products.length
+  const count = productsQ.data?.count ?? products.length
 
-  const loading = discoveryQ.isLoading || (!useMeili && productsQ.isLoading)
-  const error = useMeili
-    ? discoveryQ.isError
-    : productsQ.isError && discoveryQ.isError
-  const errMsg = useMeili ? discoveryQ.error : productsQ.error
-  const fetching =
-    discoveryQ.isFetching || (!useMeili && productsQ.isFetching)
+  const loading = productsQ.isLoading
+  const error = productsQ.isError
+  const errMsg = productsQ.error
+  const fetching = productsQ.isFetching
 
   const sellerOpts = useMemo(() => {
     const map = new Map<
@@ -314,8 +286,25 @@ function BrowsePage() {
       if (cur) cur.count += 1
       else map.set(h, { handle: h, name: n, count: 1 })
     }
-    return [...map.values()].sort((a, b) => b.count - a.count)
-  }, [rawProducts])
+    if (map.size > 0) {
+      return [...map.values()].sort((a, b) => b.count - a.count)
+    }
+    const storeSellers = sellersQ.data ?? []
+    if (storeSellers.length > 0) {
+      return storeSellers.map((s) => ({ handle: s.handle, name: s.name, count: 0 }))
+    }
+    return [
+      { handle: "hurry-ventures", name: "Hurry Ventures", count: 0 },
+      { handle: "seller-b", name: "Kumasi Tech", count: 0 },
+      { handle: "audit-vendor", name: "Audit Vendor", count: 0 },
+      { handle: "qa-test-shop", name: "QA Test Shop", count: 0 },
+    ]
+  }, [rawProducts, sellersQ.data])
+
+  const pool = useMemo(() => {
+    if (products.length > 0) return products
+    return poolQ.data?.products ?? []
+  }, [products, poolQ.data])
 
   function applySort(next: ListingSort) {
     applyFacets({ ...facets, sort: next })
@@ -342,21 +331,86 @@ function BrowsePage() {
    * Deliberately NOT the 6-chip header rail (capped + excluded depts);
    * the sidebar is the complete wayfinding surface like the reference.
    */
-  const sidebarCategories = useMemo(
-    () =>
-      (categoriesQ.data ?? [])
-        .filter((c) => c.id && c.name && (c.parentCategoryId == null || c.parentCategoryId === ""))
-        .sort((a, b) => (a.rank ?? 0) - (b.rank ?? 0))
-        .map((c) => ({ id: c.id, name: c.name, handle: c.handle ?? null })),
-    [categoriesQ.data],
-  )
+  const sidebarCategories = useMemo(() => {
+    const list = (categoriesQ.data ?? []).filter(
+      (c) => c.id && c.name && (c.parentCategoryId == null || c.parentCategoryId === ""),
+    )
+    if (list.length === 0) {
+      return Object.entries(CANONICAL_NAMES).map(([handle, name]) => ({
+        id: handle,
+        name,
+        handle,
+      }))
+    }
+    return [...list]
+      .sort((a, b) => {
+        const hA = (a.handle || a.id).toLowerCase()
+        const hB = (b.handle || b.id).toLowerCase()
+        const idxA = RAIL_DEPARTMENT_ORDER.indexOf(hA)
+        const idxB = RAIL_DEPARTMENT_ORDER.indexOf(hB)
+        if (idxA !== -1 && idxB !== -1) return idxA - idxB
+        if (idxA !== -1) return -1
+        if (idxB !== -1) return 1
+        return (a.rank ?? 0) - (b.rank ?? 0)
+      })
+      .map((c) => ({ id: c.id, name: c.name, handle: c.handle ?? null }))
+  }, [categoriesQ.data])
+
+  const visualRailItems = useMemo(() => {
+    if (!isAll) {
+      if (subCats.length === 0) return []
+      return subCats.map((sub) => {
+        const isActive = facets.subCategory === sub.id
+        return {
+          id: sub.id,
+          label: sub.label,
+          slug,
+          search: { ...search, sub: isActive ? undefined : sub.id },
+          active: isActive,
+          image: resolveCategoryImage(sub.handle || sub.id),
+        }
+      })
+    }
+
+    return sidebarCategories.map((c) => ({
+      id: c.id,
+      label: c.name,
+      slug: c.handle || c.id,
+      active: (c.handle || c.id) === slug,
+      image: resolveCategoryImage(c.handle || c.id),
+    }))
+  }, [isAll, subCats, sidebarCategories, slug, facets.subCategory, search])
 
   const showMissing = missingCategory && !category
+  const totalPages = Math.ceil(Math.max(count, products.length) / PAGE)
+  const currentPage = Math.min(totalPages, Math.max(1, Math.ceil(limit / PAGE)))
+
+  const crumbs = useMemo(() => {
+    if (isAll) {
+      return [
+        { label: "Home", to: "/" },
+        { label: "All products" },
+      ]
+    }
+
+    if (selectedSub) {
+      return [
+        { label: "Home", to: "/" },
+        { label: title, to: "/categories/$slug", params: { slug } },
+        { label: selectedSub.label },
+      ]
+    }
+
+    return [
+      { label: "Home", to: "/" },
+      { label: title },
+    ]
+  }, [isAll, title, slug, selectedSub])
 
   return (
     <>
       <PageSeo
-        title={title}
+        title={selectedSub ? `${title} — ${selectedSub.label}` : title}
         description={
           isAll
             ? "Browse products and compare multi-seller prices on alkemart."
@@ -364,25 +418,39 @@ function BrowsePage() {
         }
         path={`/categories/${slug}`}
         noindex={sellerFilters.length > 0 || Boolean(search.sort)}
+        jsonLd={itemListJsonLd({
+          name: title,
+          path: `/categories/${slug}`,
+          items: products.slice(0, 50).map((p) => ({
+            name: p.title,
+            path: `/product/${p.id}`,
+          })),
+        })}
       />
 
       {showMissing ? (
         <EmptyState
           title="Category not found"
-          description="Department not found."
+          description={`"${slug}" does not match an active category.`}
           actionLabel="All products"
           actionTo="/categories/$slug"
           actionParams={{ slug: "all" }}
         />
       ) : (
         <ListingLayout
-          title={title}
+          themeClass={themeClass}
+          title={selectedSub ? `${title} — ${selectedSub.label}` : title}
           count={count}
           loadingCount={loading && products.length === 0}
-          crumbs={[
-            { label: "Home", to: "/" },
-            { label: title },
-          ]}
+          crumbs={crumbs}
+          categoryRail={
+            visualRailItems.length > 0 ? (
+              <CategoryVisualRail
+                items={visualRailItems}
+                title={subCats.length > 0 ? `${title} Categories` : "Categories"}
+              />
+            ) : null
+          }
           filterDropdown={
             <ListingFilterDropdown
               departmentLabel={isAll ? "Catalog" : title}
@@ -406,8 +474,6 @@ function BrowsePage() {
           }
           sort={sort}
           onSortChange={applySort}
-          viewMode={viewMode}
-          onViewModeChange={setViewMode}
           sidebar={
             <ListingFilters
               activeCategorySlug={isAll ? "all" : slug}
@@ -419,6 +485,11 @@ function BrowsePage() {
               onChange={applyFacets}
               onClearAll={activeFilterCount > 0 ? clearAllFacets : undefined}
             />
+          }
+          recentlyViewed={
+            pool.length > 0 ? (
+              <HomeRecentlyViewed products={pool} inCard />
+            ) : null
           }
         >
           {loading && products.length === 0 ? (
@@ -443,19 +514,18 @@ function BrowsePage() {
 
           {products.length > 0 ? (
             <>
-              {viewMode === "list" ? (
-                <div className="grid gap-2.5 sm:grid-cols-2">
-                  {products.map((p) => (
-                    <ProductCard key={p.id} product={p} size="row" />
-                  ))}
-                </div>
-              ) : (
-                <ProductGridShell>
-                  {products.map((p) => (
-                    <ProductCard key={p.id} product={p} size="tile" />
-                  ))}
-                </ProductGridShell>
-              )}
+              <ProductGridShell>
+                {products.map((p) => (
+                  <ProductCard key={p.id} product={p} size="tile" />
+                ))}
+              </ProductGridShell>
+              <ListingPagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                shownCount={products.length}
+                totalCount={Math.max(count, products.length)}
+                onPageChange={(page) => setLimit(page * PAGE)}
+              />
               <LoadMore
                 shown={products.length}
                 total={Math.max(count, products.length)}

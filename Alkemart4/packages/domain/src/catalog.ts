@@ -3,6 +3,8 @@ import { pickBestOffer, sortPeerOffers, toPeerOffer, type PeerOfferDto, type Pee
 export type ProductCardDto = {
   productId: string
   title: string
+  /** URL handle for /product/{slug}-{id}; null on rows predating slugs. */
+  slug: string | null
   categoryHandle: string
   categoryName: string
   imageUrl: string | null
@@ -55,6 +57,9 @@ export type ProductReviewDto = {
 export type ProductDetailDto = {
   productId: string
   title: string
+  /** URL handle; canonicalRef is the link the UI must share/index. */
+  slug: string | null
+  canonicalRef: string
   description: string | null
   categoryHandle: string
   categoryName: string
@@ -84,6 +89,7 @@ export type ProductDetailDto = {
 export type ProductCardInput = {
   productId: string
   title: string
+  slug?: string | null
   categoryHandle: string
   categoryName: string
   imageUrl: string | null
@@ -93,6 +99,7 @@ export type ProductCardInput = {
 export type ProductDetailInput = {
   productId: string
   title: string
+  slug?: string | null
   description: string | null
   categoryHandle: string
   categoryName: string
@@ -129,6 +136,7 @@ export function toProductCard(
   return {
     productId: product.productId,
     title: product.title,
+    slug: product.slug ?? null,
     categoryHandle: product.categoryHandle,
     categoryName: product.categoryName,
     imageUrl: product.imageUrl,
@@ -160,6 +168,10 @@ export function toProductDetail(
     productId: product.productId,
     title: product.title,
     description: product.description,
+    slug: product.slug ?? null,
+    canonicalRef: product.slug
+      ? `${product.slug}-${product.productId}`
+      : product.productId,
     categoryHandle: product.categoryHandle,
     categoryName: product.categoryName,
     imageUrls: product.imageUrls,

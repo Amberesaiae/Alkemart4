@@ -122,43 +122,6 @@ export function LastOffersTabs({
             <SelectItem value="newest">Newest</SelectItem>
           </SelectContent>
         </Select>
-
-        {onViewChange ? (
-          <div
-            className="flex overflow-hidden rounded-md border border-border"
-            role="group"
-            aria-label="View mode"
-          >
-            <button
-              type="button"
-              aria-pressed={view === "grid"}
-              aria-label="Grid view"
-              onClick={() => onViewChange("grid")}
-              className={cn(
-                "flex h-9 w-9 items-center justify-center",
-                view === "grid"
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-card text-muted-foreground hover:bg-muted",
-              )}
-            >
-              <IconSafe name="filter-grid" size={18} preferAsset />
-            </button>
-            <button
-              type="button"
-              aria-pressed={view === "list"}
-              aria-label="List view"
-              onClick={() => onViewChange("list")}
-              className={cn(
-                "flex h-9 w-9 items-center justify-center border-l border-border",
-                view === "list"
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-card text-muted-foreground hover:bg-muted",
-              )}
-            >
-              <IconSafe name="filter-list" size={18} preferAsset={false} />
-            </button>
-          </div>
-        ) : null}
       </div>
     </div>
   )

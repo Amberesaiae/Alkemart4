@@ -5,6 +5,10 @@ import {
   InvalidVariantMatrixError,
   normalizeOptionSpecs,
 } from "./variant-matrix"
+import { resetRateLimits } from "./middleware/security"
+
+// Rate-limit counters are per-process: reset so files stay isolated.
+resetRateLimits()
 
 function throws(fn: () => unknown): string {
   try {

@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest"
 import { flagCatalogProduct, flaggingContext } from "./moderation-flags"
+import { resetRateLimits } from "./middleware/security"
+// Rate-limit counters are per-process: reset so files stay isolated.
+resetRateLimits()
 
 const BASE = {
   id: "p-1",

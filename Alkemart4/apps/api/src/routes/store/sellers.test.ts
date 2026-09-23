@@ -5,6 +5,9 @@ import { InMemoryAuthRepository } from "../../auth-repository"
 import { InMemoryCatalogRepository } from "../../catalog-repository"
 import { demoCatalog, type CatalogSnapshot } from "../../demo-seed"
 import type { ApiEnv } from "../../env"
+import { resetRateLimits } from "../../middleware/security"
+// Rate-limit counters are per-process: reset so files stay isolated.
+resetRateLimits()
 
 function testEnv(): ApiEnv {
   return {
@@ -56,6 +59,9 @@ function withSellerAOnlyProduct(data: CatalogSnapshot): CatalogSnapshot {
     profileAttributes: [],
     productAttributeValues: [],
     matchCandidates: [],
+    searchAliases: [],
+    verifications: [],
+    priceHistory: [],
   }
 }
 

@@ -28,6 +28,9 @@ export const products = pgTable("products", {
   id: text("id").primaryKey(),
   title: text("title").notNull(),
   description: text("description"),
+  /** URL handle for /product/{slug}-{id}. Backfilled from titles (0027);
+   * the trailing id stays authoritative so slugs never break links. */
+  slug: text("slug"),
   status: productStatusEnum("status").notNull().default("draft"),
   primaryCategoryId: text("primary_category_id")
     .notNull()

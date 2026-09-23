@@ -28,7 +28,7 @@ import {
   WhatsappLogo,
 } from "@phosphor-icons/react"
 import { listStoreProducts, type StoreProductCard } from "@/lib/products"
-import { getStoreVendorBySlug } from "@/lib/vendors"
+import { getSellerVerifications, getStoreVendorBySlug, listStoreCollections } from "@/lib/vendors"
 import { trackSellerStoreViewed } from "@/lib/analytics"
 import { PageSeo } from "@/components/page-seo"
 import { storeJsonLd, stripHtml, truncateMeta } from "@/lib/seo"
@@ -65,6 +65,19 @@ function StorePage() {
     queryFn: () => getStoreVendorBySlug(slug),
   })
 
+  /**
+   * Decomposed verification evidence (Phase 3D): each badge names what was
+   * checked. Empty reads render nothing — new sellers show no badges,
+   * never invented ones.
+   */
+  const verificationsQ = useQuery({
+    queryKey: ["store", "vendor", slug, "verifications"],
+    queryFn: () => getSellerVerifications(slug),
+    enabled: vendorQ.isSuccess,
+    staleTime: 300_000,
+  })
+  const verifications = verificationsQ.data ?? []
+
   /** Server catalog filter by open seller handle (slug). No client invent. */
   const productsQ = useQuery({
     queryKey: ["store", "products", "seller", slug],
@@ -81,6 +94,18 @@ function StorePage() {
   const trust = vendor?.trust ?? null
   const products = productsQ.data?.products ?? []
   const isRestaurant = Boolean(vendor?.coverImageUrl)
+
+  /**
+   * Seller-owned shelves (Phase 4A): live collections only. Empty reads
+   * render nothing — the section hides, never placeholder shelves.
+   */
+  const shelvesQ = useQuery({
+    queryKey: ["store", "vendor", slug, "collections"],
+    queryFn: () => listStoreCollections(vendor?.id ?? ""),
+    enabled: Boolean(vendor?.id),
+    staleTime: 300_000,
+  })
+  const shelves = shelvesQ.data ?? []
 
   /** In-shop search narrows every shelf below (Etsy-style "search this shop"). */
   const visibleProducts = useMemo(() => {
@@ -209,6 +234,7 @@ function StorePage() {
             name,
             description: vendor?.bio ? String(vendor.bio) : null,
             path: storePath,
+            location: trust?.location ?? null,
           })}
         />
       ) : null}
@@ -240,7 +266,7 @@ function StorePage() {
 
       {vendor && name ? (
         <div className="space-y-6">
-          <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-xs">
+          <div className="overflow-hidden rounded-xl border border-border bg-card shadow-xs">
             {vendor.coverImageUrl ? (
               <div className="relative h-52 w-full overflow-hidden sm:h-72">
                 <img
@@ -270,13 +296,13 @@ function StorePage() {
                       {name}
                     </h1>
                     {vendor.badgeTopSeller ? (
-                      <Badge className="gap-1 font-semibold bg-tone-neutral-soft text-foreground border-none [&_svg]:text-tone-success-ink">
-                        <SealCheck className="h-3.5 w-3.5" weight="fill" /> Top seller
+                      <Badge className="gap-1 font-semibold bg-tone-neutral-soft text-foreground border-none">
+                        <SealCheck className="h-3.5 w-3.5 text-muted-foreground" weight="bold" /> Top seller
                       </Badge>
                     ) : null}
                     {vendor.badgeFastShipper ? (
-                      <Badge className="gap-1 font-semibold bg-tone-neutral-soft text-foreground border-none [&_svg]:text-tone-success-ink">
-                        <Truck className="h-3.5 w-3.5" /> Fast shipper
+                      <Badge className="gap-1 font-semibold bg-tone-neutral-soft text-foreground border-none">
+                        <Truck className="h-3.5 w-3.5 text-muted-foreground" /> Fast shipper
                       </Badge>
                     ) : null}
                   </div>
@@ -458,6 +484,48 @@ function StorePage() {
         />
       ) : null}
 
+      {/* Seller shelves: vendor-curated sets, independent of taxonomy. */}
+      {shelves.length > 0 ? (
+        <section className="space-y-3" aria-label="Shop shelves">
+          <h2 className="type-section text-foreground">Shelves</h2>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {shelves.map((shelf) => (
+              <Link
+                key={shelf.id}
+                to="/shops/collections/$collectionId"
+                params={{ collectionId: shelf.id }}
+                search={{ shop: slug }}
+                className="group flex items-center gap-3 rounded-xl border border-border bg-card p-3 transition-colors hover:border-primary/60"
+              >
+                {shelf.imageUrl ? (
+                  <img
+                    src={shelf.imageUrl}
+                    alt=""
+                    aria-hidden
+                    className="h-14 w-14 shrink-0 rounded-xl object-cover"
+                    loading="lazy"
+                  />
+                ) : (
+                  <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-muted text-lg font-bold text-muted-foreground" aria-hidden>
+                    {shelf.name.slice(0, 1).toUpperCase()}
+                  </div>
+                )}
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-bold text-foreground group-hover:text-primary">
+                    {shelf.name}
+                  </p>
+                  <p className="truncate text-xs text-muted-foreground">
+                    {shelf.cards.length} {shelf.cards.length === 1 ? "item" : "items"}
+                    {shelf.description ? ` · ${shelf.description}` : ""}
+                  </p>
+                </div>
+                <CaretRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+              </Link>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
       {/* Retail Mode (Melcom Labone style): Clean 5-column product grid directly under tabs/pills */}
       {!isRestaurant && visibleProducts.length > 0 ? (
         <div className="space-y-4">
@@ -517,7 +585,7 @@ function StorePage() {
           <h2 className="type-section text-foreground">Buyer reviews</h2>
           <div className="grid gap-3 md:grid-cols-3">
             {trust.ratingAvg !== null ? (
-              <div className="flex flex-col justify-center rounded-2xl border border-border bg-card p-5">
+              <div className="flex flex-col justify-center rounded-xl border border-border bg-card p-5">
                 <p className="text-4xl font-bold text-foreground">{trust.ratingAvg}</p>
                 <ProductRating value={trust.ratingAvg} size={16} />
                 <p className="mt-1 text-sm font-medium text-muted-foreground">
@@ -526,11 +594,11 @@ function StorePage() {
               </div>
             ) : null}
             {trust.recentReviews.slice(0, trust.ratingAvg !== null ? 2 : 3).map((r, i) => (
-              <figure key={`${r.createdAt}-${i}`} className="flex flex-col gap-2 rounded-2xl border border-border bg-card p-5">
+              <figure key={`${r.createdAt}-${i}`} className="flex flex-col gap-2 rounded-xl border border-border bg-card p-5">
                 <ProductRating value={r.rating} size={14} />
                 <blockquote className="text-sm leading-relaxed text-foreground">“{r.body}”</blockquote>
                 <figcaption className="mt-auto text-xs font-medium text-muted-foreground">
-                  {r.productTitle} · {new Date(r.createdAt).toLocaleDateString()}
+                  {r.productTitle} · Verified purchase · {new Date(r.createdAt).toLocaleDateString()}
                 </figcaption>
               </figure>
             ))}
@@ -538,9 +606,28 @@ function StorePage() {
         </section>
       ) : null}
 
+      {verifications.length > 0 ? (
+        <section aria-label="Verified by Alkemart" className="space-y-2">
+          <h2 className="type-section text-foreground">Verified</h2>
+          <ul className="grid gap-2 md:grid-cols-2">
+            {verifications.map((v) => (
+              <li
+                key={v.id}
+                className="flex items-start gap-2 rounded-xl border border-border bg-card p-3 text-sm"
+              >
+                <SealCheck className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+                <span className="font-medium text-foreground">
+                  {v.meaning || "Verified by Alkemart."}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
       {vendor && trust ? (
         <section className="grid gap-3 md:grid-cols-2" aria-label="About this shop">
-          <div className="space-y-3 rounded-2xl border border-border bg-card p-5">
+          <div className="space-y-3 rounded-xl border border-border bg-card p-5">
             <h2 className="type-section text-foreground">About {name}</h2>
             <p className="text-sm leading-relaxed text-muted-foreground">
               {vendor.bio ?? `${name} sells on Alkemart. Ask the seller anything before you buy.`}
@@ -578,7 +665,7 @@ function StorePage() {
               ) : null}
             </dl>
           </div>
-          <div className="space-y-3 rounded-2xl border border-border bg-card p-5">
+          <div className="space-y-3 rounded-xl border border-border bg-card p-5">
             <h2 className="type-section text-foreground">Shop policies</h2>
             {trust.policy?.shipping ? (
               <div className="flex items-start gap-2.5 text-sm">
@@ -646,7 +733,7 @@ function slugify(s: string): string {
 function StorePageSkeleton() {
   return (
     <div className="space-y-6" role="status" aria-label="Loading store">
-      <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-xs">
+      <div className="overflow-hidden rounded-xl border border-border bg-card shadow-xs">
         <Skeleton className="h-48 w-full rounded-none sm:h-64" />
         <div className="p-5 sm:p-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">

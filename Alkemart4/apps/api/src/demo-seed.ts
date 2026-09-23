@@ -33,6 +33,8 @@ export type CatalogProduct = {
   id: string
   title: string
   description: string | null
+  /** URL handle; absent on fixtures and rows predating the slug column. */
+  slug?: string | null
   /** Structured facts ({label,value}[]); absent on rows that predate the column. */
   attributes?: { label: string; value: string }[]
   status: ProductStatus
@@ -169,6 +171,31 @@ export type CatalogSearchAlias = {
   createdAt: string
 }
 
+/** Decomposed seller verification evidence (Phase 3D). */
+export type CatalogSellerVerification = {
+  id: string
+  sellerId: string
+  kind: "contact" | "identity" | "business" | "brand_auth" | "fulfillment_proven"
+  status: "pending" | "verified" | "revoked" | "expired"
+  evidence?: string | null
+  issuedBy?: string | null
+  issuedAt?: string | null
+  expiresAt?: string | null
+  revokedAt?: string | null
+  revokeReason?: string | null
+  createdAt: string
+}
+
+/** Append-only price log (Phase 3A integrity). */
+export type CatalogPriceHistory = {
+  id: string
+  offerId: string
+  oldPricePesewas: string
+  newPricePesewas: string
+  changedBy?: string | null
+  createdAt: string
+}
+
 export type CatalogSnapshot = {
   categories: CatalogCategory[]
   sellers: CatalogSeller[]
@@ -184,6 +211,8 @@ export type CatalogSnapshot = {
   productAttributeValues: CatalogProductAttributeValue[]
   matchCandidates: CatalogMatchCandidate[]
   searchAliases: CatalogSearchAlias[]
+  verifications: CatalogSellerVerification[]
+  priceHistory: CatalogPriceHistory[]
 }
 
 export type JsonCatalogSnapshot = {
@@ -197,6 +226,8 @@ export type JsonCatalogSnapshot = {
   productAttributeValues?: CatalogProductAttributeValue[]
   matchCandidates?: CatalogMatchCandidate[]
   searchAliases?: CatalogSearchAlias[]
+  verifications?: CatalogSellerVerification[]
+  priceHistory?: CatalogPriceHistory[]
   sellers: Array<Omit<CatalogSeller, "deliveryFeePesewas"> & { deliveryFeePesewas: string }>
   products: CatalogProduct[]
   variants: CatalogVariant[]
@@ -221,6 +252,8 @@ export function demoCatalog(): CatalogSnapshot {
     productAttributeValues: [],
     matchCandidates: [],
     searchAliases: [],
+    verifications: [],
+    priceHistory: [],
     sellers: [
       {
         id: "seller-a",
@@ -302,6 +335,8 @@ export function snapshotToJson(data: CatalogSnapshot): JsonCatalogSnapshot {
     productAttributeValues: data.productAttributeValues,
     matchCandidates: data.matchCandidates,
     searchAliases: data.searchAliases,
+    verifications: data.verifications,
+    priceHistory: data.priceHistory,
     sellers: data.sellers.map((s) => ({
       ...s,
       deliveryFeePesewas: s.deliveryFeePesewas.toString(),
@@ -328,6 +363,8 @@ export function snapshotFromJson(json: JsonCatalogSnapshot): CatalogSnapshot {
     productAttributeValues: json.productAttributeValues ?? [],
     matchCandidates: json.matchCandidates ?? [],
     searchAliases: json.searchAliases ?? [],
+    verifications: json.verifications ?? [],
+    priceHistory: json.priceHistory ?? [],
     sellers: json.sellers.map((s) => ({
       ...s,
       status: s.status,

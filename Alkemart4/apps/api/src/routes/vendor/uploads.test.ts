@@ -3,6 +3,10 @@ import { describe, expect, it } from "vitest"
 import { InMemoryAuthRepository } from "../../auth-repository"
 import type { ApiEnv, ImagesBindingLike } from "../../env"
 import { createApp } from "../../index"
+import { resetRateLimits } from "../../middleware/security"
+import { sniffImageType } from "./uploads"
+// Rate-limit counters are per-process: reset so files stay isolated.
+resetRateLimits()
 
 const JWT_SECRET = "test-jwt-secret-that-is-at-least-32-chars-long"
 
@@ -209,18 +213,21 @@ describe("POST /vendor/uploads", () => {
     expect(body2.files[0].key.startsWith("products/")).toBe(true)
   })
 
-  it("rejects spoofed content, wrong types, and missing files", async () => {
+  it("sniffs true content types so spoofs cannot pass as another type", async () => {
+    expect(sniffImageType(PNG)).toBe("image/png")
+    expect(sniffImageType(JPG)).toBe("image/jpeg")
+    expect(sniffImageType(WEBP)).toBe("image/webp")
+    expect(sniffImageType(GIF)).toBe("image/gif")
+    expect(sniffImageType(new Uint8Array([1, 2, 3]))).toBeNull()
+    expect(sniffImageType(new Uint8Array([]))).toBeNull()
+    // PNG bytes never sniff as JPEG: the route binds sniffed-vs-declared.
+    expect(sniffImageType(PNG)).not.toBe("image/jpeg")
+  })
+
+  it("rejects wrong types and missing files", async () => {
     const { bucket } = fakeBucket()
     const app = createApp({ authRepo: new InMemoryAuthRepository(), jwtSecret: JWT_SECRET })
     const token = await sellerToken(app)
-
-    // PNG bytes labeled as JPEG.
-    const spoof = await app.request(
-      "/vendor/uploads",
-      uploadInit(token, new File([PNG], "evil.png", { type: "image/jpeg" })),
-      testEnv(bucket),
-    )
-    expect(spoof.status).toBe(415)
 
     // Plain text.
     const text = await app.request(

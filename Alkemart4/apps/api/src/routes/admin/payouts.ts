@@ -133,3 +133,89 @@ export const adminPayouts = new Hono<AppEnv>()
       })
     }
   })
+
+const HoldBody = z.object({
+  sellerId: z.string().min(1),
+  orderId: z.string().min(1).optional().nullable(),
+  amountPesewas: z.string().regex(/^\d+$/).optional().nullable(),
+  reason: z.string().trim().min(1).max(1000),
+})
+
+/**
+ * Phase 4D — payout holds. An order-level hold freezes one order's net; a
+ * hold without orderId freezes the seller's whole pending balance (account
+ * review). Every hold and release names its actor in the audit log.
+ */
+export const adminPayoutHolds = new Hono<AppEnv>()
+  .use("*", requireAdmin)
+  .get("/", async (c) => {
+    const sellerId = c.req.query("seller_id")?.trim()
+    if (!sellerId) throw new HTTPException(400, { message: "seller_id required" })
+    const all = c.req.query("all") === "1"
+    const holds = await c.get("checkoutRepo").listPayoutHolds(sellerId, !all)
+    return c.json({
+      holds: holds.map((h) => ({
+        id: h.id,
+        sellerId: h.sellerId,
+        orderId: h.orderId,
+        amountPesewas: h.amountPesewas?.toString() ?? null,
+        reason: h.reason,
+        status: h.status,
+        createdBy: h.createdBy,
+        releasedBy: h.releasedBy,
+        releasedAt: h.releasedAt ? h.releasedAt.toISOString() : null,
+        createdAt: h.createdAt.toISOString(),
+      })),
+    })
+  })
+  .post("/", async (c) => {
+    const parsed = HoldBody.safeParse(await readJsonBody(c))
+    if (!parsed.success) throw new HTTPException(400, { message: "invalid body" })
+    const seller = await c.get("authRepo").findSellerById(parsed.data.sellerId)
+    if (!seller) throw new HTTPException(404, { message: "seller not found" })
+    try {
+      const hold = await c.get("checkoutRepo").createPayoutHold({
+        sellerId: seller.id,
+        orderId: parsed.data.orderId ?? null,
+        amountPesewas:
+          parsed.data.amountPesewas !== undefined && parsed.data.amountPesewas !== null
+            ? BigInt(parsed.data.amountPesewas)
+            : null,
+        reason: parsed.data.reason,
+        createdBy: c.get("auth").userId,
+      })
+      await c.get("auditLog").log({
+        adminUserId: c.get("auth").userId,
+        action: "payout.hold",
+        targetType: "seller",
+        targetId: seller.id,
+        detail: { holdId: hold.id, orderId: hold.orderId, reason: hold.reason },
+      })
+      return c.json({
+        hold: {
+          id: hold.id,
+          sellerId: hold.sellerId,
+          orderId: hold.orderId,
+          amountPesewas: hold.amountPesewas?.toString() ?? null,
+          reason: hold.reason,
+          status: hold.status,
+          createdAt: hold.createdAt.toISOString(),
+        },
+      }, 201)
+    } catch (err) {
+      if (err instanceof HTTPException) throw err
+      throw new HTTPException(400, { message: err instanceof Error ? err.message : "invalid hold" })
+    }
+  })
+  .post("/:id/release", async (c) => {
+    const hold = await c.get("checkoutRepo").releasePayoutHold(c.req.param("id"), c.get("auth").userId)
+    if (!hold) throw new HTTPException(404, { message: "hold not found" })
+    await c.get("auditLog").log({
+      adminUserId: c.get("auth").userId,
+      action: "payout.unhold",
+      targetType: "seller",
+      targetId: hold.sellerId,
+      detail: { holdId: hold.id, orderId: hold.orderId },
+    })
+    return c.json({ hold: { id: hold.id, status: hold.status } })
+  })

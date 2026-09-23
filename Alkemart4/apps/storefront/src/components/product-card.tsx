@@ -6,23 +6,15 @@ import { SellerChip } from "@/components/seller-chip"
 import { AddToCartControl } from "@/components/product/AddToCartControl"
 import { WishlistButton } from "@/components/product/WishlistButton"
 import { Icon } from "@/design/icons"
-import { brand } from "@/design/brand"
 import { Badge } from "@workspace/ui"
 import { deptThemeClass } from "@/lib/category-theme"
 import { iconForCategory } from "@/lib/catalog-nav"
 import type { StoreProductCard } from "@/lib/products"
 import { addOfferToCart } from "@/lib/cart"
-import { sellersHintText } from "@/lib/sellers-hint"
 import { cardRating } from "@/lib/product-rating"
 import { QuickBuyDialog } from "@/components/product/QuickBuyDialog"
 import { cn } from "@/lib/utils"
 
-/**
- * Card sizes:
- *  tile — default 4-up grid (PLP, home, search, store, related)
- *  row  — list mode only (image left, compact body)
- *  hero | feature | md | sm — aliases → tile (hierarchy retired for density)
- */
 export type ProductCardSize =
   | "hero"
   | "feature"
@@ -35,7 +27,7 @@ export type ProductCardSize =
 /** @deprecated prefer size */
 export type ProductCardDensity = "compact" | "comfortable"
 
-type ProductCardProps = {
+export type ProductCardProps = {
   product: StoreProductCard
   className?: string
   density?: ProductCardDensity
@@ -44,10 +36,8 @@ type ProductCardProps = {
   hideSeller?: boolean
   /** Home editorial rails can suppress comparison metadata to keep cards quiet. */
   hideSellerCount?: boolean
+  imageFit?: "contain" | "cover"
 }
-
-const shell =
-  "group overflow-hidden rounded-xl border border-black/[0.08] bg-card shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
 
 /** Stock states surfaced on the card — fewer dead-end add-to-cart clicks. */
 function stockState(product: StoreProductCard): "in" | "low" | "out" | "unknown" {
@@ -59,20 +49,20 @@ function stockState(product: StoreProductCard): "in" | "low" | "out" | "unknown"
 }
 
 /**
- * Concise retail card: image · title (2 lines) · seller · price · trust.
- *
- * Surfaces the facts a Ghana marketplace buyer needs before clicking: which
- * shop sells it, what it costs, whether anyone has rated it, how many sellers
- * compete, and what stock is left. Add-to-cart floats on the artwork, so the
- * price never shares its row.
+ * Alkemart Product Card layout:
+ * - Rounded image card at top with Alkemart gold (+) add-to-cart button
+ * - Information completely outside the card, with exact text hierarchy:
+ *   1. Product Name (truncate, text-sm font-semibold text-foreground)
+ *   2. Vendor / Shop name (truncate, text-xs text-muted-foreground)
+ *   3. Figure / Price (bold text-tone-brand-ink tabular-nums)
+ *   4. Rating (★ score (count), gold star text-amber-500, text-foreground score, muted count)
  */
 export function ProductCard({
   product,
   className,
-  density = "comfortable",
   size = "tile",
   hideSeller = false,
-  hideSellerCount = false,
+  imageFit = "cover",
 }: ProductCardProps) {
   const row = size === "row"
   const queryClient = useQueryClient()
@@ -84,7 +74,11 @@ export function ProductCard({
   const stock = stockState(product)
   const soldOut = stock === "out"
   const canAdd = Boolean(product.offerId) && !soldOut
-  const detailId = product.handle?.trim() || product.id
+  // Slug-id URLs when the card carries a slug; legacy handle/id otherwise.
+  // The route resolves every form, so no link here can 404 on shape alone.
+  const detailId = product.slug?.trim()
+    ? `${product.slug.trim()}-${product.id}`
+    : product.handle?.trim() || product.id
 
   async function onAdd() {
     if (!product.offerId) {
@@ -117,8 +111,7 @@ export function ProductCard({
     return (
       <article
         className={cn(
-          shell,
-          "flex h-full max-h-[112px] flex-row items-stretch",
+          "group flex h-full max-h-[112px] flex-row items-stretch overflow-hidden rounded-xl border border-black/[0.08] bg-card shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md",
           className,
         )}
       >
@@ -126,25 +119,37 @@ export function ProductCard({
           product={product}
           detailId={detailId}
           className="aspect-square w-[30%] max-w-[112px] shrink-0"
+          imageFit="cover"
         />
         <div className="flex min-w-0 flex-1 flex-col justify-center gap-1 p-2.5">
-          <Title product={product} detailId={detailId} />
+          <Link
+            to="/product/$id"
+            params={{ id: detailId }}
+            className="rounded-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          >
+            <h3 className="line-clamp-2 text-sm font-semibold leading-snug text-foreground transition-colors group-hover:text-primary-strong">
+              {product.title}
+            </h3>
+          </Link>
           {!hideSeller ? (
             <div className="flex min-w-0 items-center gap-1.5">
               <SellerChip seller={product.seller} short className="line-clamp-1" />
             </div>
           ) : null}
-          <TrustRow product={product} hideSellerCount={hideSellerCount} />
           <div className="flex items-center justify-between gap-2">
             <Price
               amount={product.amount}
               currencyCode={product.currencyCode}
               size="sm"
-              className="min-w-0 truncate whitespace-nowrap font-bold"
+              className="min-w-0 truncate whitespace-nowrap font-bold text-tone-brand-ink"
             />
             <div className="flex shrink-0 items-center gap-0.5">
               <WishlistButton productId={product.id} size={14} />
-              <AddToCartControl variant="icon" {...cart} />
+              <AddToCartControl
+                variant="icon"
+                {...cart}
+                className="size-7 rounded-lg bg-primary text-primary-foreground hover:bg-primary-strong"
+              />
             </div>
           </div>
           {error ? <ErrorLine message={error} /> : null}
@@ -153,99 +158,78 @@ export function ProductCard({
     )
   }
 
-  if (size === "store") {
-    const rating = cardRating(product.ratingAvg, product.ratingCount)
-    return (
-      <article
-        className={cn(
-          "group flex h-full w-full flex-col transition-all duration-200 hover:-translate-y-0.5",
-          className,
-        )}
-      >
-        <Media
-          product={product}
-          detailId={detailId}
-          className="aspect-square w-full shrink-0 rounded-2xl overflow-hidden bg-[#F2F4F7] dark:bg-muted/40 ring-1 ring-black/[0.04]"
-          imageFit="cover"
-          stock={stock}
-          cart={cart}
-        />
-        <div className="flex flex-1 flex-col pt-2 pb-0.5 gap-[2px]">
-          <Link
-            to="/product/$id"
-            params={{ id: detailId }}
-            className="rounded-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1"
-          >
-            <p
-              title={product.title}
-              className="truncate text-sm font-semibold text-foreground transition-colors hover:underline dark:text-foreground"
-            >
-              {product.title}
-            </p>
-          </Link>
-          {!hideSeller && product.seller ? (
-            <p className="truncate text-xs text-muted-foreground">
-              {product.seller.name || product.seller.handle}
-            </p>
-          ) : null}
-          <div className="flex min-w-0 items-center justify-between gap-1">
-            <Price
-              amount={product.amount}
-              currencyCode={product.currencyCode}
-              size="sm"
-              className="min-w-0 truncate whitespace-nowrap text-sm font-bold tabular-nums text-tone-brand-ink"
-            />
-            {rating ? (
-              <span
-                className="inline-flex shrink-0 items-center gap-0.5 whitespace-nowrap text-xs tabular-nums text-muted-foreground"
-                aria-label={rating.label}
-              >
-                <span>★</span> <span className="font-bold text-foreground">{rating.value}</span> ({rating.count})
-              </span>
-            ) : null}
-          </div>
-          {error ? <ErrorLine message={error} /> : null}
-        </div>
-      </article>
-    )
-  }
+  const rating = cardRating(product.ratingAvg, product.ratingCount)
 
-  /* Default tile — 4-up grid.
-     Four facts, in the order a marketplace buyer needs them: what it is,
-     who sells it, what it costs, whether anyone trusts them. Add-to-cart
-     floats on the image so the price row never has to share its width. */
   return (
-    <article className={cn(shell, "flex h-full w-full max-w-[240px] flex-col", className)}>
+    <article
+      className={cn(
+        "group flex h-full w-full flex-col text-left transition-all duration-200 hover:-translate-y-0.5",
+        className,
+      )}
+    >
+      {/* 1. Top Image Card */}
       <Media
         product={product}
         detailId={detailId}
-        className="aspect-square w-full shrink-0"
+        className="aspect-square w-full shrink-0 rounded-xl overflow-hidden bg-muted/20 dark:bg-muted/40 ring-1 ring-black/[0.04]"
+        imageFit={imageFit}
         stock={stock}
         cart={cart}
         onQuickView={() => setQuickBuy(true)}
       />
-      <div className="flex flex-1 flex-col gap-1 p-2 sm:p-2.5">
-        <Title product={product} detailId={detailId} />
-        {!hideSeller ? (
-          <div className="flex min-w-0 items-center gap-1.5">
-            <SellerChip
-              seller={product.seller}
-              short
-              className="line-clamp-1 type-sm"
-            />
-          </div>
+
+      {/* 2. Text information completely outside the card — all lines uniform size (text-sm sm:text-base) */}
+      <div className="flex flex-1 flex-col pt-2.5 pb-1 gap-1 min-w-0">
+        {/* Line 1: Product Name */}
+        <Link
+          to="/product/$id"
+          params={{ id: detailId }}
+          className="rounded-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+        >
+          <h3
+            title={product.title}
+            className="truncate text-sm sm:text-base font-semibold text-foreground transition-colors group-hover:text-primary-strong leading-snug"
+          >
+            {product.title}
+          </h3>
+        </Link>
+
+        {/* Line 2: Vendor */}
+        {product.seller?.name || product.seller?.handle ? (
+          <p className="truncate text-sm sm:text-base text-muted-foreground leading-snug">
+            {product.seller.name || product.seller.handle}
+          </p>
         ) : null}
-        <div className="mt-auto flex flex-col gap-0.5 pt-1">
+
+        {/* Line 3: Figure (Price in Alkemart brand bronze) */}
+        <div className="pt-0.5 leading-snug">
           <Price
             amount={product.amount}
             currencyCode={product.currencyCode}
-            size="sm"
-            className="min-w-0 truncate font-bold tabular-nums text-tone-brand-ink"
+            size="md"
+            className="min-w-0 truncate whitespace-nowrap text-sm sm:text-base font-bold tabular-nums text-tone-brand-ink"
           />
-          <TrustRow product={product} hideSellerCount={hideSellerCount} />
         </div>
+
+        {/* Line 4: Rating (★ value (count)) or quiet placeholder */}
+        {rating ? (
+          <div
+            className="flex items-center gap-1.5 text-sm sm:text-base tabular-nums font-medium pt-0.5 leading-snug"
+            aria-label={rating.label}
+          >
+            <span className="text-sm sm:text-base text-amber-500 font-bold" aria-hidden="true">★</span>
+            <span className="font-semibold text-foreground">{rating.value}</span>
+            <span className="text-muted-foreground/80 font-normal">({rating.count})</span>
+          </div>
+        ) : (
+          <div className="pt-0.5 text-xs text-muted-foreground/50 leading-snug">
+            No reviews yet
+          </div>
+        )}
+
         {error ? <ErrorLine message={error} /> : null}
       </div>
+
       <QuickBuyDialog
         product={product}
         open={quickBuy}
@@ -264,7 +248,6 @@ function StockBadge({ stock }: { stock: ReturnType<typeof stockState> }) {
     )
   }
   if (stock === "out") {
-    // Espresso rather than a hue: unavailable reads as "closed", not "alert".
     return (
       <Badge tone="neutral" emphasis="solid" className="bg-ink text-white">
         Sold out
@@ -286,19 +269,17 @@ function Media(props: {
   product: StoreProductCard
   detailId: string
   className?: string
-  showWish?: boolean
   stock?: ReturnType<typeof stockState>
-  /** Floating add-to-cart on the artwork (tile only). */
+  /** Floating add-to-cart on the artwork. */
   cart?: CartControl
   /** When set, the artwork opens quick buy instead of navigating. */
   onQuickView?: () => void
   imageFit?: "contain" | "cover"
 }) {
-  const { product, detailId, className, showWish, stock, cart, onQuickView, imageFit } = props
+  const { product, detailId, className, stock, cart, onQuickView, imageFit = "cover" } = props
   const [broken, setBroken] = useState(false)
   const [loaded, setLoaded] = useState(false)
   const title = (product.title || "Product").trim()
-  // Prefer processed webp derivatives; fall back to raw thumbnail/images/original
   const web = product.webUrl
   const thumb = product.thumbUrl
   const fallback =
@@ -317,8 +298,8 @@ function Media(props: {
         onLoad={() => setLoaded(true)}
         onError={() => setBroken(true)}
         className={cn(
-          "relative z-[1] h-full w-full transition duration-200 group-hover:scale-[1.03] motion-reduce:transition-none motion-reduce:group-hover:scale-100",
-          imageFit === "contain" ? "object-contain" : "object-cover",
+          "relative z-[1] h-full w-full transition duration-300 group-hover:scale-[1.04] motion-reduce:transition-none motion-reduce:group-hover:scale-100",
+          imageFit === "contain" ? "object-contain p-2.5 sm:p-3" : "object-cover",
           loaded ? "opacity-100" : "opacity-0",
         )}
         loading="lazy"
@@ -326,7 +307,6 @@ function Media(props: {
       />
     </>
   ) : (
-    /* No photo: department glyph only. Caption lives under the art. */
     <div
       className={cn(
         "cat-fallback flex h-full w-full items-center justify-center p-3",
@@ -343,15 +323,8 @@ function Media(props: {
     </div>
   )
 
-  /* The link fills the frame; the controls are siblings, not children.
-     Nesting a button inside an anchor is invalid and leaves screen-reader
-     and keyboard users with an ambiguous target. */
-  /* The artwork opens quick buy; the card title stays a real anchor to the
-     product page, so deep links, new-tab opens and crawlers all still work.
-     Browsing a marketplace is many small decisions, and a full page load
-     between each one is the tax that stops it. */
   return (
-    <div className={cn("relative w-full overflow-hidden bg-white", className)}>
+    <div className={cn("relative w-full overflow-hidden bg-muted/20 dark:bg-muted/40 rounded-xl", className)}>
       {onQuickView ? (
         <button
           type="button"
@@ -379,96 +352,20 @@ function Media(props: {
       ) : null}
       {cart ? (
         <span className="absolute right-2 top-2 z-10">
-          <AddToCartControl variant="icon" {...cart} />
+          <AddToCartControl
+            variant="icon"
+            {...cart}
+            className="size-7 sm:size-8 rounded-full bg-primary text-primary-foreground hover:bg-primary-strong active:scale-95 shadow-xs transition-transform hover:scale-105"
+          />
         </span>
       ) : null}
     </div>
-  )
-}
-
-/**
- * Rating on the left, peer-seller count on the right.
- *
- * A product with no published reviews renders no rating at all — not a
- * zero, not a greyed-out star row. An unearned score is worse than a
- * missing one, because it teaches buyers to discount every score on the
- * page. The whole row disappears when neither fact exists.
- */
-function TrustRow({
-  product,
-  hideSellerCount = false,
-}: {
-  product: StoreProductCard
-  hideSellerCount?: boolean
-}) {
-  const rating = cardRating(product.ratingAvg, product.ratingCount)
-  const hint = hideSellerCount ? null : sellersHintText(product.offerCount)
-  if (!rating && !hint) return null
-
-  return (
-    <div className="flex min-w-0 items-center justify-between gap-2">
-      {rating ? (
-        <span
-          className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap type-sm tabular-nums text-muted-foreground"
-          aria-label={rating.label}
-        >
-          <StarGlyph />
-          <span className="font-semibold text-foreground">{rating.value}</span>
-          <span aria-hidden>({rating.count})</span>
-        </span>
-      ) : (
-        <span />
-      )}
-      {hint ? (
-        <span
-          className="truncate type-sm text-muted-foreground"
-          data-testid="sellers-hint"
-        >
-          {hint}
-        </span>
-      ) : null}
-    </div>
-  )
-}
-
-/** Inline so the star never depends on an icon asset resolving. */
-function StarGlyph() {
-  return (
-    <svg width="12" height="12" viewBox="0 0 24 24" aria-hidden className="shrink-0">
-      <path
-        d="M12 2.5l2.85 5.78 6.38.93-4.62 4.5 1.09 6.35L12 16.98 6.3 20.06l1.09-6.35-4.62-4.5 6.38-.93L12 2.5z"
-        fill={brand.primary}
-      />
-    </svg>
-  )
-}
-
-function Title(props: {
-  product: StoreProductCard
-  detailId: string
-  className?: string
-}) {
-  return (
-    <Link
-      to="/product/$id"
-      params={{ id: props.detailId }}
-      className="rounded-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1"
-    >
-      <h3
-        className={cn(
-          "line-clamp-2 min-h-[2.75rem] text-[0.95rem] font-bold leading-snug text-foreground",
-          props.className,
-        )}
-      >
-        {props.product.title}
-      </h3>
-    </Link>
   )
 }
 
 function ErrorLine({ message }: { message: string }) {
   return (
-    <p className="type-sm leading-tight text-destructive" role="alert">
+    <p className="type-sm leading-tight text-destructive pt-0.5" role="alert">
       {message}
     </p>
   )
