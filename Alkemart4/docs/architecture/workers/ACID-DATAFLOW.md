@@ -29,7 +29,8 @@ Doctrine: [`AGNOSTIC-APPROACH.md`](./AGNOSTIC-APPROACH.md). This file is the **d
 | Charge/redirect without stock | MoMo and card **`reserveStock` before** Paystack charge/initialize; charge/init failure releases the hold and marks the intent `failed` |
 | Abandoned reservations | hourly cron (`[triggers]` in wrangler.toml → `runPaymentIntentExpiry`) flips stale pending momo/card intents (>60 min) to `expired` and releases stock. Free-tier fallback: `POST /admin/migrate/expire-payment-intents` (admin JWT) when cron slots are exhausted (API 10072) |
 | Connection lifecycle | postgres clients are created **per request** — Workers forbids reusing request-context sockets across requests; over Hyperdrive the per-request cost is a local handshake, not a new Postgres connection |
-| Read amplification | full-catalog snapshot cache (5 s TTL, per request instance) for public reads; invalidation on catalog mutations; `quote`/cart views use one batched join instead of per-item queries |
+| Read amplification | listings use a targeted slice (published products + offers/variants by id, 0028 indexes) instead of the 16-table snapshot; `quote`/cart views use one batched join instead of per-item queries |
+| Transient pooler blips | read-only slices retry (≤3, backoff) on connection-level errors only (`withTransientRetry`); constraint/query errors never retry |
 
 ## Entity model (Postgres)
 

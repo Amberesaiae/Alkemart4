@@ -19,3 +19,27 @@ export function primaryDb(env: ApiEnv) {
   const sql = postgres(env.HYPERDRIVE_PRIMARY.connectionString, { max: 5 })
   return drizzle(sql)
 }
+
+const TRANSIENT_DB_ERRORS = /CONNECT_TIMEOUT|ECONNRESET|EPIPE|ETIMEDOUT|connection timeout|too many clients/i
+
+/**
+ * Retry read-only DB work across transient pooler/network blips. First
+ * principles: a dropped TCP handshake must never become a 500 when the next
+ * attempt succeeds — but only connection-level errors retry, never constraint
+ * violations or query bugs. Backoff stays inside Workers' execution budget.
+ */
+export async function withTransientRetry<T>(fn: () => Promise<T>, attempts = 3): Promise<T> {
+  let last: unknown = null
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      return await fn()
+    } catch (error) {
+      last = error
+      const transient =
+        attempt < attempts && TRANSIENT_DB_ERRORS.test(error instanceof Error ? error.message : String(error))
+      if (!transient) throw error
+      await new Promise((resolve) => setTimeout(resolve, 500 * 2 ** (attempt - 1)))
+    }
+  }
+  throw last
+}

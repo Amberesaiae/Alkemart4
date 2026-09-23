@@ -11,7 +11,7 @@
 | POST | `/store/auth/register` | `{ email, password }` |
 | POST | `/store/auth/login` | JWT |
 | GET | `/store/categories` | Nav tree |
-| GET | `/store/catalog?q=&category=&limit=&offset=` | Browse/search |
+| GET | `/store/catalog?q=&category=&limit=&offset=` | Browse/search — targeted slice: published products (status index) + offers/variants by product id (0028); transient pooler blips retried, never a 500 on first timeout |
 | GET | `/store/products/:id` | PDP + peer offers |
 | GET | `/store/products/:id/peers?variant_id=&sort=` | Variant-safe comparison (`total`/`price`/`delivery`/`trust`) + explanation + per-offer price history; Level C → `comparisonEligible: false` |
 | GET | `/store/sellers/:handle/verifications` | Decomposed verification evidence (`meaning` per badge) |

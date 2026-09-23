@@ -62,7 +62,8 @@ import {
   type ProductDetailDto,
   type ProductStatus,
 } from "@alkemart/domain"
-import { and, desc, eq, inArray } from "drizzle-orm"
+import { and, desc, eq, ilike, inArray, or } from "drizzle-orm"
+import { withTransientRetry } from "./db"
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js"
 import { flagCatalogProduct, flaggingContext, type ProductFlag } from "./moderation-flags"
 import {
@@ -1247,6 +1248,135 @@ function descendantIds(rows: CatalogSnapshot["categories"], handle: string): str
 
 function categoryById(data: CatalogSnapshot) {
   return new Map(data.categories.map((c) => [c.id, c]))
+}
+
+/** Single row→snapshot mapping truth, shared by full loads and targeted slices. */
+type CategoryRow = typeof categories.$inferSelect
+type SellerRow = typeof sellers.$inferSelect
+type ProductRow = typeof products.$inferSelect
+type VariantRow = typeof productVariants.$inferSelect
+type OfferRow = typeof offers.$inferSelect
+
+function toSnapshotCategory(r: CategoryRow): CatalogSnapshot["categories"][number] {
+  return {
+    id: r.id,
+    handle: r.handle,
+    name: r.name,
+    parentId: r.parentId,
+    rank: r.rank,
+    isNav: r.isNav,
+    code: r.code,
+    displayName: r.displayName,
+    slug: r.slug,
+    level: r.level,
+    status: r.status,
+    isBrowseable: r.isBrowseable,
+    isAssignable: r.isAssignable,
+    isNavVisible: r.isNavVisible,
+    attributeProfileId: r.attributeProfileId,
+    replacementNodeId: r.replacementNodeId,
+    sortOrder: r.sortOrder,
+    version: r.version,
+  }
+}
+
+function toSnapshotSeller(r: SellerRow): CatalogSnapshot["sellers"][number] {
+  return {
+    id: r.id,
+    handle: r.handle,
+    name: r.name,
+    status: r.status,
+    commissionBps: r.commissionBps,
+    deliveryFeePesewas: toBigInt(r.deliveryFeePesewas),
+    availability: r.availability === "paused" ? ("paused" as const) : ("open" as const),
+    pausedUntil: r.pausedUntil ? r.pausedUntil.toISOString() : null,
+    pauseNote: r.pauseNote ?? null,
+  }
+}
+
+function toSnapshotProduct(r: ProductRow): CatalogSnapshot["products"][number] {
+  return {
+    id: r.id,
+    title: r.title,
+    description: r.description,
+    slug: r.slug ?? null,
+    status: r.status,
+    primaryCategoryId: r.primaryCategoryId,
+    sellerId: r.sellerId,
+    imageUrl: r.imageUrl,
+    attributes: attributesFromJson(r.attributes),
+    createdAt: r.createdAt ? r.createdAt.toISOString() : null,
+    brand: r.brand,
+    model: r.model,
+    gtin: r.gtin,
+    mpn: r.mpn,
+    manufacturer: r.manufacturer,
+    productType: r.productType,
+    identityConfidence: r.identityConfidence,
+    identityProvenance: (r.identityProvenance as Record<string, unknown> | null) ?? null,
+  }
+}
+
+function toSnapshotVariant(r: VariantRow): CatalogSnapshot["variants"][number] {
+  return {
+    id: r.id,
+    productId: r.productId,
+    sku: r.sku,
+    title: r.title,
+    imageUrl: r.imageUrl,
+    weightGrams: r.weightGrams,
+    gtin: r.gtin,
+  }
+}
+
+function toSnapshotOffer(r: OfferRow): CatalogSnapshot["offers"][number] {
+  return {
+    id: r.id,
+    sellerId: r.sellerId,
+    productId: r.productId,
+    variantId: r.variantId,
+    pricePesewas: toBigInt(r.pricePesewas),
+    onHand: r.onHand,
+    reserved: r.reserved,
+    currency: r.currency,
+    active: r.active,
+    condition: r.condition,
+    compareAtPesewas: r.compareAtPesewas != null ? toBigInt(r.compareAtPesewas) : null,
+    compareAtProvenance: r.compareAtProvenance,
+    fulfillmentOrigin: r.fulfillmentOrigin,
+    warrantyRef: r.warrantyRef,
+    returnsRef: r.returnsRef,
+    deliveryPromise: r.deliveryPromise,
+    freshnessAt: r.freshnessAt ? r.freshnessAt.toISOString() : null,
+    publishedAt: r.publishedAt ? r.publishedAt.toISOString() : null,
+  }
+}
+
+/** Empty slice: listing cards read products/offers/sellers/categories only. */
+function emptyCatalogSlice(): CatalogSnapshot {
+  return {
+    categories: [],
+    sellers: [],
+    products: [],
+    variants: [],
+    offers: [],
+    productOptions: [],
+    productOptionValues: [],
+    variantOptionValues: [],
+    attributeDefinitions: [],
+    attributeProfiles: [],
+    profileAttributes: [],
+    productAttributeValues: [],
+    matchCandidates: [],
+    searchAliases: [],
+    verifications: [],
+    priceHistory: [],
+  }
+}
+
+/** Escape LIKE wildcards so `q` stays a plain substring (matches JS includes()). */
+function escapeLike(q: string): string {
+  return q.replace(/\\/g, "\\\\").replace(/%/g, "\\%").replace(/_/g, "\\_")
 }
 
 function sellablePeerOffers(
@@ -3510,86 +3640,11 @@ export class PostgresCatalogRepository implements CatalogRepository {
       db.select().from(productMatchCandidates).catch((): MatchRow[] => []),
     ])
     return {
-      categories: categoryRows.map((r) => ({
-        id: r.id,
-        handle: r.handle,
-        name: r.name,
-        parentId: r.parentId,
-        rank: r.rank,
-        isNav: r.isNav,
-        code: r.code,
-        displayName: r.displayName,
-        slug: r.slug,
-        level: r.level,
-        status: r.status,
-        isBrowseable: r.isBrowseable,
-        isAssignable: r.isAssignable,
-        isNavVisible: r.isNavVisible,
-        attributeProfileId: r.attributeProfileId,
-        replacementNodeId: r.replacementNodeId,
-        sortOrder: r.sortOrder,
-        version: r.version,
-      })),
-      sellers: sellerRows.map((r) => ({
-        id: r.id,
-        handle: r.handle,
-        name: r.name,
-        status: r.status,
-        commissionBps: r.commissionBps,
-        deliveryFeePesewas: toBigInt(r.deliveryFeePesewas),
-        availability: r.availability === "paused" ? ("paused" as const) : ("open" as const),
-        pausedUntil: r.pausedUntil ? r.pausedUntil.toISOString() : null,
-        pauseNote: r.pauseNote ?? null,
-      })),
-      products: productRows.map((r) => ({
-        id: r.id,
-        title: r.title,
-        description: r.description,
-        slug: r.slug ?? null,
-        status: r.status,
-        primaryCategoryId: r.primaryCategoryId,
-        sellerId: r.sellerId,
-        imageUrl: r.imageUrl,
-        attributes: attributesFromJson(r.attributes),
-        createdAt: r.createdAt ? r.createdAt.toISOString() : null,
-        brand: r.brand,
-        model: r.model,
-        gtin: r.gtin,
-        mpn: r.mpn,
-        manufacturer: r.manufacturer,
-        productType: r.productType,
-        identityConfidence: r.identityConfidence,
-        identityProvenance: (r.identityProvenance as Record<string, unknown> | null) ?? null,
-      })),
-      variants: variantRows.map((r) => ({
-        id: r.id,
-        productId: r.productId,
-        sku: r.sku,
-        title: r.title,
-        imageUrl: r.imageUrl,
-        weightGrams: r.weightGrams,
-        gtin: r.gtin,
-      })),
-      offers: offerRows.map((r) => ({
-        id: r.id,
-        sellerId: r.sellerId,
-        productId: r.productId,
-        variantId: r.variantId,
-        pricePesewas: toBigInt(r.pricePesewas),
-        onHand: r.onHand,
-        reserved: r.reserved,
-        currency: r.currency,
-        active: r.active,
-        condition: r.condition,
-        compareAtPesewas: r.compareAtPesewas != null ? toBigInt(r.compareAtPesewas) : null,
-        compareAtProvenance: r.compareAtProvenance,
-        fulfillmentOrigin: r.fulfillmentOrigin,
-        warrantyRef: r.warrantyRef,
-        returnsRef: r.returnsRef,
-        deliveryPromise: r.deliveryPromise,
-        freshnessAt: r.freshnessAt ? r.freshnessAt.toISOString() : null,
-        publishedAt: r.publishedAt ? r.publishedAt.toISOString() : null,
-      })),
+      categories: categoryRows.map(toSnapshotCategory),
+      sellers: sellerRows.map(toSnapshotSeller),
+      products: productRows.map(toSnapshotProduct),
+      variants: variantRows.map(toSnapshotVariant),
+      offers: offerRows.map(toSnapshotOffer),
       productOptions: optionRows.map((r) => ({
         id: r.id,
         productId: r.productId,
@@ -3694,7 +3749,61 @@ export class PostgresCatalogRepository implements CatalogRepository {
   }
 
   async listCatalog(query: CatalogListQuery) {
-    return listCatalogFrom(await this.load(), query)
+    return listCatalogFrom(await withTransientRetry(() => this.loadCatalogSlice(query)), query)
+  }
+
+  /**
+   * Targeted listing slice (agnostic plan Phase 1). Dimension table
+   * `categories` is small and slow-changing; fact tables are filtered by
+   * indexed predicates (0028): products by (status, created_at), offers by
+   * (product_id, active), variants by product_id. Sellers resolve by id from
+   * the candidate offers. The ten snapshot tables that listing cards never
+   * read stay empty. Contract (filter/sort/total semantics) is unchanged —
+   * `listCatalogFrom` runs over the slice exactly as over a full load.
+   */
+  private async loadCatalogSlice(query: CatalogListQuery): Promise<CatalogSnapshot> {
+    const db = this.db
+    const slice = emptyCatalogSlice()
+    slice.categories = (await db.select().from(categories)).map(toSnapshotCategory)
+    let categoryIds: string[] | null = null
+    if (query.category) {
+      const ids = descendantIds(slice.categories, query.category)
+      if (!ids) return slice
+      categoryIds = ids
+    }
+    const q = query.q?.trim()
+    const like = q ? `%${escapeLike(q)}%` : null
+    slice.products = (
+      await db
+        .select()
+        .from(products)
+        .where(
+          and(
+            eq(products.status, "published"),
+            ...(categoryIds ? [inArray(products.primaryCategoryId, categoryIds)] : []),
+            ...(like ? [or(ilike(products.title, like), ilike(products.description, like))] : []),
+          ),
+        )
+        .orderBy(desc(products.createdAt))
+    ).map(toSnapshotProduct)
+    const productIds = slice.products.map((p) => p.id)
+    if (productIds.length === 0) return slice
+    const [offerRows, variantRows] = await Promise.all([
+      db
+        .select()
+        .from(offers)
+        .where(and(inArray(offers.productId, productIds), eq(offers.active, true))),
+      db.select().from(productVariants).where(inArray(productVariants.productId, productIds)),
+    ])
+    slice.offers = offerRows.map(toSnapshotOffer)
+    slice.variants = variantRows.map(toSnapshotVariant)
+    const sellerIds = [...new Set(offerRows.map((o) => o.sellerId))]
+    if (sellerIds.length > 0) {
+      slice.sellers = (await db.select().from(sellers).where(inArray(sellers.id, sellerIds))).map(
+        toSnapshotSeller,
+      )
+    }
+    return slice
   }
 
   async getProduct(
