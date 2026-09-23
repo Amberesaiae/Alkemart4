@@ -175,101 +175,86 @@ export function createApp(
         })
       : undefined)
 
-  /**
-   * One postgres client per binding per request, shared by every store.
-   * Previously each store opened its own client (~15/request × max 5 conns),
-   * exhausting the pooler under concurrent snapshot loads and hanging hot
-   * endpoints. WeakMap keying keeps it request-scoped with no type changes.
-   */
-  const dbHandles = new WeakMap<
-    object,
-    { catalog: ReturnType<typeof catalogDb>; primary: ReturnType<typeof primaryDb> }
-  >()
-  function requestDbs(c: object) {
-    let handles = dbHandles.get(c)
-    if (!handles) {
-      const env = parseEnv((c as { env: unknown }).env as Record<string, unknown>)
-      handles = { catalog: catalogDb(env), primary: primaryDb(env) }
-      dbHandles.set(c, handles)
-    }
-    return handles
-  }
-
   const bindCatalog: MiddlewareHandler<AppEnv> = async (c, next) => {
-    // requestDbs(c) is called ONLY in the Postgres else-branches below, never
-    // eagerly: InMemory tests provide every store via options/fallbacks and
-    // pass no env, so parsing env up front would break them. The WeakMap
-    // memoizes, so the handles are still built at most once per request.
     if (options.repo) {
       c.set("repo", options.repo)
     } else {
-      const dbs = requestDbs(c)
+      const env = parseEnv(c.env as unknown as Record<string, unknown>)
       // Catalog mutations + read-after-write go through HYPERDRIVE_PRIMARY (writeDb);
       // pure catalog reads keep using the (cached) HYPERDRIVE binding. See ACID-DATAFLOW.md.
-      c.set("repo", new PostgresCatalogRepository(dbs.catalog, dbs.primary))
+      c.set("repo", new PostgresCatalogRepository(catalogDb(env), primaryDb(env)))
     }
     if (options.trafficStore) {
       c.set("traffic", options.trafficStore)
     } else if (fallbackTraffic) {
       c.set("traffic", fallbackTraffic)
     } else {
-      c.set("traffic", new PostgresTrafficStore(requestDbs(c).primary))
+      const env = parseEnv(c.env as unknown as Record<string, unknown>)
+      c.set("traffic", new PostgresTrafficStore(primaryDb(env)))
     }
     if (options.appealStore) {
       c.set("appeals", options.appealStore)
     } else if (fallbackAppeals) {
       c.set("appeals", fallbackAppeals)
     } else {
-      c.set("appeals", new PostgresAppealStore(requestDbs(c).primary))
+      const env = parseEnv(c.env as unknown as Record<string, unknown>)
+      c.set("appeals", new PostgresAppealStore(primaryDb(env)))
     }
     if (options.policyStore) {
       c.set("policies", options.policyStore)
     } else if (fallbackPolicies) {
       c.set("policies", fallbackPolicies)
     } else {
-      c.set("policies", new PostgresShopPolicyStore(requestDbs(c).primary))
+      const env = parseEnv(c.env as unknown as Record<string, unknown>)
+      c.set("policies", new PostgresShopPolicyStore(primaryDb(env)))
     }
     if (options.featuredStore) {
       c.set("featured", options.featuredStore)
     } else if (fallbackFeatured) {
       c.set("featured", fallbackFeatured)
     } else {
-      c.set("featured", new PostgresShopFeaturedStore(requestDbs(c).primary))
+      const env = parseEnv(c.env as unknown as Record<string, unknown>)
+      c.set("featured", new PostgresShopFeaturedStore(primaryDb(env)))
     }
     if (options.homepageStore) {
       c.set("homepage", options.homepageStore)
     } else if (fallbackHomepage) {
       c.set("homepage", fallbackHomepage)
     } else {
-      c.set("homepage", new PostgresHomepageContentStore(requestDbs(c).primary))
+      const env = parseEnv(c.env as unknown as Record<string, unknown>)
+      c.set("homepage", new PostgresHomepageContentStore(primaryDb(env)))
     }
     if (options.collectionsStore) {
       c.set("collections", options.collectionsStore)
     } else if (fallbackCollections) {
       c.set("collections", fallbackCollections)
     } else {
-      c.set("collections", new PostgresCollectionsStore(requestDbs(c).primary))
+      const env = parseEnv(c.env as unknown as Record<string, unknown>)
+      c.set("collections", new PostgresCollectionsStore(primaryDb(env)))
     }
     if (options.importBatchStore) {
       c.set("imports", options.importBatchStore)
     } else if (fallbackImports) {
       c.set("imports", fallbackImports)
     } else {
-      c.set("imports", new PostgresImportBatchStore(requestDbs(c).primary))
+      const env = parseEnv(c.env as unknown as Record<string, unknown>)
+      c.set("imports", new PostgresImportBatchStore(primaryDb(env)))
     }
     if (options.campaignStore) {
       c.set("campaigns", options.campaignStore)
     } else if (fallbackCampaigns) {
       c.set("campaigns", fallbackCampaigns)
     } else {
-      c.set("campaigns", new PostgresCampaignStore(requestDbs(c).primary))
+      const env = parseEnv(c.env as unknown as Record<string, unknown>)
+      c.set("campaigns", new PostgresCampaignStore(primaryDb(env)))
     }
     if (options.guideStore) {
       c.set("guides", options.guideStore)
     } else if (fallbackGuides) {
       c.set("guides", fallbackGuides)
     } else {
-      c.set("guides", new PostgresGuideStore(requestDbs(c).primary))
+      const env = parseEnv(c.env as unknown as Record<string, unknown>)
+      c.set("guides", new PostgresGuideStore(primaryDb(env)))
     }
     await next()
   }
@@ -280,7 +265,8 @@ export function createApp(
     } else if (options.repo instanceof InMemoryCatalogRepository) {
       c.set("checkoutRepo", new InMemoryCheckoutRepository(options.repo.snapshot()))
     } else {
-      c.set("checkoutRepo", new PostgresCheckoutRepository(requestDbs(c).primary))
+      const env = parseEnv(c.env as unknown as Record<string, unknown>)
+      c.set("checkoutRepo", new PostgresCheckoutRepository(primaryDb(env)))
     }
     if (options.chargePaystackMobileMoney) {
       c.set("chargePaystackMobileMoney", options.chargePaystackMobileMoney)
@@ -323,14 +309,16 @@ export function createApp(
     if (options.authRepo) {
       c.set("authRepo", options.authRepo)
     } else {
-      c.set("authRepo", new PostgresAuthRepository(requestDbs(c).primary))
+      const env = parseEnv(c.env as unknown as Record<string, unknown>)
+      c.set("authRepo", new PostgresAuthRepository(primaryDb(env)))
     }
     if (options.auditLog) {
       c.set("auditLog", options.auditLog)
     } else if (fallbackAuditLog) {
       c.set("auditLog", fallbackAuditLog)
     } else {
-      c.set("auditLog", new PostgresAdminAuditLog(requestDbs(c).primary))
+      const env = parseEnv(c.env as unknown as Record<string, unknown>)
+      c.set("auditLog", new PostgresAdminAuditLog(primaryDb(env)))
     }
     if (options.jwtSecret) {
       c.set("jwtSecret", options.jwtSecret)
