@@ -1,4 +1,4 @@
-import { bigint, boolean, integer, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core"
+import { bigint, boolean, index, integer, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core"
 import { productVariants, products } from "./products"
 import { sellers } from "./sellers"
 
@@ -42,5 +42,8 @@ export const offers = pgTable(
       table.productId,
       table.variantId,
     ),
+    // Slice loaders filter offers by product (0028). The unique index above
+    // is leftmost on seller_id, so it cannot serve product-only filters.
+    index("offers_product_active_idx").on(table.productId, table.active),
   ],
 )

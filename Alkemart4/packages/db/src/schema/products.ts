@@ -1,4 +1,5 @@
 import {
+  index,
   integer,
   jsonb,
   pgEnum,
@@ -24,8 +25,10 @@ export const identityConfidenceEnum = pgEnum("identity_confidence", [
 ])
 
 /** Canonical catalog content. Price and stock live on offers, never here. */
-export const products = pgTable("products", {
-  id: text("id").primaryKey(),
+export const products = pgTable(
+  "products",
+  {
+    id: text("id").primaryKey(),
   title: text("title").notNull(),
   description: text("description"),
   /** URL handle for /product/{slug}-{id}. Backfilled from titles (0027);
@@ -56,19 +59,32 @@ export const products = pgTable("products", {
   ),
   /** How confidence was established (rule id, reviewer, evidence refs). */
   identityProvenance: jsonb("identity_provenance").$type<Record<string, unknown>>(),
-})
+  },
+  (table) => [
+    // Listing queries filter by status (0028).
+    index("products_status_created_idx").on(table.status, table.createdAt),
+  ],
+)
 
-export const productVariants = pgTable("product_variants", {
-  id: text("id").primaryKey(),
-  productId: text("product_id")
-    .notNull()
-    .references(() => products.id),
-  sku: text("sku").unique(),
-  title: text("title"),
-  // ── Phase 1B additions ──
-  /** Variant-specific image; falls back to product image when null. */
-  imageUrl: text("image_url"),
-  weightGrams: integer("weight_grams"),
-  /** Variant-level identifier (GTIN/SKU override) when known. */
-  gtin: text("gtin"),
-})
+export const productVariants = pgTable(
+  "product_variants",
+  {
+    id: text("id").primaryKey(),
+    productId: text("product_id")
+      .notNull()
+      .references(() => products.id),
+    sku: text("sku").unique(),
+    title: text("title"),
+    // ── Phase 1B additions ──
+    /** Variant-specific image; falls back to product image when null. */
+    imageUrl: text("image_url"),
+    weightGrams: integer("weight_grams"),
+    /** Variant-level identifier (GTIN/SKU override) when known. */
+    gtin: text("gtin"),
+  },
+  (table) => [
+    // Slice loaders filter variants by product; FK columns are NOT
+    // auto-indexed by Postgres (0028).
+    index("product_variants_product_id_idx").on(table.productId),
+  ],
+)
