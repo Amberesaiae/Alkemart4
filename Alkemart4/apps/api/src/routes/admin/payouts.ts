@@ -4,6 +4,7 @@ import { Hono } from "hono"
 import { HTTPException } from "hono/http-exception"
 import { z } from "zod"
 import type { AppEnv } from "../../context"
+import type { PayoutRow } from "../../checkout-repository"
 import { readJsonBody } from "../../lib/session"
 import { requireAdmin } from "../../middleware/auth"
 
@@ -54,6 +55,35 @@ export const adminPayouts = new Hono<AppEnv>()
     }
 
     const checkout = c.get("checkoutRepo")
+
+    // Double-pay guard: an in-flight payout for this seller (last 10 min)
+    // is returned instead of triggering a second Paystack transfer. Ops
+    // retries after a 502 land here rather than moving money twice.
+    const recent: (PayoutRow & { createdAt: Date | null })[] =
+      await checkout.listPayoutsForSeller(seller.id).catch(() => [])
+    const inflight = recent.find(
+      (p) =>
+        (p.status === "pending" || p.status === "processing") &&
+        p.createdAt &&
+        Date.now() - new Date(p.createdAt).getTime() < 10 * 60 * 1000,
+    )
+    if (inflight) {
+      return c.json({
+        payout: {
+          id: inflight.id,
+          sellerId: inflight.sellerId,
+          status: inflight.status,
+          grossPesewas: inflight.grossPesewas.toString(),
+          commissionPesewas: inflight.commissionPesewas.toString(),
+          netPesewas: inflight.netPesewas.toString(),
+          commissionBps: inflight.commissionBps,
+          paystackTransferCode: inflight.paystackTransferCode,
+          paystackReference: inflight.paystackReference,
+        },
+        replayed: true,
+      })
+    }
+
     const unpaid = await checkout.listDeliveredUnpaidOrders(seller.id)
     if (unpaid.length === 0) {
       throw new HTTPException(400, { message: "no delivered unpaid orders" })

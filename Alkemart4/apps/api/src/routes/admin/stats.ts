@@ -37,9 +37,12 @@ export const adminStats = new Hono<AppEnv>().use("*", requireAdmin).get("/", asy
     const key = dayKey(g.createdAt)
     if (buckets.has(key)) buckets.set(key, (buckets.get(key) ?? 0n) + g.totalPesewas)
   }
+  // Display-only GHS majors, deterministic to 2dp. Ledger math stays in
+  // pesewas integers upstream; floats never flow back into money paths.
+  const ghs = (pesewas: bigint): number => Number((Number(pesewas) / 100).toFixed(2))
   const gmvLast30Days = [...buckets].map(([date, pesewas]) => ({
     date,
-    amount: Number(pesewas) / 100,
+    amount: ghs(pesewas),
   }))
 
   const thumbs = new Map(products.map((p) => [p.id, p.imageUrl]))
@@ -47,12 +50,12 @@ export const adminStats = new Hono<AppEnv>().use("*", requireAdmin).get("/", asy
     title: item.title,
     thumbnail: thumbs.get(item.productId) ?? null,
     units: item.units,
-    gmv: Number(item.gmvPesewas) / 100,
+    gmv: ghs(item.gmvPesewas),
   }))
 
   return c.json({
     total_orders: totalOrders,
-    total_gmv_ghs: Number(totalGmvPesewas) / 100,
+    total_gmv_ghs: ghs(totalGmvPesewas),
     active_sellers: activeSellers,
     catalog_size: products.length,
     gmv_last_30_days: gmvLast30Days,

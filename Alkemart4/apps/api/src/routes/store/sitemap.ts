@@ -1,6 +1,7 @@
 import { Hono } from "hono"
 import type { CategoryNode } from "@alkemart/domain"
 import type { AppEnv } from "../../context"
+import { edgeCache } from "../../lib/edge-cache"
 
 export type SitemapUrl = {
   /** Root-relative path; the prerender step absolutizes with the site origin. */
@@ -50,7 +51,9 @@ export const storeSitemap = new Hono<AppEnv>().get("/", async (c) => {
   walk(categories, 0)
 
   const store = c.get("collections")
-  for (const seller of openSellers) {
+  // Bounded fan-out: one collections read per shop, capped — the sitemap is
+  // build-time output, not an unbounded join endpoint.
+  for (const seller of openSellers.slice(0, 500)) {
     urls.push({ path: `/shops/${seller.handle}`, type: "shop", updatedAt: null })
     const live = await store.listPublishedBySeller(seller.id).catch(() => [])
     for (const shelf of live) {
@@ -63,5 +66,6 @@ export const storeSitemap = new Hono<AppEnv>().get("/", async (c) => {
     }
   }
 
+  edgeCache(c, "build")
   return c.json({ urls, count: urls.length })
 })

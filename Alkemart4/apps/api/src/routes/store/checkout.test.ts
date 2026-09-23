@@ -57,6 +57,52 @@ describe("checkout COD + MoMo", () => {
     )
   })
 
+  it("replayed COD posts reuse the live intent instead of double-ordering", async () => {
+    const snapshot = demoCatalog()
+    const catalog = new InMemoryCatalogRepository(snapshot)
+    const checkoutRepo = new InMemoryCheckoutRepository(snapshot)
+    const app = createApp({
+      authRepo: new InMemoryAuthRepository(),
+      repo: catalog,
+      checkoutRepo,
+      jwtSecret: "x".repeat(32),
+    })
+
+    const cartRes = await app.request("/store/cart", { method: "POST" })
+    const { cartId } = (await cartRes.json()) as { cartId: string }
+    const add = await app.request(`/store/cart/${cartId}/items`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ offerId: "offer-a", qty: 1 }),
+    })
+    expect(add.status).toBe(201)
+
+    const payload = {
+      cartId,
+      method: "cod",
+      buyerEmail: "buyer@alkemart.test",
+      shippingAddress: { first_name: "Ama", last_name: "Mensah", phone: "0244123456", address_1: "12 High St", city: "Accra", country_code: "gh" },
+    }
+    const first = await app.request("/store/checkout", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    })
+    expect(first.status).toBe(200)
+    const firstBody = (await first.json()) as { orderGroupId: string; replayed?: boolean }
+    expect(firstBody.replayed).toBeUndefined()
+
+    const second = await app.request("/store/checkout", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    })
+    expect(second.status).toBe(200)
+    const secondBody = (await second.json()) as { orderGroupId: string; replayed?: boolean }
+    expect(secondBody.orderGroupId).toBe(firstBody.orderGroupId)
+    expect(secondBody.replayed).toBe(true)
+  })
+
   it("MoMo pending reserves stock; missing key → 503", async () => {
     const snapshot = demoCatalog()
     const catalog = new InMemoryCatalogRepository(snapshot)

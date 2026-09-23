@@ -124,7 +124,7 @@ export const storeCheckout = new Hono<AppEnv>()
       payment_intent_id: intent.id,
       client_reference: intent.paystackReference,
       provider_reference: intent.paystackReference,
-      amount_pesewas: Number(intent.amountPesewas),
+      amount_pesewas: intent.amountPesewas.toString(),
       provider_status: intent.status,
     })
   })
@@ -152,6 +152,52 @@ export const storeCheckout = new Hono<AppEnv>()
     }
 
     const quote = await checkout.quote(cart.id)
+
+    // Idempotent replay: a retry/double-submit within 10 minutes for the same
+    // cart + method + buyer + address reuses the live intent or its order
+    // group instead of reserving stock twice or charging Paystack twice.
+    // Terminal intents resolve through their order group (COD completes
+    // immediately, so the double-click window lands here); failed intents
+    // fall through so genuine retries after failure still work.
+    const prior = await checkout.getLatestPaymentIntentByCartId(cart.id).catch(() => null)
+    const sameAddress = (a: unknown, b: unknown) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null)
+    const priorMethod = prior?.method ?? null
+    const wantedMethod = parsed.data.method === "momo" ? "momo" : parsed.data.method === "card" ? "card" : "cod"
+    if (
+      prior &&
+      priorMethod === wantedMethod &&
+      prior.buyerEmail.toLowerCase() === parsed.data.buyerEmail.toLowerCase() &&
+      sameAddress(prior.shippingAddress, parsed.data.shippingAddress) &&
+      prior.createdAt &&
+      Date.now() - new Date(prior.createdAt).getTime() < 10 * 60 * 1000
+    ) {
+      const existing = await checkout.getOrderGroupByPaymentIntent(prior.id).catch(() => null)
+      if (existing) {
+        const existingOrders = await checkout.listOrdersForGroup(existing.id).catch(() => [])
+        return c.json({
+          paymentIntentId: prior.id,
+          status: "completed",
+          orderGroupId: existing.id,
+          orders: existingOrders.map((o) => ({ id: o.id, sellerId: o.sellerId })),
+          replayed: true,
+        })
+      }
+      if (prior.status === "initiated" || prior.status === "pending") {
+        return c.json({
+          status: "payment_pending",
+          cart_id: cart.id,
+          cartId: cart.id,
+          paymentIntentId: prior.id,
+          payment_intent_id: prior.id,
+          client_reference: prior.paystackReference,
+          provider_reference: prior.paystackReference,
+          amount_pesewas: prior.amountPesewas.toString(),
+          provider_status: prior.status,
+          replayed: true,
+        })
+      }
+    }
+
     const intentId = crypto.randomUUID()
     const reference = `alk_${intentId.replace(/-/g, "").slice(0, 24)}`
     const shippingAddress = parsed.data.shippingAddress

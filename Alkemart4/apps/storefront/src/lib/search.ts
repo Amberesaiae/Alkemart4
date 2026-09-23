@@ -157,6 +157,7 @@ export async function searchCatalog(opts: {
         mapCfProductCard({
           productId: item.productId,
           title: item.title,
+          slug: (item as { slug?: string | null }).slug ?? null,
           imageUrl: item.imageUrl ?? null,
           fromPricePesewas: item.fromPricePesewas ?? "0",
           bestOfferId: item.bestOfferId ?? "",

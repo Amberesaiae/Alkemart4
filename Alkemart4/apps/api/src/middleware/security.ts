@@ -30,14 +30,19 @@ export const securityMiddleware: MiddlewareHandler<AppEnv> = async (c, next) => 
   const path = c.req.path
   const method = c.req.method.toUpperCase()
   const sensitive =
-    method !== "GET" &&
-    method !== "OPTIONS" &&
-    (path.startsWith("/store/auth") ||
-      path.startsWith("/vendor/auth") ||
-      path.startsWith("/admin/auth") ||
-      path === "/store/checkout" ||
-      path === "/store/orders/lookup" ||
-      path.startsWith("/hooks/"))
+    (method !== "GET" &&
+      method !== "OPTIONS" &&
+      (path.startsWith("/store/auth") ||
+        path.startsWith("/vendor/auth") ||
+        path.startsWith("/admin/auth") ||
+        path === "/store/checkout" ||
+        path === "/store/orders/lookup" ||
+        path.startsWith("/store/cart") ||
+        path.startsWith("/store/reviews") ||
+        path.startsWith("/store/subscriptions") ||
+        path.startsWith("/hooks/"))) ||
+    // Experiment exposure writes happen on GET by design; cap them too.
+    path.startsWith("/store/experiments")
 
   if (sensitive) {
     const key = `${clientKey(c)}:${path}`

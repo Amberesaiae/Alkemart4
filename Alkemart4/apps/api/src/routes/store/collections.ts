@@ -3,6 +3,7 @@ import { HTTPException } from "hono/http-exception"
 import type { ProductCardDto } from "@alkemart/domain"
 import type { CollectionDto } from "../../collections"
 import type { AppEnv } from "../../context"
+import { edgeCache } from "../../lib/edge-cache"
 
 async function withCards(
   c: { get(k: "repo"): AppEnv["Variables"]["repo"] },
@@ -29,6 +30,7 @@ export const storeCollections = new Hono<AppEnv>()
     const sellerId = c.req.query("seller_id")?.trim()
     if (!sellerId) throw new HTTPException(400, { message: "seller_id required" })
     const items = await c.get("collections").listPublishedBySeller(sellerId)
+    edgeCache(c, "merchandising")
     return c.json({
       items: await Promise.all(items.map((item) => withCards(c, item))),
     })

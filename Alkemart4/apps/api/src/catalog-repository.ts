@@ -197,6 +197,8 @@ export type VendorProductDto = {
     sellerId: string | null
     imageUrl: string | null
     attributes: { label: string; value: string }[]
+    /** ISO creation timestamp; null on rows predating the column. */
+    createdAt: string | null
   }
   variant: {
     id: string
@@ -877,6 +879,7 @@ function toVendorProductDto(
       sellerId: product.sellerId,
       imageUrl: product.imageUrl ?? null,
       attributes: attributesFromJson(product.attributes),
+      createdAt: product.createdAt ?? null,
     },
     variant: baseVariant,
     offer: baseOffer,

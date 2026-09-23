@@ -135,8 +135,11 @@ export const vendorOrders = new Hono<AppEnv>()
   .get("/", async (c) => {
     const sellerId = c.get("auth").sellerId
     if (!sellerId) throw new HTTPException(403, { message: "forbidden" })
+    const limit = Math.max(1, Math.min(Number(c.req.query("limit") ?? 50) || 50, 200))
+    const offset = Math.max(0, Number(c.req.query("offset") ?? 0) || 0)
     const orders = await c.get("checkoutRepo").listOrdersForSeller(sellerId)
-    return c.json({ items: orders.map(publicOrder) })
+    const page = orders.slice(offset, offset + limit)
+    return c.json({ items: page.map(publicOrder), count: orders.length, limit, offset })
   })
   .get("/:id", async (c) => {
     const sellerId = c.get("auth").sellerId

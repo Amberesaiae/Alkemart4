@@ -1295,6 +1295,10 @@ function ProductDetailPage() {
               isPending={add.isPending}
               onAddToCart={() => add.mutate()}
               sellerName={displaySeller?.name}
+              sellerHandle={displaySeller?.handle}
+              sellerWhatsApp={
+                sellerVendor.trust?.social?.whatsapp ?? sellerVendor.trust?.phone ?? null
+              }
             />
           </div>
         </article>

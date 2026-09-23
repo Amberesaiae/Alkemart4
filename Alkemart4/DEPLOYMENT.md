@@ -73,6 +73,15 @@ Build each app with:
 export VITE_ALKEMART_API_URL=https://alkemart-api.glean-circular-passport.workers.dev
 ```
 
+Vendor/admin preview iframes point at the storefront via
+`VITE_ALKEMART_STOREFRONT_URL` (defaults to `http://127.0.0.1:5175` for local
+dev). Set it to the production storefront origin for Pages builds, or live
+previews will point at localhost:
+
+```bash
+export VITE_ALKEMART_STOREFRONT_URL=https://alkemart4-storefront.pages.dev
+```
+
 | App | Build from | Pages project |
 |-----|------------|---------------|
 | Storefront | `apps/storefront` | `alkemart4-storefront` |

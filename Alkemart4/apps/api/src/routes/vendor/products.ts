@@ -230,6 +230,20 @@ export const vendorProducts = new Hono<AppEnv>()
     const parsed = CreateBody.safeParse(await readJsonBody(c))
     if (!parsed.success) throw new HTTPException(400, { message: "invalid body" })
     const sellerId = sellerIdOrThrow(c)
+    // Double-submit guard: an identical proposed product minted in the last
+    // 10 minutes is a retry, not a second listing. Deliberate duplicates
+    // (different title/category, or later) still create.
+    const existing: Awaited<ReturnType<AppEnv["Variables"]["repo"]["listVendorProducts"]>> =
+      await c.get("repo").listVendorProducts(sellerId).catch(() => [])
+    const dupe = existing.find(
+      (v) =>
+        v.product.status === "proposed" &&
+        v.product.title.trim().toLowerCase() === parsed.data.title.trim().toLowerCase() &&
+        v.product.primaryCategoryId === parsed.data.primaryCategoryId &&
+        v.product.createdAt &&
+        Date.now() - new Date(v.product.createdAt).getTime() < 10 * 60 * 1000,
+    )
+    if (dupe) return c.json({ ...dupe, replayed: true }, 200)
     try {
       const created = await c.get("repo").createVendorProduct({
         sellerId,

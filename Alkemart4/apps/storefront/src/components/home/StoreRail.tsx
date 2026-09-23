@@ -11,80 +11,11 @@ import {
   StoreCardFeaturedStrip,
   storeCardShell,
 } from "@workspace/ui"
-import { Bicycle, Heart, Star, ThumbsUp } from "@phosphor-icons/react"
+import { Bicycle, Star, ThumbsUp } from "@phosphor-icons/react"
 import { StoreRailSkeleton } from "@/components/skeleton"
 import { listStoreVendors, type StoreVendor } from "@/lib/vendors"
 import { matchesArea, useDeliverTo } from "@/lib/deliver-to"
 import { cn } from "@/lib/utils"
-
-export const DEMO_VENDORS: StoreVendor[] = [
-  {
-    id: "v-koko",
-    name: "Koko King Express - Dawn",
-    slug: "koko-king",
-    location: "Osu, Accra",
-    banner: "/images/categories/food.webp",
-    availability: "open",
-    ratingAvg: 4.1,
-    ratingCount: 19,
-    deliveryMinutes: 60,
-  },
-  {
-    id: "v-shandy",
-    name: "Shandy Adepa Noodles - Dawn",
-    slug: "shandy-adepa",
-    location: "Dansoman, Accra",
-    banner: "/images/categories/food.webp",
-    availability: "open",
-    ratingAvg: 3.1,
-    ratingCount: 20,
-    deliveryMinutes: 60,
-  },
-  {
-    id: "v-ejs",
-    name: "EJ's Cuisine - Dawn",
-    slug: "ejs-cuisine",
-    location: "East Legon, Accra",
-    banner: "/images/categories/rail-grocery.jpg",
-    availability: "open",
-    ratingAvg: 4.8,
-    ratingCount: 42,
-    deliveryMinutes: 35,
-  },
-  {
-    id: "v-tech",
-    name: "Kumasi Tech Hub",
-    slug: "kumasi-tech",
-    location: "Kumasi & Accra",
-    banner: "/images/categories/generated/electronics-v3.webp",
-    availability: "open",
-    ratingAvg: 4.9,
-    ratingCount: 88,
-    deliveryMinutes: 45,
-  },
-  {
-    id: "v-hurry",
-    name: "Hurry Ventures - Osu",
-    slug: "hurry-ventures",
-    location: "Osu, Accra",
-    banner: "/images/categories/generated/fashion-v3.webp",
-    availability: "open",
-    ratingAvg: 4.6,
-    ratingCount: 31,
-    deliveryMinutes: 50,
-  },
-  {
-    id: "v-glow",
-    name: "Glow & Glamour Beauty",
-    slug: "glow-glamour",
-    location: "Airport Residential, Accra",
-    banner: "/images/categories/generated/beauty-v3.webp",
-    availability: "open",
-    ratingAvg: 4.7,
-    ratingCount: 56,
-    deliveryMinutes: 40,
-  },
-]
 
 /**
  * A shelf of shops matching Hubtel's landscape store cards.
@@ -95,13 +26,13 @@ export function StoreRail({ section }: { section: Extract<HomeSection, { type: "
   const vendorsQ = useQuery({
     queryKey: ["store", "vendors"],
     queryFn: () => listStoreVendors(),
-    initialData: DEMO_VENDORS,
     staleTime: 300_000,
   })
 
   const shops = useMemo(() => {
+    // Real shops only — a thin market shows a thin rail, never demo filler.
     const raw = (vendorsQ.data ?? []).filter((v) => v.availability !== "paused")
-    const all = raw.length >= 3 ? raw : [...raw, ...DEMO_VENDORS.filter((d) => !raw.some((r) => r.slug === d.slug))]
+    const all = raw
     switch (section.source) {
       case "manual": {
         const bySlug = new Map(all.map((v) => [v.slug, v]))
@@ -230,12 +161,7 @@ function StoreRailCard({ shop }: { shop: StoreVendor }) {
   const minutes = shop.deliveryMinutes ?? null
   const coverUrl = shop.banner || shop.logo || fallbackCoverForShop(shop)
 
-  const statusRibbon =
-    shop.slug === "koko-king" || shop.name.toLowerCase().includes("koko")
-      ? "Get it from 12:00 AM"
-      : !isOpen
-        ? "Closed"
-        : null
+  const statusRibbon = !isOpen ? "Closed" : null
 
   return (
     <article className="group flex flex-col w-full text-left">
@@ -275,17 +201,6 @@ function StoreRailCard({ shop }: { shop: StoreVendor }) {
             <span className="truncate text-sm sm:text-base font-semibold text-foreground group-hover:text-primary transition-colors">
               {shop.name}
             </span>
-            <button
-              type="button"
-              aria-label={`Save ${shop.name} to favorites`}
-              onClick={(e) => {
-                e.preventDefault()
-                e.stopPropagation()
-              }}
-              className="text-muted-foreground hover:text-red-500 transition-colors p-0.5 shrink-0"
-            >
-              <Heart size={18} />
-            </button>
           </div>
 
           <div className="flex min-w-0 items-center gap-3 text-xs sm:text-[13px] text-muted-foreground">
@@ -298,14 +213,18 @@ function StoreRailCard({ shop }: { shop: StoreVendor }) {
                   "shrink-0",
                 )}
               />
-              <span>{hasRating ? shop.ratingAvg!.toFixed(1) : "4.1"}</span>
-              <span className="font-normal text-muted-foreground">({shop.ratingCount || 19})</span>
+              <span>{hasRating ? shop.ratingAvg!.toFixed(1) : "New"}</span>
+              {(shop.ratingCount ?? 0) > 0 ? (
+              <span className="font-normal text-muted-foreground">({shop.ratingCount})</span>
+              ) : null}
             </span>
 
+            {minutes != null ? (
             <span className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap text-muted-foreground">
               <Bicycle size={15} weight="bold" className="text-muted-foreground/90 shrink-0" />
-              <span>{minutes ?? 60}mins delivery</span>
+              <span>{minutes}mins delivery</span>
             </span>
+            ) : null}
 
             {!isOpen && !statusRibbon ? (
               <span className="font-bold text-xs text-muted-foreground">Closed</span>

@@ -293,7 +293,7 @@ async function sellerView(c: Context<AppEnv>, sellerId: string) {
       banner: seller.banner,
       metadata: {
         ...meta,
-        delivery_fee_ghs: Number(seller.deliveryFeePesewas) / 100,
+        delivery_fee_ghs: Number((Number(seller.deliveryFeePesewas) / 100).toFixed(2)),
       },
       storefront: storefrontFromMetadata(meta),
       display: displayFromMetadata(meta),

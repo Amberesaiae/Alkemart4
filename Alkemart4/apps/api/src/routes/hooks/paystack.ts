@@ -60,6 +60,10 @@ export const paystackHooks = new Hono<AppEnv>().post("/", async (c) => {
     if (seen) return c.json({ ok: true, deduped: true })
     await dedup.put(dedupKey, "1")
   }
+  // Without KV (tests/local), correctness still holds: status updates are
+  // compare-and-swap and order_groups.payment_intent_id is unique, so a
+  // duplicate delivery resolves to the winner's group instead of double
+  // confirmation. KV here is purely a fast path.
 
   const checkout = c.get("checkoutRepo")
   const intent = await checkout.getPaymentIntentByReference(reference)

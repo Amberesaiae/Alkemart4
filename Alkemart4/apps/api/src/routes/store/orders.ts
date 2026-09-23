@@ -123,10 +123,13 @@ export const storeOrders = new Hono<AppEnv>()
 
     const groups = await c.get("checkoutRepo").listOrderGroupsByBuyerEmail(user.email)
     const sellers = await sellerDirectory(c)
+    const limit = Math.max(1, Math.min(Number(c.req.query("limit") ?? 20) || 20, 100))
+    const offset = Math.max(0, Number(c.req.query("offset") ?? 0) || 0)
+    const page = groups.slice(offset, offset + limit)
     const items = await Promise.all(
-      groups.map((g) => serializeGroup(c.get("checkoutRepo"), g, sellers)),
+      page.map((g) => serializeGroup(c.get("checkoutRepo"), g, sellers)),
     )
-    return c.json({ items })
+    return c.json({ items, count: groups.length, limit, offset })
   })
   .get("/:id", async (c) => {
     const id = c.req.param("id")

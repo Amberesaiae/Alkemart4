@@ -45,7 +45,7 @@ function SellerDetailPage() {
   }
 
   const seller = data.seller
-  const counts = (data as { counts?: { products: Record<string, number>; orders: Record<string, number>; members: number } }).counts
+  const counts = (data as { counts?: { products: Record<string, number>; orders: Record<string, number>; members: number; partial?: boolean } }).counts
   const recentOrders = (data as { recentOrders?: { id: string; status: string; subtotalPesewas: string }[] }).recentOrders ?? []
   const momo = (seller as { momo?: { provider: string | null; phone: string | null; recipient: boolean } | null }).momo
   const productTotal = counts ? Object.values(counts.products).reduce((a, b) => a + b, 0) : null
@@ -108,6 +108,7 @@ function SellerDetailPage() {
                 {counts ? (
                   <p className="text-sm text-muted-foreground mt-1">
                     {productTotal} product{productTotal === 1 ? "" : "s"} · {orderTotal} order{orderTotal === 1 ? "" : "s"} · {counts.members} member{counts.members === 1 ? "" : "s"}
+                    {counts.partial ? " · some sources unavailable" : null}
                   </p>
                 ) : null}
               </div>

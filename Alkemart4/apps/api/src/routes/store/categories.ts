@@ -2,6 +2,7 @@ import { buildNavTree } from "@alkemart/domain"
 import { Hono } from "hono"
 import { HTTPException } from "hono/http-exception"
 import type { AppEnv } from "../../context"
+import { edgeCache } from "../../lib/edge-cache"
 
 /**
  * Buyer nav tree: active, nav-visible nodes only (Phase 1A).
@@ -24,6 +25,7 @@ export const categories = new Hono<AppEnv>()
           rank: n.sortOrder,
         })),
     )
+    edgeCache(c, "merchandising")
     return c.json({ categories: tree })
   })
   .get("/resolve", async (c) => {

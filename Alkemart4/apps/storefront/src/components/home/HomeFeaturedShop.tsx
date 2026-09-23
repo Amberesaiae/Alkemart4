@@ -1,9 +1,10 @@
 import { useRef } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { ArrowRight, CaretLeft, CaretRight, MapPin } from "@phosphor-icons/react";
 import { Link } from "@tanstack/react-router";
 import { ProductCard } from "@/components/product-card";
 import type { StoreProductCard } from "@/lib/products";
-import { DEMO_VENDORS } from "@/components/home/StoreRail";
+import { listStoreVendors } from "@/lib/vendors";
 
 export function HomeFeaturedShop({
   products,
@@ -23,7 +24,13 @@ export function HomeFeaturedShop({
   )[0];
   if (!featured) return null;
   const [handle, shopProducts] = featured;
-  const vendor = DEMO_VENDORS.find((shop) => shop.slug === handle);
+  // Real vendor record for banner/location; absent data omits, never fakes.
+  const vendorsQ = useQuery({
+    queryKey: ["store", "vendors"],
+    queryFn: () => listStoreVendors(),
+    staleTime: 300_000,
+  });
+  const vendor = (vendorsQ.data ?? []).find((shop) => shop.slug === handle);
   const name = shopProducts[0]?.seller?.name || vendor?.name || "Featured shop";
   const cover =
     vendor?.banner ||

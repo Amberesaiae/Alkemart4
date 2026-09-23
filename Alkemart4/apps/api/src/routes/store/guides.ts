@@ -2,6 +2,7 @@ import { Hono } from "hono"
 import { HTTPException } from "hono/http-exception"
 import type { ProductCardDto } from "@alkemart/domain"
 import type { AppEnv } from "../../context"
+import { edgeCache } from "../../lib/edge-cache"
 
 /**
  * Phase 6E public reads — published guides only, with picks resolved to
@@ -11,6 +12,7 @@ import type { AppEnv } from "../../context"
 export const storeGuides = new Hono<AppEnv>()
   .get("/", async (c) => {
     const items = await c.get("guides").listGuides("published")
+    edgeCache(c, "merchandising")
     return c.json({
       items: items.map((g) => ({
         slug: g.slug,
@@ -54,7 +56,7 @@ export const storeGuides = new Hono<AppEnv>()
     const related = (
       await Promise.all(guide.relatedGuides.map((s) => c.get("guides").getGuide(s).catch(() => null)))
     ).filter((g) => g && g.status === "published")
-    return c.json({
+    const body = {
       guide: {
         slug: guide.slug,
         title: guide.title,
@@ -70,5 +72,7 @@ export const storeGuides = new Hono<AppEnv>()
         title: g!.title,
         excerpt: g!.excerpt,
       })),
-    })
+    }
+    edgeCache(c, "merchandising")
+    return c.json(body)
   })

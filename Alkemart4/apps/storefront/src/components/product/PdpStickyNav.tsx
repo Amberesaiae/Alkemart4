@@ -21,6 +21,9 @@ interface PdpStickyNavProps {
   isPending: boolean
   onAddToCart: () => void
   sellerName?: string | null
+  sellerHandle?: string | null
+  /** Real WhatsApp contact from the shop profile; null when undeclared. */
+  sellerWhatsApp?: string | null
 }
 
 export function PdpStickyNav({
@@ -29,6 +32,8 @@ export function PdpStickyNav({
   isPending,
   onAddToCart,
   sellerName,
+  sellerHandle,
+  sellerWhatsApp,
 }: PdpStickyNavProps) {
   const [activeSection, setActiveSection] = useState<string>("product-details")
 
@@ -161,16 +166,25 @@ export function PdpStickyNav({
         </button>
 
         {sellerName ? (
-          <button
-            type="button"
-            onClick={() => {
-              alert(`Chatting with ${sellerName} will open WhatsApp/Messenger.`)
-            }}
-            className="flex h-9 w-full items-center justify-center gap-2 rounded-lg border border-border/80 bg-background px-3 text-xs font-bold text-foreground transition hover:bg-muted"
-          >
-            <ChatsCircle size={16} weight="bold" className="text-primary" />
-            <span>Chat with seller</span>
-          </button>
+          sellerWhatsApp ? (
+            <a
+              href={`https://wa.me/${encodeURIComponent(sellerWhatsApp)}?text=${encodeURIComponent(`Hello ${sellerName}, I have a question about "${product.title}" on alkemart.`)}`}
+              target="_blank"
+              rel="noreferrer"
+              className="flex h-9 w-full items-center justify-center gap-2 rounded-lg border border-border/80 bg-background px-3 text-xs font-bold text-foreground transition hover:bg-muted"
+            >
+              <ChatsCircle size={16} weight="bold" className="text-primary" />
+              <span>Chat with seller</span>
+            </a>
+          ) : sellerHandle ? (
+            <a
+              href={`/shops/${encodeURIComponent(sellerHandle)}`}
+              className="flex h-9 w-full items-center justify-center gap-2 rounded-lg border border-border/80 bg-background px-3 text-xs font-bold text-foreground transition hover:bg-muted"
+            >
+              <ChatsCircle size={16} weight="bold" className="text-primary" />
+              <span>Ask the seller</span>
+            </a>
+          ) : null
         ) : null}
       </div>
     </div>

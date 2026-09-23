@@ -6,7 +6,6 @@ import {
   DeviceMobile,
   FirstAid,
   ForkKnife,
-  Heart,
   MagnifyingGlass,
   MapPin,
   ShoppingCartSimple,
@@ -16,7 +15,6 @@ import {
   TShirt,
 } from "@phosphor-icons/react"
 import { listStoreVendors, type StoreVendor } from "@/lib/vendors"
-import { DEMO_VENDORS } from "@/components/home/StoreRail"
 import { DeliverToPicker } from "@/components/shell/DeliverToPicker"
 import { useDeliverTo, matchesArea } from "@/lib/deliver-to"
 import { Skeleton } from "@/components/skeleton"
@@ -129,15 +127,12 @@ export function ShopsPage() {
   const vendorsQ = useQuery({
     queryKey: ["store", "vendors"],
     queryFn: () => listStoreVendors(),
-    initialData: DEMO_VENDORS,
     staleTime: 300_000,
   })
 
   const allVendors = useMemo(() => {
-    const raw = (vendorsQ.data ?? []).filter((v) => v.availability !== "paused")
-    return raw.length >= 3
-      ? raw
-      : [...raw, ...DEMO_VENDORS.filter((d) => !raw.some((r) => r.slug === d.slug))]
+    // Real shops only — no demo filler in production.
+    return (vendorsQ.data ?? []).filter((v) => v.availability !== "paused")
   }, [vendorsQ.data])
 
   const filteredShops = useMemo(() => {
@@ -471,22 +466,11 @@ function ShopGridCard({ shop }: { shop: StoreVendor }) {
 
         {/* 2. Decoupled Outside Information */}
         <div className="flex flex-col pt-3 pb-1 gap-1">
-          {/* Row 1: Name and Favorite Heart */}
+          {/* Row 1: Name */}
           <div className="flex items-center justify-between gap-2">
             <h2 className="truncate text-base font-bold text-foreground group-hover:text-primary transition-colors">
               {shop.name}
             </h2>
-            <button
-              type="button"
-              aria-label={`Save ${shop.name} to favorites`}
-              onClick={(e) => {
-                e.preventDefault()
-                e.stopPropagation()
-              }}
-              className="text-muted-foreground hover:text-red-500 transition-colors p-0.5 shrink-0"
-            >
-              <Heart size={18} />
-            </button>
           </div>
 
           {/* Row 2: Ratings + Bicycle Delivery Indicator */}
@@ -500,14 +484,18 @@ function ShopGridCard({ shop }: { shop: StoreVendor }) {
                   "shrink-0",
                 )}
               />
-              <span>{hasRating ? shop.ratingAvg!.toFixed(1) : "4.1"}</span>
-              <span className="font-normal text-muted-foreground">({shop.ratingCount || 19})</span>
+              <span>{hasRating ? shop.ratingAvg!.toFixed(1) : "New"}</span>
+              {(shop.ratingCount ?? 0) > 0 ? (
+              <span className="font-normal text-muted-foreground">({shop.ratingCount})</span>
+              ) : null}
             </span>
 
+            {minutes != null ? (
             <span className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap text-muted-foreground">
               <Bicycle size={15} weight="bold" className="text-muted-foreground/90 shrink-0" />
-              <span>{minutes ?? 60}mins delivery</span>
+              <span>{minutes}mins delivery</span>
             </span>
+            ) : null}
 
             {!isOpen && !statusRibbon ? (
               <span className="font-bold text-xs text-muted-foreground">Closed</span>

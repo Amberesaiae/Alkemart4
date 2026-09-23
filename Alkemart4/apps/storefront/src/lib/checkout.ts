@@ -40,7 +40,7 @@ export type MomoPendingResult = {
   client_reference?: string
   provider_reference?: string
   expires_at?: string
-  amount_pesewas?: number
+  amount_pesewas?: number | string
   provider_status?: string
 }
 
@@ -311,7 +311,7 @@ export async function placeGhanaOrder(input: {
     client_reference?: string
     provider_reference?: string
     expires_at?: string
-    amount_pesewas?: number
+    amount_pesewas?: number | string
     provider_status?: string
     authorization_url?: string
     reference?: string
@@ -377,7 +377,7 @@ export async function pollMomoCheckoutStatus(
       paymentIntentId?: string
       client_reference?: string | null
       provider_reference?: string | null
-      amount_pesewas?: number
+      amount_pesewas?: number | string
       provider_status?: string
     }
     const resolvedCartId = data.cart_id ?? data.cartId ?? cartId
@@ -437,7 +437,7 @@ export async function pollMomoCheckoutStatus(
     client_reference?: string
     provider_reference?: string
     expires_at?: string
-    amount_pesewas?: number
+    amount_pesewas?: number | string
     provider_status?: string
   }
 

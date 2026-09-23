@@ -73,16 +73,24 @@ export const adminSellers = new Hono<AppEnv>()
     const seller = await authRepo.findSellerById(id)
     if (!seller) throw new HTTPException(404, { message: "seller not found" })
 
+    // Degraded sources resolve to explicit partial flags — the detail page
+    // states incompleteness instead of presenting zeros as facts.
     const [members, products, orders] = await Promise.all([
       authRepo.listSellerMembers(id),
-      c.get("repo").listAdminProducts().catch((): AdminProductDto[] => []),
-      c.get("checkoutRepo").listOrdersForSeller(id).catch((): OrderRow[] => []),
+      c.get("repo").listAdminProducts().then(
+        (rows): { rows: AdminProductDto[]; partial: false } => ({ rows, partial: false }),
+        (): { rows: AdminProductDto[]; partial: true } => ({ rows: [], partial: true }),
+      ),
+      c.get("checkoutRepo").listOrdersForSeller(id).then(
+        (rows): { rows: OrderRow[]; partial: false } => ({ rows, partial: false }),
+        (): { rows: OrderRow[]; partial: true } => ({ rows: [], partial: true }),
+      ),
     ])
-    const mine = products.filter((p) => p.sellerId === id)
+    const mine = products.rows.filter((p) => p.sellerId === id)
     const productCounts = { draft: 0, proposed: 0, published: 0, rejected: 0 }
     for (const p of mine) productCounts[p.status] = (productCounts[p.status] ?? 0) + 1
     const orderCounts: Record<string, number> = {}
-    for (const o of orders) orderCounts[o.status] = (orderCounts[o.status] ?? 0) + 1
+    for (const o of orders.rows) orderCounts[o.status] = (orderCounts[o.status] ?? 0) + 1
     const ownerEmail = members.find((m) => m.role === "owner")?.email ?? members[0]?.email ?? null
 
     return c.json({
@@ -116,8 +124,9 @@ export const adminSellers = new Hono<AppEnv>()
         products: productCounts,
         orders: orderCounts,
         members: members.length,
+        partial: products.partial || orders.partial,
       },
-      recentOrders: orders.slice(0, 5).map((o) => ({
+      recentOrders: orders.rows.slice(0, 5).map((o) => ({
         id: o.id,
         status: o.status,
         subtotalPesewas: o.subtotalPesewas.toString(),

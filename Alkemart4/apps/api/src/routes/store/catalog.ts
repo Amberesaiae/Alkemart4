@@ -1,6 +1,7 @@
 import { Hono } from "hono"
 import type { ApiEnv } from "../../env"
 import type { AppEnv } from "../../context"
+import { edgeCache } from "../../lib/edge-cache"
 import type { CatalogListQuery, CatalogSort } from "../../catalog-repository"
 
 const CATALOG_KV_TTL_SECONDS = 60
@@ -75,6 +76,7 @@ export const catalog = new Hono<AppEnv>().get("/", async (c) => {
   if (kv) {
     await kv.put(key, JSON.stringify(rated), { expirationTtl: CATALOG_KV_TTL_SECONDS })
   }
+  edgeCache(c, "catalog")
   return c.json(rated)
 })
 

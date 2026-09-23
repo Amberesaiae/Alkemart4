@@ -140,7 +140,9 @@ function validateRow(
   if (!/^\d+(\.\d{1,2})?$/.test(rawPrice)) {
     errors.push("price_ghs must be a non-negative amount with at most 2 decimals")
   } else {
-    pricePesewas = BigInt(Math.round(Number(rawPrice) * 100))
+    // String-split parse — never float math on money: "0.29" → 29n exactly.
+    const [cedis, frac = ""] = rawPrice.split(".")
+    pricePesewas = BigInt(cedis) * 100n + BigInt((frac + "00").slice(0, 2))
   }
 
   let onHand: number | null = null

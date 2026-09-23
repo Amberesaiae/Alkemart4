@@ -286,11 +286,15 @@ describe("experiments (Phase 7D)", () => {
 
     const assign = async (unit: string) =>
       app.request(`/store/experiments/assign?experiment=homepage-shelf-order&unit=${unit}`, {}, testEnv())
+    // The assign burst below exceeds the per-minute abuse cap on purpose;
+    // reset so the test measures determinism, not the limiter. Total assigns
+    // in this burst stay under the cap (2 + 24 + 1 ghost = 27 < 30).
+    resetRateLimits()
     const a1 = ((await (await assign("u1")).json()) as { bucket: string }).bucket
     const a2 = ((await (await assign("u1")).json()) as { bucket: string }).bucket
     expect(a1).toBe(a2)
     const buckets = new Set<string>()
-    for (let i = 0; i < 40; i++) {
+    for (let i = 0; i < 24; i++) {
       buckets.add(((await (await assign(`unit-${i}`)).json()) as { bucket: string }).bucket)
     }
     // Deterministic hash splits traffic across both buckets.
@@ -302,8 +306,8 @@ describe("experiments (Phase 7D)", () => {
       headers: { Authorization: `Bearer ${adminToken}` },
     }, testEnv())
     const body = (await report.json()) as { report: { control: number; exposed: number } }
-    // 1 repeat (u1, counted once) + 40 units.
-    expect(body.report.control + body.report.exposed).toBe(41)
+    // 1 repeat (u1, counted once) + 24 units.
+    expect(body.report.control + body.report.exposed).toBe(25)
   })
 })
 
