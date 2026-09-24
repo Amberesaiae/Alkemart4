@@ -130,7 +130,7 @@ function OrderDetailPage() {
 
       {justPlaced ? (
         <section
-          className="overflow-hidden rounded-3xl border border-primary/30 bg-muted p-6 sm:p-8"
+          className="overflow-hidden rounded-lg border border-primary/30 bg-muted p-6 sm:p-8"
           aria-live="polite"
         >
           <div className="flex flex-col items-start gap-5 sm:flex-row sm:items-center">
@@ -161,16 +161,16 @@ function OrderDetailPage() {
 
       {isLoading ? (
         <div className="space-y-3" role="status" aria-label="Loading order">
-          <Skeleton className="h-28 w-full rounded-3xl" />
-          <Skeleton className="h-24 w-full rounded-2xl" />
-          <Skeleton className="h-24 w-full rounded-2xl" />
+          <Skeleton className="h-28 w-full rounded-lg" />
+          <Skeleton className="h-24 w-full rounded-lg" />
+          <Skeleton className="h-24 w-full rounded-lg" />
         </div>
       ) : null}
 
       {isError ? (
         <div
           role="alert"
-          className="space-y-4 rounded-2xl border border-destructive/40 bg-destructive/5 p-5 text-sm"
+          className="space-y-4 rounded-lg border border-destructive/40 bg-destructive/5 p-5 text-sm"
         >
           <div className="space-y-2">
             <p className="font-semibold text-destructive">
@@ -193,7 +193,7 @@ function OrderDetailPage() {
           </div>
 
           <form
-            className="space-y-3 rounded-2xl border border-border bg-card p-4"
+            className="space-y-3 rounded-lg border border-border bg-card p-4"
             onSubmit={(e) => {
               e.preventDefault()
               const next = email.trim()
@@ -231,7 +231,7 @@ function OrderDetailPage() {
 
       {!isLoading && !isError && !data && !submittedEmail ? (
         <form
-          className="space-y-3 rounded-3xl border border-border bg-card p-5 shadow-sm"
+          className="space-y-3 rounded-lg border border-border bg-card p-5 shadow-sm"
           onSubmit={(e) => {
             e.preventDefault()
             const next = email.trim()
@@ -274,7 +274,7 @@ function OrderDetailPage() {
 
       {data ? (
         <>
-          <header className="space-y-3 rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6">
+          <header className="space-y-3 rounded-lg border border-border bg-card p-5 shadow-sm sm:p-6">
             {!justPlaced ? (
               <h1 className="text-3xl font-bold tracking-tight">
                 {formatOrderLabel(data)}
@@ -313,7 +313,7 @@ function OrderDetailPage() {
 
           <OrderTimeline order={data} />
 
-          <div className="space-y-2 rounded-3xl border border-border bg-card p-5 shadow-sm">
+          <div className="space-y-2 rounded-lg border border-border bg-card p-5 shadow-sm">
             <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               Totals
             </p>
@@ -361,7 +361,7 @@ function OrderDetailPage() {
           </div>
 
           {addrLines.length > 0 ? (
-            <section className="rounded-3xl border border-border bg-card p-5 shadow-sm">
+            <section className="rounded-lg border border-border bg-card p-5 shadow-sm">
               <h2 className="mb-2 text-sm font-bold">Delivery</h2>
               <address className="space-y-0.5 not-italic text-sm text-muted-foreground">
                 {addrLines.map((line) => (
@@ -392,7 +392,7 @@ function OrderDetailPage() {
             {groups.map((group) => (
               <div
                 key={group.key}
-                className="space-y-3 rounded-3xl border border-border bg-card p-4 shadow-sm"
+                className="space-y-3 rounded-lg border border-border bg-card p-4 shadow-sm"
               >
                 {group.seller?.name ? (
                   <SellerChip seller={group.seller} className="text-sm" />
@@ -405,7 +405,7 @@ function OrderDetailPage() {
                   {group.items.map((i) => (
                     <li
                       key={i.id}
-                      className="flex items-center gap-3 rounded-2xl border border-border/80 bg-background px-3 py-2.5 text-sm"
+                      className="flex items-center gap-3 rounded-lg border border-border/80 bg-background px-3 py-2.5 text-sm"
                     >
                       {i.thumbnail ? (
                         <img

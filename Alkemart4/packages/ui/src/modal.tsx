@@ -20,15 +20,12 @@ function Modal({ isOpen, onClose, title, children, footer, className }: LegacyMo
         <DialogPrimitive.Overlay
           className={cn(
             "fixed inset-0 z-50 bg-black/60 backdrop-blur-xs",
-            "data-[state=open]: data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:",
           )}
         />
         <DialogPrimitive.Content
           style={{ position: "fixed", top: "50%", left: "50%", transform: "translate(-50%, -50%)" }}
           className={cn(
-            "fixed left-1/2 top-1/2 z-50 w-[calc(100%-2rem)] max-w-lg max-h-[85vh] overflow-y-auto rounded-2xl border border-border bg-background p-6 text-foreground shadow-2xl",
-            "data-[state=open]: data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:",
-            "data-[state=closed]:zoom-out-95 data-[state=open]:",
+            "fixed left-1/2 top-1/2 z-50 w-[calc(100%-2rem)] max-w-lg max-h-[85vh] overflow-y-auto rounded-lg border border-border bg-background p-6 text-foreground shadow-2xl",
             className,
           )}
         >

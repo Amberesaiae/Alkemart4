@@ -61,7 +61,7 @@ function SellPage() {
             ) : null}
           </div>
         </div>
-        <div className="surface-soft mt-4 flex items-center justify-center rounded-2xl p-6 sm:mt-0 sm:p-8">
+        <div className="surface-soft mt-4 flex items-center justify-center rounded-lg p-6 sm:mt-0 sm:p-8">
           <Illustration name="authSeller" size="lg" priority alt="Seller Hub illustration" />
         </div>
       </header>
@@ -87,7 +87,7 @@ function SellPage() {
         />
       </section>
 
-      <section className="rounded-2xl border border-border bg-muted/40 p-6 text-sm text-muted-foreground shadow-sm">
+      <section className="rounded-lg border border-border bg-muted/40 p-6 text-sm text-muted-foreground shadow-sm">
         <h2 className="font-bold text-base text-foreground">Already a customer?</h2>
         <p className="mt-1">
           Buying:{" "}
@@ -121,7 +121,7 @@ function Step(props: {
 }) {
   return (
     <div
-      className="flex flex-col rounded-2xl border border-border bg-card p-6 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      className="flex flex-col rounded-lg border border-border bg-card p-6 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       aria-label={`Step ${props.n}: ${props.title}`}
     >
       <div className="surface-soft mb-4 flex justify-center rounded-lg py-4 ring-1 ring-border/50">

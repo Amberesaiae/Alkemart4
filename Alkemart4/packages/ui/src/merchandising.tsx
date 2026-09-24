@@ -56,7 +56,7 @@ export function MerchPromoHero({ eyebrow, title, subtitle, body, imageUrl, actio
   ) : null
   if (layout === "band") {
     return (
-      <section className={cn("relative overflow-hidden rounded-3xl", themeClass(theme), compact ? "p-6" : "p-7 sm:p-10", className)}>
+      <section className={cn("relative overflow-hidden rounded-lg", themeClass(theme), compact ? "p-6" : "p-7 sm:p-10", className)}>
         {imageUrl ? <div className="absolute inset-0 bg-cover bg-center opacity-25" style={{ backgroundImage: `url(${imageUrl})` }} aria-hidden="true" /> : null}
         <div className="relative z-10 max-w-2xl">
           {eyebrow ? <p className="mb-3 text-xs font-bold uppercase tracking-[0.18em] opacity-65">{eyebrow}</p> : null}
@@ -69,7 +69,7 @@ export function MerchPromoHero({ eyebrow, title, subtitle, body, imageUrl, actio
     )
   }
   return (
-    <section className={cn("grid overflow-hidden rounded-3xl sm:grid-cols-2", compact ? "min-h-52" : "min-h-[300px]", themeClass(theme), className)}>
+    <section className={cn("grid overflow-hidden rounded-lg sm:grid-cols-2", compact ? "min-h-52" : "min-h-[300px]", themeClass(theme), className)}>
       <div className={cn("flex flex-col justify-center", compact ? "p-6" : "p-7 sm:p-10 lg:p-14")}>
         {eyebrow ? <p className="mb-3 text-xs font-bold uppercase tracking-[0.18em] opacity-65">{eyebrow}</p> : null}
         <h2 className={cn("font-bold leading-[1.02] tracking-tight", compact ? "text-2xl" : "text-3xl sm:text-4xl lg:text-5xl")}>{title}</h2>
@@ -111,7 +111,7 @@ export function MerchPromoGrid({ title, subtitle, eyebrow, columns, theme, varia
             // below on paper. No scrim, no overlay; the type scale (large
             // bold headline + underlined shop link) is what carries it.
             const editorial = (
-              <div className="group flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-card">
+              <div className="group flex h-full flex-col overflow-hidden rounded-lg border border-border bg-card">
                 <div className="relative aspect-[4/3] w-full overflow-hidden bg-black/5">
                   {tile.imageUrl ? (
                     <img
@@ -120,7 +120,7 @@ export function MerchPromoGrid({ title, subtitle, eyebrow, columns, theme, varia
                       loading="lazy"
                       decoding="async"
                       draggable={false}
-                      className="absolute inset-0 h-full w-full object-cover transition group-hover:scale-[1.03]"
+                      className="absolute inset-0 h-full w-full object-cover"
                     />
                   ) : null}
                 </div>
@@ -145,11 +145,11 @@ export function MerchPromoGrid({ title, subtitle, eyebrow, columns, theme, varia
           const isWalmartHero = variant === "walmart" && (index === 0 || index === tiles.length - 1)
           const card = (
             <div className={cn(
-              "group relative overflow-hidden rounded-2xl p-5 flex flex-col justify-end shadow-2xs",
+              "group relative overflow-hidden rounded-lg p-5 flex flex-col justify-end shadow-2xs",
               compact ? "min-h-28" : variant === "bento" && index === 0 ? "min-h-64 sm:col-span-2 sm:row-span-2" : isWalmartHero ? "min-h-[320px] lg:min-h-[360px]" : "min-h-52",
               themeClass(theme),
             )}>
-              <div className="absolute inset-0 bg-cover bg-center transition group-hover:scale-[1.04]" style={tile.imageUrl ? { backgroundImage: `url(${tile.imageUrl})` } : undefined} />
+              <div className="absolute inset-0 bg-cover bg-center" style={tile.imageUrl ? { backgroundImage: `url(${tile.imageUrl})` } : undefined} />
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
               <div className="relative z-10 flex h-full flex-col justify-end text-white">
                 {tile.eyebrow ? <p className="text-xs font-bold uppercase tracking-[0.16em] text-primary">{tile.eyebrow}</p> : null}
@@ -201,7 +201,7 @@ export function MerchPromoBand({ eyebrow, title, body, imageUrl, action, seconda
   ) : null
   if (layout === "cover" && imageUrl) {
     return (
-      <section className={cn("relative overflow-hidden rounded-2xl", className)} aria-label={title}>
+      <section className={cn("relative overflow-hidden rounded-lg", className)} aria-label={title}>
         <img
           src={imageUrl}
           alt=""
@@ -244,7 +244,7 @@ export function MerchPromoBand({ eyebrow, title, body, imageUrl, action, seconda
     )
   }
   return (
-    <section className={cn("relative overflow-hidden rounded-2xl", themeClass(theme), compact ? "px-5 py-5" : "px-6 py-6 sm:px-8", className)} aria-label={title}>
+    <section className={cn("relative overflow-hidden rounded-lg", themeClass(theme), compact ? "px-5 py-5" : "px-6 py-6 sm:px-8", className)} aria-label={title}>
       {imageUrl ? <div className="absolute inset-0 bg-cover bg-center opacity-20" style={{ backgroundImage: `url(${imageUrl})` }} aria-hidden="true" /> : null}
       <div className="relative flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
         <div className="min-w-0 space-y-1">
@@ -293,7 +293,7 @@ export function merchCategoryTileClass({ variant = "tiles", feature = false, cla
   className?: string
 }) {
   return cn(
-    "group flex flex-col gap-2 rounded-2xl",
+    "group flex flex-col gap-2 rounded-lg",
     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black focus-visible:ring-offset-2",
     variant === "rail" && "w-36 shrink-0 snap-start sm:w-44",
     // Desktop mosaic: feature tiles claim both rows and every tile fills its
@@ -349,9 +349,8 @@ export function MerchCategoryTileBody({ label, badge, imageUrl, focalPoint, imag
     <>
       <span
         className={cn(
-          "relative block w-full overflow-hidden rounded-2xl bg-black/5",
-          "ring-1 ring-black/[0.06] shadow-sm transition",
-          "group- motion-reduce:transition-none",
+          "relative block w-full overflow-hidden rounded-lg bg-black/5",
+          "ring-1 ring-black/[0.06] shadow-sm",
           merchRatioClass[ratio],
           // Desktop mosaic sizes by the grid row, not by ratio.
           variant === "mosaic" && "lg:aspect-auto lg:min-h-0 lg:flex-1",
@@ -375,8 +374,6 @@ export function MerchCategoryTileBody({ label, badge, imageUrl, focalPoint, imag
               style={focalPoint ? { objectPosition: focalPoint } : undefined}
               className={cn(
                 "absolute inset-0 z-[1] h-full w-full object-cover",
-                "transition group-hover:scale-[1.03]",
-                "motion-reduce:transition-none motion-reduce:group-hover:scale-100",
                 loaded ? "opacity-100" : "opacity-0",
                 focalPoint ? undefined : imageClassName,
               )}
@@ -476,7 +473,7 @@ export function MerchShelf({ title, subtitle, eyebrow, action, layout = "grid", 
                 type="button"
                 onClick={() => scroll("left")}
                 aria-label="Scroll left"
-                className="flex h-8 w-8 items-center justify-center rounded-full border border-black/10 bg-white text-foreground shadow-2xs hover:bg-black/5 active:scale-95 dark:bg-card dark:border-white/10"
+                className="flex h-8 w-8 items-center justify-center rounded-full border border-black/10 bg-white text-foreground shadow-2xs hover:bg-black/5 dark:bg-card dark:border-white/10"
               >
                 <CaretLeft size={16} weight="bold" />
               </button>
@@ -484,7 +481,7 @@ export function MerchShelf({ title, subtitle, eyebrow, action, layout = "grid", 
                 type="button"
                 onClick={() => scroll("right")}
                 aria-label="Scroll right"
-                className="flex h-8 w-8 items-center justify-center rounded-full border border-black/10 bg-white text-foreground shadow-2xs hover:bg-black/5 active:scale-95 dark:bg-card dark:border-white/10"
+                className="flex h-8 w-8 items-center justify-center rounded-full border border-black/10 bg-white text-foreground shadow-2xs hover:bg-black/5 dark:bg-card dark:border-white/10"
               >
                 <CaretRight size={16} weight="bold" />
               </button>
@@ -588,7 +585,7 @@ export function MerchCountdownBanner({ eyebrow, title, body, countdownTo, expire
     </span>
   ) : null
   return (
-    <section className={cn("relative overflow-hidden rounded-2xl", themeClass(theme), compact ? "px-5 py-5" : "px-6 py-7 sm:px-8", className)} aria-label={title}>
+    <section className={cn("relative overflow-hidden rounded-lg", themeClass(theme), compact ? "px-5 py-5" : "px-6 py-7 sm:px-8", className)} aria-label={title}>
       {imageUrl ? (
         <img src={imageUrl} alt="" loading="lazy" decoding="async" className="absolute inset-0 h-full w-full object-cover opacity-20" />
       ) : null}
@@ -677,7 +674,7 @@ export function MerchDealRail({ title, subtitle, eyebrow, countdownTo, action, c
   className?: string
 }) {
   return (
-    <section className={cn("space-y-4 rounded-2xl bg-black/[0.03] p-4 sm:p-5", className)}>
+    <section className={cn("space-y-4 rounded-lg bg-black/[0.03] p-4 sm:p-5", className)}>
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div className="min-w-0 space-y-1">
           {eyebrow ? <p className="text-xs font-bold uppercase tracking-[0.18em] opacity-60">{eyebrow}</p> : null}
@@ -711,12 +708,12 @@ export function MerchValueGrid({ title, subtitle, items, compact = false, classN
   className?: string
 }) {
   return (
-    <section className={cn("rounded-3xl bg-black text-white", compact ? "p-5" : "p-6 sm:p-8", className)}>
+    <section className={cn("rounded-lg bg-black text-white", compact ? "p-5" : "p-6 sm:p-8", className)}>
       {title ? <h2 className="text-2xl font-bold">{title}</h2> : null}
       {subtitle ? <p className="mt-1 text-sm text-white/65">{subtitle}</p> : null}
       <div className={cn("grid gap-3 sm:grid-cols-2 lg:grid-cols-4", title || subtitle ? "mt-5" : "")}>
         {items.map((item) => (
-          <article key={item.id} className="rounded-2xl border border-white/15 p-5">
+          <article key={item.id} className="rounded-lg border border-white/15 p-5">
             <span className="mb-4 block h-3 w-3 rounded-full bg-primary" />
             <h3 className="font-bold">{item.title}</h3>
             <p className="mt-2 text-sm leading-6 text-white/65">{item.body}</p>
@@ -738,7 +735,7 @@ export function MerchEmpty({ title, body, action, className }: {
   className?: string
 }) {
   return (
-    <div className={cn("rounded-2xl border border-dashed border-black/15 bg-white p-6 text-center", className)} role="status">
+    <div className={cn("rounded-lg border border-dashed border-black/15 bg-white p-6 text-center", className)} role="status">
       <p className="font-bold">{title}</p>
       {body ? <p className="mx-auto mt-1 max-w-md text-sm text-black/60">{body}</p> : null}
       {action ? <div className="mt-3">{action}</div> : null}

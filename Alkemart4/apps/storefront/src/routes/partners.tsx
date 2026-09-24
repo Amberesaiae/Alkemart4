@@ -75,7 +75,7 @@ function PartnersPage() {
         />
       </div>
 
-      <section className="grid gap-4 rounded-3xl border border-border surface-soft p-6 sm:grid-cols-[auto_1fr] sm:items-center sm:gap-8">
+      <section className="grid gap-4 rounded-lg border border-border surface-soft p-6 sm:grid-cols-[auto_1fr] sm:items-center sm:gap-8">
         <Illustration name="authBuyer" size="md" className="mx-0" />
         <div className="space-y-2">
           <h2 className="text-lg font-bold text-foreground">
@@ -115,7 +115,7 @@ function RoleCard(props: {
   hint?: string
 }) {
   return (
-    <article className="flex flex-col gap-4 rounded-3xl border border-border bg-card p-5 shadow-sm sm:flex-row sm:items-start sm:gap-6 sm:p-6">
+    <article className="flex flex-col gap-4 rounded-lg border border-border bg-card p-5 shadow-sm sm:flex-row sm:items-start sm:gap-6 sm:p-6">
       <Illustration
         name={props.illustration}
         size="md"

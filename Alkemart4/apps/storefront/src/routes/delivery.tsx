@@ -40,13 +40,13 @@ function DeliveryPage() {
       <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-10 lg:py-12 space-y-8">
         {/* Hero band */}
         <section
-          className="rounded-2xl border border-border bg-card p-6 shadow-sm sm:p-8"
+          className="rounded-lg border border-border bg-card p-6 shadow-sm sm:p-8"
           aria-labelledby="delivery-hero-title"
         >
           <div className="flex flex-col items-center gap-6 text-center sm:flex-row sm:gap-8 sm:text-left">
             <div
               className={cn(
-                "flex shrink-0 items-center justify-center rounded-2xl",
+                "flex shrink-0 items-center justify-center rounded-lg",
                 "bg-muted size-20 sm:size-28",
               )}
               aria-hidden="true"
@@ -194,7 +194,7 @@ function DeliveryPage() {
         </section>
 
         {/* CTA */}
-        <section className="rounded-2xl border border-border bg-muted p-6 text-center sm:p-8">
+        <section className="rounded-lg border border-border bg-muted p-6 text-center sm:p-8">
           <h2 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
             Ready to shop?
           </h2>

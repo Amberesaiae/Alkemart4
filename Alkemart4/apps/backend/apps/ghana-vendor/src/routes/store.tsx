@@ -253,7 +253,7 @@ function StorePage() {
               href={shopUrl}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-border bg-card hover:bg-muted text-foreground transition shadow-xs"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-border bg-card hover:bg-muted text-foreground  shadow-xs"
             >
               <ArrowSquareOut className="h-3.5 w-3.5 text-primary" />
               Open Live Shop

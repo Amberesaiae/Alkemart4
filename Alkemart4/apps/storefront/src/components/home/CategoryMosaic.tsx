@@ -81,7 +81,7 @@ function DynamicMosaicTile({
               loading={i === activeIdx || i === nextIdx ? "eager" : "lazy"}
               draggable={false}
               className={cn(
-                "absolute inset-0 h-full w-full object-cover group-hover:scale-105",
+                "absolute inset-0 h-full w-full object-cover",
                 slot.objectPos,
                 i === activeIdx ? "visible" : "invisible",
               )}

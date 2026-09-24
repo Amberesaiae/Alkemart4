@@ -111,7 +111,7 @@ export function ProductCard({
     return (
       <article
         className={cn(
-          "group flex h-full max-h-[112px] flex-row items-stretch overflow-hidden rounded-lg border border-black/[0.08] bg-card shadow-xs hover:-translate-y-0.5",
+          "group flex h-full max-h-[112px] flex-row items-stretch overflow-hidden rounded-lg border border-black/[0.08] bg-card shadow-xs",
           className,
         )}
       >
@@ -163,7 +163,7 @@ export function ProductCard({
   return (
     <article
       className={cn(
-        "group flex h-full w-full flex-col text-left hover:-translate-y-0.5",
+        "group flex h-full w-full flex-col text-left",
         className,
       )}
     >
@@ -298,7 +298,7 @@ function Media(props: {
         onLoad={() => setLoaded(true)}
         onError={() => setBroken(true)}
         className={cn(
-          "relative z-[1] h-full w-full transition group-hover:scale-[1.04] motion-reduce:transition-none motion-reduce:group-hover:scale-100",
+          "relative z-[1] h-full w-full",
           imageFit === "contain" ? "object-contain p-2.5 sm:p-3" : "object-cover",
           loaded ? "opacity-100" : "opacity-0",
         )}
@@ -355,7 +355,7 @@ function Media(props: {
           <AddToCartControl
             variant="icon"
             {...cart}
-            className="size-7 sm:size-8 rounded-full bg-primary text-primary-foreground hover:bg-primary-strong active:scale-95 shadow-xs hover:scale-105"
+            className="size-7 sm:size-8 rounded-full bg-primary text-primary-foreground hover:bg-primary-strong shadow-xs"
           />
         </span>
       ) : null}

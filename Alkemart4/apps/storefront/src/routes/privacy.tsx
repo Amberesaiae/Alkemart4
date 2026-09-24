@@ -46,7 +46,7 @@ function PrivacyPage() {
       />
 
       <div className="mx-auto max-w-3xl space-y-8 pb-8">
-        <header className="overflow-hidden rounded-2xl bg-ink text-white shadow-sm">
+        <header className="overflow-hidden rounded-lg bg-ink text-white shadow-sm">
           <div className="space-y-3 p-6 sm:p-10">
             <p className="text-xs font-bold uppercase tracking-[0.16em] opacity-70">
               Legal
@@ -69,7 +69,7 @@ function PrivacyPage() {
           {SECTIONS.map((s, i) => (
             <section
               key={s.t}
-              className="rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6"
+              className="rounded-lg border border-border bg-card p-5 shadow-sm sm:p-6"
             >
               <h2 className="flex items-baseline gap-2.5 text-lg font-bold tracking-tight text-foreground">
                 <span className="font-bold text-primary">{i + 1}</span>

@@ -101,7 +101,7 @@ function CardCallbackPage() {
         </p>
       </header>
 
-      <div className="space-y-3 rounded-3xl border border-border bg-card p-6 text-sm shadow-sm">
+      <div className="space-y-3 rounded-lg border border-border bg-card p-6 text-sm shadow-sm">
         {reference || trxref ? (
           <p className="text-muted-foreground">
             Reference ·{" "}

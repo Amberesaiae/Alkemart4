@@ -77,7 +77,7 @@ export function ListingPagination({
           onClick={() => onPageChange(Math.max(1, currentPage - 1))}
           disabled={currentPage <= 1}
           aria-label="Previous page"
-          className="flex h-8 w-8 items-center justify-center rounded border border-border/80 bg-card text-foreground transition hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
+          className="flex h-8 w-8 items-center justify-center rounded border border-border/80 bg-card text-foreground  hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
         >
           <CaretLeft size={14} weight="bold" />
         </button>
@@ -104,7 +104,7 @@ export function ListingPagination({
               onClick={() => onPageChange(p)}
               aria-current={isActive ? "page" : undefined}
               className={cn(
-                "flex h-8 min-w-[2rem] items-center justify-center rounded px-2 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary",
+                "flex h-8 min-w-[2rem] items-center justify-center rounded px-2 text-xs font-semibold  focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary",
                 isActive
                   ? "bg-primary text-primary-foreground font-bold shadow-2xs"
                   : "border border-border/80 bg-card text-foreground hover:bg-muted",
@@ -120,7 +120,7 @@ export function ListingPagination({
           onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
           disabled={currentPage >= totalPages}
           aria-label="Next page"
-          className="flex h-8 w-8 items-center justify-center rounded border border-border/80 bg-card text-foreground transition hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
+          className="flex h-8 w-8 items-center justify-center rounded border border-border/80 bg-card text-foreground  hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
         >
           <CaretRight size={14} weight="bold" />
         </button>

@@ -252,7 +252,7 @@ function SearchPage() {
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
                 placeholder="Search alkemart"
-                className="h-14 sm:h-16 w-full rounded-2xl border-0 bg-background/95 py-2 pl-12 sm:pl-14 pr-6 text-base sm:text-lg text-foreground shadow-lg shadow-black/5 outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-ring/20 focus-visible:ring-2 focus-visible:ring-ring/30"
+                className="h-14 sm:h-16 w-full rounded-lg border-0 bg-background/95 py-2 pl-12 sm:pl-14 pr-6 text-base sm:text-lg text-foreground shadow-lg shadow-black/5 outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-ring/20 focus-visible:ring-2 focus-visible:ring-ring/30"
                 aria-label="Search products"
                 autoFocus
                 autoComplete="off"

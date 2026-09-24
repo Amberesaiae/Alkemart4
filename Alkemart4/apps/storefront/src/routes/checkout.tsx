@@ -400,7 +400,7 @@ function CheckoutPage() {
                             applyAddress(a, setters)
                           }}
                           className={cn(
-                            "w-full rounded-lg border p-4 text-left text-sm transition",
+                            "w-full rounded-lg border p-4 text-left text-sm ",
                             selected
                               ? "border-primary bg-muted ring-1 ring-primary"
                               : "border-border hover:bg-muted/40",
@@ -430,7 +430,7 @@ function CheckoutPage() {
                       type="button"
                       onClick={() => setSelectedAddressId("new")}
                       className={cn(
-                        "w-full rounded-lg border border-dashed p-4 text-left text-sm font-medium transition",
+                        "w-full rounded-lg border border-dashed p-4 text-left text-sm font-medium ",
                         selectedAddressId === "new"
                           ? "border-primary bg-muted ring-1 ring-primary"
                           : "border-border hover:bg-muted/40",
@@ -736,7 +736,7 @@ function CheckoutPage() {
                                     <CheckCircle className="h-5 w-5 fill-current" />
                                   </span>
                                 )}
-                                <div className="h-16 w-full flex items-center justify-center rounded-lg bg-white dark:bg-zinc-900 p-2 shadow-2xs border border-black/5 group-hover:scale-105">
+                                <div className="h-16 w-full flex items-center justify-center rounded-lg bg-white dark:bg-zinc-900 p-2 shadow-2xs border border-black/5">
                                   <img src={net.logo} alt={net.name} className="h-12 w-auto max-w-full object-contain" />
                                 </div>
                                 <div className="space-y-0.5">

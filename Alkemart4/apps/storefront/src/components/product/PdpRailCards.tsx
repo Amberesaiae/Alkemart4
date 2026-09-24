@@ -181,7 +181,7 @@ export function PdpSellerCard({ vendor }: { vendor: StoreVendorDetail }) {
         <Link
           to="/shops/$slug"
           params={{ slug: vendor.slug }}
-          className="inline-flex h-8 w-full items-center justify-center rounded-md border border-border/80 bg-background text-xs font-bold text-foreground transition hover:bg-muted"
+          className="inline-flex h-8 w-full items-center justify-center rounded-md border border-border/80 bg-background text-xs font-bold text-foreground  hover:bg-muted"
         >
           Visit Store
         </Link>

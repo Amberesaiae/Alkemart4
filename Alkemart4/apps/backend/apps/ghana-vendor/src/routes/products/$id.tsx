@@ -734,7 +734,7 @@ function ProductDetailPage() {
                   href={`${storefrontBase()}/products/${product.handle}`}
                   target="_blank"
                   rel="noreferrer"
-                  className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg border border-border/70 bg-background text-xs font-bold text-foreground hover:text-primary hover:border-primary/50 shadow-2xs transition"
+                  className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg border border-border/70 bg-background text-xs font-bold text-foreground hover:text-primary hover:border-primary/50 shadow-2xs "
                 >
                   <ArrowSquareOut className="h-3.5 w-3.5 text-primary" /> View on live store
                 </a>

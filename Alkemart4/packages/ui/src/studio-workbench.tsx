@@ -74,7 +74,7 @@ export function StudioWorkbench({
               "mx-auto overflow-hidden bg-white shadow-md",
               device === "mobile"
                 ? "w-full max-w-[390px] rounded-[1.75rem] border-[8px] border-black"
-                : "w-full max-w-5xl rounded-2xl border border-border",
+                : "w-full max-w-5xl rounded-lg border border-border",
             )}
           >
             {canvas}

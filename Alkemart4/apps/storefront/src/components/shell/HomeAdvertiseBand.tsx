@@ -22,7 +22,7 @@ export function HomeAdvertiseBand({
   ctaTo = "/sell",
 }: Props) {
   const primaryClass =
-    "inline-flex min-h-11 shrink-0 items-center justify-center rounded-lg bg-foreground px-6 text-sm font-bold text-background transition hover:opacity-90 active:scale-[0.98] shadow-sm cursor-pointer"
+    "inline-flex min-h-11 shrink-0 items-center justify-center rounded-lg bg-foreground px-6 text-sm font-bold text-background hover:opacity-90 shadow-sm cursor-pointer"
   const fieldClass =
     "h-11 w-full min-w-0 flex-1 rounded-lg border border-border/40 bg-card px-4 text-sm text-foreground shadow-xs outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-foreground/30"
 

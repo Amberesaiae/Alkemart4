@@ -223,7 +223,7 @@ function SettingsPage() {
             href={`https://alkemart.com/${profileForm.handle}`}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-border bg-card hover:bg-muted text-foreground transition shadow-xs"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-border bg-card hover:bg-muted text-foreground  shadow-xs"
           >
             <ArrowSquareOut className="h-3.5 w-3.5 text-primary" />
             View Store
@@ -321,7 +321,7 @@ function SettingsPage() {
                           const url = await upload.mutateAsync(file)
                           updateProfile.mutate({ banner: url })
                         }}
-                        triggerClassName="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-border bg-card hover:bg-muted text-foreground text-xs font-semibold transition cursor-pointer shadow-xs"
+                        triggerClassName="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-border bg-card hover:bg-muted text-foreground text-xs font-semibold  cursor-pointer shadow-xs"
                         triggerText="Add Cover Photo"
                       />
                     </div>
@@ -336,14 +336,14 @@ function SettingsPage() {
                           const url = await upload.mutateAsync(file)
                           updateProfile.mutate({ banner: url })
                         }}
-                        triggerClassName="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-black/70 hover:bg-black/85 text-white backdrop-blur-xs text-xs font-semibold transition cursor-pointer shadow-xs"
+                        triggerClassName="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-black/70 hover:bg-black/85 text-white backdrop-blur-xs text-xs font-semibold  cursor-pointer shadow-xs"
                         triggerText="Change Cover"
                       />
                       <button
                         type="button"
                         onClick={() => updateProfile.mutate({ banner: null })}
                         disabled={upload.isPending}
-                        className="p-1.5 rounded-lg bg-black/70 hover:bg-destructive text-white backdrop-blur-xs transition cursor-pointer shadow-xs"
+                        className="p-1.5 rounded-lg bg-black/70 hover:bg-destructive text-white backdrop-blur-xs  cursor-pointer shadow-xs"
                         title="Remove cover"
                       >
                         <X className="h-3.5 w-3.5" />
@@ -387,7 +387,7 @@ function SettingsPage() {
                         type="button"
                         onClick={() => updateProfile.mutate({ logo: null })}
                         disabled={upload.isPending}
-                        className="absolute top-1.5 right-1.5 h-8 w-8 rounded-full bg-destructive text-white flex items-center justify-center shadow-lg transition cursor-pointer ring-2 ring-card"
+                        className="absolute top-1.5 right-1.5 h-8 w-8 rounded-full bg-destructive text-white flex items-center justify-center shadow-lg  cursor-pointer ring-2 ring-card"
                         title="Remove logo"
                       >
                         <X className="h-4.5 w-4.5" />
@@ -845,7 +845,7 @@ function CompactUploader({
         disabled={isUploading}
         className={
           triggerClassName ||
-          "inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-black/60 hover:bg-black/80 text-white backdrop-blur-xs text-xs font-semibold transition cursor-pointer shadow-xs"
+          "inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-black/60 hover:bg-black/80 text-white backdrop-blur-xs text-xs font-semibold  cursor-pointer shadow-xs"
         }
       >
         <Camera className="h-3 w-3" />

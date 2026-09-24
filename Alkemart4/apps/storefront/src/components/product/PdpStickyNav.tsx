@@ -75,7 +75,7 @@ export function PdpStickyNav({
               type="button"
               onClick={() => scrollTo("product-details")}
               className={
-                "flex w-full items-center justify-between px-3.5 py-3 text-left transition hover:bg-muted/50 " +
+                "flex w-full items-center justify-between px-3.5 py-3 text-left  hover:bg-muted/50 " +
                 (activeSection === "product-details"
                   ? "text-primary font-bold bg-muted"
                   : "text-foreground")
@@ -93,7 +93,7 @@ export function PdpStickyNav({
               type="button"
               onClick={() => scrollTo("specifications")}
               className={
-                "flex w-full items-center justify-between px-3.5 py-3 text-left transition hover:bg-muted/50 " +
+                "flex w-full items-center justify-between px-3.5 py-3 text-left  hover:bg-muted/50 " +
                 (activeSection === "specifications"
                   ? "text-primary font-bold bg-muted"
                   : "text-foreground")
@@ -111,7 +111,7 @@ export function PdpStickyNav({
               type="button"
               onClick={() => scrollTo("buyer-reviews")}
               className={
-                "flex w-full items-center justify-between px-3.5 py-3 text-left transition hover:bg-muted/50 " +
+                "flex w-full items-center justify-between px-3.5 py-3 text-left  hover:bg-muted/50 " +
                 (activeSection === "buyer-reviews"
                   ? "text-primary font-bold bg-muted"
                   : "text-foreground")
@@ -159,7 +159,7 @@ export function PdpStickyNav({
           type="button"
           disabled={!canAdd || isPending}
           onClick={onAddToCart}
-          className="flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 text-xs font-black uppercase tracking-wider text-primary-foreground shadow-2xs transition hover:bg-primary-strong disabled:cursor-not-allowed disabled:opacity-50"
+          className="flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 text-xs font-black uppercase tracking-wider text-primary-foreground shadow-2xs  hover:bg-primary-strong disabled:cursor-not-allowed disabled:opacity-50"
         >
           <ShoppingCart size={16} weight="bold" />
           <span>{isPending ? "Adding…" : "Add to cart"}</span>
@@ -171,7 +171,7 @@ export function PdpStickyNav({
               href={`https://wa.me/${encodeURIComponent(sellerWhatsApp)}?text=${encodeURIComponent(`Hello ${sellerName}, I have a question about "${product.title}" on alkemart.`)}`}
               target="_blank"
               rel="noreferrer"
-              className="flex h-9 w-full items-center justify-center gap-2 rounded-lg border border-border/80 bg-background px-3 text-xs font-bold text-foreground transition hover:bg-muted"
+              className="flex h-9 w-full items-center justify-center gap-2 rounded-lg border border-border/80 bg-background px-3 text-xs font-bold text-foreground  hover:bg-muted"
             >
               <ChatsCircle size={16} weight="bold" className="text-primary" />
               <span>Chat with seller</span>
@@ -179,7 +179,7 @@ export function PdpStickyNav({
           ) : sellerHandle ? (
             <a
               href={`/shops/${encodeURIComponent(sellerHandle)}`}
-              className="flex h-9 w-full items-center justify-center gap-2 rounded-lg border border-border/80 bg-background px-3 text-xs font-bold text-foreground transition hover:bg-muted"
+              className="flex h-9 w-full items-center justify-center gap-2 rounded-lg border border-border/80 bg-background px-3 text-xs font-bold text-foreground  hover:bg-muted"
             >
               <ChatsCircle size={16} weight="bold" className="text-primary" />
               <span>Ask the seller</span>

@@ -95,7 +95,7 @@ function SignInPage() {
           <p className="mt-1 text-lg font-bold text-black">Find what fits your everyday.</p>
         </div>
         <div className="relative max-w-md space-y-7">
-          <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-md">
+          <div className="inline-flex h-12 w-12 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-md">
             <ShoppingBag className="h-6 w-6" weight="bold" aria-hidden />
           </div>
           <div className="space-y-3">
@@ -150,7 +150,7 @@ function SignInPage() {
         </div>
 
         <div className="flex flex-1 flex-col items-center justify-center px-4 py-10 sm:px-8">
-          <div className="w-full max-w-sm rounded-3xl border border-black/10 bg-white p-6 shadow-[0_20px_50px_-24px_rgb(0_0_0_/_0.35)] sm:p-8">
+          <div className="w-full max-w-sm rounded-lg border border-black/10 bg-white p-6 shadow-[0_20px_50px_-24px_rgb(0_0_0_/_0.35)] sm:p-8">
             <div
               className="mb-6 grid grid-cols-2 gap-1 rounded-full border border-border bg-muted/50 p-1"
               role="tablist"
@@ -168,7 +168,7 @@ function SignInPage() {
                   role="tab"
                   aria-selected={mode === tab.key}
                   className={cn(
-                    "min-h-11 rounded-full text-sm font-bold transition",
+                    "min-h-11 rounded-full text-sm font-bold ",
                     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
                     mode === tab.key
                       ? "bg-primary text-primary-foreground shadow-sm"

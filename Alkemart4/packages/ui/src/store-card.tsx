@@ -158,8 +158,7 @@ export function StoreCardArt({ src, alt = "", fallback, className, shopName, cat
             onLoad={() => setLoaded(true)}
             onError={() => setLoaded(true)}
             className={cn(
-              "absolute inset-0 z-[1] h-full w-full object-cover transition",
-              "group-hover:scale-[1.03] motion-reduce:transition-none motion-reduce:group-hover:scale-100",
+              "absolute inset-0 z-[1] h-full w-full object-cover",
               loaded ? "opacity-100" : "opacity-0",
             )}
           />
@@ -218,7 +217,5 @@ export function StoreCardFeaturedStrip({ items, renderItem, className }: {
 }
 
 export const storeCardShell = cn(
-  "group flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-card",
-  "shadow-xs hover:-translate-y-0.5",
-  "motion-reduce:transition-none motion-reduce:hover:translate-y-0",
+  "group flex h-full flex-col overflow-hidden rounded-lg border border-border bg-card shadow-xs",
 )

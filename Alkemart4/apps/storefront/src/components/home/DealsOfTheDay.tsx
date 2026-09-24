@@ -140,7 +140,7 @@ export function DealsOfTheDay({ section, category, categories, featured, feature
     <Link
       key={promo.id}
       to={promo.href}
-      className="group flex min-h-[180px] flex-col justify-between gap-3 rounded-lg bg-ink p-4 text-white shadow-xs hover:-translate-y-0.5 sm:p-5"
+      className="group flex min-h-[180px] flex-col justify-between gap-3 rounded-lg bg-ink p-4 text-white shadow-xs sm:p-5"
     >
       <span className="min-w-0">
         {promo.eyebrow ? (

@@ -64,7 +64,7 @@ export function ListingHero({
         </div>
       ) : (
         <div
-          className="hidden h-40 w-48 rounded-2xl bg-muted sm:block lg:h-44 lg:w-56"
+          className="hidden h-40 w-48 rounded-lg bg-muted sm:block lg:h-44 lg:w-56"
           aria-hidden
         />
       )}

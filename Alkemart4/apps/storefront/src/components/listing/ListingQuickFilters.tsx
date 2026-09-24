@@ -139,7 +139,7 @@ export function ListingQuickFilters({
               <button
                 type="button"
                 className={cn(
-                  "inline-flex h-8 items-center gap-1 rounded-full border border-border/80 bg-background px-3 text-xs font-semibold text-foreground transition hover:bg-muted shadow-2xs",
+                  "inline-flex h-8 items-center gap-1 rounded-full border border-border/80 bg-background px-3 text-xs font-semibold text-foreground  hover:bg-muted shadow-2xs",
                   state.sellerHandles.length > 0 && "border-primary bg-muted/60 font-bold text-primary-strong",
                 )}
               >
@@ -175,7 +175,7 @@ export function ListingQuickFilters({
                         type="button"
                         onClick={() => toggleSeller(s.handle)}
                         className={cn(
-                          "flex w-full items-center justify-between rounded-md px-2 py-1.5 text-left text-xs transition",
+                          "flex w-full items-center justify-between rounded-md px-2 py-1.5 text-left text-xs ",
                           checked
                             ? "bg-muted font-bold text-foreground"
                             : "text-foreground hover:bg-muted/50",
@@ -214,7 +214,7 @@ export function ListingQuickFilters({
             <button
               type="button"
               className={cn(
-                "inline-flex h-8 items-center gap-1 rounded-full border border-border/80 bg-background px-3 text-xs font-semibold text-foreground transition hover:bg-muted shadow-2xs",
+                "inline-flex h-8 items-center gap-1 rounded-full border border-border/80 bg-background px-3 text-xs font-semibold text-foreground  hover:bg-muted shadow-2xs",
                 (state.priceMin != null || state.priceMax != null) &&
                   "border-primary bg-muted/60 font-bold text-primary-strong",
               )}
@@ -276,7 +276,7 @@ export function ListingQuickFilters({
                     key={idx}
                     type="button"
                     onClick={() => setPresetPrice(p.min, p.max)}
-                    className="flex w-full items-center justify-between rounded-md px-2 py-1 text-xs text-foreground hover:bg-muted transition"
+                    className="flex w-full items-center justify-between rounded-md px-2 py-1 text-xs text-foreground hover:bg-muted "
                   >
                     <span>{p.label}</span>
                   </button>
@@ -292,7 +292,7 @@ export function ListingQuickFilters({
             <button
               type="button"
               className={cn(
-                "inline-flex h-8 items-center gap-1 rounded-full border border-border/80 bg-background px-3 text-xs font-semibold text-foreground transition hover:bg-muted shadow-2xs",
+                "inline-flex h-8 items-center gap-1 rounded-full border border-border/80 bg-background px-3 text-xs font-semibold text-foreground  hover:bg-muted shadow-2xs",
                 state.minRating > 0 && "border-primary bg-muted/60 font-bold text-primary-strong",
               )}
             >
@@ -319,7 +319,7 @@ export function ListingQuickFilters({
                       type="button"
                       onClick={() => onChange({ ...state, minRating: on ? 0 : r })}
                       className={cn(
-                        "flex w-full items-center justify-between rounded-md px-2 py-1.5 transition",
+                        "flex w-full items-center justify-between rounded-md px-2 py-1.5 ",
                         on ? "bg-muted font-bold text-foreground" : "hover:bg-muted/50",
                       )}
                     >
@@ -342,7 +342,7 @@ export function ListingQuickFilters({
             <button
               type="button"
               className={cn(
-                "inline-flex h-8 items-center gap-1 rounded-full border border-border/80 bg-background px-3 text-xs font-semibold text-foreground transition hover:bg-muted shadow-2xs",
+                "inline-flex h-8 items-center gap-1 rounded-full border border-border/80 bg-background px-3 text-xs font-semibold text-foreground  hover:bg-muted shadow-2xs",
                 state.location.province && "border-primary bg-muted/60 font-bold text-primary-strong",
               )}
             >
@@ -365,7 +365,7 @@ export function ListingQuickFilters({
                   type="button"
                   onClick={() => onChange({ ...state, location: { province: null, city: null } })}
                   className={cn(
-                    "flex w-full items-center justify-between rounded-md px-2 py-1.5 text-xs transition",
+                    "flex w-full items-center justify-between rounded-md px-2 py-1.5 text-xs ",
                     state.location.province == null ? "bg-muted font-bold text-foreground" : "hover:bg-muted/50 text-foreground",
                   )}
                 >
@@ -380,7 +380,7 @@ export function ListingQuickFilters({
                       type="button"
                       onClick={() => onChange({ ...state, location: { province: on ? null : reg, city: null } })}
                       className={cn(
-                        "flex w-full items-center justify-between rounded-md px-2 py-1.5 text-xs transition",
+                        "flex w-full items-center justify-between rounded-md px-2 py-1.5 text-xs ",
                         on ? "bg-muted font-bold text-foreground" : "hover:bg-muted/50 text-foreground",
                       )}
                     >

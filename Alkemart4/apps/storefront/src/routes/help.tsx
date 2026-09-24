@@ -65,7 +65,7 @@ function HelpPage() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-8">
-      <header className="grid items-center gap-6 rounded-2xl border border-border bg-card p-6 shadow-xs sm:grid-cols-[1fr_auto] sm:p-8">
+      <header className="grid items-center gap-6 rounded-lg border border-border bg-card p-6 shadow-xs sm:grid-cols-[1fr_auto] sm:p-8">
         <div className="space-y-3">
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
             Support
@@ -78,7 +78,7 @@ function HelpPage() {
             orders, and selling.
           </p>
         </div>
-        <div className="flex justify-center rounded-2xl surface-soft p-4 sm:p-5">
+        <div className="flex justify-center rounded-lg surface-soft p-4 sm:p-5">
           <Illustration name="customerSupport" size="md" />
         </div>
       </header>
@@ -105,14 +105,14 @@ function HelpPage() {
         {FAQ.map((item) => (
           <li
             key={item.q}
-            className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm"
+            className="overflow-hidden rounded-lg border border-border bg-card shadow-sm"
           >
             <details className="group">
               <summary className="flex w-full cursor-pointer items-center justify-between gap-3 px-4 py-4 text-left sm:px-5 list-none">
                 <span className="font-semibold text-foreground">{item.q}</span>
                 <span
                   className={cn(
-                    "flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-bold transition group-open:bg-primary group-open:text-primary-foreground",
+                    "flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-bold  group-open:bg-primary group-open:text-primary-foreground",
                   )}
                 >
                   <span className="group-open:hidden">+</span>
@@ -127,7 +127,7 @@ function HelpPage() {
         ))}
       </ul>
 
-      <div className="grid gap-2 rounded-3xl border border-border bg-muted/30 p-5 sm:grid-cols-2">
+      <div className="grid gap-2 rounded-lg border border-border bg-muted/30 p-5 sm:grid-cols-2">
         <QuickLink to="/orders" label="Your orders" />
         <QuickLink to="/account" label="Account & addresses" />
         <QuickLink to="/shops" label="Sellers" />
@@ -182,7 +182,7 @@ function HelpHighlight(props: {
   body: string
 }) {
   return (
-    <li className="rounded-2xl border border-border bg-card p-4 text-center shadow-sm">
+    <li className="rounded-lg border border-border bg-card p-4 text-center shadow-sm">
       <div className="mb-2 flex justify-center">
         <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-muted">
           <IconSafe name={props.icon} size={28} />

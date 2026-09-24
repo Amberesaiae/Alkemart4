@@ -58,7 +58,7 @@ function OrdersPage() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-8">
-      <header className="space-y-2 rounded-2xl border border-border bg-card p-5 shadow-xs sm:p-6">
+      <header className="space-y-2 rounded-lg border border-border bg-card p-5 shadow-xs sm:p-6">
         <p className="type-sm font-semibold uppercase tracking-[0.14em] text-muted-foreground">
           Orders
         </p>
@@ -71,7 +71,7 @@ function OrdersPage() {
         </p>
       </header>
 
-      <section className="space-y-4 rounded-2xl border border-border bg-card p-5 shadow-xs">
+      <section className="space-y-4 rounded-lg border border-border bg-card p-5 shadow-xs">
         <div>
           <h2 className="text-base font-bold">Find an order</h2>
           <p className="mt-1 text-xs text-muted-foreground">
@@ -123,7 +123,7 @@ function OrdersPage() {
                 <li key={rid}>
                   <button
                     type="button"
-                    className="w-full rounded-lg border border-border bg-muted/20 px-3 py-2.5 text-left text-sm font-medium transition hover:border-primary/40 hover:bg-muted/40"
+                    className="w-full rounded-lg border border-border bg-muted/20 px-3 py-2.5 text-left text-sm font-medium  hover:border-primary/40 hover:bg-muted/40"
                     onClick={() => goToOrder(rid)}
                   >
                     {maskOrderId(rid)}
@@ -152,9 +152,9 @@ function OrdersPage() {
 
           {ordersQ.isLoading ? (
             <div className="space-y-3" role="status" aria-label="Loading orders">
-              <Skeleton className="h-24 w-full rounded-2xl" />
-              <Skeleton className="h-24 w-full rounded-2xl" />
-              <Skeleton className="h-24 w-full rounded-2xl" />
+              <Skeleton className="h-24 w-full rounded-lg" />
+              <Skeleton className="h-24 w-full rounded-lg" />
+              <Skeleton className="h-24 w-full rounded-lg" />
             </div>
           ) : null}
 
@@ -183,7 +183,7 @@ function OrdersPage() {
                   to="/order/$id"
                   params={{ id: o.id }}
                   search={{}}
-                  className="block rounded-2xl border border-border bg-card p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-primary/40 sm:p-5"
+                  className="block rounded-lg border border-border bg-card p-4 shadow-sm hover:border-primary/40 sm:p-5"
                 >
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="space-y-1.5">

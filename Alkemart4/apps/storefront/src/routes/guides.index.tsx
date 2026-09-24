@@ -37,7 +37,7 @@ function GuidesPage() {
       {guidesQ.isLoading ? (
         <div className="grid gap-3 sm:grid-cols-2" role="status" aria-label="Loading guides">
           {[0, 1].map((i) => (
-            <Skeleton key={i} className="h-32 w-full rounded-2xl" />
+            <Skeleton key={i} className="h-32 w-full rounded-lg" />
           ))}
         </div>
       ) : null}
@@ -57,7 +57,7 @@ function GuidesPage() {
               <Link
                 to="/guides/$slug"
                 params={{ slug: g.slug }}
-                className="block h-full rounded-2xl border border-border bg-card p-5 hover:border-primary/60"
+                className="block h-full rounded-lg border border-border bg-card p-5 hover:border-primary/60"
               >
                 <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
                   Guide · By {g.author}

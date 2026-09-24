@@ -84,7 +84,7 @@ function FilterSection({
       <button
         type="button"
         id={headingId}
-        className="flex w-full items-center justify-between text-left text-xs font-bold uppercase tracking-wider text-foreground transition hover:text-primary-strong focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
+        className="flex w-full items-center justify-between text-left text-xs font-bold uppercase tracking-wider text-foreground  hover:text-primary-strong focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
         aria-expanded={open}
         aria-controls={panelId}
         onClick={() => setOpen((v) => !v)}
@@ -204,7 +204,7 @@ export function ListingFilters({
                 to="/categories/$slug"
                 params={{ slug: "all" }}
                 className={cn(
-                  "flex items-center justify-between rounded-md px-2.5 py-1.5 transition font-medium text-xs sm:text-sm",
+                  "flex items-center justify-between rounded-md px-2.5 py-1.5  font-medium text-xs sm:text-sm",
                   activeCategorySlug === "all"
                     ? "bg-current/15 font-bold shadow-2xs"
                     : "hover:bg-current/10 opacity-90 hover:opacity-100",
@@ -227,7 +227,7 @@ export function ListingFilters({
                     to="/categories/$slug"
                     params={{ slug }}
                     className={cn(
-                      "group flex items-center justify-between rounded-md px-2.5 py-1.5 transition font-medium text-xs sm:text-sm",
+                      "group flex items-center justify-between rounded-md px-2.5 py-1.5  font-medium text-xs sm:text-sm",
                       on
                         ? "bg-current/15 font-bold shadow-2xs"
                         : "hover:bg-current/10 opacity-90 hover:opacity-100",
@@ -261,7 +261,7 @@ export function ListingFilters({
                                 })
                               }
                               className={cn(
-                                "flex w-full items-center rounded-sm px-2 py-1 text-left transition font-medium",
+                                "flex w-full items-center rounded-sm px-2 py-1 text-left  font-medium",
                                 isSubActive
                                   ? "bg-current/15 font-bold"
                                   : "hover:bg-current/10 opacity-90 hover:opacity-100",
@@ -297,7 +297,7 @@ export function ListingFilters({
               const selected = state.sellerHandles.includes(s.handle)
               return (
                 <li key={s.handle}>
-                  <label className="flex cursor-pointer items-center gap-2 rounded px-1.5 py-0.5 transition hover:bg-white/10">
+                  <label className="flex cursor-pointer items-center gap-2 rounded px-1.5 py-0.5  hover:bg-white/10">
                     <input
                       type="checkbox"
                       className="h-4 w-4 rounded border-white/30 bg-white/10 text-primary focus:ring-primary focus:ring-offset-0"
@@ -353,7 +353,7 @@ export function ListingFilters({
                   placeholder="Min"
                   value={localMin}
                   onChange={(e) => setLocalMin(e.target.value)}
-                  className="h-8.5 w-full rounded-md border border-border/80 bg-background px-2.5 text-xs outline-none transition focus:border-primary focus:ring-1 focus:ring-primary"
+                  className="h-8.5 w-full rounded-md border border-border/80 bg-background px-2.5 text-xs outline-none  focus:border-primary focus:ring-1 focus:ring-primary"
                   aria-label="Minimum price"
                 />
               </div>
@@ -365,14 +365,14 @@ export function ListingFilters({
                   placeholder="Max"
                   value={localMax}
                   onChange={(e) => setLocalMax(e.target.value)}
-                  className="h-8.5 w-full rounded-md border border-border/80 bg-background px-2.5 text-xs outline-none transition focus:border-primary focus:ring-1 focus:ring-primary"
+                  className="h-8.5 w-full rounded-md border border-border/80 bg-background px-2.5 text-xs outline-none  focus:border-primary focus:ring-1 focus:ring-primary"
                   aria-label="Maximum price"
                 />
               </div>
             </div>
             <button
               type="submit"
-              className="h-8.5 w-full rounded-md bg-primary py-1 text-xs font-bold uppercase tracking-wider text-primary-foreground shadow-xs transition hover:bg-primary-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
+              className="h-8.5 w-full rounded-md bg-primary py-1 text-xs font-bold uppercase tracking-wider text-primary-foreground shadow-xs  hover:bg-primary-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
             >
               Apply
             </button>
@@ -399,7 +399,7 @@ export function ListingFilters({
                       })
                     }
                     className={cn(
-                      "flex w-full items-center gap-2 rounded-md px-2 py-1 text-left transition hover:bg-muted/50",
+                      "flex w-full items-center gap-2 rounded-md px-2 py-1 text-left  hover:bg-muted/50",
                       selected && "font-semibold text-primary-strong bg-muted",
                     )}
                   >
@@ -435,7 +435,7 @@ export function ListingFilters({
                     })
                   }
                   className={cn(
-                    "flex w-full items-center justify-between rounded-md px-2 py-1.5 text-left transition font-medium",
+                    "flex w-full items-center justify-between rounded-md px-2 py-1.5 text-left  font-medium",
                     isSelected
                       ? "bg-muted font-bold text-primary-strong"
                       : "text-foreground hover:bg-muted/50",
@@ -457,7 +457,7 @@ export function ListingFilters({
             <button
               type="button"
               onClick={onClearAll}
-              className="w-full rounded-md border border-border/80 bg-background py-2 text-xs font-semibold text-foreground transition hover:bg-muted focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
+              className="w-full rounded-md border border-border/80 bg-background py-2 text-xs font-semibold text-foreground  hover:bg-muted focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
             >
               Clear All Filters
             </button>

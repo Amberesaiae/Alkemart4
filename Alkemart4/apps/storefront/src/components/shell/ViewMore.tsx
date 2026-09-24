@@ -31,7 +31,7 @@ export function ViewMore({
   if (!show) return null
 
   const pill = cn(
-    "inline-flex min-h-11 items-center justify-center rounded-full border border-border bg-card px-10 py-2.5 text-sm font-bold text-foreground transition",
+    "inline-flex min-h-11 items-center justify-center rounded-full border border-border bg-card px-10 py-2.5 text-sm font-bold text-foreground ",
     "hover:border-primary hover:bg-muted",
     "disabled:cursor-not-allowed disabled:opacity-50",
     className,

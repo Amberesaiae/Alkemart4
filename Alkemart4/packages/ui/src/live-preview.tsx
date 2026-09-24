@@ -74,7 +74,7 @@ export function LivePreview({
               href={pageUrl}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold text-foreground transition hover:bg-muted"
+              className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold text-foreground hover:bg-muted"
             >
               Open <ArrowSquareOut className="h-3 w-3" aria-hidden="true" />
             </a>
@@ -96,7 +96,7 @@ export function LivePreview({
       </div>
       ) : null}
       <div
-        className="mx-auto w-full overflow-hidden rounded-2xl border-2 border-border bg-card shadow-md transition-[max-width] motion-reduce:transition-none"
+        className="mx-auto w-full overflow-hidden rounded-lg border-2 border-border bg-card shadow-md"
         style={{ maxWidth: mode === "mobile" ? 390 : "100%" }}
       >
         {pageUrl ? (

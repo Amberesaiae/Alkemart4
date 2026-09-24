@@ -101,7 +101,7 @@ export function OrderTimeline({ order, className }: Props) {
 
   return (
     <div
-      className={cn("rounded-3xl border border-border bg-card p-5 shadow-sm", className)}
+      className={cn("rounded-lg border border-border bg-card p-5 shadow-sm", className)}
       role="list"
       aria-label="Order status"
     >

@@ -132,7 +132,7 @@ export function SearchFilterDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-xl max-h-[90vh] flex flex-col p-0 overflow-hidden rounded-2xl border border-border bg-card shadow-2xl">
+      <DialogContent className="max-w-xl max-h-[90vh] flex flex-col p-0 overflow-hidden rounded-lg border border-border bg-card shadow-2xl">
         <DialogHeader className="border-b border-border/80 px-6 py-4 text-left shrink-0">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2.5">

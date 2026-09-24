@@ -108,7 +108,7 @@ function WishlistPage() {
                   <img
                     src={product.thumbnail}
                     alt={product.title}
-                    className="h-full w-full object-cover transition group-hover:scale-105"
+                    className="h-full w-full object-cover"
                     loading="lazy"
                   />
                 ) : (

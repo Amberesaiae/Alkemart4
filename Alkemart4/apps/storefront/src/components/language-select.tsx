@@ -51,7 +51,7 @@ export function LanguageSelect({ className, compact }: Props) {
       <button
         type="button"
         className={cn(
-          "inline-flex items-center gap-1.5 rounded-md text-sm font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground",
+          "inline-flex items-center gap-1.5 rounded-md text-sm font-medium text-muted-foreground  hover:bg-muted hover:text-foreground",
           compact ? "h-9 px-2" : "h-10 px-2.5",
         )}
         aria-haspopup="listbox"
@@ -79,7 +79,7 @@ export function LanguageSelect({ className, compact }: Props) {
               aria-selected={lang.code === code}
               data-testid={`auth-language-select-option-${lang.code}`}
               className={cn(
-                "block w-full px-3 py-2 text-left text-sm transition hover:bg-muted",
+                "block w-full px-3 py-2 text-left text-sm  hover:bg-muted",
                 lang.code === code && "bg-muted font-semibold",
               )}
               onClick={() => {

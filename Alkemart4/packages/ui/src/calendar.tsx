@@ -97,7 +97,7 @@ export function Calendar({
   }, [rangeStart, rangeEnd])
 
   return (
-    <div className={cn("p-3 w-[280px] select-none space-y-3 bg-card text-card-foreground rounded-2xl", className)}>
+    <div className={cn("p-3 w-[280px] select-none space-y-3 bg-card text-card-foreground rounded-lg", className)}>
       {/* Header with Navigation */}
       <div className="flex items-center justify-between gap-1 px-1">
         {captionDropdowns ? (
@@ -204,7 +204,7 @@ export function Calendar({
                 // Current month vs outside
                 isCurrentMonth ? "text-foreground" : "text-muted-foreground/40",
                 // Hover effect
-                !isSelected && !isDisabled && "hover:bg-muted hover:text-foreground active:scale-95",
+                !isSelected && !isDisabled && "hover:bg-muted hover:text-foreground",
                 // Today styling
                 isCurrentDay && !isSelected && "border border-primary/40 font-bold bg-primary/5 text-primary",
                 // Selected styling (shadcn standard)

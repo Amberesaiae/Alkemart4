@@ -50,7 +50,7 @@ export function Illustration({
       className={cn(
         "relative mx-auto shrink-0 select-none overflow-hidden",
         SIZE_CLASS[size],
-        plate && "rounded-2xl surface-soft p-1",
+        plate && "rounded-lg surface-soft p-1",
         className,
       )}
     >

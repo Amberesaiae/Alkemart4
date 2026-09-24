@@ -60,7 +60,7 @@ function GuidePage() {
         <div className="space-y-3" role="status" aria-label="Loading guide">
           <Skeleton className="h-9 w-2/3" />
           <Skeleton className="h-5 w-1/3" />
-          <Skeleton className="h-40 w-full rounded-2xl" />
+          <Skeleton className="h-40 w-full rounded-lg" />
         </div>
       ) : null}
       {guideQ.isSuccess && !guide ? (
@@ -121,7 +121,7 @@ function GuidePage() {
                     <Link
                       to="/guides/$slug"
                       params={{ slug: r.slug }}
-                      className="block rounded-2xl border border-border bg-card p-4 hover:border-primary/60"
+                      className="block rounded-lg border border-border bg-card p-4 hover:border-primary/60"
                     >
                       <p className="text-sm font-bold text-foreground">{r.title}</p>
                       <p className="mt-1 text-xs leading-relaxed text-muted-foreground">

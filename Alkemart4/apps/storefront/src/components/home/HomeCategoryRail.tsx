@@ -88,7 +88,7 @@ export function HomeCategoryRail({
                 alt=""
                 loading="lazy"
                 decoding="async"
-                className="aspect-square w-full object-cover group-hover:scale-105"
+                className="aspect-square w-full object-cover"
               />
             </div>
             <div className="mt-2 flex items-start justify-between gap-2">

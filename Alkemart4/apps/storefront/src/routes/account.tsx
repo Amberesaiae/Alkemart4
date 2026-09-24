@@ -54,12 +54,12 @@ function AccountErrorComponent({ error, reset }: { error: Error; reset: () => vo
 function AccountPendingComponent() {
   return (
     <div className="mx-auto max-w-2xl space-y-6" role="status" aria-label="Loading account">
-      <Skeleton className="h-40 w-full rounded-2xl" />
-      <div className="space-y-3 rounded-2xl border border-border bg-card p-5 sm:p-6">
+      <Skeleton className="h-40 w-full rounded-lg" />
+      <div className="space-y-3 rounded-lg border border-border bg-card p-5 sm:p-6">
         <Skeleton className="h-5 w-40" />
         <Skeleton className="h-4 w-56" />
-        <Skeleton className="h-20 w-full rounded-2xl" />
-        <Skeleton className="h-20 w-full rounded-2xl" />
+        <Skeleton className="h-20 w-full rounded-lg" />
+        <Skeleton className="h-20 w-full rounded-lg" />
       </div>
     </div>
   )
@@ -200,8 +200,8 @@ function AccountPage() {
   if (sessionQ.isLoading) {
     return (
       <div className="mx-auto max-w-2xl space-y-3" role="status" aria-label="Loading account">
-        <Skeleton className="h-28 w-full rounded-3xl" />
-        <Skeleton className="h-40 w-full rounded-3xl" />
+        <Skeleton className="h-28 w-full rounded-lg" />
+        <Skeleton className="h-40 w-full rounded-lg" />
       </div>
     )
   }
@@ -228,10 +228,10 @@ function AccountPage() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
-      <header className="store-hero overflow-hidden rounded-3xl border border-border p-6 shadow-sm sm:p-8">
+      <header className="store-hero overflow-hidden rounded-lg border border-border p-6 shadow-sm sm:p-8">
         <div className="flex flex-wrap items-center gap-4">
-          <Avatar className="h-16 w-16 rounded-2xl text-2xl font-bold">
-            <AvatarFallback className="rounded-2xl bg-primary text-primary-foreground">
+          <Avatar className="h-16 w-16 rounded-full text-2xl font-bold">
+            <AvatarFallback className="rounded-full bg-primary text-primary-foreground">
               {initial}
             </AvatarFallback>
           </Avatar>
@@ -355,7 +355,7 @@ function AccountPage() {
         </div>
 
         {addressesQ.isLoading ? (
-          <Skeleton className="h-20 w-full rounded-2xl" />
+          <Skeleton className="h-20 w-full rounded-lg" />
         ) : null}
 
         {addressesQ.isError ? (
@@ -367,7 +367,7 @@ function AccountPage() {
         ) : null}
 
         {addressesQ.data && addressesQ.data.length === 0 && !showForm ? (
-          <p className="rounded-2xl border border-dashed border-border bg-muted/20 px-4 py-6 text-center text-sm text-muted-foreground">
+          <p className="rounded-lg border border-dashed border-border bg-muted/20 px-4 py-6 text-center text-sm text-muted-foreground">
             No saved addresses yet. Add one for faster checkout.
           </p>
         ) : null}
@@ -376,7 +376,7 @@ function AccountPage() {
           {addressesQ.data?.map((a) => (
             <li
               key={a.id}
-              className="flex flex-wrap items-start justify-between gap-3 rounded-2xl border border-border bg-background p-4 text-sm"
+              className="flex flex-wrap items-start justify-between gap-3 rounded-lg border border-border bg-background p-4 text-sm"
             >
               <div className="space-y-1">
                 <p className="font-semibold">
@@ -425,7 +425,7 @@ function AccountPage() {
 
         {showForm ? (
           <form
-            className="space-y-3 rounded-2xl border border-border bg-muted/20 p-4"
+            className="space-y-3 rounded-lg border border-border bg-muted/20 p-4"
             onSubmit={(e) => {
               e.preventDefault()
               createAddr.mutate()

@@ -398,7 +398,7 @@ export function ShopsPage() {
                 setMinRating(false)
                 setFastDelivery(false)
               }}
-              className="inline-flex h-9 items-center justify-center rounded-lg bg-foreground px-4 text-xs font-bold text-background transition hover:opacity-90"
+              className="inline-flex h-9 items-center justify-center rounded-lg bg-foreground px-4 text-xs font-bold text-background  hover:opacity-90"
             >
               Reset all filters
             </button>
@@ -447,7 +447,7 @@ function ShopGridCard({ shop }: { shop: StoreVendor }) {
             alt=""
             loading="lazy"
             decoding="async"
-            className="h-full w-full object-cover group-hover:scale-105"
+            className="h-full w-full object-cover"
           />
 
           {earnedTopRated ? (

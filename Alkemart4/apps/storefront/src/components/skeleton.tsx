@@ -33,7 +33,7 @@ export function Shimmer({ className }: { className?: string }) {
 const cardShell = "overflow-hidden rounded-lg border border-border bg-card shadow-sm"
 
 /**
- * Matches Alkemart ProductCard — square rounded-2xl art, with 4-line outside text hierarchy:
+ * Matches Alkemart ProductCard — square rounded-lg art, with 4-line outside text hierarchy:
  * 1. Product title
  * 2. Vendor name
  * 3. Price figure

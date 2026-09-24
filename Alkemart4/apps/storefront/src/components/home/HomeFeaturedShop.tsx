@@ -24,7 +24,7 @@ export function HomeFeaturedShop({
   )[0];
   // Hooks before any early return (Rules of Hooks): `featured` flips from
   // undefined to defined as products stream in, and a hook after the return
-  // below crashes with React #310 on that transition.
+  // below crashes with React #310 on that .
   const vendorsQ = useQuery({
     queryKey: ["store", "vendors"],
     queryFn: () => listStoreVendors(),
@@ -78,7 +78,7 @@ export function HomeFeaturedShop({
           <img
             src={cover}
             alt={name}
-            className="absolute inset-0 h-full w-full object-cover group-hover:scale-105"
+            className="absolute inset-0 h-full w-full object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-black/10" />
           <div className="relative z-10 p-3.5 sm:p-4">

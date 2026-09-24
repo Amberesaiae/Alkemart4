@@ -85,11 +85,11 @@ export function AppHeader({
       <div className="bg-primary text-primary-foreground">
         <div className="mx-auto flex h-8 sm:h-9 w-full max-w-[1200px] items-center justify-between sm:justify-end gap-3 sm:gap-6 px-4 text-xs font-bold sm:px-6">
           <div className="flex items-center gap-4">
-            <Link to="/sell" className="inline-flex items-center gap-1.5 transition hover:opacity-85 text-primary-foreground">
+            <Link to="/sell" className="inline-flex items-center gap-1.5  hover:opacity-85 text-primary-foreground">
               <Storefront size={15} weight="duotone" />
               <span>Sell on alkemart</span>
             </Link>
-            <Link to="/delivery" className="hidden xs:inline-flex items-center gap-1.5 transition hover:opacity-85 text-primary-foreground">
+            <Link to="/delivery" className="hidden xs:inline-flex items-center gap-1.5  hover:opacity-85 text-primary-foreground">
               <Bicycle size={15} weight="bold" />
               <span>Ride on alkemart</span>
             </Link>

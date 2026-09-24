@@ -94,7 +94,7 @@ export function LastOffersTabs({
               title={tab.label}
               onClick={() => onChange(isOn ? "all" : tab.id)}
               className={cn(
-                "flex h-10 w-10 shrink-0 items-center justify-center rounded-md transition sm:h-11 sm:w-11",
+                "flex h-10 w-10 shrink-0 items-center justify-center rounded-md  sm:h-11 sm:w-11",
                 isOn
                   ? "bg-muted text-foreground ring-1 ring-border"
                   : "text-muted-foreground hover:bg-muted/70 hover:text-foreground",

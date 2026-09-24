@@ -48,7 +48,7 @@ export function AddToCartControl({
         "inline-flex shrink-0 items-center justify-center font-bold shadow-sm",
         pill
           ? "h-9 gap-1.5 rounded-full bg-primary px-3.5 text-sm text-primary-foreground hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-55 sm:h-10 sm:px-4"
-          : "h-8 w-8 rounded-[8px] bg-primary text-primary-foreground shadow-xs hover:opacity-90 hover:scale-105 active:scale-95 disabled:cursor-not-allowed disabled:opacity-55",
+          : "h-8 w-8 rounded-[8px] bg-primary text-primary-foreground shadow-xs hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-55",
         className,
       )}
     >

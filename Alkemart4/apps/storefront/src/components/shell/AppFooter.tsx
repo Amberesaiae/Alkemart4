@@ -98,7 +98,7 @@ export function AppFooter({ sellUrl = "" }: Props) {
 }
 
 const footerAnchorClass =
-  "footer-link inline-flex min-h-11 items-center text-sm transition focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--footer-bg)]"
+  "footer-link inline-flex min-h-11 items-center text-sm  focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--footer-bg)]"
 
 function FooterCol({
   title,

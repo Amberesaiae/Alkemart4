@@ -37,7 +37,7 @@ function TermsPage() {
       />
 
       <div className="mx-auto max-w-3xl space-y-8 pb-8">
-        <header className="overflow-hidden rounded-2xl bg-ink text-white shadow-sm">
+        <header className="overflow-hidden rounded-lg bg-ink text-white shadow-sm">
           <div className="space-y-3 p-6 sm:p-10">
             <p className="text-xs font-bold uppercase tracking-[0.16em] opacity-70">
               Legal
@@ -58,7 +58,7 @@ function TermsPage() {
 
         <nav
           aria-label="Terms contents"
-          className="rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6"
+          className="rounded-lg border border-border bg-card p-5 shadow-sm sm:p-6"
         >
           <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
             Contents
@@ -375,7 +375,7 @@ function TermsSection(props: {
     <section
       id={`terms-${props.id}`}
       aria-labelledby={`terms-${props.id}-title`}
-      className="scroll-mt-24 rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6"
+      className="scroll-mt-24 rounded-lg border border-border bg-card p-5 shadow-sm sm:p-6"
     >
       <h2
         id={`terms-${props.id}-title`}

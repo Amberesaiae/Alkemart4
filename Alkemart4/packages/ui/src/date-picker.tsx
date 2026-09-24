@@ -73,7 +73,7 @@ export function DatePicker({
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-auto p-0 border border-border shadow-lg rounded-2xl bg-card" align="start">
+      <PopoverContent className="w-auto p-0 border border-border shadow-lg rounded-lg bg-card" align="start">
         <Calendar
           mode="single"
           selected={parsedDate}

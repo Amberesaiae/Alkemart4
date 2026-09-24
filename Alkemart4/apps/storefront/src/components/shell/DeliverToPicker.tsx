@@ -28,7 +28,7 @@ export function DeliverToPicker({ className }: { className?: string }) {
         <button
           type="button"
           className={cn(
-            "flex min-w-0 shrink items-center rounded-lg px-2 py-1 text-start transition",
+            "flex min-w-0 shrink items-center rounded-lg px-2 py-1 text-start ",
             "hover:bg-muted/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
             className,
           )}

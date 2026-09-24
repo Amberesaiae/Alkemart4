@@ -36,7 +36,7 @@ type Props = {
 const RATING_OPTIONS = [5, 4, 3, 2, 1] as const
 
 const chipBase = cn(
-  "min-h-10 rounded-lg border px-3 py-2 type-sm font-medium transition",
+  "min-h-10 rounded-lg border px-3 py-2 type-sm font-medium ",
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
 )
 const chipOn = "facet-row-on border-transparent font-semibold"

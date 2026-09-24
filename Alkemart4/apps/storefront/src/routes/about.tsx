@@ -79,7 +79,7 @@ function AboutPage() {
 
       <article className="space-y-12 pb-8">
         {/* Hero */}
-        <header className="relative overflow-hidden rounded-2xl border border-border bg-card shadow-xs">
+        <header className="relative overflow-hidden rounded-lg border border-border bg-card shadow-xs">
           <div
             className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-ink/5 blur-3xl"
             aria-hidden
@@ -115,13 +115,13 @@ function AboutPage() {
                 <Link
                   to="/categories/$slug"
                   params={{ slug: "all" }}
-                  className="inline-flex h-11 items-center rounded-full bg-primary px-6 text-sm font-bold text-primary-foreground shadow-sm transition hover:opacity-90"
+                  className="inline-flex h-11 items-center rounded-full bg-primary px-6 text-sm font-bold text-primary-foreground shadow-sm  hover:opacity-90"
                 >
                   Browse products
                 </Link>
                 <Link
                   to="/contact"
-                  className="inline-flex h-11 items-center rounded-full border border-border bg-card px-6 text-sm font-bold text-foreground transition hover:bg-muted"
+                  className="inline-flex h-11 items-center rounded-full border border-border bg-card px-6 text-sm font-bold text-foreground  hover:bg-muted"
                 >
                   Contact us
                 </Link>
@@ -137,7 +137,7 @@ function AboutPage() {
               ].map((c) => (
                 <div
                   key={c.k}
-                  className="rounded-2xl border border-border bg-muted/40 p-4 sm:p-5"
+                  className="rounded-lg border border-border bg-muted/40 p-4 sm:p-5"
                 >
                   <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
                     {c.k}
@@ -163,7 +163,7 @@ function AboutPage() {
             {PILLARS.map((p) => (
               <li
                 key={p.title}
-                className="flex gap-4 rounded-2xl border border-border bg-card p-5 shadow-sm hover:border-foreground/25"
+                className="flex gap-4 rounded-lg border border-border bg-card p-5 shadow-sm hover:border-foreground/25"
               >
                 <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-muted text-foreground">
                   <IconSafe name={p.icon} size={22} />
@@ -183,7 +183,7 @@ function AboutPage() {
 
         {/* How it works strip */}
         <section
-          className="rounded-3xl border border-border bg-muted/30 p-6 sm:p-8"
+          className="rounded-lg border border-border bg-muted/30 p-6 sm:p-8"
           aria-labelledby="how-heading"
         >
           <h2
@@ -210,7 +210,7 @@ function AboutPage() {
                 d: "Pay the rider. Mobile Money when a seller offers it.",
               },
             ].map((s) => (
-              <li key={s.n} className="space-y-2 rounded-2xl bg-card p-5 shadow-sm">
+              <li key={s.n} className="space-y-2 rounded-lg bg-card p-5 shadow-sm">
                 <span className="text-xs font-bold text-primary">{s.n}</span>
                 <h3 className="font-bold text-foreground">{s.t}</h3>
                 <p className="text-sm leading-relaxed text-muted-foreground">

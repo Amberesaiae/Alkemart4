@@ -575,7 +575,7 @@ function ProductShelf({
               <img
                 src="/images/categories/food.webp"
                 alt=""
-                className="h-full w-full object-cover group-hover:scale-105"
+                className="h-full w-full object-cover"
               />
               <span className="absolute top-2.5 left-2.5 rounded-[6px] bg-primary px-2 py-0.5 text-xs font-bold uppercase tracking-wider text-primary-foreground shadow-xs">
                 Express Rider

@@ -167,7 +167,7 @@ function ReturnRequestPage() {
     return (
       <div className="mx-auto max-w-2xl space-y-4 pb-8">
         <Skeleton className="h-8 w-48 rounded-lg" />
-        <Skeleton className="h-64 w-full rounded-3xl" />
+        <Skeleton className="h-64 w-full rounded-lg" />
       </div>
     )
   }
@@ -214,7 +214,7 @@ function ReturnRequestPage() {
           submitReturn.mutate()
         }}
       >
-        <section className="space-y-3 rounded-3xl border border-border bg-card p-5 shadow-sm">
+        <section className="space-y-3 rounded-lg border border-border bg-card p-5 shadow-sm">
           <h2 className="text-sm font-bold">Items</h2>
           {order.items
             .filter((i) => i.title)
@@ -223,7 +223,7 @@ function ReturnRequestPage() {
               return (
                 <label
                   key={item.id}
-                  className={`flex items-center gap-3 rounded-2xl border p-3 cursor-pointer ${
+                  className={`flex items-center gap-3 rounded-lg border p-3 cursor-pointer ${
                     isSelected
                       ? "border-primary bg-muted"
                       : "border-border/80 bg-background hover:border-muted-foreground/30"
@@ -286,7 +286,7 @@ function ReturnRequestPage() {
             })}
         </section>
 
-        <section className="space-y-4 rounded-3xl border border-border bg-card p-5 shadow-sm">
+        <section className="space-y-4 rounded-lg border border-border bg-card p-5 shadow-sm">
           <h2 className="text-sm font-bold">Reason</h2>
 
           <label className="block space-y-1.5">
@@ -322,7 +322,7 @@ function ReturnRequestPage() {
         </section>
 
         {submitReturn.isError ? (
-          <div className="rounded-2xl border border-destructive/40 bg-destructive/5 p-4 text-sm text-destructive">
+          <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-4 text-sm text-destructive">
             {submitReturn.error instanceof Error
               ? submitReturn.error.message
               : "Failed to submit return request"}
@@ -330,7 +330,7 @@ function ReturnRequestPage() {
         ) : null}
 
         {submitReturn.isSuccess ? (
-          <div className="rounded-2xl border border-success/40 bg-success/5 p-4 text-sm text-success">
+          <div className="rounded-lg border border-success/40 bg-success/5 p-4 text-sm text-success">
             Return request submitted. The seller will review it shortly.
           </div>
         ) : null}

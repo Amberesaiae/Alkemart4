@@ -123,7 +123,7 @@ function ContactPage() {
       />
 
       <div className="space-y-10 pb-8">
-        <header className="relative overflow-hidden rounded-2xl border border-border bg-card p-6 shadow-sm sm:p-10">
+        <header className="relative overflow-hidden rounded-lg border border-border bg-card p-6 shadow-sm sm:p-10">
           <div
             className="pointer-events-none absolute -left-10 top-0 h-40 w-40 rounded-full bg-ink/5 blur-3xl"
             aria-hidden
@@ -146,7 +146,7 @@ function ContactPage() {
           {CHANNELS.map((c) => (
             <li
               key={c.title}
-              className="flex flex-col rounded-2xl border border-border bg-card p-5 shadow-sm hover:border-foreground/25"
+              className="flex flex-col rounded-lg border border-border bg-card p-5 shadow-sm hover:border-foreground/25"
             >
               <span className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-muted">
                 <IconSafe name={c.icon} size={20} />
@@ -177,7 +177,7 @@ function ContactPage() {
 
         <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
           <section
-            className="rounded-2xl border border-border bg-card p-6 shadow-sm sm:p-8"
+            className="rounded-lg border border-border bg-card p-6 shadow-sm sm:p-8"
             aria-labelledby="form-heading"
           >
             <h2
@@ -281,7 +281,7 @@ function ContactPage() {
           </section>
 
           <aside className="space-y-4">
-            <div className="rounded-2xl border border-border bg-card p-6 shadow-xs sm:p-8">
+            <div className="rounded-lg border border-border bg-card p-6 shadow-xs sm:p-8">
               <h2 className="text-lg font-bold tracking-tight">
                 Marketplace notes
               </h2>
@@ -300,7 +300,7 @@ function ContactPage() {
                 </li>
               </ul>
             </div>
-            <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+            <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
               <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
                 Location
               </p>

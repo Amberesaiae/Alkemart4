@@ -79,7 +79,7 @@ export function ListingFilterDropdown({
         aria-haspopup="dialog"
         onClick={() => setOpen((v) => !v)}
         className={cn(
-          "inline-flex min-h-11 items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-sm font-semibold transition",
+          "inline-flex min-h-11 items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-sm font-semibold ",
           "hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
           open && "border-primary/40 bg-muted",
         )}
@@ -227,7 +227,7 @@ export function ListingFilterDropdown({
                   const selected = state.sellerHandles.includes(s.handle)
                   return (
                     <li key={s.handle}>
-                      <label className="flex min-h-10 cursor-pointer items-center gap-2.5 rounded-lg px-2 py-1 transition hover:bg-muted">
+                      <label className="flex min-h-10 cursor-pointer items-center gap-2.5 rounded-lg px-2 py-1  hover:bg-muted">
                         <input
                           type="checkbox"
                           className="size-4 rounded accent-primary"
@@ -260,7 +260,7 @@ export function ListingFilterDropdown({
             <button
               type="button"
               onClick={() => setOpen(false)}
-              className="inline-flex min-h-11 flex-1 items-center justify-center rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+              className="inline-flex min-h-11 flex-1 items-center justify-center rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground  hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
             >
               Show results
             </button>
@@ -270,7 +270,7 @@ export function ListingFilterDropdown({
                 onClick={() => {
                   onClearAll()
                 }}
-                className="inline-flex min-h-11 items-center justify-center rounded-lg border border-border bg-background px-4 text-sm font-semibold transition hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+                className="inline-flex min-h-11 items-center justify-center rounded-lg border border-border bg-background px-4 text-sm font-semibold  hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
               >
                 Clear
               </button>

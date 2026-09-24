@@ -214,7 +214,7 @@ export function SearchAutocompleteDropdown({
         className={cn(
           "absolute left-0 right-0 top-full mt-2 z-50",
           "w-full overflow-hidden",
-          "rounded-2xl border border-border/80 bg-card text-card-foreground shadow-xl",
+          "rounded-lg border border-border/80 bg-card text-card-foreground shadow-xl",
           "",
           "max-h-[80vh] overflow-y-auto scrollbar-none",
         )}

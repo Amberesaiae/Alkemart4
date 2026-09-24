@@ -65,7 +65,7 @@ export function PdpShareRow({ title, url }: { title: string; url: string }) {
   }
 
   const linkClass =
-    "inline-flex min-h-11 min-w-11 items-center justify-center rounded-full border border-border bg-card px-3 text-sm font-bold text-muted-foreground transition hover:border-primary/60 hover:text-foreground"
+    "inline-flex min-h-11 min-w-11 items-center justify-center rounded-full border border-border bg-card px-3 text-sm font-bold text-muted-foreground  hover:border-primary/60 hover:text-foreground"
 
   return (
     <div className="flex items-center justify-between pt-1 text-xs text-muted-foreground">
@@ -78,7 +78,7 @@ export function PdpShareRow({ title, url }: { title: string; url: string }) {
           target="_blank"
           rel="noreferrer"
           aria-label="Share on WhatsApp"
-          className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-border bg-card text-muted-foreground transition hover:border-primary hover:text-foreground"
+          className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-border bg-card text-muted-foreground  hover:border-primary hover:text-foreground"
         >
           <WhatsAppIcon />
         </a>
@@ -87,7 +87,7 @@ export function PdpShareRow({ title, url }: { title: string; url: string }) {
           target="_blank"
           rel="noreferrer"
           aria-label="Share on Facebook"
-          className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-border bg-card text-muted-foreground transition hover:border-primary hover:text-foreground"
+          className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-border bg-card text-muted-foreground  hover:border-primary hover:text-foreground"
         >
           <FacebookIcon />
         </a>
@@ -96,7 +96,7 @@ export function PdpShareRow({ title, url }: { title: string; url: string }) {
           target="_blank"
           rel="noreferrer"
           aria-label="Share on X"
-          className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-border bg-card text-muted-foreground transition hover:border-primary hover:text-foreground"
+          className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-border bg-card text-muted-foreground  hover:border-primary hover:text-foreground"
         >
           <XIcon />
         </a>
@@ -104,7 +104,7 @@ export function PdpShareRow({ title, url }: { title: string; url: string }) {
           type="button"
           onClick={native}
           aria-label="Copy product link"
-          className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-border bg-card text-muted-foreground transition hover:border-primary hover:text-foreground"
+          className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-border bg-card text-muted-foreground  hover:border-primary hover:text-foreground"
         >
           <LinkIcon />
         </button>

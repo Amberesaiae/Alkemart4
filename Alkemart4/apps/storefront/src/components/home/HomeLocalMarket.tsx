@@ -33,7 +33,7 @@ export function HomeLocalMarket() {
           <div className="mt-9 flex flex-wrap items-center gap-5">
             <Link
               to="/shops"
-              className="inline-flex min-h-11 items-center gap-2 rounded-full bg-foreground px-5 py-2.5 text-sm font-extrabold text-background transition hover:opacity-90"
+              className="inline-flex min-h-11 items-center gap-2 rounded-full bg-foreground px-5 py-2.5 text-sm font-extrabold text-background  hover:opacity-90"
             >
               <Storefront size={18} weight="duotone" /> Meet the sellers{" "}
               <ArrowRight size={16} weight="bold" />

@@ -50,10 +50,10 @@ export function HomeMarketPromise() {
       >
         <img key={campaign.image} src={campaign.image} alt="" className="h-full w-full object-cover" />
       </Link>
-      <button type="button" onClick={() => move(-1)} aria-label="Previous campaign" className="absolute left-0 top-1/2 z-20 flex size-11 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-card shadow-sm transition hover:bg-muted">
+      <button type="button" onClick={() => move(-1)} aria-label="Previous campaign" className="absolute left-0 top-1/2 z-20 flex size-11 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-card shadow-sm  hover:bg-muted">
         <CaretLeft size={19} weight="bold" />
       </button>
-      <button type="button" onClick={() => move(1)} aria-label="Next campaign" className="absolute right-0 top-1/2 z-20 flex size-11 translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-card shadow-sm transition hover:bg-muted">
+      <button type="button" onClick={() => move(1)} aria-label="Next campaign" className="absolute right-0 top-1/2 z-20 flex size-11 translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-card shadow-sm  hover:bg-muted">
         <CaretRight size={19} weight="bold" />
       </button>
       <div className="absolute bottom-3 left-1/2 z-20 flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-black/40 px-2.5 py-1.5 backdrop-blur-sm">

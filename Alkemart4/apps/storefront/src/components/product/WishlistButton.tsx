@@ -71,7 +71,7 @@ export function WishlistButton({
       data-product-id={productId}
       onClick={handleClick}
       className={cn(
-        "inline-flex shrink-0 items-center justify-center transition",
+        "inline-flex shrink-0 items-center justify-center ",
         onMedia
           ? "min-h-11 min-w-11 h-8 w-8 rounded-full bg-white/90 text-muted-foreground shadow-sm hover:text-primary"
           : "min-h-11 min-w-11 h-8 w-8 rounded-full text-muted-foreground hover:bg-muted hover:text-primary",

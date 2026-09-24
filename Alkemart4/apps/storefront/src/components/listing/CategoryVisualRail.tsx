@@ -158,7 +158,7 @@ export function CategoryVisualRail({ items, title, className }: Props) {
                       alt=""
                       loading="lazy"
                       decoding="async"
-                      className="h-full w-full object-cover group-hover:scale-105"
+                      className="h-full w-full object-cover"
                     />
                   ) : (
                     <div className="flex h-full w-full items-center justify-center bg-muted/40 text-muted-foreground">

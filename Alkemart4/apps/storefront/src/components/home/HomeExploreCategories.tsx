@@ -57,7 +57,7 @@ export function HomeExploreCategories({
                 {category.name}
               </span>
               <ArrowUpRight
-                className="shrink-0 group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
+                className="shrink-0"
                 size={19}
                 weight="bold"
               />

@@ -61,7 +61,7 @@ export function ListingAppliedFacets({
               type="button"
               onClick={() => onChange(f.clear(state))}
               className={cn(
-                "inline-flex h-7 items-center gap-1.5 rounded border border-border/90 bg-muted/60 px-2 text-xs font-medium transition",
+                "inline-flex h-7 items-center gap-1.5 rounded border border-border/90 bg-muted/60 px-2 text-xs font-medium ",
                 "hover:border-destructive hover:bg-destructive/10 hover:text-destructive",
                 "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary",
               )}
@@ -88,7 +88,7 @@ export function ListingAppliedFacets({
         type="button"
         onClick={onClearAll}
         className={cn(
-          "ms-auto text-xs font-semibold text-primary-strong underline underline-offset-2 transition hover:text-foreground",
+          "ms-auto text-xs font-semibold text-primary-strong underline underline-offset-2  hover:text-foreground",
           "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary",
         )}
       >

@@ -114,7 +114,7 @@ export function StoreRail({ section }: { section: Extract<HomeSection, { type: "
 function LateNightPromoTile() {
   return (
     <div className="group relative flex aspect-[16/10] w-72 sm:w-80 md:w-[22rem] shrink-0 snap-start flex-col overflow-hidden rounded-lg ring-1 ring-border/80 shadow-xs bg-card p-4 justify-between select-none">
-      <div className="absolute -right-6 -bottom-6 w-44 h-44 sm:w-48 sm:h-48 rounded-full overflow-hidden shadow-md ring-2 ring-border/40 group-hover:scale-105">
+      <div className="absolute -right-6 -bottom-6 w-44 h-44 sm:w-48 sm:h-48 rounded-full overflow-hidden shadow-md ring-2 ring-border/40">
         <img
           src="/images/categories/food.webp"
           alt=""
@@ -178,7 +178,7 @@ function StoreRailCard({ shop }: { shop: StoreVendor }) {
             alt=""
             loading="lazy"
             decoding="async"
-            className="h-full w-full object-cover group-hover:scale-105"
+            className="h-full w-full object-cover"
           />
 
           {earnedTopRated ? (
