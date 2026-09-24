@@ -17,6 +17,7 @@
     "test:api": "bunx vitest run apps/api/src --maxWorkers=2",
     "test:rls": "bunx vitest run apps/api/src/rls.test.ts --maxWorkers=1",
     "test:domain": "bunx vitest run packages/domain/src --maxWorkers=2",
+    "db:migrate": "bun scripts/apply-migrations.ts",
     "deploy:api": "bash -lc 'export NODE_OPTIONS=\"--dns-result-order=ipv4first${NODE_OPTIONS:+ $NODE_OPTIONS}\"; cd apps/api && wrangler deploy'",
     "deploy:pages": "bash scripts/deploy-pages.sh",
     "typecheck": "bun run --filter './apps/storefront' --filter './apps/api' --filter './scripts' typecheck",
@@ -29,6 +30,7 @@
     "@neondatabase/serverless": "^1.1.0",
     "husky": "^9.1.7",
     "lint-staged": "^17.0.8",
+    "postgres": "^3.4.5",
     "prettier": "^3.8.4",
     "typescript": "~5.9.3"
   },

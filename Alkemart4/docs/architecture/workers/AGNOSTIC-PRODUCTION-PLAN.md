@@ -121,13 +121,16 @@ on pilot data; relevance tests pin ordering.
 **Docs:** `LIFECYCLE-BUYER.md` (search path).
 
 ### Phase 6 — Migration discipline (hygiene; unblocks CI)
-Owned idempotent runner: `schema_migrations(version PK, applied_at)` +
-`bun run db:migrate` applying pending `packages/db/src/migrations/*.sql` in order
-inside a single connection (works on any Postgres — no journal, no vendor).
-From 0029 on, author via `drizzle-kit generate` then harden to `IF NOT EXISTS`.
-`drizzle-kit check` in CI for config validity.
+Owned idempotent runner (`bun run db:migrate` → `scripts/apply-migrations.ts`,
+pure planner in `packages/db/src/migration-plan.ts`): applies
+`packages/db/src/migrations/*.sql` in order, tracking `schema_migrations` —
+works on any Postgres, no journal. Complements the repo convention
+(`scripts/check-migrations.ts`: journal frozen at 0017, gapless numbering,
+idempotency guard — `drizzle-kit generate` stays forbidden). Author new
+migrations as hand-written idempotent SQL; drizzle schema mirrors ship in the
+same commit.
 **Accept:** fresh empty DB → migrate → all suites pass; re-run is a no-op.
-**Verify:** ephemeral-DB migrate test in CI.
+**Verify:** `bun run check:migrations`, planner unit tests, live no-op run.
 
 ## 4. Cross-phase rules
 - Playbook Steps A–D every phase (classify lifecycle → backend first → frontend
