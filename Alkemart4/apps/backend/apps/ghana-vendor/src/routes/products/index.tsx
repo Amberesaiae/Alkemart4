@@ -309,8 +309,6 @@ function ProductsPage() {
           {filteredProducts.map((product) => {
             const price = product.variants?.[0]?.prices?.[0]?.amount ?? 0
             const stock = typeof product.metadata?.onHand === "number" ? (product.metadata.onHand as number) : null
-            const categoryName = categoryNameOf(product.categories?.[0]?.id)
-            const storefrontUrl = product.handle ? `${storefrontBase()}/products/${product.handle}` : null
 
             return (
               <div
@@ -336,38 +334,16 @@ function ProductsPage() {
                   <div className="absolute top-3 right-3 z-10">
                     {getStatusBadge(product.status || "draft", product)}
                   </div>
-
-                  {/* Live Storefront Link */}
-                  {product.status === "published" && storefrontUrl && (
-                    <a
-                      href={storefrontUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="absolute top-3 left-3 z-10 inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-lg bg-background/90 text-foreground border border-border/60 shadow-2xs backdrop-blur hover:bg-background hover:text-primary transition-colors"
-                      title="View live product listing on storefront"
-                    >
-                      <ArrowSquareOut className="h-3 w-3" />
-                      Storefront
-                    </a>
-                  )}
-
-                  {/* Floating Category Pill */}
-                  {categoryName && (
-                    <Badge tone="neutral" emphasis="soft" size="sm" className="absolute bottom-3 left-3 z-10 shadow-2xs backdrop-blur">
-                      {categoryName}
-                    </Badge>
-                  )}
                 </div>
 
-                {/* Card Body */}
+                {/* Card Body — title, price, stock, action. Category lives in
+                    navigation and filters; internal refs live on the detail
+                    page. Nothing machine-stamped on the card. */}
                 <div className="p-4 flex-1 flex flex-col justify-between gap-3">
                   <div>
                     <h3 className="font-bold text-base text-foreground line-clamp-1 tracking-tight" title={product.title || "Untitled"}>
                       {product.title || "Untitled"}
                     </h3>
-                    <p className="text-xs text-muted-foreground font-mono mt-0.5">
-                      Ref: {product.handle || product.id.slice(0, 10)}
-                    </p>
                   </div>
 
                   {/* Price & Stock Commercial Specs */}
