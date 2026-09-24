@@ -43,6 +43,13 @@ type Props = {
   state: ListingFacetState
   onChange: (next: ListingFacetState) => void
   onClearAll?: () => void
+  /**
+   * Universal facets a navigation link should carry (price, rating, sellers,
+   * location, sort). Department links used to carry none, silently discarding
+   * the buyer's price range. Attribute facets are pruned on arrival instead —
+   * see retargetFacets.
+   */
+  carrySearch?: (opts?: { keepSub?: boolean }) => Record<string, unknown>
   className?: string
 }
 
@@ -151,6 +158,7 @@ export function ListingFilters({
   state,
   onChange,
   onClearAll,
+  carrySearch,
   className,
 }: Props) {
   const [showAllSellers, setShowAllSellers] = useState(false)
@@ -203,6 +211,7 @@ export function ListingFilters({
               <Link
                 to="/categories/$slug"
                 params={{ slug: "all" }}
+                search={carrySearch?.() ?? {}}
                 className={cn(
                   "flex items-center justify-between rounded-md px-2.5 py-1.5  font-medium text-xs sm:text-sm",
                   activeCategorySlug === "all"
@@ -226,6 +235,7 @@ export function ListingFilters({
                   <Link
                     to="/categories/$slug"
                     params={{ slug }}
+                    search={carrySearch?.() ?? {}}
                     className={cn(
                       "group flex items-center justify-between rounded-md px-2.5 py-1.5  font-medium text-xs sm:text-sm",
                       on

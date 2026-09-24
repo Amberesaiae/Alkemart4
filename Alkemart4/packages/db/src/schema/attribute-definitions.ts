@@ -23,6 +23,9 @@ export const attributeTypeEnum = pgEnum("attribute_type", [
   "multi_option",
 ])
 
+/** Does this attribute mean the same thing everywhere, or only in its profile? */
+export const attributeScopeEnum = pgEnum("attribute_scope", ["universal", "profile"])
+
 export const attributeDefinitions = pgTable("attribute_definitions", {
   id: text("id").primaryKey(),
   code: text("code").notNull().unique(),
@@ -39,6 +42,12 @@ export const attributeDefinitions = pgTable("attribute_definitions", {
   variantAxis: boolean("variant_axis").notNull().default(false),
   visibleOnCard: boolean("visible_on_card").notNull().default(false),
   visibleOnPdp: boolean("visible_on_pdp").notNull().default(true),
+  /**
+   * `universal` survives a category change; `profile` is dropped where the
+   * destination does not declare it (migration 0033). Defaults to `profile`,
+   * the conservative choice — a wrongly-kept filter silently zeroes results.
+   */
+  scope: attributeScopeEnum("scope").notNull().default("profile"),
 })
 
 /** Named per-category sets of definitions, e.g. `phones-v1`. */

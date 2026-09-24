@@ -53,20 +53,34 @@ export const storeSearch = new Hono<AppEnv>().get("/", async (c) => {
   const rawOffset = Number(c.req.query("offset") ?? 0)
 
   const repo = c.get("repo")
+  const category = c.req.query("category")?.trim() || undefined
   if (filters.length > 0) {
-    const known = new Set(
-      (await repo.listAttributeDefinitions()).map((d) => d.code.toLowerCase()),
-    )
+    // Validate against the CATEGORY's facets, not every definition in the
+    // system. A code that exists somewhere but not here used to pass global
+    // validation and silently return zero results — the buyer got an empty
+    // page with no way to know which filter caused it.
+    const scoped = await repo.catalogFacets(category)
+    const allowed = new Set(scoped.attributes.map((a) => a.code.toLowerCase()))
+    // Fall back to the global list while a category has no published
+    // definitions, so filtering does not break before profiles exist.
+    const known =
+      allowed.size > 0
+        ? allowed
+        : new Set((await repo.listAttributeDefinitions()).map((d) => d.code.toLowerCase()))
     for (const f of filters) {
       if (!known.has(f.code.toLowerCase())) {
-        throw new HTTPException(400, { message: `unknown facet ${f.code}` })
+        throw new HTTPException(400, {
+          message: category
+            ? `facet ${f.code} does not apply in ${category}`
+            : `unknown facet ${f.code}`,
+        })
       }
     }
   }
 
   const result = await repo.searchProducts({
     q: qRaw,
-    category: c.req.query("category")?.trim() || undefined,
+    category,
     filters,
     priceMinPesewas: priceMin,
     priceMaxPesewas: priceMax,

@@ -269,3 +269,52 @@ export function filterListingByRating<T extends { rating?: number | null }>(
   if (!minRating || minRating <= 0) return items
   return items.filter((p) => (p.rating ?? 5) >= minRating)
 }
+
+/**
+ * Facets that survive any navigation, because they mean the same thing
+ * everywhere: price, rating, sellers, location, sort, availability.
+ *
+ * Attribute facets are the opposite — `ram_gb` is meaningless in Accessories —
+ * so they are validated against the destination category and dropped when they
+ * do not apply. See `retargetFacets`.
+ */
+export type RetargetResult = {
+  state: ListingFacetState
+  /** Attribute codes removed because the destination does not declare them. */
+  dropped: { code: string; values: string[] }[]
+}
+
+/**
+ * The one transition every surface uses when navigation changes.
+ *
+ * The tile rail used to spread `...search` (carrying `ram_gb` into a category
+ * with no RAM) while both sidebar links carried nothing (silently discarding
+ * the buyer's price range). Same click, three different outcomes depending on
+ * where you clicked it. This is the single place that decides.
+ *
+ * `allowedCodes` is the destination's facet list. Pass `null` when it has not
+ * loaded yet — nothing is dropped until we actually know, because guessing
+ * would remove a filter the category might well support.
+ */
+export function retargetFacets(
+  state: ListingFacetState,
+  allowedCodes: readonly string[] | null,
+  options: { clearSubCategory?: boolean } = {},
+): RetargetResult {
+  const next: ListingFacetState = {
+    ...state,
+    ...(options.clearSubCategory ? { subCategory: "all" } : {}),
+    attributes: {},
+  }
+  if (allowedCodes === null) {
+    return { state: { ...next, attributes: state.attributes }, dropped: [] }
+  }
+  const allowed = new Set(allowedCodes.map((c) => c.toLowerCase()))
+  const dropped: { code: string; values: string[] }[] = []
+  for (const [code, values] of Object.entries(state.attributes)) {
+    if (values.length === 0) continue
+    if (allowed.has(code.toLowerCase())) next.attributes[code] = values
+    else dropped.push({ code, values })
+  }
+  return { state: next, dropped }
+}

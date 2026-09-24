@@ -16,6 +16,7 @@ import {
   ListingFilters,
   ListingLayout,
   ListingPagination,
+  ListingZeroResults,
   ListingQuickFilters,
   appliedFacets,
   filterListingByPrice,
@@ -24,6 +25,7 @@ import {
   resetFacets,
   resolveCategoryImage,
   parseAttributeFacets,
+  retargetFacets,
   serializeAttributeFacets,
   toggleAttributeFacet,
   sortListingProducts,
@@ -35,6 +37,7 @@ import { PageSeo } from "@/components/page-seo"
 import { itemListJsonLd } from "@/lib/seo"
 import { listStoreCategories, listStoreProducts, listStoreSellers } from "@/lib/products"
 import { searchCatalog } from "@/lib/search"
+import { fetchCatalogFacets } from "@/lib/catalog-facets"
 import { useCloudflareCatalog } from "@/lib/env"
 import {
   resolveBrowseCategory,
@@ -154,6 +157,29 @@ function BrowsePage() {
     [search],
   )
 
+  /**
+   * Search params a navigation link should carry. Universal facets travel
+   * (price, rating, sellers, location, sort); attribute facets do not, because
+   * whether they apply depends on the destination — the route prunes them once
+   * the destination's facet list arrives. See retargetFacets.
+   */
+  const carrySearch = useCallback(
+    (opts: { keepSub?: boolean } = {}) => ({
+      ...(facets.sellerHandles.length ? { seller: facets.sellerHandles } : {}),
+      ...(facets.sort !== "featured" ? { sort: facets.sort } : {}),
+      ...(opts.keepSub && facets.subCategory !== "all" ? { sub: facets.subCategory } : {}),
+      ...(facets.minRating > 0 ? { rating: facets.minRating } : {}),
+      ...(facets.priceMin != null ? { min: facets.priceMin } : {}),
+      ...(facets.priceMax != null ? { max: facets.priceMax } : {}),
+      ...(facets.location.province ? { region: facets.location.province } : {}),
+      ...(facets.location.city ? { city: facets.location.city } : {}),
+      ...(serializeAttributeFacets(facets.attributes)
+        ? { attrs: serializeAttributeFacets(facets.attributes) }
+        : {}),
+    }),
+    [facets],
+  )
+
   const sellerFilters = facets.sellerHandles
   const sort = facets.sort
 
@@ -265,6 +291,37 @@ function BrowsePage() {
         },
       }),
   })
+
+  // The destination's facet list. Attribute filters carried in from another
+  // category are pruned against it the moment it arrives — never before, since
+  // guessing would drop a filter this category may well support.
+  const categoryFacetsQ = useQuery({
+    queryKey: ["store", "catalog", "facets", isAll ? "all" : slug],
+    queryFn: ({ signal }) => fetchCatalogFacets(isAll ? "all" : slug, signal),
+    staleTime: 5 * 60 * 1000,
+    retry: false,
+  })
+
+  const [droppedNotice, setDroppedNotice] = useState<string | null>(null)
+
+  useEffect(() => {
+    const data = categoryFacetsQ.data
+    if (!data) return
+    const { state: pruned, dropped } = retargetFacets(
+      facets,
+      data.attributes.map((a) => a.code),
+    )
+    if (dropped.length === 0) return
+    const labelFor = (code: string) =>
+      data.attributes.find((a) => a.code === code)?.label ?? code
+    setDroppedNotice(
+      `${dropped.map((d) => `${labelFor(d.code)}: ${d.values.join(", ")}`).join(" · ")} ` +
+        `${dropped.length === 1 ? "doesn't" : "don't"} apply here — removed.`,
+    )
+    applyFacets(pruned)
+    // `facets` is derived from the URL; applyFacets rewrites the URL, so this
+    // settles after one pass.
+  }, [categoryFacetsQ.data, facets, applyFacets])
 
   const sellersQ = useQuery({
     queryKey: ["store", "sellers"],
@@ -413,7 +470,9 @@ function BrowsePage() {
           id: sub.id,
           label: sub.label,
           slug,
-          search: { ...search, sub: isActive ? undefined : sub.id },
+          // Universal facets travel; attribute facets are pruned on arrival
+          // against the destination's profile (retargetFacets).
+          search: { ...carrySearch(), sub: isActive ? undefined : sub.id },
           active: isActive,
           image: resolveCategoryImage(sub.handle || sub.id),
         }
@@ -533,6 +592,7 @@ function BrowsePage() {
                 state={facets}
                 onChange={applyFacets}
                 onClearAll={activeFilterCount > 0 ? clearAllFacets : undefined}
+                carrySearch={carrySearch}
               />
               {/* Server-counted, definition-backed. Renders nothing until a
                   category has published attribute definitions. */}
@@ -554,6 +614,23 @@ function BrowsePage() {
             <ProductGridSkeleton count={8} />
           ) : null}
 
+          {droppedNotice ? (
+            <div
+              role="status"
+              className="mb-3 flex items-start gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground"
+            >
+              <span className="flex-1">{droppedNotice}</span>
+              <button
+                type="button"
+                onClick={() => setDroppedNotice(null)}
+                className="shrink-0 font-bold text-foreground hover:underline"
+                aria-label="Dismiss"
+              >
+                ✕
+              </button>
+            </div>
+          ) : null}
+
           {error && products.length === 0 ? (
             <ErrorAlert
               message={errMsg instanceof Error ? errMsg.message : "Could not load products"}
@@ -561,12 +638,16 @@ function BrowsePage() {
           ) : null}
 
           {!loading && products.length === 0 ? (
-            <EmptyState
-              title="No products"
-              description="Try another department or clear filters."
-              actionLabel="All products"
-              actionTo="/categories/$slug"
-              actionParams={{ slug: "all" }}
+            <ListingZeroResults
+              state={facets}
+              onChange={applyFacets}
+              onClearAll={clearAllFacets}
+              lookup={{
+                sellerName: (h) => sellerOpts.find((s) => s.handle === h)?.name ?? h,
+                subCategoryLabel: (id) => subCats.find((c) => c.id === id)?.label ?? id,
+                attributeLabel: (code) =>
+                  categoryFacetsQ.data?.attributes.find((a) => a.code === code)?.label ?? code,
+              }}
             />
           ) : null}
 
