@@ -10,14 +10,13 @@ import {
   SelectValue,
   StoreCardArt,
   StoreCardFacts,
-  StudioImageField,
   StudioWorkbench,
   storeCardShell,
   type StudioDevice,
 } from "@workspace/ui"
 import { toast } from "sonner"
 import { DELIVERY_MINUTE_BANDS } from "@alkemart/shared/storefront-badges"
-import { products as productsApi } from "../lib/api"
+import { ShopArtEditor } from "./ShopArtEditor"
 import {
   useCategories,
   useFeatured,
@@ -26,7 +25,6 @@ import {
   useSetFeatured,
   useUpdateDelivery,
   useUpdateDisplay,
-  useUpdateSeller,
 } from "../lib/hooks"
 
 const NONE = "__none"
@@ -123,56 +121,7 @@ export function ShopStudio() {
   )
 }
 
-function WindowPane() {
-  const { data } = useSellerProfile()
-  const update = useUpdateSeller()
-  const seller = data?.seller
-  const [banner, setBanner] = useState<string | null | undefined>(undefined)
-  const [logo, setLogo] = useState<string | null | undefined>(undefined)
-  const bannerValue = banner === undefined ? seller?.banner ?? "" : banner ?? ""
-  const logoValue = logo === undefined ? seller?.logo ?? "" : logo ?? ""
-  const dirty = banner !== undefined || logo !== undefined
-
-  const upload = (file: File) => productsApi.upload(file)
-
-  const save = async () => {
-    try {
-      await update.mutateAsync({
-        banner: banner !== undefined ? banner : undefined,
-        logo: logo !== undefined ? logo : undefined,
-      })
-      setBanner(undefined)
-      setLogo(undefined)
-      toast.success("Shop art saved.")
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Could not save art.")
-    }
-  }
-
-  return (
-    <div className="flex flex-col gap-4 p-4">
-      <p className="text-sm font-extrabold">Banner & mark</p>
-      <p className="text-xs text-muted-foreground">Art only — no text on the photo. Caption is your shop name, below.</p>
-      <StudioImageField
-        label="Banner"
-        ratio="landscape"
-        value={bannerValue}
-        onValueChange={(value) => setBanner(value || null)}
-        onUpload={upload}
-      />
-      <StudioImageField
-        label="Logo"
-        ratio="square"
-        value={logoValue}
-        onValueChange={(value) => setLogo(value || null)}
-        onUpload={upload}
-      />
-      <Button type="button" disabled={!dirty || update.isPending} onClick={() => void save()}>
-        {update.isPending ? "Saving…" : "Save art"}
-      </Button>
-    </div>
-  )
-}
+const WindowPane = () => <ShopArtEditor />
 
 function PicksPane() {
   const { data: featuredData } = useFeatured()

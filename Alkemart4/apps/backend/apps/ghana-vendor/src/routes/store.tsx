@@ -29,6 +29,7 @@ import {
 } from "@phosphor-icons/react"
 import { toast } from "sonner"
 import { ShopStudio } from "../components/ShopStudio"
+import { ShopArtEditor } from "../components/ShopArtEditor"
 
 export const Route = createFileRoute('/store')({
   component: StorePage,
@@ -415,6 +416,15 @@ function StorePage() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
               <div className="space-y-6">
                 {/* Branding */}
+                {/* Art leads Branding: a shop with no cover reads as unfinished,
+                    and this is the first place a seller looks for it. */}
+                <Card id="store-art" className="p-6 space-y-4 scroll-mt-24 shadow-xs">
+                  <h2 className="font-bold flex items-center gap-2 text-base text-foreground">
+                    <Storefront className="h-5 w-5 text-primary" /> Cover &amp; Logo
+                  </h2>
+                  <ShopArtEditor compact />
+                </Card>
+
                 <Card id="store-branding" className="p-6 space-y-4 scroll-mt-24 shadow-xs">
                   <h2 className="font-bold flex items-center gap-2 text-base text-foreground">
                     <Storefront className="h-5 w-5 text-primary" /> Shop Branding {statusPill("branding")}
