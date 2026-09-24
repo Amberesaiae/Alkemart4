@@ -299,6 +299,9 @@ function Media(props: {
         onError={() => setBroken(true)}
         className={cn(
           "relative z-[1] h-full w-full",
+          // Out-of-stock products stay on the shelf now, so the artwork has to
+          // say so at a glance — the badge alone reads as decoration in a grid.
+          props.stock === "out" && "opacity-45 saturate-50",
           imageFit === "contain" ? "object-contain p-2.5 sm:p-3" : "object-cover",
           loaded ? "opacity-100" : "opacity-0",
         )}

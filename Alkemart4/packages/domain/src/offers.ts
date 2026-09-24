@@ -41,22 +41,41 @@ export type PeerOfferInput = {
   compareAtProvenance?: string | null
 }
 
-function compareOfferPriceThenId<T extends { pricePesewas: bigint; offerId: string }>(
-  a: T,
-  b: T,
-): number {
+/** Units a buyer can take. Absent (older callers) reads as available. */
+function buyableRank(o: { onHand?: number; reserved?: number }): number {
+  if (typeof o.onHand !== "number") return 1
+  return o.onHand - (o.reserved ?? 0) > 0 ? 1 : 0
+}
+
+/**
+ * In-stock first, then cheapest.
+ *
+ * Browse surfaces list out-of-stock offers so a product between deliveries
+ * still appears (see isListable). Price-only ordering then made the cheapest
+ * *unbuyable* offer the card's headline price and its bestOfferId — so the
+ * card quoted a price that failed at add-to-cart. Stock has to win first.
+ */
+function compareOfferPriceThenId<
+  T extends { pricePesewas: bigint; offerId: string; onHand?: number; reserved?: number },
+>(a: T, b: T): number {
+  const stock = buyableRank(b) - buyableRank(a)
+  if (stock !== 0) return stock
   if (a.pricePesewas !== b.pricePesewas) return a.pricePesewas < b.pricePesewas ? -1 : 1
   return a.offerId.localeCompare(b.offerId)
 }
 
-export function pickBestOffer<T extends { pricePesewas: bigint; offerId: string }>(
+export function pickBestOffer<
+  T extends { pricePesewas: bigint; offerId: string; onHand?: number; reserved?: number },
+>(
   offers: T[],
 ): T | null {
   if (offers.length === 0) return null
   return [...offers].sort(compareOfferPriceThenId)[0] ?? null
 }
 
-export function sortPeerOffers<T extends { pricePesewas: bigint; offerId: string }>(
+export function sortPeerOffers<
+  T extends { pricePesewas: bigint; offerId: string; onHand?: number; reserved?: number },
+>(
   offers: T[],
 ): T[] {
   return [...offers].sort(compareOfferPriceThenId)
@@ -148,6 +167,11 @@ export type RankableOffer = {
   sellerRatingAvg: number | null
   sellerRatingCount: number
   sellerCompletedOrders: number
+  /**
+   * Units a buyer can actually take. Optional so callers that never list
+   * out-of-stock offers are unaffected; absent reads as available.
+   */
+  available?: number
 }
 
 /**
@@ -159,19 +183,33 @@ export function rankPeerOffers<T extends RankableOffer>(offers: T[], sort?: Peer
   const total = (o: RankableOffer) => o.pricePesewas + o.deliveryFeePesewas
   const trustScore = (o: RankableOffer) =>
     (o.sellerRatingAvg ?? 0) * 100 + Math.min(o.sellerCompletedOrders, 1000) / 100
+  /**
+   * In-stock always outranks out-of-stock, whatever the chosen sort.
+   *
+   * Browse surfaces now list out-of-stock offers so a product between
+   * deliveries still appears. Without this, the cheapest offer could be one
+   * nobody can buy — the card would headline a price that fails at
+   * add-to-cart, which is worse than not showing the product at all.
+   */
+  const buyable = (o: RankableOffer) => (o.available === undefined ? 1 : o.available > 0 ? 1 : 0)
+  const stockFirst =
+    (cmp: (a: T, b: T) => number) =>
+    (a: T, b: T): number =>
+      buyable(b) - buyable(a) || cmp(a, b)
+
   const sorted = [...offers]
   switch (sort) {
     case "price":
-      sorted.sort((a, b) =>
+      sorted.sort(stockFirst((a, b) =>
         a.pricePesewas !== b.pricePesewas
           ? a.pricePesewas < b.pricePesewas
             ? -1
             : 1
           : a.offerId.localeCompare(b.offerId),
-      )
+      ))
       break
     case "delivery":
-      sorted.sort((a, b) =>
+      sorted.sort(stockFirst((a, b) =>
         a.deliveryFeePesewas !== b.deliveryFeePesewas
           ? a.deliveryFeePesewas < b.deliveryFeePesewas
             ? -1
@@ -179,13 +217,17 @@ export function rankPeerOffers<T extends RankableOffer>(offers: T[], sort?: Peer
           : total(a) < total(b)
             ? -1
             : 1,
-      )
+      ))
       break
     case "trust":
-      sorted.sort((a, b) => trustScore(b) - trustScore(a) || (total(a) < total(b) ? -1 : 1))
+      sorted.sort(stockFirst((a, b) => trustScore(b) - trustScore(a) || (total(a) < total(b) ? -1 : 1)))
       break
     default:
-      sorted.sort((a, b) => (total(a) !== total(b) ? (total(a) < total(b) ? -1 : 1) : a.offerId.localeCompare(b.offerId)))
+      sorted.sort(
+        stockFirst((a, b) =>
+          total(a) !== total(b) ? (total(a) < total(b) ? -1 : 1) : a.offerId.localeCompare(b.offerId),
+        ),
+      )
       break
   }
   return sorted

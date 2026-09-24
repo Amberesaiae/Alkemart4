@@ -35,6 +35,7 @@ import {
   canShowComparison,
   deprecateCategory,
   evaluateCampaignEligibility,
+  isListable,
   isSellable,
   scoreSimilarity,
   normalizeQuery,
@@ -1457,9 +1458,21 @@ function escapeLike(q: string): string {
   return q.replace(/\\/g, "\\\\").replace(/%/g, "\\%").replace(/_/g, "\\_")
 }
 
+/**
+ * Offers for browse surfaces.
+ *
+ * `"sellable"` is the strict gate — in stock, buyable now. `"listable"` drops
+ * only the stock requirement, so an out-of-stock product still appears on the
+ * shelf with a badge instead of vanishing. Hiding it loses the search ranking
+ * it earned and makes a marketplace between deliveries look dead.
+ *
+ * Checkout and add-to-cart keep the strict gate; they live in
+ * postgres-checkout-repository and never call this.
+ */
 function sellablePeerOffers(
   data: CatalogSnapshot,
   offerOk: (offer: CatalogOffer) => boolean = () => true,
+  mode: "sellable" | "listable" = "sellable",
 ): Map<string, PeerOfferInput[]> {
   const sellerById = new Map(data.sellers.map((s) => [s.id, s]))
   const productById = new Map(data.products.map((p) => [p.id, p]))
@@ -1469,18 +1482,17 @@ function sellablePeerOffers(
     const seller = sellerById.get(offer.sellerId)
     const product = productById.get(offer.productId)
     if (!seller || !product) continue
-    if (
-      !isSellable({
-        productStatus: product.status,
-        sellerStatus: seller.status,
-        offerActive: offer.active,
-        onHand: offer.onHand,
-        reserved: offer.reserved,
-        pricePesewas: offer.pricePesewas,
-      })
-    ) {
-      continue
+    const base = {
+      productStatus: product.status,
+      sellerStatus: seller.status,
+      offerActive: offer.active,
+      pricePesewas: offer.pricePesewas,
     }
+    const ok =
+      mode === "listable"
+        ? isListable(base)
+        : isSellable({ ...base, onHand: offer.onHand, reserved: offer.reserved })
+    if (!ok) continue
     const list = byProduct.get(offer.productId) ?? []
     list.push({
       offerId: offer.id,
@@ -1621,7 +1633,7 @@ function similarProductIdsFrom(
     }
     return out
   }
-  const offersByProduct = sellablePeerOffers(data)
+  const offersByProduct = sellablePeerOffers(data, () => true, "listable")
   const priceOf = (pid: string): bigint | null => {
     const list = offersByProduct.get(pid) ?? []
     if (list.length === 0) return null
@@ -2052,7 +2064,7 @@ export function searchFrom(data: SearchableData, input: StoreSearchInput): Store
 
   // Cards (sellable only), then price/condition refinement on sellable offers.
   const sellable = sellableOffersByProduct(data)
-  let cards = cardsFor(rows, data, sellablePeerOffers(data))
+  let cards = cardsFor(rows, data, sellablePeerOffers(data, () => true, "listable"))
   if (input.priceMinPesewas !== undefined) {
     const min = BigInt(input.priceMinPesewas)
     cards = cards.filter((c) => BigInt(c.fromPricePesewas) >= min)
@@ -2131,7 +2143,7 @@ export function facetsFrom(data: SearchableData, category?: string): CatalogFace
       data.categories.find((c) => c.id === category || c.slug === category || c.handle === category)
         ?.id ?? null
   }
-  const cards = cardsFor(rows, data, sellablePeerOffers(data))
+  const cards = cardsFor(rows, data, sellablePeerOffers(data, () => true, "listable"))
   const productIds = new Set(cards.map((c) => c.productId))
   const prices = cards.map((c) => BigInt(c.fromPricePesewas))
   const sellable = sellableOffersByProduct(data)
@@ -2182,7 +2194,10 @@ export function listCatalogFrom(data: CatalogSnapshot, query: CatalogListQuery):
         (p.description?.toLowerCase().includes(q) ?? false),
     )
   }
-  const cards = applySort(cardsFor(productRows, data, sellablePeerOffers(data)), query.sort)
+  const cards = applySort(
+    cardsFor(productRows, data, sellablePeerOffers(data, () => true, "listable")),
+    query.sort,
+  )
   return {
     items: cards.slice(query.offset, query.offset + query.limit),
     total: cards.length,
@@ -2212,7 +2227,9 @@ export function getProductFrom(
     const offer = data.offers.find((o) => o.id === combo.offer.id)
     if (offer) optionMap.set(offer.id, combo.options)
   }
-  const offersForProduct = (sellablePeerOffers(data).get(product.id) ?? []).map((o) => ({
+  const offersForProduct = (
+    sellablePeerOffers(data, () => true, "listable").get(product.id) ?? []
+  ).map((o) => ({
     ...o,
     options: optionMap.get(o.offerId) ?? {},
   }))
@@ -2258,7 +2275,7 @@ export function getProductFrom(
 export function getSellerShopFrom(data: CatalogSnapshot, handle: string): SellerShopDto | null {
   const seller = data.sellers.find((s) => s.handle === handle)
   if (!seller) return null
-  const offersForSeller = sellablePeerOffers(data, (o) => o.sellerId === seller.id)
+  const offersForSeller = sellablePeerOffers(data, (o) => o.sellerId === seller.id, "listable")
   const productIds = new Set(offersForSeller.keys())
   return {
     seller: {
@@ -2304,7 +2321,7 @@ export function productCardsByIdsFrom(
 ): Map<string, ProductCardDto> {
   const wanted = new Set(ids)
   if (wanted.size === 0) return new Map()
-  const offers = sellablePeerOffers(data, () => true)
+  const offers = sellablePeerOffers(data, () => true, "listable")
   const rows = data.products.filter((p) => wanted.has(p.id) && offers.has(p.id))
   const out = new Map<string, ProductCardDto>()
   for (const card of cardsFor(rows, data, offers)) {
@@ -3499,6 +3516,10 @@ export class InMemoryCatalogRepository implements CatalogRepository {
       sellerRatingAvg: null,
       sellerRatingCount: 0,
       sellerCompletedOrders: 0,
+      // Browse lists out-of-stock offers now; ranking must keep a buyable one
+      // as the headline so the card never quotes a price that fails at
+      // add-to-cart.
+      available: o.onHand - o.reserved,
     }))
     const ordered =
       sort === "total" ? rankPeerOffers(rankable) : rankPeerOffers(rankable, sort)
@@ -5552,6 +5573,10 @@ export class PostgresCatalogRepository implements CatalogRepository {
       sellerRatingAvg: null,
       sellerRatingCount: 0,
       sellerCompletedOrders: 0,
+      // Browse lists out-of-stock offers now; ranking must keep a buyable one
+      // as the headline so the card never quotes a price that fails at
+      // add-to-cart.
+      available: o.onHand - o.reserved,
     }))
     const ordered = sort === "total" ? rankPeerOffers(rankable) : rankPeerOffers(rankable, sort)
     const offers = ordered.map((o) =>

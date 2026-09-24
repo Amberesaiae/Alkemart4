@@ -39,10 +39,27 @@ export type FacetGroup = {
 export function orderFacets(
   groups: readonly FacetGroup[],
   selected: Record<string, string[]> = {},
+  totalResults?: number,
 ): FacetGroup[] {
   const isSelected = (code: string) => (selected[code]?.length ?? 0) > 0
+  /**
+   * A facet is dead only when picking it cannot change the result set — that
+   * is, one value that every result already shares.
+   *
+   * The earlier rule was "more than one value", which is wrong whenever a
+   * facet describes a subset: with three results and one tagged Leather,
+   * selecting Leather narrows 3 -> 1, which is exactly what a filter is for.
+   * On a small catalogue that rule hid every facet and made the whole panel
+   * look broken.
+   */
+  const canNarrow = (g: FacetGroup) => {
+    const values = Object.values(g.values).filter((n) => n > 0)
+    if (values.length === 0) return false
+    if (values.length > 1) return true
+    return typeof totalResults === "number" ? values[0] < totalResults : false
+  }
   return groups
-    .filter((g) => isSelected(g.code) || Object.keys(g.values).length > 1)
+    .filter((g) => isSelected(g.code) || canNarrow(g))
     .map((g) => ({ group: g, score: facetSplitQuality(g.values) }))
     .sort((a, b) => {
       const aSel = isSelected(a.group.code)

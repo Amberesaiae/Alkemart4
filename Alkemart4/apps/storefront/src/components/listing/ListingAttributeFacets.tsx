@@ -46,7 +46,11 @@ export function ListingAttributeFacets({
 
   // Highest-signal first, single-value facets dropped: a filter that cannot
   // change the result set is a control that does nothing.
-  const groups = orderFacets(data?.attributes ?? [], state.attributes)
+  const groups = orderFacets(
+    data?.attributes ?? [],
+    state.attributes,
+    data?.availabilityCount,
+  )
 
   // 40 brands is a scroll, not a filter. Cap, and let the buyer open it.
   const VALUE_CAP = 8

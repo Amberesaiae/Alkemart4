@@ -26,7 +26,7 @@ export {
   TaxonomyTransitionError,
 } from "./taxonomy"
 export type { ProductStatus, SellerStatus, SellableInput } from "./sellable"
-export { isSellable } from "./sellable"
+export { isListable, isSellable } from "./sellable"
 export type { PeerOfferDto, PeerOfferInput } from "./offers"
 export { pickBestOffer, sortPeerOffers, toPeerOffer } from "./offers"
 export type { PeerRankSort, RankableOffer } from "./offers"

@@ -144,9 +144,15 @@ describe("GET /store/products/:id with variants", () => {
     expect(body.combos).toHaveLength(2)
     // The zero-stock combo is present for honest strikethrough (not sellable).
     expect(body.combos.find((c) => c.options.Size === "M")).toMatchObject({ availableQty: 0, active: true })
-    // Sellable peer offers carry their option maps.
-    expect(body.offers).toHaveLength(1)
-    expect(body.offers[0]).toMatchObject({ options: { Size: "S", Colour: "Red" } })
+    // Peer offers are LISTABLE, not sellable: the zero-stock combo stays
+    // visible so the buyer can see the variant exists, with availableQty 0 so
+    // the UI badges it and add-to-cart refuses. Hiding it made a marketplace
+    // between deliveries look empty.
+    expect(body.offers).toHaveLength(2)
+    const inStock = body.offers.find((o) => (o as unknown as { available: number }).available > 0)
+    const outOfStock = body.offers.find((o) => (o as unknown as { available: number }).available === 0)
+    expect(inStock).toMatchObject({ options: { Size: "S", Colour: "Red" } })
+    expect(outOfStock).toMatchObject({ options: { Size: "M", Colour: "Red" } })
     expect(body.ratingCount).toBe(0)
     expect(body.ratingAvg).toBeNull()
     expect(body.reviews).toEqual([])
