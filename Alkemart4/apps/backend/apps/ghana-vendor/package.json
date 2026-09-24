@@ -6,7 +6,8 @@
     "dev": "vite",
     "build": "vite build",
     "tsc": "tsc --noEmit",
-    "deploy": "vite build && wrangler pages deploy dist --project-name alkemart4-vendor"
+    "deploy": "vite build && wrangler pages deploy dist --project-name alkemart4-vendor",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@alkemart/shared": "workspace:*",

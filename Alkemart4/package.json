@@ -20,10 +20,14 @@
     "db:migrate": "bun scripts/apply-migrations.ts",
     "deploy:api": "bash -lc 'export NODE_OPTIONS=\"--dns-result-order=ipv4first${NODE_OPTIONS:+ $NODE_OPTIONS}\"; cd apps/api && wrangler deploy'",
     "deploy:pages": "bash scripts/deploy-pages.sh",
-    "typecheck": "bun run --filter './apps/storefront' --filter './apps/api' --filter './scripts' typecheck",
+    "typecheck": "bun run --filter '*' typecheck",
     "check:migrations": "bun scripts/check-migrations.ts",
     "check:api-client": "bash scripts/check-api-client.sh",
-    "setup": "bun install"
+    "setup": "bun install",
+    "build": "bun run --filter '@workspace/storefront' --filter '@alkemart/ghana-vendor' --filter '@acme/admin' build",
+    "test": "bun run test:api && bun run test:domain && bun run test:storefront",
+    "test:storefront": "bun run --filter '@workspace/storefront' test",
+    "check": "bun run typecheck && bun run check:migrations && bun run check:api-client"
   },
   "private": true,
   "devDependencies": {

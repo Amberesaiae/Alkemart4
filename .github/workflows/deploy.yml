@@ -1,0 +1,63 @@
+# Deploys the canonical stack: Cloudflare Workers (API) + Pages (UIs).
+# Manual-only on purpose. Auto-deploying main needs CLOUDFLARE_API_TOKEN and
+# CLOUDFLARE_ACCOUNT_ID in repo secrets; until those exist a push trigger would
+# just fail every merge. Add the secrets, then add a `push` trigger if wanted.
+name: Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: What to deploy
+        required: true
+        default: api
+        type: choice
+        options: [api, pages, both]
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    working-directory: Alkemart4
+
+env:
+  CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+  CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+jobs:
+  gate:
+    name: CI gate
+    uses: ./.github/workflows/ci.yml
+
+  deploy:
+    name: Deploy ${{ inputs.target }}
+    needs: gate
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.4.0"
+      - run: bun install --frozen-lockfile
+
+      - name: Fail fast if Cloudflare credentials are absent
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "::error::Set CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID in repo secrets."
+            exit 1
+          fi
+
+      - name: Deploy Worker API
+        if: inputs.target == 'api' || inputs.target == 'both'
+        working-directory: Alkemart4/apps/api
+        run: bunx wrangler deploy
+
+      - name: Deploy Pages UIs
+        if: inputs.target == 'pages' || inputs.target == 'both'
+        run: bun run deploy:pages

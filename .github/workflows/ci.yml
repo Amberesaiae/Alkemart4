@@ -1,0 +1,80 @@
+# Repo layout note: the git root is this directory; the project lives in
+# ./Alkemart4. GitHub only registers workflows found in <repo-root>/.github/
+# workflows, which is why this file must stay here and not move into the
+# project folder. Every `run` step therefore works from ./Alkemart4.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+  workflow_call:
+
+# Supersede in-flight runs for the same ref instead of racing them.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    working-directory: Alkemart4
+
+env:
+  # Storefront reads this at build time; a placeholder keeps the build
+  # hermetic without pointing CI at production.
+  VITE_ALKEMART_API_URL: http://127.0.0.1:8787
+
+jobs:
+  static:
+    name: Typecheck & guards
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.4.0"
+      - run: bun install --frozen-lockfile
+      - name: Typecheck all workspaces
+        run: bun run typecheck
+      - name: Migration convention guard
+        run: bun run check:migrations
+      - name: API client drift guard
+        run: bun run check:api-client
+
+  test:
+    name: Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.4.0"
+      - run: bun install --frozen-lockfile
+      # Worker cap is load-bearing: 45 uncapped isolates starve the runner and
+      # fail non-deterministically. See AGENTS.md.
+      - name: API tests
+        run: bun run test:api
+      - name: Domain tests
+        run: bun run test:domain
+      - name: Storefront tests
+        run: bun run test:storefront
+
+  build:
+    name: Build UIs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.4.0"
+      - run: bun install --frozen-lockfile
+      - name: Build storefront, vendor, admin
+        run: bun run build
+      - name: Worker bundles (deploy dry run)
+        working-directory: Alkemart4/apps/api
+        run: bunx wrangler deploy --dry-run --outdir /tmp/worker-build

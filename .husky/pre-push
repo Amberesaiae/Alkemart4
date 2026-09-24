@@ -1,0 +1,10 @@
+#!/bin/sh
+# Local mirror of the CI "static" job. Keeps a bad push from ever reaching
+# main, and keeps the repo verifiable even if Actions is unavailable.
+# Skip with: git push --no-verify
+set -e
+cd "$(dirname "$0")/../Alkemart4"
+echo "pre-push: typecheck + guards (skip with --no-verify)"
+bun run typecheck
+bun run check:migrations
+bun run check:api-client
