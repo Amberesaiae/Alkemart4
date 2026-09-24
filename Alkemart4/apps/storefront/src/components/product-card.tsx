@@ -299,13 +299,13 @@ function Media(props: {
         onError={() => setBroken(true)}
         className={cn(
           "relative z-[1] h-full w-full",
-          // Out-of-stock products stay on the shelf now, so the artwork has to
-          // say so at a glance — the badge alone reads as decoration in a grid.
-          // opacity-45 is not a default Tailwind step, so the class was never
-          // generated and the dim silently did nothing. 40 is.
-          props.stock === "out" && "opacity-40 grayscale",
+          props.stock === "out" && "grayscale",
           imageFit === "contain" ? "object-contain p-2.5 sm:p-3" : "object-cover",
-          loaded ? "opacity-100" : "opacity-0",
+          // Out-of-stock artwork is dimmed so the state reads at a glance — the
+          // badge alone looks like decoration in a grid. This must come AFTER
+          // the load transition: tailwind-merge keeps the last opacity class,
+          // so placing it earlier let `opacity-100` silently win.
+          loaded ? (props.stock === "out" ? "opacity-40" : "opacity-100") : "opacity-0",
         )}
         loading="lazy"
         decoding="async"
