@@ -22,14 +22,17 @@ export function HomeFeaturedShop({
   const featured = [...grouped.entries()].sort(
     (a, b) => b[1].length - a[1].length,
   )[0];
-  if (!featured) return null;
-  const [handle, shopProducts] = featured;
-  // Real vendor record for banner/location; absent data omits, never fakes.
+  // Hooks before any early return (Rules of Hooks): `featured` flips from
+  // undefined to defined as products stream in, and a hook after the return
+  // below crashes with React #310 on that transition.
   const vendorsQ = useQuery({
     queryKey: ["store", "vendors"],
     queryFn: () => listStoreVendors(),
     staleTime: 300_000,
   });
+  if (!featured) return null;
+  const [handle, shopProducts] = featured;
+  // Real vendor record for banner/location; absent data omits, never fakes.
   const vendor = (vendorsQ.data ?? []).find((shop) => shop.slug === handle);
   const name = shopProducts[0]?.seller?.name || vendor?.name || "Featured shop";
   const cover =

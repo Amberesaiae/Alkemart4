@@ -79,8 +79,7 @@ function NotifyMeBlock({
 }) {
   const [target, setTarget] = useState("");
   const [note, setNote] = useState<string | null>(null);
-  if (!alertsAvailable()) return null;
-  const signedIn = typeof window !== "undefined" && Boolean(getWorkersAccessToken());
+  // Hooks before any early return (Rules of Hooks) — see HomeFeaturedShop fix.
   const sub = useMutation({
     mutationFn: (input: { kind: "back_in_stock" | "price_drop"; belowPesewas?: string | null }) =>
       createSubscription({ productId, offerId, ...input }),
@@ -92,6 +91,8 @@ function NotifyMeBlock({
       ),
     onError: (e) => setNote(e instanceof Error ? e.message : "Couldn't save the alert."),
   });
+  if (!alertsAvailable()) return null;
+  const signedIn = typeof window !== "undefined" && Boolean(getWorkersAccessToken());
   if (!outOfStock) return null;
   return (
     <div className="space-y-2 rounded-xl border border-border bg-card p-4">
