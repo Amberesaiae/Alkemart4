@@ -69,7 +69,7 @@ export function DraftPreview({ sections, selectedId, issues, showHidden, feature
 }) {
   if (!sections.length) {
     return (
-      <div className="rounded-2xl border border-dashed border-border bg-white p-4">
+      <div className="rounded-xl border border-dashed border-border bg-white p-4">
         <EmptyState
           title="Empty homepage"
           description="Add sections from the library. The storefront falls back to the default category mosaic until managed content is published."
@@ -92,7 +92,7 @@ export function DraftPreview({ sections, selectedId, issues, showHidden, feature
             <article
               aria-label={`${name}, ${sectionLabels[section.type]}, layer ${index + 1} of ${sections.length}${live ? "" : ", hidden from buyers"}${errorCount ? `, ${errorCount} problems to fix` : ""}`}
               className={cn(
-                "group overflow-hidden rounded-2xl border bg-white transition-shadow",
+                "group overflow-hidden rounded-xl border bg-white transition-shadow",
                 errorCount
                   ? "border-destructive"
                   : isSelected
@@ -511,7 +511,7 @@ function StudioStoreRail({ section }: { section: Extract<HomeSection, { type: "s
         <h2 className="px-1 text-xl font-extrabold tracking-tight">{section.title}</h2>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {Array.from({ length: Math.min(section.limit, 4) }).map((_, index) => (
-            <Skeleton key={index} className="aspect-[4/3] rounded-2xl bg-tone-neutral-soft" />
+            <Skeleton key={index} className="aspect-[4/3] rounded-xl bg-tone-neutral-soft" />
           ))}
         </div>
       </section>

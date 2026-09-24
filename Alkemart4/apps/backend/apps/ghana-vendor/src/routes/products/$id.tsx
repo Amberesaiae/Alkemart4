@@ -326,8 +326,8 @@ function ProductDetailPage() {
         <div className="space-y-6">
           <Skeleton className="h-8 w-48 rounded-lg" />
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            <Skeleton className="lg:col-span-4 h-80 rounded-2xl" />
-            <Skeleton className="lg:col-span-8 h-96 rounded-2xl" />
+            <Skeleton className="lg:col-span-4 h-80 rounded-xl" />
+            <Skeleton className="lg:col-span-8 h-96 rounded-xl" />
           </div>
         </div>
       </PageShell>
@@ -337,7 +337,7 @@ function ProductDetailPage() {
   if (isError || !product) {
     return (
       <PageShell>
-        <Card className="p-12 text-center max-w-lg mx-auto shadow-xs rounded-2xl">
+        <Card className="p-12 text-center max-w-lg mx-auto shadow-xs rounded-xl">
           <WarningCircle className="h-12 w-12 mx-auto mb-3 text-destructive" />
           <h2 className="text-xl font-bold mb-1">Product not found</h2>
           <p className="text-muted-foreground text-sm mb-6">
@@ -435,7 +435,7 @@ function ProductDetailPage() {
 
       {/* Moderation alerts */}
       {rejectionReason && (
-        <div className="p-4 bg-destructive/10 border-2 border-destructive/30 rounded-2xl">
+        <div className="p-4 bg-destructive/10 border-2 border-destructive/30 rounded-xl">
           <div className="flex items-start gap-3">
             <WarningCircle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
             <div className="flex-1">
@@ -476,7 +476,7 @@ function ProductDetailPage() {
       )}
 
       {changesRequestedReason && !rejectionReason && (
-        <div className="p-4 bg-warning/10 border border-warning/30 rounded-2xl">
+        <div className="p-4 bg-warning/10 border border-warning/30 rounded-xl">
           <div className="flex items-start gap-3">
             <Clock className="h-5 w-5 text-warning-fg shrink-0 mt-0.5" />
             <div>
@@ -488,7 +488,7 @@ function ProductDetailPage() {
       )}
 
       <Tabs defaultValue="overview" className="space-y-4">
-        <TabsList className="w-full justify-start overflow-x-auto rounded-2xl [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <TabsList className="w-full justify-start overflow-x-auto rounded-xl [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <TabsTrigger value="overview" className="gap-1.5 rounded-xl">
             <Package className="h-4 w-4" /> Overview
           </TabsTrigger>
@@ -507,7 +507,7 @@ function ProductDetailPage() {
 
         <TabsContent value="overview">
           {editing ? (
-            <Card className="p-6 space-y-5 border border-border/80 shadow-xs rounded-2xl bg-card">
+            <Card className="p-6 space-y-5 border border-border/80 shadow-xs rounded-xl bg-card">
               <div className="space-y-2">
                 <Label htmlFor="edit-title" className="text-sm font-semibold">
                   Title <span className="text-xs font-normal text-muted-foreground">({form.title.length}/120)</span>
@@ -612,7 +612,7 @@ function ProductDetailPage() {
               </div>
             </Card>
           ) : (
-            <Card className="p-6 space-y-4 border border-border/80 shadow-xs rounded-2xl bg-card">
+            <Card className="p-6 space-y-4 border border-border/80 shadow-xs rounded-xl bg-card">
               <p className="text-sm text-foreground/90 whitespace-pre-wrap leading-relaxed">
                 {product.description || "No description yet — add one so shoppers know what they're buying."}
               </p>
@@ -653,7 +653,7 @@ function ProductDetailPage() {
         </TabsContent>
 
         <TabsContent value="media">
-          <Card className="overflow-hidden border border-border/80 shadow-xs rounded-2xl bg-card">
+          <Card className="overflow-hidden border border-border/80 shadow-xs rounded-xl bg-card">
             <div className="aspect-video bg-muted/40 relative overflow-hidden flex items-center justify-center">
               {displayImage ? (
                 <img
@@ -745,7 +745,7 @@ function ProductDetailPage() {
 
         <TabsContent value="pricing">
           {editing && !hasOptions ? (
-            <Card className="p-6 space-y-5 border border-border/80 shadow-xs rounded-2xl bg-card">
+            <Card className="p-6 space-y-5 border border-border/80 shadow-xs rounded-xl bg-card">
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="edit-price" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
@@ -800,13 +800,13 @@ function ProductDetailPage() {
               })()}
             </Card>
           ) : editing ? (
-            <Card className="p-6 border border-border/80 shadow-xs rounded-2xl bg-card">
+            <Card className="p-6 border border-border/80 shadow-xs rounded-xl bg-card">
               <p className="text-sm text-muted-foreground">
                 Price &amp; stock live on each combination — finish content edits here, then adjust them under <strong>Combinations</strong>.
               </p>
             </Card>
           ) : !quickOfferOpen ? (
-            <Card className="p-6 space-y-4 border border-border/80 shadow-xs rounded-2xl bg-card">
+            <Card className="p-6 space-y-4 border border-border/80 shadow-xs rounded-xl bg-card">
               <div className="flex items-center justify-between">
                 <div className="flex items-baseline gap-3">
                   <p className="text-3xl font-black text-foreground tabular-nums tracking-tight">
@@ -844,7 +844,7 @@ function ProductDetailPage() {
               ) : null}
             </Card>
           ) : (
-            <Card className="p-6 space-y-4 border border-border/80 shadow-xs rounded-2xl bg-card">
+            <Card className="p-6 space-y-4 border border-border/80 shadow-xs rounded-xl bg-card">
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-1.5">
                   <Label htmlFor="quick-price" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
@@ -1113,7 +1113,7 @@ function VariantsSection({ productId }: { productId: string }) {
   }
 
   return (
-    <Card className="p-6 space-y-5 border border-border/80 shadow-xs rounded-2xl bg-card">
+    <Card className="p-6 space-y-5 border border-border/80 shadow-xs rounded-xl bg-card">
       <div className="flex items-center justify-between border-b border-border/60 pb-3">
         <div>
           <h2 className="font-bold text-base text-foreground flex items-center gap-2">
@@ -1138,7 +1138,7 @@ function VariantsSection({ productId }: { productId: string }) {
             return (
               <li
                 key={combo.variantId}
-                className={"rounded-2xl border p-4 space-y-3 " + (combo.active ? "border-border/60 bg-muted/20" : "border-dashed border-border bg-muted/10 opacity-80")}
+                className={"rounded-xl border p-4 space-y-3 " + (combo.active ? "border-border/60 bg-muted/20" : "border-dashed border-border bg-muted/10 opacity-80")}
               >
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-bold text-sm">{comboDisplayName(combo)}</span>
@@ -1334,7 +1334,7 @@ function VariantsSection({ productId }: { productId: string }) {
         </ul>
       )}
 
-      <div className="rounded-2xl border border-border/60 bg-muted/20 p-4 space-y-3">
+      <div className="rounded-xl border border-border/60 bg-muted/20 p-4 space-y-3">
         <h3 className="font-bold text-sm">Add a combination</h3>
         {options.length > 0 && !addingOption ? (
           <div className="flex flex-col sm:flex-row gap-2">
@@ -1447,7 +1447,7 @@ function ValuePhotos({ productId, options }: {
   }
 
   return (
-    <div className="rounded-2xl border border-border/60 bg-muted/20 p-4 space-y-3">
+    <div className="rounded-xl border border-border/60 bg-muted/20 p-4 space-y-3">
       <h3 className="font-bold text-sm">Swatch photos (optional)</h3>
       <p className="text-xs text-muted-foreground font-medium">
         One photo per value on visual options (e.g. Colour) - buyers see it as the selector tile and gallery lead.

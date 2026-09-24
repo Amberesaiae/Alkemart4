@@ -266,14 +266,14 @@ function StorePage() {
       <div
         role="tablist"
         aria-label="Store sections"
-        className="grid grid-cols-1 sm:grid-cols-3 gap-2 p-1.5 bg-muted/50 dark:bg-muted/20 border border-border/80 rounded-2xl"
+        className="grid grid-cols-1 sm:grid-cols-3 gap-2 p-1.5 bg-muted/50 dark:bg-muted/20 border border-border/80 rounded-xl"
       >
         <button
           role="tab"
           id="tab-branding"
           aria-selected={activeCategory === "branding"}
           onClick={() => setActiveCategory("branding")}
-          className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-left cursor-pointer ${
+          className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors text-left cursor-pointer ${
             activeCategory === "branding"
               ? "bg-card text-foreground shadow-sm ring-1 ring-border"
               : "text-muted-foreground hover:text-foreground hover:bg-card/40"
@@ -304,7 +304,7 @@ function StorePage() {
           id="tab-catalog"
           aria-selected={activeCategory === "catalog"}
           onClick={() => setActiveCategory("catalog")}
-          className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-left cursor-pointer ${
+          className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors text-left cursor-pointer ${
             activeCategory === "catalog"
               ? "bg-card text-foreground shadow-sm ring-1 ring-border"
               : "text-muted-foreground hover:text-foreground hover:bg-card/40"
@@ -332,7 +332,7 @@ function StorePage() {
           id="tab-operations"
           aria-selected={activeCategory === "operations"}
           onClick={() => setActiveCategory("operations")}
-          className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-left cursor-pointer ${
+          className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors text-left cursor-pointer ${
             activeCategory === "operations"
               ? "bg-card text-foreground shadow-sm ring-1 ring-border"
               : "text-muted-foreground hover:text-foreground hover:bg-card/40"
@@ -1160,7 +1160,7 @@ function CollectionsCard() {
   }
 
   return (
-    <Card className="p-6 space-y-5 border border-border/80 shadow-xs rounded-2xl bg-card">
+    <Card className="p-6 space-y-5 border border-border/80 shadow-xs rounded-xl bg-card">
       <div className="flex items-center justify-between border-b border-border/60 pb-3">
         <div>
           <h2 className="font-bold text-base text-foreground">Shelves</h2>
@@ -1198,7 +1198,7 @@ function CollectionsCard() {
             const open = openId === shelf.id
             const candidates = catalog.filter((p) => !shelf.productIds.includes(p.id))
             return (
-              <li key={shelf.id} className="rounded-2xl border border-border/60 bg-muted/20 p-4 space-y-3">
+              <li key={shelf.id} className="rounded-xl border border-border/60 bg-muted/20 p-4 space-y-3">
                 <div className="flex items-center gap-2 flex-wrap">
                   <button
                     type="button"

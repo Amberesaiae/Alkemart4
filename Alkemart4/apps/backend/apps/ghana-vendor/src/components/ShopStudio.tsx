@@ -53,7 +53,7 @@ export function ShopStudio() {
 
   return (
     <StudioWorkbench
-      className="min-h-[70vh] overflow-hidden rounded-2xl border border-border"
+      className="min-h-[70vh] overflow-hidden rounded-xl border border-border"
       device={device}
       onDevice={setDevice}
       toolbar={<p className="text-sm font-extrabold">Shop window</p>}

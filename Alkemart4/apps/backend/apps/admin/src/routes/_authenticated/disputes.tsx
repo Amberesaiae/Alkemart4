@@ -147,7 +147,7 @@ function DisputeDetail({ id, onBack }: { id: string; onBack: () => void }) {
                   key={d}
                   type="button"
                   onClick={() => setDecision(d)}
-                  className={`p-3 rounded-xl border-2 text-sm font-bold text-center transition-all ${
+                  className={`p-3 rounded-xl border-2 text-sm font-bold text-center transition-colors ${
                     decision === d
                       ? "border-primary bg-muted text-primary"
                       : "border-border hover:border-primary/40 text-muted-foreground"

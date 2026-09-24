@@ -6,6 +6,7 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 PRELOAD="$ROOT/scripts/node-ipv4-fetch-preload.cjs"
 export NODE_OPTIONS="--dns-result-order=ipv4first -r ${PRELOAD}${NODE_OPTIONS:+ $NODE_OPTIONS}"
 export VITE_ALKEMART_API_URL="${VITE_ALKEMART_API_URL:-https://alkemart-api.glean-circular-passport.workers.dev}"
+export VITE_ALKEMART_STOREFRONT_URL="${VITE_ALKEMART_STOREFRONT_URL:-https://alkemart4-storefront.pages.dev}"
 
 deploy_one() {
   local dir="$1" project="$2"

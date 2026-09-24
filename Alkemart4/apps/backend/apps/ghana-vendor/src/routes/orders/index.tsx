@@ -66,7 +66,7 @@ function OrdersPage() {
             <button
               key={tab.id}
               onClick={() => { setFilter(tab.id); setOffset(0) }}
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all border ${
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors border ${
                 filter === tab.id 
                   ? "bg-primary text-primary-foreground border-primary shadow-2xs" 
                   : "bg-card text-muted-foreground border-border/60 hover:border-primary/40 hover:bg-accent hover:text-accent-foreground"

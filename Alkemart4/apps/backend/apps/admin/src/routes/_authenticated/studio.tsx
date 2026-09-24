@@ -130,7 +130,7 @@ function LiveStudioPage() {
     return (
       <div className="flex h-[calc(100dvh-0px)] flex-col gap-3 p-5" role="status" aria-label="Loading Live Studio">
         <Skeleton className="h-12 w-full" />
-        <Skeleton className="h-full w-full rounded-2xl" />
+        <Skeleton className="h-full w-full rounded-xl" />
       </div>
     )
   }
@@ -201,7 +201,7 @@ function LiveStudioPage() {
           className={
             device === "mobile"
               ? "w-full max-w-[390px] overflow-hidden rounded-[2rem] border border-border bg-background shadow-lg"
-              : "w-full overflow-hidden rounded-2xl border border-border bg-background shadow-lg"
+              : "w-full overflow-hidden rounded-xl border border-border bg-background shadow-lg"
           }
         >
           <iframe

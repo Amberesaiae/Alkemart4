@@ -49,8 +49,8 @@ function MoneyPage() {
       </div>
       {isLoading ? (
         <div className="space-y-3" role="status" aria-label="Loading money">
-          <Skeleton className="h-24 w-full rounded-2xl" />
-          <Skeleton className="h-64 w-full rounded-2xl" />
+          <Skeleton className="h-24 w-full rounded-xl" />
+          <Skeleton className="h-64 w-full rounded-xl" />
         </div>
       ) : null}
       {isError ? (

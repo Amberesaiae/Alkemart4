@@ -256,7 +256,7 @@ function SettingsPage() {
                   className="group flex flex-col sm:flex-row items-center gap-2 mx-2 cursor-pointer focus:outline-none"
                 >
                   <span
-                    className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold transition-all ${
+                    className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold transition-colors ${
                       isActive
                         ? "bg-primary text-primary-foreground ring-4 ring-primary/20 shadow-xs"
                         : isPast
@@ -305,7 +305,7 @@ function SettingsPage() {
               {/* Store Branding: Tall Hero Cover with Extra Large Centered Overlapping Logo */}
               <div className="relative mb-24 sm:mb-28">
                 {/* Cover Banner */}
-                <div className="relative h-60 sm:h-72 w-full rounded-2xl overflow-hidden border border-border bg-muted/30 group shadow-xs">
+                <div className="relative h-60 sm:h-72 w-full rounded-xl overflow-hidden border border-border bg-muted/30 group shadow-xs">
                   {seller?.banner ? (
                     <img
                       src={seller.banner}
@@ -387,7 +387,7 @@ function SettingsPage() {
                         type="button"
                         onClick={() => updateProfile.mutate({ logo: null })}
                         disabled={upload.isPending}
-                        className="absolute top-1.5 right-1.5 h-8 w-8 rounded-full bg-destructive text-white flex items-center justify-center shadow-lg hover:scale-110 transition cursor-pointer ring-2 ring-card"
+                        className="absolute top-1.5 right-1.5 h-8 w-8 rounded-full bg-destructive text-white flex items-center justify-center shadow-lg transition cursor-pointer ring-2 ring-card"
                         title="Remove logo"
                       >
                         <X className="h-4.5 w-4.5" />
@@ -686,7 +686,7 @@ function SettingsPage() {
                         onClick={() => setProvider(key)}
                         aria-pressed={active}
                         aria-label={net.label}
-                        className={`group relative h-20 sm:h-24 w-full rounded-xl border-2 p-3 flex items-center justify-center bg-white dark:bg-zinc-900 transition-all cursor-pointer shadow-xs ${
+                        className={`group relative h-20 sm:h-24 w-full rounded-xl border-2 p-3 flex items-center justify-center bg-white dark:bg-zinc-900 transition-colors cursor-pointer shadow-xs ${
                           active
                             ? "border-tone-success ring-2 ring-tone-success/30"
                             : "border-border hover:border-muted-foreground/40 hover:bg-muted/10"
@@ -700,7 +700,7 @@ function SettingsPage() {
                         <img
                           src={net.logo}
                           alt={net.short}
-                          className="h-12 sm:h-14 w-auto max-w-full object-contain transition-transform group-hover:scale-105"
+                          className="h-12 sm:h-14 w-auto max-w-full object-contain transition-transform group-"
                         />
                       </button>
                     )

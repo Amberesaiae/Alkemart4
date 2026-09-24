@@ -38,7 +38,7 @@ function FieldGroup({ title, meta, action, hint, children }: {
   children: React.ReactNode
 }) {
   return (
-    <section aria-label={title} className="flex flex-col gap-3 rounded-2xl border border-border p-4">
+    <section aria-label={title} className="flex flex-col gap-3 rounded-xl border border-border p-4">
       <div className="flex items-center justify-between gap-2">
         <h3 className="text-sm font-bold">
           {title}
@@ -56,8 +56,8 @@ function VisibilityFields({ section, onChange }: { section: HomeSection; onChang
   const switchId = useId()
   const startsInvalid = Boolean(section.startsAt && section.endsAt && section.startsAt >= section.endsAt)
   return (
-    <details className="group rounded-2xl border border-dashed border-border">
-      <summary className="flex cursor-pointer list-none items-center justify-between gap-2 rounded-2xl px-4 py-3 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
+    <details className="group rounded-xl border border-dashed border-border">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-2 rounded-xl px-4 py-3 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
         <span>
           Visibility &amp; scheduling
           <span className="ml-2 text-xs font-normal text-muted-foreground">
@@ -197,7 +197,7 @@ export function SectionEditor({ section, categories, headingRef, issues, positio
     <Card className="overflow-hidden border-0 shadow-none">
       <div className="border-b border-border bg-white px-5 pb-4 pt-5">
         <div className="flex items-center gap-3">
-          <span className={cn("flex size-10 shrink-0 items-center justify-center rounded-2xl", accent.chip)} aria-hidden="true">
+          <span className={cn("flex size-10 shrink-0 items-center justify-center rounded-xl", accent.chip)} aria-hidden="true">
             <AccentIcon className="h-5 w-5" />
           </span>
           <div className="min-w-0">
@@ -211,7 +211,7 @@ export function SectionEditor({ section, categories, headingRef, issues, positio
         </div>
         <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{sectionHints[section.type]}</p>
         {issues.length ? (
-          <div role="alert" className="mt-3 flex flex-col gap-1.5 rounded-2xl border border-tone-danger-ink/30 bg-tone-danger-soft p-3">
+          <div role="alert" className="mt-3 flex flex-col gap-1.5 rounded-xl border border-tone-danger-ink/30 bg-tone-danger-soft p-3">
             <p className="flex items-center gap-1.5 text-sm font-bold text-tone-danger-ink">
               <WarningCircle className="h-4 w-4" aria-hidden="true" />
               Fix before publishing ({issues.length})
@@ -427,7 +427,7 @@ export function SectionEditor({ section, categories, headingRef, issues, positio
         {locked ? (
           <p className="text-xs text-muted-foreground">This beat is part of the homepage plot. Hide it from buyers instead of deleting it.</p>
         ) : confirmingDelete ? (
-          <div className="flex flex-col gap-2 rounded-2xl border border-tone-danger-ink/30 bg-tone-danger-soft p-3" role="alert">
+          <div className="flex flex-col gap-2 rounded-xl border border-tone-danger-ink/30 bg-tone-danger-soft p-3" role="alert">
             <p className="text-sm font-bold text-tone-danger-ink">Delete this section?</p>
             <div className="flex gap-2">
               <Button variant="destructive" size="sm" className="flex-1" onClick={onDelete}>Confirm</Button>
@@ -519,8 +519,8 @@ function CategoryTilesEditor({ section, categories, onChange, onUpload }: {
       </FieldGroup>
 
       {tiles.map((tile, index) => (
-        <details key={tile.categoryId} className="group rounded-2xl border border-border">
-          <summary className="flex cursor-pointer list-none items-center justify-between gap-2 rounded-2xl px-3 py-2.5 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
+        <details key={tile.categoryId} className="group rounded-xl border border-border">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
             <span className="truncate">
               {index + 1}. {tile.label || nameOf(tile.categoryId)}
               <span className="ml-2 text-xs font-normal text-muted-foreground">

@@ -176,7 +176,7 @@ function ProductsPage() {
                   key={tab.id}
                   type="button"
                   onClick={() => setStatusFilter(tab.id)}
-                  className={`group relative text-left p-4 rounded-2xl border transition-all duration-200 cursor-pointer flex flex-col justify-between gap-2 ${
+                  className={`group relative text-left p-4 rounded-xl border transition-colors duration-200 cursor-pointer flex flex-col justify-between gap-2 ${
                     isSelected
                       ? "bg-card border-primary ring-2 ring-primary/20 shadow-sm"
                       : "bg-card/70 hover:bg-card border-border/80 hover:border-primary/40 hover:shadow-2xs"
@@ -215,7 +215,7 @@ function ProductsPage() {
           </div>
 
           {/* ── Spacious Horizontal Search & Controls Section ── */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-2 rounded-2xl border border-border/80 bg-card/60 shadow-2xs">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-2 rounded-xl border border-border/80 bg-card/60 shadow-2xs">
             <div className="relative flex-1">
               <MagnifyingGlass className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
               <Input
@@ -277,7 +277,7 @@ function ProductsPage() {
 
       {/* ── Main Content Area ── */}
       {isError ? (
-        <Card className="p-8 text-center border border-destructive/20 shadow-xs rounded-2xl">
+        <Card className="p-8 text-center border border-destructive/20 shadow-xs rounded-xl">
           <WarningCircle className="h-10 w-10 mx-auto mb-3 text-destructive" />
           <h2 className="text-lg font-bold mb-1">Failed to load products</h2>
           <p className="text-muted-foreground text-sm mb-4">Something went wrong. Please try again.</p>
@@ -288,12 +288,12 @@ function ProductsPage() {
       ) : isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[1, 2, 3].map((i) => (
-            <Card key={i} className="h-80 animate-pulse bg-muted/40 border-border/60 rounded-2xl" />
+            <Card key={i} className="h-80 animate-pulse bg-muted/40 border-border/60 rounded-xl" />
           ))}
         </div>
       ) : allProducts.length === 0 ? (
-        <Card className="flex flex-col items-center justify-center p-14 text-center border-dashed border-2 shadow-xs bg-muted/10 rounded-2xl">
-          <div className="h-16 w-16 bg-muted text-primary rounded-2xl flex items-center justify-center mb-4 shadow-inner">
+        <Card className="flex flex-col items-center justify-center p-14 text-center border-dashed border-2 shadow-xs bg-muted/10 rounded-xl">
+          <div className="h-16 w-16 bg-muted text-primary rounded-xl flex items-center justify-center mb-4 shadow-inner">
             <Package className="h-8 w-8" weight="bold" />
           </div>
           <h2 className="text-xl font-bold mb-1">No products yet</h2>
@@ -308,7 +308,7 @@ function ProductsPage() {
           </Link>
         </Card>
       ) : filteredProducts.length === 0 ? (
-        <Card className="p-12 text-center shadow-xs rounded-2xl">
+        <Card className="p-12 text-center shadow-xs rounded-xl">
           <MagnifyingGlass className="h-8 w-8 mx-auto mb-2 text-muted-foreground opacity-50" />
           <p className="font-bold text-base text-foreground mb-1">No matching products</p>
           <p className="text-sm text-muted-foreground mb-4">No products found matching your current search or status filter.</p>
@@ -328,7 +328,7 @@ function ProductsPage() {
             return (
               <div
                 key={product.id}
-                className="group relative flex flex-col rounded-2xl border border-border/80 bg-card overflow-hidden transition-all duration-300 hover:shadow-lg hover:border-primary/50"
+                className="group relative flex flex-col rounded-xl border border-border/80 bg-card overflow-hidden transition-colors hover:shadow-lg hover:border-primary/50"
               >
                 {/* Media Showcase Frame with Status & Storefront Link */}
                 <div className="aspect-[16/10] bg-white relative overflow-hidden">
@@ -336,7 +336,7 @@ function ProductsPage() {
                     <img
                       src={product.thumbnail}
                       alt={product.title || "Product"}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      className="w-full h-full object-cover group- transition-transform"
                     />
                   ) : (
                     <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground/30">
@@ -434,9 +434,9 @@ function ProductsPage() {
           {filteredProducts.length <= 2 && statusFilter === "all" && search === "" && (
             <Link
               to="/quick-sell"
-              className="group relative flex flex-col items-center justify-center p-8 rounded-2xl border-2 border-dashed border-border/80 hover:border-primary bg-muted/10 hover:bg-muted/20 transition-all min-h-[320px] text-center"
+              className="group relative flex flex-col items-center justify-center p-8 rounded-xl border-2 border-dashed border-border/80 hover:border-primary bg-muted/10 hover:bg-muted/20 transition-colors min-h-[320px] text-center"
             >
-              <div className="h-12 w-12 rounded-2xl bg-muted text-primary flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+              <div className="h-12 w-12 rounded-xl bg-muted text-primary flex items-center justify-center mb-3 group- transition-transform">
                 <PlusCircle className="h-6 w-6" weight="bold" />
               </div>
               <h4 className="font-bold text-sm text-foreground mb-1">Add Another Product</h4>
@@ -451,7 +451,7 @@ function ProductsPage() {
         </div>
       ) : (
         /* ── Refined Table View ── */
-        <Card className="overflow-hidden shadow-2xs rounded-2xl border">
+        <Card className="overflow-hidden shadow-2xs rounded-xl border">
           <Table>
             <TableHeader>
               <TableRow className="bg-muted/30">

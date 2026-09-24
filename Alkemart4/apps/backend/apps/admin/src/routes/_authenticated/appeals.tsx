@@ -158,7 +158,7 @@ function AppealsPage() {
                 role="radio"
                 aria-checked={decision === d}
                 onClick={() => setDecision(d)}
-                className={`p-3 rounded-xl border-2 text-sm font-bold transition-all ${
+                className={`p-3 rounded-xl border-2 text-sm font-bold transition-colors ${
                   decision === d
                     ? "border-primary bg-muted text-primary"
                     : "border-border hover:border-primary/40 text-muted-foreground"

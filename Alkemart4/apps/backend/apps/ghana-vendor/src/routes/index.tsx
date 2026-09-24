@@ -29,7 +29,7 @@ function DashboardPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <PageHeader title="Overview" description="Here's what's happening at your stall today." />
         <Link to="/quick-sell">
-          <Button size="lg" className="w-full sm:w-auto gap-2 shadow-lg hover:scale-[1.02] transition-transform">
+            <Button size="lg" className="w-full sm:w-auto gap-2 shadow-lg transition-transform">
             <PlusCircle className="h-5 w-5" />
             Quick Sell
           </Button>
@@ -282,7 +282,7 @@ function DashboardPage() {
 function StatCard({ title, value, icon: Icon, highlight = false, loading = false }: { title: string, value: string, icon: React.ComponentType<{ className?: string }>, highlight?: boolean, loading?: boolean }) {
   return (
     <Card className={cn(
-      "p-5 flex flex-col gap-4 border-2 transition-all hover:-translate-y-1 hover:shadow-md",
+      "p-5 flex flex-col gap-4 border-2 transition-colors hover:shadow-md",
       highlight ? "bg-primary text-primary-foreground border-primary" : "bg-card text-card-foreground"
     )}>
       <div className="flex items-center justify-between">

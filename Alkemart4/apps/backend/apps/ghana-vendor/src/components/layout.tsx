@@ -72,7 +72,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 key={item.to}
                 to={item.to}
                 className={cn(
-                  "flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all text-sm",
+                  "flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-colors text-sm",
                   isActive 
                     ? "bg-primary text-primary-foreground shadow-md" 
                     : "text-white/70 hover:bg-white/10 hover:text-white"
