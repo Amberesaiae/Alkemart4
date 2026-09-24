@@ -44,6 +44,15 @@ dead_letter_queue = "alkemart-jobs-notifications-dlq"
 #   ENVIRONMENT = development|staging|production
 # See docs/ops/cors-and-origins.md and DEPLOYMENT.md
 
+# Non-secret runtime config. ENVIRONMENT is validated by env.ts (zod) and
+# defaults to "development" when absent — which is what production was running
+# as, because it had never been set. Declared here rather than via
+# `wrangler secret put` because it carries nothing sensitive and belongs in
+# version control. Secrets (JWT_SECRET, PAYSTACK_SECRET_KEY, AT_*) stay in
+# `wrangler secret`.
+[vars]
+ENVIRONMENT = "production"
+
 [dev]
 port = 8787
 local_protocol = "http"
