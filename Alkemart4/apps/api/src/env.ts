@@ -20,6 +20,16 @@ export type ApiEnv = z.infer<typeof EnvSchema> & {
   /** Cloudflare Images binding for the upload conversion pipeline.
    * Optional: when absent (local dev, tests) uploads store the original only. */
   IMAGES?: ImagesBindingLike
+  /** Workers AI. Optional: attribute suggestion answers 501 without it. */
+  AI?: WorkersAiLike
+}
+
+/** Structural subset of the Workers AI binding used by attribute suggestion. */
+export type WorkersAiLike = {
+  run: (
+    model: string,
+    input: Record<string, unknown>,
+  ) => Promise<{ response?: string } | string>
 }
 
 /** Structural subset of the Cloudflare Images binding used by the media pipeline. */

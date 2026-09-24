@@ -1,5 +1,7 @@
 import { Hono } from "hono"
 import { HTTPException } from "hono/http-exception"
+import { suggestAttributes } from "../../lib/attribute-suggest"
+import type { WorkersAiLike } from "../../env"
 import { z } from "zod"
 import {
   CatalogConflictError,
@@ -502,6 +504,42 @@ export const vendorProducts = new Hono<AppEnv>()
     } catch (err) {
       if (err instanceof HTTPException) throw err
       mapCatalogWriteError(err)
+    }
+  })
+  /**
+   * Draft attribute values from the listing text. Suggestion only — the
+   * seller still has to PUT them. See lib/attribute-suggest.ts.
+   */
+  .post("/:id/attributes/suggest", async (c) => {
+    const sellerId = sellerIdOrThrow(c)
+    const repo = c.get("repo")
+    const owned = (await repo.listVendorProducts(sellerId)).find(
+      (p) => p.product.id === c.req.param("id"),
+    )
+    if (!owned) throw new HTTPException(404, { message: "product not found" })
+
+    const ai = (c.env as { AI?: WorkersAiLike } | undefined)?.AI
+    if (!ai) {
+      // Honest 501 rather than an empty 200 that reads as "nothing to suggest".
+      throw new HTTPException(501, { message: "attribute suggestion is not configured" })
+    }
+    const defs = await repo.listAttributeDefinitions()
+    if (defs.length === 0) return c.json({ suggestions: [] })
+    try {
+      const suggestions = await suggestAttributes(ai, defs, {
+        title: owned.product.title,
+        description: owned.product.description,
+      })
+      return c.json({ suggestions })
+    } catch (err) {
+      // A model outage must not block the seller: they can still type values.
+      console.error(
+        JSON.stringify({
+          route: "attribute-suggest",
+          error: err instanceof Error ? err.message : String(err),
+        }),
+      )
+      throw new HTTPException(503, { message: "suggestion unavailable" })
     }
   })
   .get("/:id/attributes", async (c) => {

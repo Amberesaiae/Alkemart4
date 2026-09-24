@@ -78,6 +78,12 @@ id = "4acf1fff9ad24b848248042503b016a9"
 binding = "MEDIA_BUCKET"
 bucket_name = "alkemart-media"
 
+# Workers AI — attribute extraction drafts for vendors (see
+# routes/vendor/attribute-suggest.ts). Optional at runtime: the endpoint
+# answers 501 when the binding is absent, so local dev and tests are unaffected.
+[ai]
+binding = "AI"
+
 # Image conversion pipeline (WebP variants at upload). Optional at runtime:
 # uploads fall back to original-only when the binding is absent (local dev).
 [images]

@@ -1103,6 +1103,24 @@ export const products = {
    * Sends field `files`, accepts `{ files: [{ url }] }` or `{ url }` in reply.
    */
   /**
+   * POST /vendor/products/:id/attributes/suggest — AI draft of typed
+   * attribute values. Suggestions only; the seller confirms before any write.
+   */
+  suggestAttributes: (
+    id: string,
+  ): Promise<{
+    suggestions: {
+      definitionId: string
+      code: string
+      label: string
+      textValue?: string
+      numberValue?: number
+      booleanValue?: boolean
+      optionValues?: string[]
+    }[]
+  }> => apiFetch(`/vendor/products/${id}/attributes/suggest`, { method: "POST" }),
+
+  /**
    * PUT /vendor/products/:id/images — replace the gallery.
    *
    * Whole-array write: ordering is the array order, so reordering and
