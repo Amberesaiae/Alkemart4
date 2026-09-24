@@ -23,6 +23,12 @@ export type ListingFacetState = {
   /** Child category id, or "all" when the department itself is selected. */
   subCategory: string
   location: LocationFilterValue
+  /**
+   * Definition-backed attribute selections: code -> chosen values.
+   * Empty until an admin publishes attribute definitions, so a catalogue
+   * without them behaves exactly as before.
+   */
+  attributes: Record<string, string[]>
 }
 
 export const EMPTY_FACETS: ListingFacetState = {
@@ -33,11 +39,50 @@ export const EMPTY_FACETS: ListingFacetState = {
   minRating: 0,
   subCategory: "all",
   location: { province: null, city: null },
+  attributes: {},
 }
 
 /** Facets that survive a department change (none — a new dept resets them). */
 export function resetFacets(): ListingFacetState {
-  return { ...EMPTY_FACETS, location: { province: null, city: null } }
+  return { ...EMPTY_FACETS, location: { province: null, city: null }, attributes: {} }
+}
+
+/** `code:v1,v2` per entry — the same shape /store/search accepts. */
+export function serializeAttributeFacets(attributes: Record<string, string[]>): string | undefined {
+  const parts = Object.entries(attributes)
+    .filter(([, values]) => values.length > 0)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([code, values]) => `${code}:${[...values].sort().join(",")}`)
+  return parts.length ? parts.join(";") : undefined
+}
+
+export function parseAttributeFacets(raw: unknown): Record<string, string[]> {
+  if (typeof raw !== "string" || !raw.trim()) return {}
+  const out: Record<string, string[]> = {}
+  for (const entry of raw.split(";")) {
+    const sep = entry.indexOf(":")
+    if (sep <= 0) continue
+    const code = entry.slice(0, sep).trim()
+    const values = entry.slice(sep + 1).split(",").map((v) => v.trim()).filter(Boolean)
+    if (code && values.length) out[code] = values
+  }
+  return out
+}
+
+/** Toggle one value of one attribute, dropping the code when it empties. */
+export function toggleAttributeFacet(
+  state: ListingFacetState,
+  code: string,
+  value: string,
+): ListingFacetState {
+  const current = state.attributes[code] ?? []
+  const next = current.includes(value)
+    ? current.filter((v) => v !== value)
+    : [...current, value]
+  const attributes = { ...state.attributes }
+  if (next.length) attributes[code] = next
+  else delete attributes[code]
+  return { ...state, attributes }
 }
 
 export type AppliedFacet = {
@@ -68,6 +113,7 @@ export function appliedFacets(
   lookup: {
     sellerName?: (handle: string) => string
     subCategoryLabel?: (id: string) => string
+    attributeLabel?: (code: string) => string
   } = {},
 ): AppliedFacet[] {
   const out: AppliedFacet[] = []
@@ -117,6 +163,17 @@ export function appliedFacets(
       label,
       clear: (s) => ({ ...s, priceMin: null, priceMax: null }),
     })
+  }
+
+  for (const [code, values] of Object.entries(state.attributes)) {
+    for (const value of values) {
+      out.push({
+        key: `attr:${code}:${value}`,
+        group: lookup.attributeLabel?.(code) ?? code,
+        label: value,
+        clear: (s2) => toggleAttributeFacet(s2, code, value),
+      })
+    }
   }
 
   const { province, city } = state.location

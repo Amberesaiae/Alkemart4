@@ -11,8 +11,11 @@ export {
   filterListingByPrice,
   filterListingByRating,
   filterListingBySellers,
+  parseAttributeFacets,
   resetFacets,
+  serializeAttributeFacets,
   sortListingProducts,
+  toggleAttributeFacet,
   type AppliedFacet,
   type ListingFacetState,
   type ListingSort,
@@ -39,3 +42,4 @@ export {
 } from "./CategoryVisualRail"
 export { ListingPagination } from "./ListingPagination"
 export { ListingQuickFilters } from "./ListingQuickFilters"
+export { ListingAttributeFacets } from "./ListingAttributeFacets"

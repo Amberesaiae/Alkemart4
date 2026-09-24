@@ -59,6 +59,12 @@ export type SearchFilters = {
    */
   seller_province?: string
   seller_city?: string
+  /**
+   * Definition-backed attribute facets: code -> selected values.
+   * Sent to /store/search as `filter=code:v1,v2`. Unknown codes are a 400
+   * from the API by design, never a silent zero-result page.
+   */
+  attributes?: Record<string, string[]>
 }
 
 function hitToCard(h: SearchHit): StoreProductCard {
@@ -112,6 +118,16 @@ export async function searchCatalog(opts: {
     }
     if (opts.filters?.max_price != null) {
       params.set("priceMax", String(Math.round(Number(opts.filters.max_price) * 100)))
+    }
+    const attrEntries = Object.entries(opts.filters?.attributes ?? {}).filter(
+      ([, values]) => values.length > 0,
+    )
+    if (attrEntries.length > 0) {
+      // One repeated `filter` param per code keeps values with commas in them
+      // from being split across codes.
+      for (const [code, values] of attrEntries) {
+        params.append("filter", `${code}:${values.join(",")}`)
+      }
     }
     try {
       const res = await fetch(`${base}/store/search?${params.toString()}`, {

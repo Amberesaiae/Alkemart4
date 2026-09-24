@@ -12,6 +12,7 @@ import {
   CategoryVisualRail,
   ListingAppliedFacets,
   ListingFilterDropdown,
+  ListingAttributeFacets,
   ListingFilters,
   ListingLayout,
   ListingPagination,
@@ -22,6 +23,9 @@ import {
   filterListingBySellers,
   resetFacets,
   resolveCategoryImage,
+  parseAttributeFacets,
+  serializeAttributeFacets,
+  toggleAttributeFacet,
   sortListingProducts,
   type ListingFacetState,
   type ListingSort,
@@ -56,6 +60,9 @@ export const Route = createFileRoute("/categories/$slug")({
     const max = parseAmount(search.max)
     const region = parseSlug(search.region)
     const city = parseSlug(search.city)
+    // Round-trip through the codec so a hand-edited URL cannot inject a
+    // malformed filter string into the API query.
+    const attrs = serializeAttributeFacets(parseAttributeFacets(search.attrs))
     return {
       ...(seller.length ? { seller } : {}),
       ...(sort && sort !== "featured" ? { sort } : {}),
@@ -65,6 +72,7 @@ export const Route = createFileRoute("/categories/$slug")({
       ...(max != null ? { max } : {}),
       ...(region ? { region } : {}),
       ...(city ? { city } : {}),
+      ...(attrs ? { attrs } : {}),
     }
   },
   component: BrowsePage,
@@ -141,6 +149,7 @@ function BrowsePage() {
         province: search.region ?? null,
         city: search.city ?? null,
       },
+      attributes: parseAttributeFacets(search.attrs),
     }),
     [search],
   )
@@ -162,6 +171,9 @@ function BrowsePage() {
           ...(next.priceMax != null ? { max: next.priceMax } : {}),
           ...(next.location.province ? { region: next.location.province } : {}),
           ...(next.location.city ? { city: next.location.city } : {}),
+          ...(serializeAttributeFacets(next.attributes)
+            ? { attrs: serializeAttributeFacets(next.attributes) }
+            : {}),
         },
       })
     },
@@ -234,6 +246,26 @@ function BrowsePage() {
     placeholderData: (previous) => previous,
   })
 
+  // Attribute facets are resolved by the API (typed values + server counts),
+  // so when any are active the grid must come from /store/search rather than
+  // the plain catalogue list — filtering them in the browser would disagree
+  // with the counts shown beside each checkbox.
+  const attrFilterKey = serializeAttributeFacets(facets.attributes)
+  const facetSearchQ = useQuery({
+    queryKey: ["store", "search", "facets", slug, attrFilterKey, limit],
+    enabled: Boolean(attrFilterKey),
+    placeholderData: (previous) => previous,
+    queryFn: () =>
+      searchCatalog({
+        q: "",
+        limit: Math.max(limit, 48),
+        filters: {
+          ...(isAll ? {} : { category_handles: [slug] }),
+          attributes: facets.attributes,
+        },
+      }),
+  })
+
   const sellersQ = useQuery({
     queryKey: ["store", "sellers"],
     queryFn: () => listStoreSellers(),
@@ -255,7 +287,10 @@ function BrowsePage() {
 
   const missingCategory = !isAll && categoriesQ.isSuccess && !category
 
-  const rawProducts = productsQ.data?.products ?? []
+  // When attribute facets are active the API owns the result set.
+  const rawProducts = attrFilterKey
+    ? facetSearchQ.data?.products ?? []
+    : productsQ.data?.products ?? []
 
   /** Everything except rating — the base the grid is computed from. */
   const beforeRating = useMemo(() => {
@@ -272,16 +307,19 @@ function BrowsePage() {
     [beforeRating, facets.minRating, facets.sort, limit],
   )
 
-  const count = productsQ.data?.count ?? products.length
+  const count = attrFilterKey
+    ? facetSearchQ.data?.estimatedTotalHits ?? products.length
+    : productsQ.data?.count ?? products.length
 
-  const loading = productsQ.isLoading
-  const error = productsQ.isError
-  const errMsg = productsQ.error
-  const fetching = productsQ.isFetching
+  const activeQ = attrFilterKey ? facetSearchQ : productsQ
+  const loading = activeQ.isLoading
+  const error = activeQ.isError
+  const errMsg = activeQ.error
+  const fetching = activeQ.isFetching
   // True while the previous category's results are still on screen and the new
   // ones are in flight. The grid stays put (no height collapse) but must say
   // so, or it is quietly showing the wrong category's products.
-  const switching = productsQ.isPlaceholderData && fetching
+  const switching = activeQ.isPlaceholderData && fetching
 
   const sellerOpts = useMemo(() => {
     const map = new Map<
@@ -485,16 +523,26 @@ function BrowsePage() {
           sort={sort}
           onSortChange={applySort}
           sidebar={
-            <ListingFilters
-              activeCategorySlug={isAll ? "all" : slug}
-              departmentName={isAll ? "All" : title}
-              categories={sidebarCategories}
-              subCategories={subCats}
-              sellers={sellerOpts}
-              state={facets}
-              onChange={applyFacets}
-              onClearAll={activeFilterCount > 0 ? clearAllFacets : undefined}
-            />
+            <>
+              <ListingFilters
+                activeCategorySlug={isAll ? "all" : slug}
+                departmentName={isAll ? "All" : title}
+                categories={sidebarCategories}
+                subCategories={subCats}
+                sellers={sellerOpts}
+                state={facets}
+                onChange={applyFacets}
+                onClearAll={activeFilterCount > 0 ? clearAllFacets : undefined}
+              />
+              {/* Server-counted, definition-backed. Renders nothing until a
+                  category has published attribute definitions. */}
+              <ListingAttributeFacets
+                categorySlug={isAll ? "all" : slug}
+                state={facets}
+                onChange={applyFacets}
+                className="mt-4"
+              />
+            </>
           }
           recentlyViewed={
             pool.length > 0 ? (

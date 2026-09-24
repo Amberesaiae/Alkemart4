@@ -60,6 +60,7 @@ describe("appliedFacets", () => {
 
   it("clearing every chip in turn lands back on the empty state", () => {
     let s: ListingFacetState = {
+      attributes: {},
       sellerHandles: ["kofi"],
       sort: "price_desc",
       priceMin: 5,
