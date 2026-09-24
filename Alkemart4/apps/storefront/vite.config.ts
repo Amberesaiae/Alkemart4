@@ -122,6 +122,13 @@ export default defineConfig({
           if (id.includes("@medusajs") || id.includes("medusa"))
             return "vendor-medusa"
           if (id.includes("@tanstack")) return "vendor-tanstack"
+          // ORDER MATTERS: these must stay above the react rule below, which
+          // matches "/react/" and would otherwise swallow every
+          // @radix-ui/react-* package into vendor-react (it used to: react
+          // core measured 110KB gz because ~45KB of it was Radix).
+          if (id.includes("@phosphor-icons")) return "vendor-icons"
+          if (id.includes("@radix-ui")) return "vendor-radix"
+          if (id.includes("workbox")) return "vendor-workbox"
           if (
             id.includes("react-dom") ||
             id.includes("/react/") ||

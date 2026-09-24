@@ -1,11 +1,24 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router"
-import { useState, useEffect, type FormEvent, type ReactNode } from "react"
+import {
+  useState,
+  useEffect,
+  lazy,
+  Suspense,
+  type FormEvent,
+  type ReactNode,
+} from "react"
 import { IconSafe } from "@/design/icons"
 import { BrandLogo } from "@/components/shell/BrandLogo"
 import { DeliverToPicker } from "@/components/shell/DeliverToPicker"
 import { HeaderCategoryDropdown } from "@/components/shell/HeaderCategoryDropdown"
 import { HeaderCategoryNav } from "@/components/shell/HeaderCategoryNav"
-import { SearchFilterDialog } from "@/components/shell/SearchFilterDialog"
+// Opens only on click, so it stays off the first-paint graph. This is what
+// keeps Radix Dialog + Checkbox out of the critical path.
+const SearchFilterDialog = lazy(() =>
+  import("@/components/shell/SearchFilterDialog").then((m) => ({
+    default: m.SearchFilterDialog,
+  })),
+)
 import {
   SearchAutocompleteDropdown,
   saveStoredRecentSearch,
@@ -335,11 +348,15 @@ export function AppHeader({
         )}
       </div>
 
-      <SearchFilterDialog
-        open={filterOpen}
-        onOpenChange={setFilterOpen}
-        initialQuery={q}
-      />
+      {filterOpen ? (
+        <Suspense fallback={null}>
+          <SearchFilterDialog
+            open={filterOpen}
+            onOpenChange={setFilterOpen}
+            initialQuery={q}
+          />
+        </Suspense>
+      ) : null}
     </header>
   )
 }

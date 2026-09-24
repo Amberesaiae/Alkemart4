@@ -160,6 +160,7 @@ export function ListingQuickFilters({
                 {sellers.length > 6 ? (
                   <input
                     type="search"
+                    aria-label="Search sellers"
                     placeholder="Search sellers…"
                     value={sellerSearch}
                     onChange={(e) => setSellerSearch(e.target.value)}
@@ -239,6 +240,7 @@ export function ListingQuickFilters({
                     </span>
                     <input
                       type="number"
+                      aria-label="Minimum price in Ghana cedis"
                       placeholder="Min"
                       value={localMin}
                       onChange={(e) => setLocalMin(e.target.value)}
@@ -252,6 +254,7 @@ export function ListingQuickFilters({
                     </span>
                     <input
                       type="number"
+                      aria-label="Maximum price in Ghana cedis"
                       placeholder="Max"
                       value={localMax}
                       onChange={(e) => setLocalMax(e.target.value)}

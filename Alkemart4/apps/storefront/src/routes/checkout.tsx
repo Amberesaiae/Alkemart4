@@ -597,7 +597,11 @@ function CheckoutPage() {
               <h2 id="checkout-payment" className="text-base font-bold">
                 3 · Payment method
               </h2>
-              <div className="space-y-3 rounded-lg border border-border bg-muted/20 p-4 text-sm">
+              <div
+                role="radiogroup"
+                aria-label="Payment method"
+                className="space-y-3 rounded-lg border border-border bg-muted/20 p-4 text-sm"
+              >
                 <label
                   className={cn(
                     "flex cursor-pointer items-start gap-3 rounded-lg border p-3",
