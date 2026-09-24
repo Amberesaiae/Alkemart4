@@ -86,4 +86,5 @@ export {
 export { notificationStatusEnum, notifications } from "./notifications"
 export { reviewStatusEnum, reviews } from "./reviews"
 export { productOptions, productOptionValues, variantOptionValues } from "./product-options"
+export { productImages } from "./product-images"
 export { contentPages } from "./content-pages"

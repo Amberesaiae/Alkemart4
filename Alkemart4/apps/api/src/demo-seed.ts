@@ -197,6 +197,15 @@ export type CatalogPriceHistory = {
   createdAt: string
 }
 
+/** One gallery image (migration 0032). Ordered by `position`. */
+export type CatalogProductImage = {
+  id: string
+  productId: string
+  url: string
+  alt?: string | null
+  position: number
+}
+
 export type CatalogSnapshot = {
   categories: CatalogCategory[]
   sellers: CatalogSeller[]
@@ -214,6 +223,8 @@ export type CatalogSnapshot = {
   searchAliases: CatalogSearchAlias[]
   verifications: CatalogSellerVerification[]
   priceHistory: CatalogPriceHistory[]
+  /** Optional: absent on fixtures and before migration 0032. */
+  productImages?: CatalogProductImage[]
 }
 
 export type JsonCatalogSnapshot = {

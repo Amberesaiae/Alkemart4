@@ -38,6 +38,8 @@ interface ProductFormData {
   description: string
   categoryId: string
   imageUrl: string
+  /** Extra photos beyond the primary, in display order. */
+  gallery: string[]
   priceGhs: string
   stockQty: string
   attributes: { label: string; value: string }[]
@@ -55,8 +57,10 @@ function ProductDetailPage() {
   const { data: categoriesData } = useCategories()
 
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const galleryInputRef = useRef<HTMLInputElement>(null)
   const [editing, setEditing] = useState(false)
   const [uploadingPhoto, setUploadingPhoto] = useState(false)
+  const [uploadingGallery, setUploadingGallery] = useState(false)
   const [appealMessage, setAppealMessage] = useState("")
   const [appealOpen, setAppealOpen] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
@@ -88,6 +92,7 @@ function ProductDetailPage() {
     description: "",
     categoryId: "",
     imageUrl: "",
+    gallery: [],
     priceGhs: "",
     stockQty: "",
     attributes: [],
@@ -135,6 +140,7 @@ function ProductDetailPage() {
       description: product.description || "",
       categoryId: product.categories?.[0]?.id || "",
       imageUrl: product.thumbnail || "",
+      gallery: (product.images ?? []).map((i) => i.url).filter((u) => u !== product.thumbnail),
       priceGhs: currentPriceGhs > 0 ? String(currentPriceGhs) : "",
       stockQty: String(currentStock),
       attributes: product.attributes?.length
@@ -165,6 +171,48 @@ function ProductDetailPage() {
     } finally {
       setUploadingPhoto(false)
     }
+  }
+
+  const MAX_GALLERY = 9 // plus the primary = 10, the server cap
+
+  const handleGalleryPick = async (files: FileList | null | undefined) => {
+    if (!files || files.length === 0) return
+    const room = MAX_GALLERY - form.gallery.length
+    if (room <= 0) {
+      toast.error(`Up to ${MAX_GALLERY} extra photos.`)
+      return
+    }
+    const picked = Array.from(files).slice(0, room)
+    if (picked.some((f) => f.size > 5 * 1024 * 1024)) {
+      toast.error("Each image must be smaller than 5 MB.")
+      return
+    }
+    setUploadingGallery(true)
+    try {
+      // Sequential, not parallel: sellers are on mobile data, and a failed
+      // third upload should not lose the first two.
+      const urls: string[] = []
+      for (const file of picked) urls.push(await upload.mutateAsync(file))
+      setForm((p) => ({
+        ...p,
+        gallery: [...p.gallery, ...urls.filter((u) => !p.gallery.includes(u))],
+      }))
+      toast.success(picked.length === 1 ? "Photo added." : `${picked.length} photos added.`)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Photo upload failed.")
+    } finally {
+      setUploadingGallery(false)
+    }
+  }
+
+  const moveGallery = (from: number, to: number) => {
+    if (to < 0 || to >= form.gallery.length) return
+    setForm((p) => {
+      const next = [...p.gallery]
+      const [moved] = next.splice(from, 1)
+      next.splice(to, 0, moved)
+      return { ...p, gallery: next }
+    })
   }
 
   const handleSave = async () => {
@@ -231,6 +279,26 @@ function ProductDetailPage() {
         id,
         data: patch,
       })
+      // Gallery is its own endpoint (whole-array PUT). Saved after the patch
+      // so a rejected product edit never half-applies the photos. A gallery
+      // failure is reported without claiming the whole save failed — the
+      // content edit above did land.
+      const nextGallery = form.gallery.filter((u) => u !== imageUrl)
+      const priorGallery = (product?.images ?? [])
+        .map((i) => i.url)
+        .filter((u) => u !== product?.thumbnail)
+      const galleryChanged =
+        nextGallery.length !== priorGallery.length ||
+        nextGallery.some((u, i) => u !== priorGallery[i])
+      if (galleryChanged) {
+        try {
+          await productsApi.setImages(id, nextGallery.map((url) => ({ url })))
+        } catch (err) {
+          toast.error(
+            err instanceof Error ? `Photos not saved: ${err.message}` : "Photos not saved.",
+          )
+        }
+      }
       if (wasPublished && res.product.status === "proposed") {
         toast.success("Saved — sent back for moderation review.")
       } else {
@@ -708,6 +776,81 @@ function ProductDetailPage() {
                     </Button>
                   )}
                 </div>
+                {/* Gallery — buyers who see a second angle convert better,
+                    and the storefront PDP has always been able to render one. */}
+                <div className="space-y-2 pt-3 mt-1 border-t border-border/60">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs">More photos</Label>
+                    <span className="text-[11px] text-muted-foreground tabular-nums">
+                      {form.gallery.length}/{MAX_GALLERY}
+                    </span>
+                  </div>
+                  {form.gallery.length > 0 && (
+                    <ul className="grid grid-cols-3 gap-2">
+                      {form.gallery.map((url, i) => (
+                        <li key={url} className="relative group">
+                          <img
+                            src={url}
+                            alt={`Product photo ${i + 2}`}
+                            className="aspect-square w-full rounded-md border border-border/70 object-cover"
+                          />
+                          <div className="absolute inset-x-0 bottom-0 flex justify-between gap-0.5 bg-background/85 p-0.5 rounded-b-md">
+                            <button
+                              type="button"
+                              onClick={() => moveGallery(i, i - 1)}
+                              disabled={i === 0}
+                              aria-label={`Move photo ${i + 2} earlier`}
+                              className="px-1 text-xs disabled:opacity-30"
+                            >
+                              ←
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setForm(p => ({ ...p, gallery: p.gallery.filter(u => u !== url) }))
+                              }
+                              aria-label={`Remove photo ${i + 2}`}
+                              className="px-1 text-xs text-destructive"
+                            >
+                              <Trash className="h-3 w-3" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => moveGallery(i, i + 1)}
+                              disabled={i === form.gallery.length - 1}
+                              aria-label={`Move photo ${i + 2} later`}
+                              className="px-1 text-xs disabled:opacity-30"
+                            >
+                              →
+                            </button>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  <input
+                    ref={galleryInputRef}
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp,image/gif"
+                    multiple
+                    disabled={uploadingGallery || form.gallery.length >= MAX_GALLERY}
+                    className="hidden"
+                    onChange={e => { void handleGalleryPick(e.target.files); e.target.value = "" }}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={uploadingGallery || form.gallery.length >= MAX_GALLERY}
+                    isLoading={uploadingGallery}
+                    onClick={() => galleryInputRef.current?.click()}
+                    className="w-full gap-1.5 text-xs font-semibold"
+                  >
+                    <UploadSimple className="h-3.5 w-3.5" />
+                    {form.gallery.length ? "Add more photos" : "Add more photos"}
+                  </Button>
+                </div>
+
                 {!showUrlInput ? (
                   <button
                     type="button"

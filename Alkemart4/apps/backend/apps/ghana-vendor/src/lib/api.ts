@@ -514,6 +514,8 @@ type WorkersProductItem = {
     attributes?: { label: string; value: string }[]
   }
   variant: { id: string; sku: string | null; title: string | null }
+  /** Gallery in display order (migration 0032); absent before any upload. */
+  images?: { url: string; alt?: string | null }[]
   offer: {
     id: string
     pricePesewas: string
@@ -588,6 +590,9 @@ function mapWorkersProduct(item: WorkersProductItem): Product {
     status: item.product.status,
     handle: item.variant.sku,
     thumbnail: item.product.imageUrl ?? null,
+    // Gallery (migration 0032). The type always had this field; the Workers
+    // mapper simply never filled it, so the editor could not read it back.
+    images: item.images ?? [],
     categories: item.product.primaryCategoryId
       ? [{ id: item.product.primaryCategoryId }]
       : [],
@@ -1097,6 +1102,22 @@ export const products = {
    * POST /vendor/uploads — Upload a file (image) and get back a URL.
    * Sends field `files`, accepts `{ files: [{ url }] }` or `{ url }` in reply.
    */
+  /**
+   * PUT /vendor/products/:id/images — replace the gallery.
+   *
+   * Whole-array write: ordering is the array order, so reordering and
+   * uploading are the same call and the client never reconciles positions.
+   */
+  setImages: (
+    id: string,
+    images: { url: string; alt?: string | null }[],
+  ): Promise<unknown> =>
+    apiFetch(`/vendor/products/${id}/images`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ images }),
+    }),
+
   upload: async (file: File): Promise<string> => {
     const form = new FormData()
     form.append("files", file)

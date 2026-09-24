@@ -420,6 +420,38 @@ export const vendorProducts = new Hono<AppEnv>()
       mapCatalogWriteError(err)
     }
   })
+  /**
+   * Replace a product's gallery. Whole-array PUT rather than per-image
+   * add/remove: ordering is the array order, so a reorder is the same call as
+   * an upload and the client never has to reconcile positions.
+   */
+  .put("/:id/images", async (c) => {
+    const parsed = z
+      .object({
+        images: z
+          .array(
+            z.object({
+              url: ImageUrl,
+              alt: z.string().trim().max(200).optional().nullable(),
+            }),
+          )
+          .max(10),
+      })
+      .safeParse(await readJsonBody(c))
+    if (!parsed.success) throw new HTTPException(400, { message: "invalid body" })
+    // A gallery of the same photo ten times is a mistake, not a choice.
+    const seen = new Set<string>()
+    for (const img of parsed.data.images) {
+      if (seen.has(img.url)) throw new HTTPException(400, { message: "duplicate image url" })
+      seen.add(img.url)
+    }
+    const sellerId = sellerIdOrThrow(c)
+    const updated = await c
+      .get("repo")
+      .setProductImages(sellerId, c.req.param("id"), parsed.data.images)
+    if (!updated) throw new HTTPException(404, { message: "product not found" })
+    return c.json(updated)
+  })
   .patch("/:id/values/:valueId", async (c) => {
     const parsed = z.object({ imageUrl: ImageUrl.nullable() }).safeParse(await readJsonBody(c))
     if (!parsed.success) throw new HTTPException(400, { message: "invalid body" })

@@ -7,6 +7,7 @@ import {
   offers,
   productAttributeValues,
   productMatchCandidates,
+  productImages,
   productOptions,
   productOptionValues,
   products,
@@ -87,6 +88,7 @@ import type {
   CatalogPriceHistory,
   CatalogProduct,
   CatalogProductAttributeValue,
+  CatalogProductImage,
   CatalogSearchAlias,
   CatalogSellerVerification,
   CatalogSnapshot,
@@ -209,6 +211,8 @@ export type VendorProductDto = {
     title: string | null
   }
   offer: VendorOfferDto
+  /** Gallery in display order (migration 0032); empty before any upload. */
+  images: { url: string; alt: string | null }[]
   /** Option types + values (empty for legacy single-variant products). */
   options: ProductOptionDto[]
   /** Every combo with its offer; legacy `variant`/`offer` mirror the first. */
@@ -642,6 +646,12 @@ export interface CatalogRepository {
     valueId: string,
     imageUrl: string | null,
   ): Promise<VendorProductDto | null>
+  /** Replaces a product's gallery wholesale. Ordering is the array order. */
+  setProductImages(
+    sellerId: string,
+    productId: string,
+    images: { url: string; alt?: string | null }[],
+  ): Promise<VendorProductDto | null>
   listVendorProducts(sellerId: string): Promise<VendorProductDto[]>
   listAdminProducts(status?: ProductStatus): Promise<AdminProductDto[]>
   listAdminProductsWithFlags(status?: ProductStatus): Promise<(AdminProductDto & { flags: ProductFlag[] })[]>
@@ -827,14 +837,23 @@ function toOfferDto(offer: CatalogOffer): VendorOfferDto {
 
 type ExtrasData = Pick<
   CatalogSnapshot,
-  "productOptions" | "productOptionValues" | "variantOptionValues" | "variants" | "offers"
+  | "productOptions"
+  | "productOptionValues"
+  | "variantOptionValues"
+  | "variants"
+  | "offers"
+  | "productImages"
 >
 
 /** Full option structure + every combo for one product. */
 function assembleExtras(
   data: ExtrasData,
   productId: string,
-): { options: ProductOptionDto[]; variants: ProductComboDto[] } {
+): {
+  options: ProductOptionDto[]
+  variants: ProductComboDto[]
+  images: { url: string; alt: string | null }[]
+} {
   const opts = data.productOptions
     .filter((o) => o.productId === productId)
     .sort((a, b) => a.position - b.position)
@@ -867,14 +886,22 @@ function assembleExtras(
         },
       ]
     })
-  return { options, variants }
+  const images = (data.productImages ?? [])
+    .filter((i) => i.productId === productId)
+    .sort((a, b) => a.position - b.position || a.id.localeCompare(b.id))
+    .map((i) => ({ url: i.url, alt: i.alt ?? null }))
+  return { options, variants, images }
 }
 
 function toVendorProductDto(
   product: CatalogProduct,
   variant: CatalogVariant,
   offer: CatalogOffer,
-  extras?: { options: ProductOptionDto[]; variants: ProductComboDto[] },
+  extras?: {
+    options: ProductOptionDto[]
+    variants: ProductComboDto[]
+    images?: { url: string; alt: string | null }[]
+  },
 ): VendorProductDto {
   const baseVariant = { id: variant.id, sku: variant.sku, title: variant.title }
   const baseOffer = toOfferDto(offer)
@@ -892,6 +919,7 @@ function toVendorProductDto(
     },
     variant: baseVariant,
     offer: baseOffer,
+    images: extras?.images ?? [],
     options: extras?.options ?? [],
     variants: extras?.variants ?? [{ variant: baseVariant, offer: baseOffer, options: {} }],
   }
@@ -997,6 +1025,28 @@ function taxonomyStatusOf(r: {
   status?: "proposed" | "active" | "deprecated" | null
 }): "proposed" | "active" | "deprecated" {
   return r.status ?? "active"
+}
+
+/**
+ * Gallery URLs for a product, ordered.
+ *
+ * `product_images` is the source of truth once a seller has uploaded a
+ * gallery. `products.imageUrl` remains the fallback so every catalogue row
+ * written before migration 0032 — and any database that has not run it —
+ * still shows its single photo. The primary image is kept first and never
+ * duplicated when it also appears in the gallery.
+ */
+function galleryUrlsFor(
+  data: { productImages?: CatalogProductImage[] },
+  product: { id: string; imageUrl?: string | null },
+): string[] {
+  const gallery = (data.productImages ?? [])
+    .filter((i) => i.productId === product.id)
+    .sort((a, b) => a.position - b.position || a.id.localeCompare(b.id))
+    .map((i) => i.url)
+  const primary = product.imageUrl ?? null
+  if (!primary) return gallery
+  return [primary, ...gallery.filter((u) => u !== primary)]
 }
 
 function toTaxonomyNodeDto(r: CatalogSnapshot["categories"][number]): TaxonomyNodeDto {
@@ -2151,7 +2201,7 @@ export function getProductFrom(
       slug: product.slug ?? null,
       categoryHandle: cat?.handle ?? product.primaryCategoryId,
       categoryName: cat?.name ?? product.primaryCategoryId,
-      imageUrls: product.imageUrl ? [product.imageUrl] : [],
+      imageUrls: galleryUrlsFor(data, product),
       attributes: attributesFromJson(product.attributes),
       identity: {
         brand: product.brand ?? null,
@@ -2308,6 +2358,9 @@ export class InMemoryCatalogRepository implements CatalogRepository {
       status: "proposed",
       primaryCategoryId: input.primaryCategoryId,
       sellerId: input.sellerId,
+      // Was dropped here while the Postgres path persisted it — a divergence
+      // that let the doubles agree on a product with no image.
+      imageUrl: input.imageUrl ?? null,
       attributes: input.attributes ?? [],
       brand: cleanText(input.identity?.brand),
       model: cleanText(input.identity?.model),
@@ -3256,6 +3309,34 @@ export class InMemoryCatalogRepository implements CatalogRepository {
     )
   }
 
+  async setProductImages(
+    sellerId: string,
+    productId: string,
+    images: { url: string; alt?: string | null }[],
+  ): Promise<VendorProductDto | null> {
+    const product = this.data.products.find((p) => p.id === productId && p.sellerId === sellerId)
+    if (!product) return null
+    const next = this.data.productImages?.filter((i) => i.productId !== productId) ?? []
+    images.forEach((img, index) => {
+      next.push({
+        id: `${productId}:${index}`,
+        productId,
+        url: img.url,
+        alt: img.alt ?? null,
+        position: index,
+      })
+    })
+    this.data.productImages = next
+    const owned = sellerOwnsProduct(this.data, sellerId, productId)
+    if (!owned) return null
+    return toVendorProductDto(
+      owned.product,
+      owned.variant,
+      owned.offer,
+      assembleExtras(this.data, productId),
+    )
+  }
+
   async listVendorProducts(sellerId: string): Promise<VendorProductDto[]> {
     const items: VendorProductDto[] = []
     for (const offer of this.data.offers) {
@@ -3626,6 +3707,13 @@ export class PostgresCatalogRepository implements CatalogRepository {
         db.select().from(productOptionValues).catch((): OptionValueRow[] => []),
         db.select().from(variantOptionValues).catch((): VariantLinkRow[] => []),
       ])
+    // Gallery table (0032) degrades the same way: a database that has not run
+    // it keeps serving the single products.image_url.
+    type ProductImageRow = typeof productImages.$inferSelect
+    const imageRows: ProductImageRow[] = await db
+      .select()
+      .from(productImages)
+      .catch((): ProductImageRow[] => [])
     // Phase 2 tables degrade the same way when 0021 is not yet applied.
     type SearchAliasRow = typeof searchAliases.$inferSelect
     const aliasRows: SearchAliasRow[] = await db
@@ -3684,6 +3772,13 @@ export class PostgresCatalogRepository implements CatalogRepository {
       variantOptionValues: linkRows.map((r) => ({
         variantId: r.variantId,
         valueId: r.valueId,
+      })),
+      productImages: imageRows.map((r) => ({
+        id: r.id,
+        productId: r.productId,
+        url: r.url,
+        alt: r.alt ?? null,
+        position: r.position,
       })),
       searchAliases: aliasRows.map((r) => ({
         id: r.id,
@@ -4164,6 +4259,40 @@ export class PostgresCatalogRepository implements CatalogRepository {
     const next = proposeProduct(owned.product.status)
     await this.wdb.update(products).set({ status: next }).where(eq(products.id, productId))
     await this.recordOutboxEvent("product", productId, "propose")
+    invalidateSnapshot(this.wdb, this.db)
+    return this.loadOwnedVendorProduct(sellerId, productId, this.wdb)
+  }
+
+  async setProductImages(
+    sellerId: string,
+    productId: string,
+    images: { url: string; alt?: string | null }[],
+  ): Promise<VendorProductDto | null> {
+    // Ownership is checked against the write pool, not the cached snapshot:
+    // a gallery write must never be authorised by a stale read.
+    const owned = await this.wdb
+      .select({ id: products.id })
+      .from(products)
+      .where(and(eq(products.id, productId), eq(products.sellerId, sellerId)))
+      .limit(1)
+    if (!owned[0]) return null
+
+    // Replace wholesale inside one transaction: a half-written gallery would
+    // show the buyer a product mid-edit.
+    await this.wdb.transaction(async (tx) => {
+      await tx.delete(productImages).where(eq(productImages.productId, productId))
+      if (images.length > 0) {
+        await tx.insert(productImages).values(
+          images.map((img, index) => ({
+            id: crypto.randomUUID(),
+            productId,
+            url: img.url,
+            alt: img.alt ?? null,
+            position: index,
+          })),
+        )
+      }
+    })
     invalidateSnapshot(this.wdb, this.db)
     return this.loadOwnedVendorProduct(sellerId, productId, this.wdb)
   }
