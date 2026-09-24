@@ -1,5 +1,14 @@
 import { sql } from "drizzle-orm"
-import { bigint, integer, jsonb, pgEnum, pgTable, text, timestamp } from "drizzle-orm/pg-core"
+import {
+  bigint,
+  doublePrecision,
+  integer,
+  jsonb,
+  pgEnum,
+  pgTable,
+  text,
+  timestamp,
+} from "drizzle-orm/pg-core"
 
 export const sellerStatusEnum = pgEnum("seller_status", [
   "pending_approval",
@@ -24,6 +33,17 @@ export const sellers = pgTable("sellers", {
   momoProvider: text("momo_provider"),
   momoPhone: text("momo_phone"),
   packRegion: text("pack_region"),
+  /**
+   * Pinpoint shop location (migration 0035). Region answers "same region or
+   * not"; coordinates answer "how far", which is what near-me and
+   * deliverability ranking actually need. Null until the seller drops a pin.
+   */
+  lat: doublePrecision("lat"),
+  lng: doublePrecision("lng"),
+  /** Device-reported accuracy in metres — shown for transparency, not ranked on. */
+  locationAccuracyM: integer("location_accuracy_m"),
+  locationSetAt: timestamp("location_set_at", { withTimezone: true }),
+  district: text("district"),
   digitalAddress: text("digital_address"),
   metadata: jsonb("metadata").$type<Record<string, unknown>>(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

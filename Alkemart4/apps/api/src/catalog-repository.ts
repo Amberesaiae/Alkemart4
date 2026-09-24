@@ -148,6 +148,10 @@ export type SellerShopDto = {
     banner: string | null
     /** Trust bundle; null when the route couldn't assemble it (shop still renders). */
     trust: SellerShopTrust | null
+    /** Pinpoint shop location (0035); null until the seller drops a pin. */
+    lat: number | null
+    lng: number | null
+    district: string | null
   }
   featuredProductIds: string[]
   items: ProductCardDto[]
@@ -1360,6 +1364,11 @@ function toSnapshotSeller(r: SellerRow): CatalogSnapshot["sellers"][number] {
     availability: r.availability === "paused" ? ("paused" as const) : ("open" as const),
     pausedUntil: r.pausedUntil ? r.pausedUntil.toISOString() : null,
     pauseNote: r.pauseNote ?? null,
+    // 0035; a database without the migration reads null and simply never
+    // shows a distance.
+    lat: (r as { lat?: number | null }).lat ?? null,
+    lng: (r as { lng?: number | null }).lng ?? null,
+    district: (r as { district?: string | null }).district ?? null,
   }
 }
 
@@ -2256,6 +2265,9 @@ export function getSellerShopFrom(data: CatalogSnapshot, handle: string): Seller
       id: seller.id,
       handle: seller.handle,
       name: seller.name,
+      lat: seller.lat ?? null,
+      lng: seller.lng ?? null,
+      district: seller.district ?? null,
       availability: {
         state: seller.availability === "paused" ? "paused" : "open",
         pausedUntil: seller.pausedUntil,

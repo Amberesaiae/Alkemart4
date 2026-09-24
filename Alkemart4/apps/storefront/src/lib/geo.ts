@@ -59,7 +59,7 @@ export async function fetchGeoHint(signal?: AbortSignal): Promise<GeoHint> {
  * and never logged.
  */
 export type PreciseResult =
-  | { ok: true; region: string }
+  | { ok: true; region: string; lat: number; lng: number; accuracyM: number | null }
   | { ok: false; reason: "unsupported" | "denied" | "unavailable" | "outside-ghana" }
 
 export async function locatePrecisely(
@@ -78,7 +78,16 @@ export async function locatePrecisely(
     )
   })
   if (!position) return { ok: false, reason: "denied" }
-  const region = nearestRegion(position.coords.latitude, position.coords.longitude)
+  const { latitude, longitude, accuracy } = position.coords
+  const region = nearestRegion(latitude, longitude)
   if (!region) return { ok: false, reason: "outside-ghana" }
-  return { ok: true, region: region.name }
+  // The region seeds "Deliver to"; the coordinates are the pin, and they stay
+  // in the browser (lib/nearby.ts) so distance can be a real number.
+  return {
+    ok: true,
+    region: region.name,
+    lat: latitude,
+    lng: longitude,
+    accuracyM: Number.isFinite(accuracy) ? Math.round(accuracy) : null,
+  }
 }

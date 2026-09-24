@@ -14,6 +14,7 @@ import {
 } from "@/lib/deliver-to"
 import { cn } from "@/lib/utils"
 import { locatePrecisely } from "@/lib/geo"
+import { readPin, writePin } from "@/lib/nearby"
 import { nearestRegionByCoords } from "@alkemart/shared/ghana"
 
 /**
@@ -36,6 +37,7 @@ export function DeliverToPicker({ className }: { className?: string }) {
   const detected = useDeliverToIsDetected()
   const [locating, setLocating] = useState(false)
   const [locateError, setLocateError] = useState<string | null>(null)
+  const [hasPin, setHasPin] = useState(() => readPin() !== null)
 
   /**
    * On a Ghanaian mobile network the IP often resolves to the carrier's
@@ -49,7 +51,12 @@ export function DeliverToPicker({ className }: { className?: string }) {
     try {
       const result = await locatePrecisely((lat, lon) => nearestRegionByCoords(lat, lon))
       if (result.ok) {
+        // Two separate things: the region seeds "Deliver to", the coordinate
+        // becomes the pin that makes "near me" a real distance. The pin never
+        // leaves this browser.
         setArea(result.region)
+        writePin({ lat: result.lat, lng: result.lng })
+        setHasPin(true)
         return
       }
       setLocateError(
@@ -104,8 +111,19 @@ export function DeliverToPicker({ className }: { className?: string }) {
           className="gap-2 font-bold"
         >
           <CrosshairSimple size={14} weight="bold" aria-hidden />
-          {locating ? "Locating…" : "Use my location"}
+          {locating ? "Locating…" : hasPin ? "Update my location" : "Use my location"}
         </DropdownMenuItem>
+        {hasPin ? (
+          <DropdownMenuItem
+            onSelect={() => {
+              writePin(null)
+              setHasPin(false)
+            }}
+            className="text-xs text-muted-foreground"
+          >
+            Forget my location
+          </DropdownMenuItem>
+        ) : null}
         {locateError ? (
           <p role="status" className="px-2 pb-1.5 text-[11px] text-muted-foreground">
             {locateError}

@@ -365,8 +365,22 @@ export const vendorSellers = new Hono<AppEnv>()
     if (pack_region != null && packRegionId == null) {
       throw new HTTPException(400, { message: "unknown region" })
     }
+    // Coordinates were already accepted but only ever landed in metadata jsonb,
+    // where nothing can query or index them. Promote them to real columns
+    // (0035) so distance is computable; the metadata copy stays for readers
+    // that still expect it.
+    const pinned = latitude != null && longitude != null
+    if (pinned && (latitude < 4.0 || latitude > 11.8 || longitude < -3.8 || longitude > 1.8)) {
+      throw new HTTPException(400, { message: "coordinates are outside Ghana" })
+    }
     try {
       await c.get("authRepo").updateSellerAddress(sellerId, {
+        ...(pinned
+          ? { lat: latitude, lng: longitude, locationSetAt: new Date() }
+          : latitude === null && longitude === null
+            ? { lat: null, lng: null, locationSetAt: null }
+            : {}),
+        ...(district !== undefined ? { district: district ?? null } : {}),
         packRegion: packRegionId ?? undefined,
         digitalAddress: digital_address ?? undefined,
         deliveryFeePesewas:

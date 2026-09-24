@@ -10,15 +10,30 @@ function mockGeolocation(impl: Partial<Geolocation> | null) {
 describe("locatePrecisely", () => {
   beforeEach(() => vi.restoreAllMocks())
 
-  it("resolves coordinates to a region name and nothing else", async () => {
+  it("returns the region AND the coordinates — both halves of location", async () => {
+    mockGeolocation({
+      getCurrentPosition: (ok) =>
+        ok({ coords: { latitude: 6.68, longitude: -1.62, accuracy: 24 } } as GeolocationPosition),
+    })
+    // The region seeds "Deliver to"; the coordinate becomes the pin that makes
+    // "near me" a real distance. Earlier this returned region only, which is
+    // why proximity could not be computed at all.
+    expect(await locatePrecisely((lat) => nearest(lat))).toEqual({
+      ok: true,
+      region: "Ashanti",
+      lat: 6.68,
+      lng: -1.62,
+      accuracyM: 24,
+    })
+  })
+
+  it("tolerates a device that reports no accuracy", async () => {
     mockGeolocation({
       getCurrentPosition: (ok) =>
         ok({ coords: { latitude: 6.68, longitude: -1.62 } } as GeolocationPosition),
     })
     const out = await locatePrecisely((lat) => nearest(lat))
-    expect(out).toEqual({ ok: true, region: "Ashanti" })
-    // The contract is that no coordinate escapes this function.
-    expect(JSON.stringify(out)).not.toMatch(/6\.68|-1\.62|latitude|longitude/)
+    expect(out).toMatchObject({ ok: true, accuracyM: null })
   })
 
   it("reports a declined permission instead of throwing", async () => {

@@ -90,7 +90,17 @@ export interface AuthRepository {
   ): Promise<AuthSeller>
   updateSellerAddress(
     id: string,
-    patch: { packRegion?: string | null; digitalAddress?: string | null; deliveryFeePesewas?: bigint; metadata?: Record<string, unknown> | null },
+    patch: {
+      packRegion?: string | null
+      digitalAddress?: string | null
+      deliveryFeePesewas?: bigint
+      metadata?: Record<string, unknown> | null
+      /** Pinpoint location (0035) — real columns, not metadata. */
+      lat?: number | null
+      lng?: number | null
+      district?: string | null
+      locationSetAt?: Date | null
+    },
   ): Promise<AuthSeller>
   updateSellerPayment(
     id: string,
@@ -327,7 +337,17 @@ export class InMemoryAuthRepository implements AuthRepository {
 
   async updateSellerAddress(
     id: string,
-    patch: { packRegion?: string | null; digitalAddress?: string | null; deliveryFeePesewas?: bigint; metadata?: Record<string, unknown> | null },
+    patch: {
+      packRegion?: string | null
+      digitalAddress?: string | null
+      deliveryFeePesewas?: bigint
+      metadata?: Record<string, unknown> | null
+      /** Pinpoint location (0035) — real columns, not metadata. */
+      lat?: number | null
+      lng?: number | null
+      district?: string | null
+      locationSetAt?: Date | null
+    },
   ) {
     const seller = this.sellersById.get(id)
     if (!seller) throw new Error("seller not found")
@@ -552,7 +572,17 @@ export class PostgresAuthRepository implements AuthRepository {
 
   async updateSellerAddress(
     id: string,
-    patch: { packRegion?: string | null; digitalAddress?: string | null; deliveryFeePesewas?: bigint; metadata?: Record<string, unknown> | null },
+    patch: {
+      packRegion?: string | null
+      digitalAddress?: string | null
+      deliveryFeePesewas?: bigint
+      metadata?: Record<string, unknown> | null
+      /** Pinpoint location (0035) — real columns, not metadata. */
+      lat?: number | null
+      lng?: number | null
+      district?: string | null
+      locationSetAt?: Date | null
+    },
   ) {
     return this.patchSeller(id, patch)
   }

@@ -30,6 +30,10 @@ export type CatalogSeller = {
   availability: "open" | "paused"
   pausedUntil: string | null
   pauseNote: string | null
+  /** Pinpoint shop location (0035); null until the seller drops a pin. */
+  lat?: number | null
+  lng?: number | null
+  district?: string | null
 }
 
 export type CatalogProduct = {

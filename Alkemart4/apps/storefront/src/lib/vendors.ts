@@ -20,6 +20,9 @@ export type StoreVendor = {
   banner?: string | null
   tagline?: string | null
   location?: string | null
+  /** Pinpoint shop location (0035); null until the seller drops a pin. */
+  lat?: number | null
+  lng?: number | null
   availability?: "open" | "paused"
   ratingAvg?: number | null
   ratingCount?: number
@@ -159,6 +162,9 @@ export type StoreVendorDetail = {
   id: string
   name: string
   slug: string
+  /** Pinpoint shop location (0035); null until the seller drops a pin. */
+  lat?: number | null
+  lng?: number | null
   bio?: string | null
   logoImageUrl?: string | null
   coverImageUrl?: string | null
@@ -215,6 +221,13 @@ export async function getStoreVendorBySlug(slug: string): Promise<{
           bio: shop.seller.description ?? null,
           logoImageUrl: shop.seller.logo ?? null,
           coverImageUrl: shop.seller.banner ?? null,
+          ...(() => {
+            // The generated client is regenerated from openapi.yaml, which does
+            // not describe these yet; read them off the wire defensively rather
+            // than blocking on a spec round-trip.
+            const loc = shop.seller as unknown as { lat?: number | null; lng?: number | null }
+            return { lat: loc.lat ?? null, lng: loc.lng ?? null }
+          })(),
           availability: shop.seller.availability,
           trust: shop.seller.trust
             ? {

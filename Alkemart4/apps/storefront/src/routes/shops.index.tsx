@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { createFileRoute, Link } from "@tanstack/react-router"
 import { useQuery } from "@tanstack/react-query"
 import {
@@ -15,6 +15,9 @@ import {
   TShirt,
 } from "@phosphor-icons/react"
 import { listStoreVendors, type StoreVendor } from "@/lib/vendors"
+import {
+  distanceKm, formatDistance, readPin, sortByDistance, type BuyerPin,
+} from "@/lib/nearby"
 import { DeliverToPicker } from "@/components/shell/DeliverToPicker"
 import { useDeliverTo, matchesArea } from "@/lib/deliver-to"
 import { Skeleton } from "@/components/skeleton"
@@ -24,11 +27,12 @@ export const Route = createFileRoute("/shops/")({
   component: ShopsPage,
 })
 
-type SortKey = "recommended" | "rating" | "fastest" | "name"
+type SortKey = "recommended" | "nearest" | "rating" | "fastest" | "name"
 
 const SORTS: { key: SortKey; label: string }[] = [
   { key: "recommended", label: "Recommended" },
   { key: "rating", label: "Top rated" },
+  { key: "nearest", label: "Nearest" },
   { key: "fastest", label: "Fastest" },
   { key: "name", label: "A–Z" },
 ]
@@ -120,6 +124,18 @@ export function ShopsPage() {
   const [query, setQuery] = useState("")
   const [selectedCategory, setSelectedCategory] = useState<StoreCategoryId>("all")
   const [sort, setSort] = useState<SortKey>("recommended")
+  // The buyer's pin lives in this browser only; distance is computed here
+  // against shop coordinates that are already public on the shop page.
+  const [pin, setPin] = useState(() => readPin())
+  useEffect(() => {
+    const sync = () => setPin(readPin())
+    window.addEventListener("alkemart:pin", sync)
+    window.addEventListener("storage", sync)
+    return () => {
+      window.removeEventListener("alkemart:pin", sync)
+      window.removeEventListener("storage", sync)
+    }
+  }, [])
   const [openOnly, setOpenOnly] = useState(false)
   const [minRating, setMinRating] = useState(false)
   const [fastDelivery, setFastDelivery] = useState(false)
@@ -171,6 +187,8 @@ export function ShopsPage() {
       case "rating":
         sorted.sort((a, b) => (b.ratingAvg ?? -1) - (a.ratingAvg ?? -1))
         break
+      case "nearest":
+        return sortByDistance(sorted, pin)
       case "fastest":
         sorted.sort(
           (a, b) =>
@@ -255,7 +273,7 @@ export function ShopsPage() {
           <div className="scrollbar-none flex snap-x gap-4 overflow-x-auto pb-2">
             {featuredShops.map((shop) => (
               <div key={shop.slug} className="w-72 sm:w-80 md:w-[22rem] shrink-0 snap-start">
-                <ShopGridCard shop={shop} />
+                <ShopGridCard shop={shop} pin={pin} />
               </div>
             ))}
           </div>
@@ -333,7 +351,7 @@ export function ShopsPage() {
             <span className="hidden sm:inline-block h-4 w-px bg-border/80 mx-1" aria-hidden />
 
             {/* Sort Options */}
-            {SORTS.map((s) => (
+            {SORTS.filter((s) => s.key !== "nearest" || pin).map((s) => (
               <button
                 key={s.key}
                 type="button"
@@ -379,7 +397,7 @@ export function ShopsPage() {
           <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
             {filteredShops.map((shop) => (
               <li key={shop.slug}>
-                <ShopGridCard shop={shop} />
+                <ShopGridCard shop={shop} pin={pin} />
               </li>
             ))}
           </ul>
@@ -412,7 +430,10 @@ export function ShopsPage() {
 /**
  * 16:10 Landscape Store Card matching homepage standard
  */
-function ShopGridCard({ shop }: { shop: StoreVendor }) {
+function ShopGridCard({ shop, pin }: { shop: StoreVendor; pin: BuyerPin | null }) {
+  // Distance only appears when both sides have a pin. A shop that has not set
+  // one shows its area as before rather than an apologetic blank.
+  const away = formatDistance(distanceKm(pin, shop))
   const earnedTopRated =
     (shop.badges ?? []).some((b) => {
       if (typeof b === "string") return (b as string).toLowerCase().includes("top")
@@ -503,10 +524,16 @@ function ShopGridCard({ shop }: { shop: StoreVendor }) {
           </div>
 
           {/* Row 3: Location / Area Tag */}
-          {shop.location ? (
+          {shop.location || away ? (
             <p className="flex items-center gap-1 text-xs text-muted-foreground/80 truncate pt-0.5">
               <MapPin size={12} weight="fill" className="shrink-0 text-muted-foreground/60" />
-              <span>{shop.location}</span>
+              <span className="truncate">{shop.location}</span>
+              {away ? (
+                <span className="shrink-0 font-bold text-foreground">
+                  {shop.location ? "· " : ""}
+                  {away}
+                </span>
+              ) : null}
             </p>
           ) : null}
 
