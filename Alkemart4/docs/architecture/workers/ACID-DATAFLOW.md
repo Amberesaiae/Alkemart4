@@ -14,6 +14,20 @@ Doctrine: [`AGNOSTIC-APPROACH.md`](./AGNOSTIC-APPROACH.md). This file is the **d
 
 **Known failure mode (do not reintroduce):** catalog writes that run on the cached `HYPERDRIVE` binding can read back a pre-write snapshot (Hyperdrive query cache TTL ≈ 60s), producing intermittent `failed to create vendor product` 500s in production while local (no query cache) works. Keep insert→read-back pairs on the primary binding.
 
+**Resolved 2026-09-24:** keeping read-after-write on `HYPERDRIVE_PRIMARY` was
+necessary but not sufficient — that config *also* had the query cache enabled,
+so the same stale-snapshot window applied to auth, checkout, stock and payout
+reads. Caching is now disabled on the primary config and stays enabled on the
+catalog config:
+
+```bash
+wrangler hyperdrive update a77fbb34c2374d1d9d6be0e65c92c177 --caching-disabled
+```
+
+Verify with `wrangler hyperdrive get <id>` — `caching.disabled` must be `true`
+for `alkemart-primary` and `false` for `alkemart-catalog`. Re-enabling caching
+on the primary silently reintroduces the failure mode above.
+
 **Rule:** Money and stock mutate only through Workers + primary Hyperdrive. No dual writers. Medusa is archived.
 
 ## Concurrency hardening (as built)
@@ -28,7 +42,7 @@ Doctrine: [`AGNOSTIC-APPROACH.md`](./AGNOSTIC-APPROACH.md). This file is the **d
 | Charge without ledger row | checkout creates the intent row (`initiated`, Paystack reference) **before** calling Paystack; Paystack errors mark it `failed` |
 | Charge/redirect without stock | MoMo and card **`reserveStock` before** Paystack charge/initialize; charge/init failure releases the hold and marks the intent `failed` |
 | Abandoned reservations | per-intent delayed queue messages (`intent-expiry`, delay = stale threshold) CAS-expire stale pending/initiated momo/card intents and release stock; early redeliveries re-schedule for the remaining time. Zero cron slots; admin `expire-payment-intents` remains the backstop |
-| Connection lifecycle | postgres clients are created **per request** — Workers forbids reusing request-context sockets across requests; over Hyperdrive the per-request cost is a local handshake, not a new Postgres connection |
+| Connection lifecycle | postgres clients are created **per request, and at most one per Hyperdrive pool** — Workers forbids reusing request-context sockets across requests. Stores bind lazily (`lib/request-scope.ts`) and share the request's client, so a request opens 0–2 clients instead of one per store. Each Hyperdrive config allows only 20 origin connections, so eager per-store construction was a hard concurrency ceiling |
 | Read amplification | listings use a targeted slice (published products + offers/variants by id, 0028 indexes) instead of the 16-table snapshot; `quote`/cart views use one batched join instead of per-item queries |
 | Transient pooler blips | read-only slices retry (≤3, backoff) on connection-level errors only (`withTransientRetry`); constraint/query errors never retry |
 

@@ -49,6 +49,11 @@ export const securityMiddleware: MiddlewareHandler<AppEnv> = async (c, next) => 
     const now = Date.now()
     const windowMs = 60_000
     const max = path.startsWith("/hooks/") ? 120 : 30
+    // Sweep expired keys before inserting. Without this the map retains one
+    // entry per (IP, path) seen for the isolate's whole life.
+    if (hits.size > 1000) {
+      for (const [k, v] of hits) if (v.resetAt <= now) hits.delete(k)
+    }
     let row = hits.get(key)
     if (!row || row.resetAt <= now) {
       row = { n: 0, resetAt: now + windowMs }

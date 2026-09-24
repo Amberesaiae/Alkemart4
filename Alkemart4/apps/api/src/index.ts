@@ -46,8 +46,9 @@ import type {
   VerifyPaystackTransaction,
   WebhookDedup,
 } from "./context"
-import { catalogDb, primaryDb } from "./db"
+import { primaryDb } from "./db"
 import { parseEnv } from "./env"
+import { catalogOf, envOf, lazy, primaryOf } from "./lib/request-scope"
 import { noStoreHeaders } from "./lib/edge-cache"
 import { requireAdmin, requireSeller } from "./middleware/auth"
 import { corsMiddleware } from "./middleware/cors"
@@ -188,87 +189,51 @@ export function createApp(
         })
       : undefined)
 
+  // Stores are bound lazily: a route touches one or two of these, but eager
+  // construction opened a Postgres client per store (12-15 per request) while
+  // each Hyperdrive config allows only 20 origin connections. See
+  // lib/request-scope.ts.
   const bindCatalog: MiddlewareHandler<AppEnv> = async (c, next) => {
-    if (options.repo) {
-      c.set("repo", options.repo)
-    } else {
-      const env = parseEnv(c.env as unknown as Record<string, unknown>)
-      // Catalog mutations + read-after-write go through HYPERDRIVE_PRIMARY (writeDb);
-      // pure catalog reads keep using the (cached) HYPERDRIVE binding. See ACID-DATAFLOW.md.
-      c.set("repo", new PostgresCatalogRepository(catalogDb(env), primaryDb(env)))
-    }
-    if (options.trafficStore) {
-      c.set("traffic", options.trafficStore)
-    } else if (fallbackTraffic) {
-      c.set("traffic", fallbackTraffic)
-    } else {
-      const env = parseEnv(c.env as unknown as Record<string, unknown>)
-      c.set("traffic", new PostgresTrafficStore(primaryDb(env)))
-    }
-    if (options.appealStore) {
-      c.set("appeals", options.appealStore)
-    } else if (fallbackAppeals) {
-      c.set("appeals", fallbackAppeals)
-    } else {
-      const env = parseEnv(c.env as unknown as Record<string, unknown>)
-      c.set("appeals", new PostgresAppealStore(primaryDb(env)))
-    }
-    if (options.policyStore) {
-      c.set("policies", options.policyStore)
-    } else if (fallbackPolicies) {
-      c.set("policies", fallbackPolicies)
-    } else {
-      const env = parseEnv(c.env as unknown as Record<string, unknown>)
-      c.set("policies", new PostgresShopPolicyStore(primaryDb(env)))
-    }
-    if (options.featuredStore) {
-      c.set("featured", options.featuredStore)
-    } else if (fallbackFeatured) {
-      c.set("featured", fallbackFeatured)
-    } else {
-      const env = parseEnv(c.env as unknown as Record<string, unknown>)
-      c.set("featured", new PostgresShopFeaturedStore(primaryDb(env)))
-    }
-    if (options.homepageStore) {
-      c.set("homepage", options.homepageStore)
-    } else if (fallbackHomepage) {
-      c.set("homepage", fallbackHomepage)
-    } else {
-      const env = parseEnv(c.env as unknown as Record<string, unknown>)
-      c.set("homepage", new PostgresHomepageContentStore(primaryDb(env)))
-    }
-    if (options.collectionsStore) {
-      c.set("collections", options.collectionsStore)
-    } else if (fallbackCollections) {
-      c.set("collections", fallbackCollections)
-    } else {
-      const env = parseEnv(c.env as unknown as Record<string, unknown>)
-      c.set("collections", new PostgresCollectionsStore(primaryDb(env)))
-    }
-    if (options.importBatchStore) {
-      c.set("imports", options.importBatchStore)
-    } else if (fallbackImports) {
-      c.set("imports", fallbackImports)
-    } else {
-      const env = parseEnv(c.env as unknown as Record<string, unknown>)
-      c.set("imports", new PostgresImportBatchStore(primaryDb(env)))
-    }
-    if (options.campaignStore) {
-      c.set("campaigns", options.campaignStore)
-    } else if (fallbackCampaigns) {
-      c.set("campaigns", fallbackCampaigns)
-    } else {
-      const env = parseEnv(c.env as unknown as Record<string, unknown>)
-      c.set("campaigns", new PostgresCampaignStore(primaryDb(env)))
-    }
-    if (options.guideStore) {
-      c.set("guides", options.guideStore)
-    } else if (fallbackGuides) {
-      c.set("guides", fallbackGuides)
-    } else {
-      const env = parseEnv(c.env as unknown as Record<string, unknown>)
-      c.set("guides", new PostgresGuideStore(primaryDb(env)))
-    }
+    c.set(
+      "repo",
+      options.repo ?? lazy(() => new PostgresCatalogRepository(catalogOf(c), primaryOf(c))),
+    )
+    c.set(
+      "traffic",
+      options.trafficStore ?? fallbackTraffic ?? lazy(() => new PostgresTrafficStore(primaryOf(c))),
+    )
+    c.set(
+      "appeals",
+      options.appealStore ?? fallbackAppeals ?? lazy(() => new PostgresAppealStore(primaryOf(c))),
+    )
+    c.set(
+      "policies",
+      options.policyStore ?? fallbackPolicies ?? lazy(() => new PostgresShopPolicyStore(primaryOf(c))),
+    )
+    c.set(
+      "featured",
+      options.featuredStore ?? fallbackFeatured ?? lazy(() => new PostgresShopFeaturedStore(primaryOf(c))),
+    )
+    c.set(
+      "homepage",
+      options.homepageStore ?? fallbackHomepage ?? lazy(() => new PostgresHomepageContentStore(primaryOf(c))),
+    )
+    c.set(
+      "collections",
+      options.collectionsStore ?? fallbackCollections ?? lazy(() => new PostgresCollectionsStore(primaryOf(c))),
+    )
+    c.set(
+      "imports",
+      options.importBatchStore ?? fallbackImports ?? lazy(() => new PostgresImportBatchStore(primaryOf(c))),
+    )
+    c.set(
+      "campaigns",
+      options.campaignStore ?? fallbackCampaigns ?? lazy(() => new PostgresCampaignStore(primaryOf(c))),
+    )
+    c.set(
+      "guides",
+      options.guideStore ?? fallbackGuides ?? lazy(() => new PostgresGuideStore(primaryOf(c))),
+    )
     await next()
   }
 
@@ -278,8 +243,7 @@ export function createApp(
     } else if (options.repo instanceof InMemoryCatalogRepository) {
       c.set("checkoutRepo", new InMemoryCheckoutRepository(options.repo.snapshot()))
     } else {
-      const env = parseEnv(c.env as unknown as Record<string, unknown>)
-      c.set("checkoutRepo", new PostgresCheckoutRepository(primaryDb(env)))
+      c.set("checkoutRepo", lazy(() => new PostgresCheckoutRepository(primaryOf(c))))
     }
     // Job producers ride alongside checkout: every produce site already has
     // bindCheckout mounted, so no mount edits are needed anywhere.
@@ -322,20 +286,19 @@ export function createApp(
     if (options.paystackSecretKey !== undefined) {
       c.set("paystackSecretKey", options.paystackSecretKey)
     } else if (!options.checkoutRepo && !(options.repo instanceof InMemoryCatalogRepository)) {
-      const env = parseEnv(c.env as unknown as Record<string, unknown>)
-      c.set("paystackSecretKey", env.PAYSTACK_SECRET_KEY)
+      c.set("paystackSecretKey", envOf(c).PAYSTACK_SECRET_KEY)
     }
     // KV webhook dedup when binding present (production Worker)
     const rawEnv = c.env as unknown as {
       CATALOG_KV?: {
         get(k: string): Promise<string | null>
-        put(k: string, v: string): Promise<void>
+        put(k: string, v: string, o?: { expirationTtl?: number }): Promise<void>
       }
     }
     if (!options.webhookDedup && rawEnv?.CATALOG_KV) {
       c.set("webhookDedup", {
         get: (k) => rawEnv.CATALOG_KV!.get(k),
-        put: (k, v) => rawEnv.CATALOG_KV!.put(k, v),
+        put: (k, v, o) => rawEnv.CATALOG_KV!.put(k, v, o),
       })
     }
     await next()
@@ -345,28 +308,24 @@ export function createApp(
     if (options.authRepo) {
       c.set("authRepo", options.authRepo)
     } else {
-      const env = parseEnv(c.env as unknown as Record<string, unknown>)
-      c.set("authRepo", new PostgresAuthRepository(primaryDb(env)))
+      c.set("authRepo", lazy(() => new PostgresAuthRepository(primaryOf(c))))
     }
     if (options.auditLog) {
       c.set("auditLog", options.auditLog)
     } else if (fallbackAuditLog) {
       c.set("auditLog", fallbackAuditLog)
     } else {
-      const env = parseEnv(c.env as unknown as Record<string, unknown>)
-      c.set("auditLog", new PostgresAdminAuditLog(primaryDb(env)))
+      c.set("auditLog", lazy(() => new PostgresAdminAuditLog(primaryOf(c))))
     }
     if (options.jwtSecret) {
       c.set("jwtSecret", options.jwtSecret)
     } else {
-      const env = parseEnv(c.env as unknown as Record<string, unknown>)
-      c.set("jwtSecret", env.JWT_SECRET)
+      c.set("jwtSecret", envOf(c).JWT_SECRET)
     }
     if (options.paystackSecretKey !== undefined) {
       c.set("paystackSecretKey", options.paystackSecretKey)
     } else if (!options.authRepo) {
-      const env = parseEnv(c.env as unknown as Record<string, unknown>)
-      c.set("paystackSecretKey", env.PAYSTACK_SECRET_KEY)
+      c.set("paystackSecretKey", envOf(c).PAYSTACK_SECRET_KEY)
     }
     c.set(
       "createPaystackTransferRecipient",

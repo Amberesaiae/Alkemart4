@@ -37,6 +37,13 @@ export const corsMiddleware: MiddlewareHandler<AppEnv> = async (c, next) => {
   const allowed = allowedOrigins(c.env)
   const ok = origin && allowed.has(origin)
 
+  // `Vary: Origin` must be set on EVERY response, allowed or not. Public GETs
+  // are edge-cached (see lib/edge-cache.ts); a response cached from an
+  // Origin-less request (bot, curl, cache warmer) would otherwise be replayed
+  // to browsers without Access-Control-Allow-Origin, breaking CORS for the
+  // life of the cache entry.
+  c.header("Vary", "Origin")
+
   if (c.req.method === "OPTIONS") {
     if (ok && origin) {
       c.header("Access-Control-Allow-Origin", origin)
@@ -47,17 +54,16 @@ export const corsMiddleware: MiddlewareHandler<AppEnv> = async (c, next) => {
         "Authorization,Content-Type,X-Requested-With,X-Seller-Id",
       )
       c.header("Access-Control-Max-Age", "86400")
-      c.header("Vary", "Origin")
     }
     return c.body(null, 204)
   }
 
   await next()
 
+  c.header("Vary", "Origin")
   if (ok && origin) {
     c.header("Access-Control-Allow-Origin", origin)
     c.header("Access-Control-Allow-Credentials", "true")
-    c.header("Vary", "Origin")
   }
   return c.res
 }

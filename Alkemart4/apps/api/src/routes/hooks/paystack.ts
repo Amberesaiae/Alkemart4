@@ -58,7 +58,6 @@ export const paystackHooks = new Hono<AppEnv>().post("/", async (c) => {
   if (dedup) {
     const seen = await dedup.get(dedupKey)
     if (seen) return c.json({ ok: true, deduped: true })
-    await dedup.put(dedupKey, "1")
   }
   // Without KV (tests/local), correctness still holds: status updates are
   // compare-and-swap and order_groups.payment_intent_id is unique, so a
@@ -79,9 +78,18 @@ export const paystackHooks = new Hono<AppEnv>().post("/", async (c) => {
       jobs: c.get("jobs"),
     })
   } catch (err) {
+    // Deliberately do NOT mark the event seen: Paystack must be free to
+    // retry. Marking before confirming would turn one transient failure into
+    // a permanently unconfirmed paid order.
     throw new HTTPException(502, {
       message: err instanceof Error ? err.message : "confirm failed",
     })
+  }
+
+  // Fast path only — correctness already rests on CAS status updates and the
+  // unique order_groups.payment_intent_id. TTL keeps KV from growing forever.
+  if (dedup) {
+    await dedup.put(dedupKey, "1", { expirationTtl: 60 * 60 * 24 * 7 })
   }
 
   return c.json({ ok: true })
