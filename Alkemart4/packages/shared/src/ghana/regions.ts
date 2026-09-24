@@ -72,3 +72,49 @@ export function displayRegionName(stored: string | null | undefined): string | n
   if (!stored) return null
   return getRegionById(stored)?.name ?? getRegionByName(stored)?.name ?? stored
 }
+
+/**
+ * Nearest region to a coordinate pair, by great-circle distance to each
+ * region's reference point.
+ *
+ * Used to resolve an IP-derived coordinate (Cloudflare `request.cf`) onto the
+ * canonical region list when the provider's region label does not match one of
+ * ours. Region centroids are coarse, so this answers "which region is this
+ * most likely in", never "where exactly is this buyer".
+ *
+ * Returns null for coordinates outside a generous Ghana bounding box, so a
+ * VPN in Frankfurt resolves to nothing rather than to Greater Accra.
+ */
+export function nearestRegionByCoords(lat: number, lon: number): Region | null {
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null
+  // Ghana spans roughly 4.5..11.2 N and -3.3..1.3 E; pad for border towns.
+  if (lat < 4.0 || lat > 11.8 || lon < -3.8 || lon > 1.8) return null
+
+  let best: Region | null = null
+  let bestKm = Number.POSITIVE_INFINITY
+  for (const region of GHANA_REGIONS) {
+    const km = haversineKm(lat, lon, Number(region.lat), Number(region.lon))
+    if (km < bestKm) {
+      bestKm = km
+      best = region
+    }
+  }
+  return best
+}
+
+/** Great-circle distance in kilometres. */
+export function haversineKm(
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number,
+): number {
+  const R = 6371
+  const toRad = (d: number) => (d * Math.PI) / 180
+  const dLat = toRad(lat2 - lat1)
+  const dLon = toRad(lon2 - lon1)
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2
+  return 2 * R * Math.asin(Math.min(1, Math.sqrt(a)))
+}

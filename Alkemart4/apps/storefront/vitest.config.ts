@@ -9,7 +9,12 @@ export default defineConfig({
   },
   test: {
     globals: true,
-    // Co-located component tests count too, not just src/lib.
-    include: ["src/**/__tests__/**/*.test.ts"],
+    // Component tests render, so they need a DOM. Pure helpers are unaffected
+    // by running in one.
+    environment: "happy-dom",
+    // Co-located component tests count too, not just src/lib. The .tsx half of
+    // this glob was missing, so every *.test.tsx was silently skipped — vitest
+    // reports "no test files found" for an excluded path rather than failing.
+    include: ["src/**/__tests__/**/*.test.{ts,tsx}"],
   },
 })

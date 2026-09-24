@@ -1,3 +1,7 @@
+// @vitest-environment node
+// Scans source files off disk rather than rendering anything, so it needs real
+// Node module resolution — under the suite-wide happy-dom environment
+// `import.meta.url` becomes a /@fs/ URL and the source root resolves wrong.
 import { readdirSync, readFileSync, statSync } from "node:fs"
 import { join } from "node:path"
 import { describe, expect, it } from "vitest"

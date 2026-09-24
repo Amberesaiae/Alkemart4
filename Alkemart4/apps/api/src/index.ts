@@ -93,6 +93,7 @@ import { storePreferences } from "./routes/store/preferences"
 import { storeSitemap } from "./routes/store/sitemap"
 import { storeSubscriptions } from "./routes/store/subscriptions"
 import { storeHomepage } from "./routes/store/homepage"
+import { storeGeo } from "./routes/store/geo"
 import { paystackHooks } from "./routes/hooks/paystack"
 import { vendorAuth } from "./routes/vendor/auth"
 import { vendorOnboarding } from "./routes/vendor/onboarding"
@@ -343,6 +344,7 @@ export function createApp(
 
   const store = new Hono<AppEnv>()
   store.route("/auth", withBind(bindAuth, withBind(noStoreHeaders, storeAuth)))
+  store.route("/geo", withBind(noStoreHeaders, storeGeo))
   store.route("/categories", withBind(bindCatalog, categories))
   store.route("/catalog", withBind(bindCatalog, withBind(bindCheckout, catalog)))
   store.route("/search", withBind(bindCatalog, storeSearch))
