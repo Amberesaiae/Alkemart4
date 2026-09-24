@@ -135,6 +135,41 @@ neither                               → seller_specific (no comparison claims)
 So the attribute work is not filter plumbing. It is the precondition for the
 comparison feature, and the reason to do it before the comparison tray.
 
+## 4b. Keeping it light for common goods
+
+The failure mode of any attribute system is demanding structure from sellers who
+have none to give. Two safeguards are already in the schema —
+`attribute_definitions.required` and `profile_attributes.required` both default
+to **false**, and `quick-sell` already exists as a low-friction path. What is
+missing is the rule that stops someone marking everything required later.
+
+**A field is required only when it is (a) something buyers actually filter on
+and (b) answerable by looking at the item.** If a seller has to go and research
+the answer, it must not be required.
+
+| Tier | Examples | Required | Matching |
+|---|---|---|---|
+| A · Identified | phones, laptops, branded electronics | 3–5 | fingerprint ✓ comparison ✓ |
+| B · Commodity | rice, cooking oil, cement, sugar | 2–3 (brand, size, unit) | fingerprint ✓ comparison ✓ |
+| C · Variable | second-hand clothes, crafts, produce, used furniture | 0–1 | none — stays `seller_specific` |
+| D · Services | plumbing, tailoring, cleaning | 0 | not a product |
+
+Tier B is where comparison pays off most for everyday shopping: "5kg Royal Aroma
+rice" from three sellers genuinely is one product, and it needs two fields, not
+fifteen. Tier C is already handled honestly — `identityConfidence:
+seller_specific` is the floor, and Phase 3 already says a Level C product shows
+no comparison claims.
+
+**Tier D is a genuine misfit.** `Services` is a department, so a plumber's
+listing runs through the product pipeline with `pricePesewas` and `onHand`;
+"4 in stock" for pipe repair is nonsense. Jiji treats Services, Jobs and CVs as
+different posting *kinds*, not product categories. That is a larger decision
+than this plan and is called out rather than solved here.
+
+T1 carries the guardrail: the profile editor shows a required-count per type,
+warns above ~5, and defaults new types to zero required — so the cheap path is
+the default one.
+
 ## 5. Sequence
 
 | | Slice | Why here |
