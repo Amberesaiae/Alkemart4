@@ -5098,16 +5098,23 @@ export class PostgresCatalogRepository implements CatalogRepository {
    */
   private async rankedProductIds(q: string): Promise<string[]> {
     const like = `%${escapeLike(q)}%`
+    // SET LOCAL takes no bound parameters — inline the validated finite
+    // numbers from config (never user input).
+    const simThreshold = SEARCH_CONFIG.trgmThreshold
+    const wordThreshold = SEARCH_CONFIG.trgmWordThreshold
     const rows = await withTransientRetry(() =>
       this.db.transaction(async (tx) => {
         await tx.execute(
-          sql`SET LOCAL pg_trgm.similarity_threshold = ${SEARCH_CONFIG.trgmThreshold}`,
+          sql`SET LOCAL pg_trgm.similarity_threshold = ${sql.raw(String(simThreshold))}`,
+        )
+        await tx.execute(
+          sql`SET LOCAL pg_trgm.word_similarity_threshold = ${sql.raw(String(wordThreshold))}`,
         )
         return tx.execute<{ id: string }>(sql`
           SELECT p.id AS id FROM products p
           WHERE p.status = 'published'
-            AND (p.title % ${q} OR p.title ILIKE ${like} OR p.description ILIKE ${like})
-          ORDER BY p.title <-> ${q}
+            AND (p.title % ${q} OR ${q} <% p.title OR p.title ILIKE ${like} OR p.description ILIKE ${like})
+          ORDER BY ${q} <<-> p.title
           LIMIT ${SEARCH_CONFIG.trgmMaxCandidates}
         `)
       }),
