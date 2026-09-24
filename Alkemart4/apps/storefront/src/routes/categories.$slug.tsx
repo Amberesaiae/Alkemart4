@@ -3,6 +3,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { useQuery } from "@tanstack/react-query"
 import { ProductCard } from "@/components/product-card"
 import { ProductGridShell } from "@/components/product-grid"
+import { cn } from "@/lib/utils"
 import { EmptyState } from "@/components/empty-state"
 import { ErrorAlert } from "@/components/error-alert"
 import { LoadMore } from "@/components/load-more"
@@ -226,6 +227,11 @@ function BrowsePage() {
             }),
       }),
     enabled: true,
+    // Keep the previous category's grid on screen while the next one loads.
+    // Collapsing to a skeleton changes the page height mid-click, which is the
+    // other half of the "it jumps" complaint: the buyer's cursor ends up over
+    // a different row than the one they aimed at.
+    placeholderData: (previous) => previous,
   })
 
   const sellersQ = useQuery({
@@ -272,6 +278,10 @@ function BrowsePage() {
   const error = productsQ.isError
   const errMsg = productsQ.error
   const fetching = productsQ.isFetching
+  // True while the previous category's results are still on screen and the new
+  // ones are in flight. The grid stays put (no height collapse) but must say
+  // so, or it is quietly showing the wrong category's products.
+  const switching = productsQ.isPlaceholderData && fetching
 
   const sellerOpts = useMemo(() => {
     const map = new Map<
@@ -514,11 +524,19 @@ function BrowsePage() {
 
           {products.length > 0 ? (
             <>
-              <ProductGridShell>
-                {products.map((p) => (
-                  <ProductCard key={p.id} product={p} size="tile" />
-                ))}
-              </ProductGridShell>
+              <div
+                aria-busy={switching}
+                className={cn(
+                  "transition-opacity motion-reduce:transition-none",
+                  switching ? "opacity-60" : "opacity-100",
+                )}
+              >
+                <ProductGridShell>
+                  {products.map((p) => (
+                    <ProductCard key={p.id} product={p} size="tile" />
+                  ))}
+                </ProductGridShell>
+              </div>
               <ListingPagination
                 currentPage={currentPage}
                 totalPages={totalPages}
