@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react"
 import { useBlocker } from "@tanstack/react-router"
 import { useSellerProfile, useUpdateStorefront, usePauseShop, useUnpauseShop, useShopPolicies, useSavePolicy, useUpdateContact, useCollections, useCreateCollection, useUpdateCollection, useDeleteCollection, useSetCollectionProducts, useProducts } from "../lib/hooks"
 import type { StorefrontPatch, VendorCollection } from "../lib/api"
-import { Card, Button, Input, Label, LivePreview, Textarea, Skeleton, DatePicker } from "@workspace/ui"
+import { Card, Button, Input, Label, LivePreview, Textarea, Skeleton, DatePicker, Badge } from "@workspace/ui"
 import { format } from "date-fns"
 import { PageShell } from "../components/page-shell"
 import { PageHeader } from "../components/page-header"
@@ -467,7 +467,7 @@ function StorePage() {
                     {errors.seoDescription && <p id="store-field-seoDescription-error" className="text-xs font-medium text-destructive">{errors.seoDescription}</p>}
                   </div>
                   <div className="rounded-xl border p-3.5 bg-muted/30" aria-label="Search result preview">
-                    <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1">Search Preview</p>
+                    <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Search Preview</p>
                     <p className="font-semibold text-sm text-primary leading-snug truncate">
                       {seller.name}{form.tagline.trim() ? ` — ${form.tagline.trim()}` : ""}
                     </p>
@@ -496,7 +496,7 @@ function StorePage() {
                     />
                     Display an announcement banner on my shop
                     {seller.storefront?.announcementActive && (
-                      <span className="text-[11px] font-bold uppercase tracking-wider text-success ml-auto">Live now</span>
+                      <span className="text-xs font-bold uppercase tracking-wider text-success ml-auto">Live now</span>
                     )}
                   </label>
                   {form.announcementEnabled && (
@@ -752,7 +752,7 @@ function PoliciesCard() {
             <ClipboardText className="h-5 w-5 text-primary" /> Shop Policies
           </h2>
           {current && (
-            <span className="text-[11px] text-muted-foreground font-mono">v{current.version} active</span>
+            <span className="text-xs text-muted-foreground font-mono">v{current.version} active</span>
           )}
         </div>
 
@@ -1208,12 +1208,10 @@ function CollectionsCard() {
                   >
                     {shelf.name}
                   </button>
-                  <span
-                    className={"text-[10px] font-bold px-2 py-0.5 rounded-full " + (shelf.visibility === "published" ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300" : "bg-muted text-muted-foreground")}
-                  >
+                  <Badge tone={shelf.visibility === "published" ? "success" : "neutral"} emphasis="soft" size="sm">
                     {shelf.visibility === "published" ? "Live" : "Draft"}
-                  </span>
-                  <span className="text-[11px] text-muted-foreground tabular-nums">
+                  </Badge>
+                  <span className="text-xs text-muted-foreground tabular-nums">
                     {shelf.productIds.length} item{shelf.productIds.length === 1 ? "" : "s"}
                   </span>
                   <span className="ml-auto flex gap-2">

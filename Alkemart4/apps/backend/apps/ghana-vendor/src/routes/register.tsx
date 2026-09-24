@@ -111,7 +111,7 @@ function RegisterPage() {
         <div className="flex flex-1 flex-col items-center justify-center px-4 py-10 sm:px-8">
           <div className="w-full max-w-sm rounded-2xl border bg-card p-6 shadow-md sm:p-8">
             <header className="mb-6 space-y-1.5">
-              <p className="text-[11px] font-bold uppercase tracking-widest text-primary">
+              <p className="text-xs font-bold uppercase tracking-widest text-primary">
                 Seller Hub
               </p>
               <h1 className="text-2xl font-bold tracking-tight">Create your stall account</h1>

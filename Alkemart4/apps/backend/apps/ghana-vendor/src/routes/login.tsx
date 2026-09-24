@@ -33,8 +33,8 @@ function LoginPage() {
 
   return (
     <div className="grid min-h-[100dvh] md:grid-cols-[1.05fr_1fr]">
-      {/* Brand panel */}
-      <aside className="relative hidden flex-col justify-between overflow-hidden bg-white p-0 text-black md:flex [&>*:not(img):not(.auth-panel-copy)]:hidden">
+      {/* Brand panel — dark ink so the white copy and glass cards read. */}
+      <aside className="relative hidden flex-col justify-between overflow-hidden bg-ink p-0 text-white md:flex [&>*:not(img):not(.auth-panel-copy)]:hidden">
         {/* Glow & Mesh background accents */}
         <div
           aria-hidden
@@ -54,7 +54,7 @@ function LoginPage() {
           <Link to="/login" className="text-2xl font-extrabold tracking-tight flex items-center gap-2">
             <span className="text-primary text-xl">●</span>
             <span>alkemart</span>
-            <span className="ml-1.5 rounded-md border border-white/15 bg-white/10 px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-widest text-white/70 backdrop-blur-md">
+            <span className="ml-1.5 rounded-md border border-white/15 bg-white/10 px-2.5 py-0.5 text-xs font-bold uppercase tracking-widest text-white/70 backdrop-blur-md">
               Seller
             </span>
           </Link>
@@ -67,7 +67,7 @@ function LoginPage() {
         />
 
         <div className="auth-panel-copy absolute left-0 top-0 z-20 w-full bg-white/90 px-8 py-6 backdrop-blur-sm lg:px-10">
-          <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-black/55">Alkemart for sellers</p>
+          <p className="text-xs font-bold uppercase tracking-[0.2em] text-black/55">Alkemart for sellers</p>
           <p className="mt-1 text-lg font-black tracking-tight text-black">Your products, ready for the next order.</p>
         </div>
 
@@ -132,7 +132,7 @@ function LoginPage() {
         <div className="relative z-10 flex items-center justify-between border-t border-white/10 pt-4 text-xs text-white/50">
           <span>Seller Hub · Powered by Alkemart</span>
           <span className="inline-flex items-center gap-1.5 text-primary/80 font-medium">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="h-1.5 w-1.5 rounded-full bg-tone-success animate-pulse" />
             24/7 Platform Active
           </span>
         </div>
@@ -152,7 +152,7 @@ function LoginPage() {
         <div className="flex flex-1 flex-col items-center justify-center px-4 py-10 sm:px-8">
           <div className="w-full max-w-md rounded-3xl border border-black/10 bg-white p-8 shadow-[0_20px_50px_-24px_rgb(0_0_0_/_0.35)] sm:p-10">
             <header className="mb-8 space-y-2">
-              <p className="text-[11px] font-bold uppercase tracking-widest text-primary">
+              <p className="text-xs font-bold uppercase tracking-widest text-primary">
                 Seller Hub
               </p>
               <h1 className="text-3xl font-bold tracking-tight">Welcome back</h1>
@@ -164,27 +164,27 @@ function LoginPage() {
             <form onSubmit={handleSubmit} className="space-y-5" noValidate>
               {registered ? (
                 <div
-                  className="flex items-start gap-2.5 rounded-xl border border-success/20 bg-success/10 p-3.5 text-sm"
+                  className="flex items-start gap-2.5 rounded-xl border border-tone-success-ink/25 bg-tone-success-soft p-3.5 text-sm"
                   role="status"
                 >
-                  <CheckCircle className="mt-0.5 h-4 w-4 shrink-0 text-success" aria-hidden />
-                  <p className="font-semibold text-success">
+                  <CheckCircle className="mt-0.5 h-4 w-4 shrink-0 text-tone-success-ink" aria-hidden />
+                  <p className="font-semibold text-tone-success-ink">
                     Stall created! Sign in to start selling.
                   </p>
                 </div>
               ) : null}
               {login.isError ? (
                 <div
-                  className="flex items-start gap-2.5 rounded-xl border border-destructive/20 bg-destructive/10 p-3.5 text-sm"
+                  className="flex items-start gap-2.5 rounded-xl border border-tone-danger-ink/25 bg-tone-danger-soft p-3.5 text-sm"
                   role="alert"
                 >
-                  <WarningCircle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" aria-hidden />
+                  <WarningCircle className="mt-0.5 h-4 w-4 shrink-0 text-tone-danger-ink" aria-hidden />
                   <div>
-                    <p className="font-semibold text-destructive">
+                    <p className="font-semibold text-tone-danger-ink">
                       Couldn&apos;t sign you in. Check your details and try again.
                     </p>
                     {login.error instanceof Error && login.error.message ? (
-                      <p className="mt-0.5 text-xs text-destructive/80">{login.error.message}</p>
+                      <p className="mt-0.5 text-xs text-tone-danger-ink/80">{login.error.message}</p>
                     ) : null}
                   </div>
                 </div>

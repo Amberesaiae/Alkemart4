@@ -107,7 +107,7 @@ export function ShopStudio() {
                   ))}
                 </div>
               ) : (
-                <p className="mt-2 text-[11px] text-muted-foreground">Pick up to 8 products — they lead the shop card.</p>
+                <p className="mt-2 text-xs text-muted-foreground">Pick up to 8 products — they lead the shop card.</p>
               )}
             </div>
           </div>

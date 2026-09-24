@@ -87,15 +87,15 @@ function ProductsPage() {
     switch (status) {
       case "published":
         return (
-          <span className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full bg-emerald-600 text-white shadow-xs">
+          <Badge tone="success" emphasis="solid" size="sm">
             <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" /> Live
-          </span>
+          </Badge>
         )
       case "proposed":
         return (
-          <span className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full bg-primary text-primary-foreground shadow-xs">
+          <Badge tone="brand" emphasis="solid" size="sm">
             <Clock className="h-3 w-3" weight="bold" /> In Review
-          </span>
+          </Badge>
         )
       case "rejected": {
         const meta = product?.metadata as Record<string, unknown> | undefined
@@ -103,7 +103,7 @@ function ProductsPage() {
         const mod = alk?.moderation as Record<string, unknown> | undefined
         const reason = mod?.reason as string | undefined
         return (
-          <span className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full bg-rose-600 text-white shadow-xs group relative cursor-help" title={reason || "Rejected"}>
+          <Badge tone="danger" emphasis="solid" size="sm" className="group relative cursor-help" title={reason || "Rejected"}>
             <WarningCircle className="h-3 w-3" weight="bold" />
             Rejected
             {reason && (
@@ -111,14 +111,14 @@ function ProductsPage() {
                 {reason}
               </span>
             )}
-          </span>
+          </Badge>
         )
       }
       default:
         return (
-          <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-white text-foreground border border-border/60">
+          <Badge tone="neutral" emphasis="outline" size="sm">
             Draft
-          </span>
+          </Badge>
         )
     }
   }
@@ -166,9 +166,9 @@ function ProductsPage() {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
             {[
               { id: "all", label: "All Items", count: stats.total, dot: null },
-              { id: "published", label: "Live on Store", count: stats.published, dot: "bg-emerald-500" },
-              { id: "proposed", label: "In Review", count: stats.inReview, dot: "bg-primary" },
-              { id: "draft", label: "Drafts", count: stats.drafts + stats.rejected, dot: "bg-neutral-400" },
+              { id: "published", label: "Live on Store", count: stats.published, dot: "bg-tone-success" },
+              { id: "proposed", label: "In Review", count: stats.inReview, dot: "bg-tone-brand" },
+              { id: "draft", label: "Drafts", count: stats.drafts + stats.rejected, dot: "bg-tone-neutral" },
             ].map((tab) => {
               const isSelected = statusFilter === tab.id
               return (
@@ -204,9 +204,9 @@ function ProductsPage() {
                       {tab.count}
                     </span>
                     {isSelected && (
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-primary px-2 py-0.5 rounded-full bg-muted border border-primary/20">
+                      <Badge tone="brand" emphasis="soft" size="sm">
                         Selected
-                      </span>
+                      </Badge>
                     )}
                   </div>
                 </button>
@@ -341,7 +341,7 @@ function ProductsPage() {
                   ) : (
                     <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground/30">
                       <Package className="h-10 w-10 stroke-[1.5]" />
-                      <span className="text-[11px] font-semibold mt-1">No Image</span>
+                      <span className="text-xs font-semibold mt-1">No Image</span>
                     </div>
                   )}
 
@@ -356,7 +356,7 @@ function ProductsPage() {
                       href={storefrontUrl}
                       target="_blank"
                       rel="noreferrer"
-                      className="absolute top-3 left-3 z-10 inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-1 rounded-lg bg-background/90 text-foreground border border-border/60 shadow-2xs backdrop-blur hover:bg-background hover:text-primary transition-colors"
+                      className="absolute top-3 left-3 z-10 inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-lg bg-background/90 text-foreground border border-border/60 shadow-2xs backdrop-blur hover:bg-background hover:text-primary transition-colors"
                       title="View live product listing on storefront"
                     >
                       <ArrowSquareOut className="h-3 w-3" />
@@ -366,9 +366,9 @@ function ProductsPage() {
 
                   {/* Floating Category Pill */}
                   {categoryName && (
-                    <span className="absolute bottom-3 left-3 text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-md bg-background/90 text-foreground border border-border/60 shadow-2xs backdrop-blur">
+                    <Badge tone="neutral" emphasis="soft" size="sm" className="absolute bottom-3 left-3 z-10 shadow-2xs backdrop-blur">
                       {categoryName}
-                    </span>
+                    </Badge>
                   )}
                 </div>
 
@@ -378,7 +378,7 @@ function ProductsPage() {
                     <h3 className="font-bold text-base text-foreground line-clamp-1 group-hover:text-primary transition-colors tracking-tight" title={product.title || "Untitled"}>
                       {product.title || "Untitled"}
                     </h3>
-                    <p className="text-[11px] text-muted-foreground font-mono mt-0.5">
+                    <p className="text-xs text-muted-foreground font-mono mt-0.5">
                       Ref: {product.handle || product.id.slice(0, 10)}
                     </p>
                   </div>
@@ -386,23 +386,19 @@ function ProductsPage() {
                   {/* Price & Stock Commercial Specs */}
                   <div className="flex items-end justify-between pt-3 border-t border-border/60">
                     <div>
-                      <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Selling Price</p>
+                      <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Selling Price</p>
                       <p className="text-xl font-black text-foreground whitespace-nowrap tabular-nums">
                         {price > 0 ? `GH₵ ${price.toFixed(2)}` : "—"}
                       </p>
                     </div>
 
                     <div className="text-right">
-                      <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Inventory</p>
+                      <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Inventory</p>
                       {stock !== null ? (
-                        <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-0.5 rounded-full ${
-                          stock > 0
-                            ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800"
-                            : "bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 border border-rose-200 dark:border-rose-800"
-                        }`}>
-                          <span className={`h-1.5 w-1.5 rounded-full ${stock > 0 ? "bg-emerald-500" : "bg-rose-500"}`} />
+                        <Badge tone={stock > 0 ? "success" : "danger"} emphasis="soft" size="sm">
+                          <span className="h-1.5 w-1.5 rounded-full bg-current" />
                           {stock > 0 ? `${stock} in stock` : "Out of stock"}
-                        </span>
+                        </Badge>
                       ) : (
                         <span className="text-xs text-muted-foreground font-medium">Standard</span>
                       )}
@@ -504,11 +500,9 @@ function ProductsPage() {
                     </TableCell>
                     <TableCell className="text-center">
                       {stock !== null ? (
-                        <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full ${
-                          stock > 0 ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300" : "bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300"
-                        }`}>
+                        <Badge tone={stock > 0 ? "success" : "danger"} emphasis="soft" size="sm">
                           {stock > 0 ? `${stock} left` : "Out"}
-                        </span>
+                        </Badge>
                       ) : (
                         <span className="text-xs text-muted-foreground">—</span>
                       )}

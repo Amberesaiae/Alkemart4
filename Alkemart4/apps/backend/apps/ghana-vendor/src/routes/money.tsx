@@ -143,7 +143,7 @@ function MoneyPage() {
                           <div className="flex flex-col gap-1 items-start">
                             {stateBadge(l.state)}
                             {l.holdReason ? (
-                              <span className="text-[11px] text-muted-foreground max-w-40">{l.holdReason}</span>
+                              <span className="text-xs text-muted-foreground max-w-40">{l.holdReason}</span>
                             ) : null}
                           </div>
                         </TableCell>

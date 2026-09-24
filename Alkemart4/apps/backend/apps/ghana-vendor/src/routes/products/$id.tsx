@@ -712,7 +712,7 @@ function ProductDetailPage() {
                   <button
                     type="button"
                     onClick={() => setShowUrlInput(true)}
-                    className="text-[11px] font-semibold text-primary hover:underline block text-center w-full"
+                    className="text-xs font-semibold text-primary hover:underline block text-center w-full"
                   >
                     Or paste an image URL
                   </button>
@@ -813,12 +813,10 @@ function ProductDetailPage() {
                     {hasOptions ? `${combos.length} combos` : currentPriceGhs > 0 ? `GH₵ ${currentPriceGhs.toFixed(2)}` : "—"}
                   </p>
                   {!hasOptions ? (
-                    <span className={`inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full ${
-                      currentStock > 0 ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-300" : "bg-rose-500/10 text-rose-600 dark:text-rose-300"
-                    }`}>
-                      <span className={`h-1.5 w-1.5 rounded-full ${currentStock > 0 ? "bg-emerald-500" : "bg-rose-500"}`} />
+                    <Badge tone={currentStock > 0 ? "success" : "danger"} emphasis="soft" size="sm">
+                      <span className="h-1.5 w-1.5 rounded-full bg-current" />
                       {currentStock > 0 ? `${currentStock.toLocaleString()} in stock` : "Out of stock"}
-                    </span>
+                    </Badge>
                   ) : null}
                 </div>
                 {!hasOptions ? (
@@ -1145,23 +1143,26 @@ function VariantsSection({ productId }: { productId: string }) {
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-bold text-sm">{comboDisplayName(combo)}</span>
                   {combo.sku && (
-                    <span className="text-[11px] font-mono text-muted-foreground">{combo.sku}</span>
+                    <span className="text-xs font-mono text-muted-foreground">{combo.sku}</span>
                   )}
                   {combo.condition && combo.condition !== "unspecified" ? (
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
+                    <Badge tone="neutral" emphasis="soft" size="sm">
                       {combo.condition === "locally_used" ? "Locally used" : combo.condition === "new" ? "New" : "Refurbished"}
-                    </span>
+                    </Badge>
                   ) : null}
                   {combo.compareAtGhs != null && combo.compareAtGhs > 0 ? (
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-muted text-muted-foreground tabular-nums">
+                    <Badge tone="neutral" emphasis="soft" size="sm" className="tabular-nums">
                       Was GH₵{combo.compareAtGhs.toFixed(2)}
-                    </span>
+                    </Badge>
                   ) : null}
-                  <span
-                    className={"ml-auto text-[10px] font-bold px-2 py-0.5 rounded-full " + (combo.active ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300" : "bg-muted text-muted-foreground")}
+                  <Badge
+                    tone={combo.active ? "success" : "neutral"}
+                    emphasis="soft"
+                    size="sm"
+                    className="ml-auto"
                   >
                     {combo.active ? (combo.onHand > 0 ? "Live" : "Live - Unstocked") : "Archived"}
-                  </span>
+                  </Badge>
                 </div>
                 <div className="grid gap-3 sm:grid-cols-[1fr_1fr_auto] items-end">
                   <div className="space-y-1.5">
@@ -1323,7 +1324,7 @@ function VariantsSection({ productId }: { productId: string }) {
                       />
                     </div>
                   </div>
-                  <p className="pt-2 text-[11px] leading-relaxed text-muted-foreground">
+                  <p className="pt-2 text-xs leading-relaxed text-muted-foreground">
                     Was-prices show to buyers only with a source. Empty fields stay empty — never invent a warranty buyers can't claim.
                   </p>
                 </details>
@@ -1392,7 +1393,7 @@ function VariantsSection({ productId }: { productId: string }) {
             </div>
           </div>
         )}
-        <p className="text-[11px] text-muted-foreground font-medium">
+        <p className="text-xs text-muted-foreground font-medium">
           New combinations start unstocked (0) so nothing oversells. Structural changes send published listings back for review.
         </p>
       </div>
@@ -1448,7 +1449,7 @@ function ValuePhotos({ productId, options }: {
   return (
     <div className="rounded-2xl border border-border/60 bg-muted/20 p-4 space-y-3">
       <h3 className="font-bold text-sm">Swatch photos (optional)</h3>
-      <p className="text-[11px] text-muted-foreground font-medium">
+      <p className="text-xs text-muted-foreground font-medium">
         One photo per value on visual options (e.g. Colour) - buyers see it as the selector tile and gallery lead.
       </p>
       {options.map((opt) => (
@@ -1460,12 +1461,12 @@ function ValuePhotos({ productId, options }: {
                 {v.imageUrl ? (
                   <img src={v.imageUrl} alt="" className="h-8 w-8 rounded-lg object-cover" />
                 ) : (
-                  <span className="h-8 w-8 rounded-lg bg-muted flex items-center justify-center text-[10px] font-bold text-muted-foreground">
+                  <span className="h-8 w-8 rounded-lg bg-muted flex items-center justify-center text-xs font-bold text-muted-foreground">
                     {v.value.slice(0, 2).toUpperCase()}
                   </span>
                 )}
                 <span className="text-xs font-bold max-w-24 truncate">{v.value}</span>
-                <label className="text-[11px] font-bold text-primary cursor-pointer hover:underline">
+                <label className="text-xs font-bold text-primary cursor-pointer hover:underline">
                   {v.imageUrl ? "Replace" : "Add"}
                   <input
                     type="file"
@@ -1480,7 +1481,7 @@ function ValuePhotos({ productId, options }: {
                     type="button"
                     disabled={busyId === v.id}
                     onClick={() => { void handleRemove(v.id) }}
-                    className="text-[11px] font-bold text-destructive hover:underline disabled:opacity-50"
+                    className="text-xs font-bold text-destructive hover:underline disabled:opacity-50"
                     aria-label={'Remove photo for ' + v.value}
                   >
                     {busyId === v.id ? "..." : "Remove"}

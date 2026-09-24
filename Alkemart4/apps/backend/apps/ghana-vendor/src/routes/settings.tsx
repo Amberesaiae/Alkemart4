@@ -483,7 +483,7 @@ function SettingsPage() {
                   onChange={e => setAddressForm({ ...addressForm, address_2: e.target.value })}
                   placeholder={GHANA_UI.landmarkPlaceholder}
                 />
-                <p className="text-[11px] text-muted-foreground">Riders navigate by landmarks — include one whenever possible.</p>
+                <p className="text-xs text-muted-foreground">Riders navigate by landmarks — include one whenever possible.</p>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -562,11 +562,11 @@ function SettingsPage() {
                     {locating ? "Locating…" : "Use My Location"}
                   </Button>
                   {addressForm.latitude != null && addressForm.longitude != null ? (
-                    <p className="text-[11px] text-success font-medium">
+                    <p className="text-xs text-success font-medium">
                       Pinned at {addressForm.latitude.toFixed(4)}, {addressForm.longitude.toFixed(4)}
                     </p>
                   ) : locateError ? (
-                    <p className="text-[11px] text-destructive font-medium">{locateError}</p>
+                    <p className="text-xs text-destructive font-medium">{locateError}</p>
                   ) : null}
                 </div>
 
@@ -670,7 +670,7 @@ function SettingsPage() {
                   <DeviceMobile className="h-4 w-4" />
                   Network
                   {detectedProvider && (
-                    <span className="ml-auto text-[11px] font-normal text-muted-foreground">
+                    <span className="ml-auto text-xs font-normal text-muted-foreground">
                       Auto-detected
                     </span>
                   )}
@@ -688,12 +688,12 @@ function SettingsPage() {
                         aria-label={net.label}
                         className={`group relative h-20 sm:h-24 w-full rounded-xl border-2 p-3 flex items-center justify-center bg-white dark:bg-zinc-900 transition-all cursor-pointer shadow-xs ${
                           active
-                            ? "border-emerald-600 ring-2 ring-emerald-600/30"
+                            ? "border-tone-success ring-2 ring-tone-success/30"
                             : "border-border hover:border-muted-foreground/40 hover:bg-muted/10"
                         }`}
                       >
                         {active && (
-                          <span className="absolute top-2 right-2 flex h-5 w-5 items-center justify-center rounded-full bg-emerald-600 text-white shadow-xs z-10">
+                          <span className="absolute top-2 right-2 flex h-5 w-5 items-center justify-center rounded-full bg-tone-success text-tone-success-fg shadow-xs z-10">
                             <Check className="h-3.5 w-3.5 stroke-[3]" />
                           </span>
                         )}
@@ -845,14 +845,14 @@ function CompactUploader({
         disabled={isUploading}
         className={
           triggerClassName ||
-          "inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-black/60 hover:bg-black/80 text-white backdrop-blur-xs text-[11px] font-semibold transition cursor-pointer shadow-xs"
+          "inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-black/60 hover:bg-black/80 text-white backdrop-blur-xs text-xs font-semibold transition cursor-pointer shadow-xs"
         }
       >
         <Camera className="h-3 w-3" />
         {isUploading ? "Uploading…" : triggerText}
       </button>
       {error && (
-        <span className="text-[10px] text-destructive font-semibold ml-1">{error}</span>
+        <span className="text-xs text-destructive font-semibold ml-1">{error}</span>
       )}
     </>
   )

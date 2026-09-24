@@ -108,7 +108,7 @@ function DashboardPage() {
       </div>
 
       <Card className="p-5">
-        <h2 className="font-black flex items-center gap-2 mb-1">
+        <h2 className="text-lg font-bold tracking-tight flex items-center gap-2 mb-1">
           <ShieldCheck className="h-5 w-5 text-primary" />
           Shop standing
           {health ? (
@@ -153,7 +153,7 @@ function DashboardPage() {
       </Card>
 
       <Card className="p-5">
-        <h2 className="font-black flex items-center gap-2 mb-3">
+        <h2 className="text-lg font-bold tracking-tight flex items-center gap-2 mb-3">
           <Clock className="h-5 w-5 text-primary" />
           Needs your attention
         </h2>
