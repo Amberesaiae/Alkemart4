@@ -87,15 +87,15 @@ function ProductsPage() {
     switch (status) {
       case "published":
         return (
-          <Badge tone="success" emphasis="solid" size="sm">
-            <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" /> Live
-          </Badge>
+          <span className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider px-2.5 py-1 rounded-md bg-ink text-white shadow-xs">
+            <span className="h-1.5 w-1.5 rounded-full bg-current animate-pulse" /> Live
+          </span>
         )
       case "proposed":
         return (
-          <Badge tone="brand" emphasis="solid" size="sm">
+          <span className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider px-2.5 py-1 rounded-md bg-primary text-primary-foreground shadow-xs">
             <Clock className="h-3 w-3" weight="bold" /> In Review
-          </Badge>
+          </span>
         )
       case "rejected": {
         const meta = product?.metadata as Record<string, unknown> | undefined
@@ -133,11 +133,13 @@ function ProductsPage() {
       {/* ── Bespoke Page Header: High-Impact Merchant Overview ── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-border/60">
         <div>
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-black tracking-tight text-foreground">Catalog &amp; Inventory</h1>
-            <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-muted text-primary-foreground border border-primary/25">
-              {stats.total} {stats.total === 1 ? "Listing" : "Listings"}
-            </span>
+          <div className="flex items-center justify-between gap-2">
+            <div>
+              <h1 className="text-2xl font-black tracking-tight text-foreground">Catalog &amp; Inventory</h1>
+              <p className="text-sm font-bold text-muted-foreground mt-0.5">
+                {stats.total} {stats.total === 1 ? "Listing" : "Listings"}
+              </p>
+            </div>
           </div>
           <p className="text-xs text-muted-foreground mt-1 flex flex-wrap items-center gap-x-2">
             <span>{stats.totalStock.toLocaleString()} total units in stock</span>
@@ -165,10 +167,10 @@ function ProductsPage() {
         <div className="space-y-4 pt-1">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
             {[
-              { id: "all", label: "All Items", count: stats.total, dot: null },
-              { id: "published", label: "Live on Store", count: stats.published, dot: "bg-tone-success" },
-              { id: "proposed", label: "In Review", count: stats.inReview, dot: "bg-tone-brand" },
-              { id: "draft", label: "Drafts", count: stats.drafts + stats.rejected, dot: "bg-tone-neutral" },
+              { id: "all", label: "All Items", count: stats.total },
+              { id: "published", label: "Live on Store", count: stats.published },
+              { id: "proposed", label: "In Review", count: stats.inReview },
+              { id: "draft", label: "Drafts", count: stats.drafts + stats.rejected },
             ].map((tab) => {
               const isSelected = statusFilter === tab.id
               return (
@@ -176,39 +178,24 @@ function ProductsPage() {
                   key={tab.id}
                   type="button"
                   onClick={() => setStatusFilter(tab.id)}
-                  className={`group relative text-left p-4 rounded-xl border transition-colors duration-200 cursor-pointer flex flex-col justify-between gap-2 ${
+                  aria-pressed={isSelected}
+                  className={`group text-left p-4 rounded-lg border transition-colors cursor-pointer flex flex-col justify-between gap-2 ${
                     isSelected
-                      ? "bg-card border-primary ring-2 ring-primary/20 shadow-sm"
-                      : "bg-card/70 hover:bg-card border-border/80 hover:border-primary/40 hover:shadow-2xs"
+                      ? "bg-card border-foreground shadow-xs"
+                      : "bg-card/70 hover:bg-card border-border/80"
                   }`}
                 >
-                  <div className="flex items-center justify-between gap-2">
-                    <span className={`text-xs font-bold uppercase tracking-wider ${
-                      isSelected ? "text-foreground font-black" : "text-muted-foreground group-hover:text-foreground"
-                    }`}>
-                      {tab.label}
-                    </span>
-                    {tab.dot ? (
-                      <span className="flex items-center gap-1">
-                        <span className={`h-2.5 w-2.5 rounded-full ${tab.dot} ${tab.id === "published" ? "animate-pulse" : ""}`} />
-                      </span>
-                    ) : (
-                      <Package className={`h-4 w-4 ${isSelected ? "text-primary" : "text-muted-foreground/50"}`} />
-                    )}
-                  </div>
+                  <span className={`text-xs font-bold uppercase tracking-wider ${
+                    isSelected ? "text-foreground" : "text-muted-foreground group-hover:text-foreground"
+                  }`}>
+                    {tab.label}
+                  </span>
 
-                  <div className="flex items-baseline justify-between mt-1">
-                    <span className={`text-2xl sm:text-3xl font-black tabular-nums tracking-tight ${
-                      isSelected ? "text-foreground" : "text-foreground/80"
-                    }`}>
-                      {tab.count}
-                    </span>
-                    {isSelected && (
-                      <Badge tone="brand" emphasis="soft" size="sm">
-                        Selected
-                      </Badge>
-                    )}
-                  </div>
+                  <span className={`text-2xl sm:text-3xl font-black tabular-nums tracking-tight ${
+                    isSelected ? "text-foreground" : "text-foreground/80"
+                  }`}>
+                    {tab.count}
+                  </span>
                 </button>
               )
             })}
@@ -328,7 +315,7 @@ function ProductsPage() {
             return (
               <div
                 key={product.id}
-                className="group relative flex flex-col rounded-xl border border-border/80 bg-card overflow-hidden transition-colors hover:shadow-lg hover:border-primary/50"
+                className="group relative flex flex-col rounded-lg border border-border/80 bg-card overflow-hidden"
               >
                 {/* Media Showcase Frame with Status & Storefront Link */}
                 <div className="aspect-[16/10] bg-white relative overflow-hidden">
@@ -336,7 +323,7 @@ function ProductsPage() {
                     <img
                       src={product.thumbnail}
                       alt={product.title || "Product"}
-                      className="w-full h-full object-cover group- transition-transform"
+                      className="w-full h-full object-cover"
                     />
                   ) : (
                     <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground/30">
@@ -375,7 +362,7 @@ function ProductsPage() {
                 {/* Card Body */}
                 <div className="p-4 flex-1 flex flex-col justify-between gap-3">
                   <div>
-                    <h3 className="font-bold text-base text-foreground line-clamp-1 group-hover:text-primary transition-colors tracking-tight" title={product.title || "Untitled"}>
+                    <h3 className="font-bold text-base text-foreground line-clamp-1 tracking-tight" title={product.title || "Untitled"}>
                       {product.title || "Untitled"}
                     </h3>
                     <p className="text-xs text-muted-foreground font-mono mt-0.5">
@@ -395,10 +382,11 @@ function ProductsPage() {
                     <div className="text-right">
                       <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Inventory</p>
                       {stock !== null ? (
-                        <Badge tone={stock > 0 ? "success" : "danger"} emphasis="soft" size="sm">
-                          <span className="h-1.5 w-1.5 rounded-full bg-current" />
+                        <p className={`text-sm font-bold tabular-nums whitespace-nowrap ${
+                          stock > 0 ? "text-foreground" : "text-tone-danger-ink"
+                        }`}>
                           {stock > 0 ? `${stock} in stock` : "Out of stock"}
-                        </Badge>
+                        </p>
                       ) : (
                         <span className="text-xs text-muted-foreground font-medium">Standard</span>
                       )}
@@ -436,7 +424,7 @@ function ProductsPage() {
               to="/quick-sell"
               className="group relative flex flex-col items-center justify-center p-8 rounded-xl border-2 border-dashed border-border/80 hover:border-primary bg-muted/10 hover:bg-muted/20 transition-colors min-h-[320px] text-center"
             >
-              <div className="h-12 w-12 rounded-xl bg-muted text-primary flex items-center justify-center mb-3 group- transition-transform">
+              <div className="h-12 w-12 rounded-lg bg-muted text-primary flex items-center justify-center mb-3">
                 <PlusCircle className="h-6 w-6" weight="bold" />
               </div>
               <h4 className="font-bold text-sm text-foreground mb-1">Add Another Product</h4>
@@ -500,9 +488,11 @@ function ProductsPage() {
                     </TableCell>
                     <TableCell className="text-center">
                       {stock !== null ? (
-                        <Badge tone={stock > 0 ? "success" : "danger"} emphasis="soft" size="sm">
+                        <span className={`text-sm font-bold tabular-nums whitespace-nowrap ${
+                          stock > 0 ? "text-foreground" : "text-tone-danger-ink"
+                        }`}>
                           {stock > 0 ? `${stock} left` : "Out"}
-                        </Badge>
+                        </span>
                       ) : (
                         <span className="text-xs text-muted-foreground">—</span>
                       )}
