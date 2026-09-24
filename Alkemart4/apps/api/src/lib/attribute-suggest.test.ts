@@ -10,6 +10,7 @@ const def = (over: Partial<AttributeDefinitionDto>): AttributeDefinitionDto => (
   id: `d-${over.code}`, code: "x", label: "X", type: "text",
   unitFamily: null, allowedValues: null, filterable: true, searchable: false,
   required: false, variantAxis: false, visibleOnCard: false, visibleOnPdp: true,
+  scope: "profile",
   ...over,
 })
 

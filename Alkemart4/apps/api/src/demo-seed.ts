@@ -16,6 +16,8 @@ export type CatalogCategory = CategorySeedRow & {
   replacementNodeId?: string | null
   sortOrder?: number | null
   version?: number | null
+  /** Google product category ID (0034); null when unmapped. */
+  googleCategoryId?: number | null
 }
 
 export type CatalogSeller = {
@@ -120,6 +122,8 @@ export type CatalogAttributeDefinition = {
   variantAxis: boolean
   visibleOnCard: boolean
   visibleOnPdp: boolean
+  /** `universal` survives a category change; `profile` is pruned (0033). */
+  scope?: "universal" | "profile"
 }
 
 export type CatalogAttributeProfile = {

@@ -18,6 +18,8 @@ const DefinitionBody = z.object({
   variantAxis: z.boolean().optional(),
   visibleOnCard: z.boolean().optional(),
   visibleOnPdp: z.boolean().optional(),
+  /** `universal` survives a category change; `profile` is pruned (0033). */
+  scope: z.enum(["universal", "profile"]).optional(),
 })
 
 const ProfileBody = z.object({

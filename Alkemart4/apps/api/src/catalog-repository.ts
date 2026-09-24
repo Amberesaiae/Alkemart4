@@ -323,6 +323,8 @@ export type FeedProductDto = {
   sellerName: string
   deliveryFeePesewas: string
   identityConfidence: "identified" | "matched" | "seller_specific"
+  /** Merchant Center `google_product_category`; null when the node is unmapped. */
+  googleProductCategory: number | null
 }
 
 export type AddOptionValueInput = {
@@ -375,6 +377,8 @@ export type TaxonomyNodeDto = {
   isNavVisible: boolean
   attributeProfileId: string | null
   replacementNodeId: string | null
+  /** Google product category ID (0034); null when the node is unmapped. */
+  googleCategoryId: number | null
   sortOrder: number
   version: number
 }
@@ -444,6 +448,8 @@ export type AttributeDefinitionDto = {
   variantAxis: boolean
   visibleOnCard: boolean
   visibleOnPdp: boolean
+  /** `universal` survives navigation; `profile` is pruned where undeclared. */
+  scope: "universal" | "profile"
 }
 
 export type CreateAttributeDefinitionInput = {
@@ -458,6 +464,7 @@ export type CreateAttributeDefinitionInput = {
   variantAxis?: boolean
   visibleOnCard?: boolean
   visibleOnPdp?: boolean
+  scope?: "universal" | "profile"
 }
 
 export type AttributeProfileDto = {
@@ -1064,6 +1071,7 @@ function toTaxonomyNodeDto(r: CatalogSnapshot["categories"][number]): TaxonomyNo
     isAssignable: r.isAssignable ?? true,
     isNavVisible: r.isNavVisible ?? r.isNav,
     attributeProfileId: r.attributeProfileId ?? null,
+    googleCategoryId: (r as { googleCategoryId?: number | null }).googleCategoryId ?? null,
     replacementNodeId: r.replacementNodeId ?? null,
     sortOrder: r.sortOrder ?? r.rank,
     version: r.version ?? 1,
@@ -1101,6 +1109,9 @@ function toMatchCandidateDto(r: CatalogMatchCandidate): MatchCandidateDto {
 
 function definitionDto(r: CatalogAttributeDefinition): AttributeDefinitionDto {
   return {
+    // Rows written before 0033 read as `profile`, the conservative default:
+    // a wrongly-kept filter silently zeroes results.
+    scope: r.scope ?? "profile",
     id: r.id,
     code: r.code,
     label: r.label,
@@ -1690,6 +1701,9 @@ function feedRowsFrom(data: CatalogSnapshot): FeedProductDto[] {
     if (!seller) continue
     const cat = cats.get(product.primaryCategoryId)
     rows.push({
+      // Merchant Center requires this; an unmapped node omits it rather than
+      // guessing a category, which Google rejects the whole item for.
+      googleProductCategory: cat?.googleCategoryId ?? null,
       productId: product.id,
       title: product.title,
       slug: product.slug ?? null,
@@ -2671,6 +2685,7 @@ export class InMemoryCatalogRepository implements CatalogRepository {
       searchable: input.searchable ?? false,
       required: input.required ?? false,
       variantAxis: input.variantAxis ?? false,
+      scope: input.scope ?? "profile",
       visibleOnCard: input.visibleOnCard ?? false,
       visibleOnPdp: input.visibleOnPdp ?? true,
     }
@@ -3824,6 +3839,8 @@ export class PostgresCatalogRepository implements CatalogRepository {
         variantAxis: r.variantAxis,
         visibleOnCard: r.visibleOnCard,
         visibleOnPdp: r.visibleOnPdp,
+        // Column added in 0033; a database that has not run it reads `profile`.
+        scope: (r as { scope?: "universal" | "profile" }).scope ?? "profile",
       })),
       attributeProfiles: attrProfileRows.map((r) => ({
         id: r.id,
@@ -4716,6 +4733,7 @@ export class PostgresCatalogRepository implements CatalogRepository {
       isNavVisible: navVisible,
       attributeProfileId: cleanText(input.attributeProfileId),
       replacementNodeId: null,
+      googleCategoryId: null,
       sortOrder,
       version: 1,
     }
@@ -4909,6 +4927,7 @@ export class PostgresCatalogRepository implements CatalogRepository {
       searchable: input.searchable ?? false,
       required: input.required ?? false,
       variantAxis: input.variantAxis ?? false,
+      scope: input.scope ?? "profile",
       visibleOnCard: input.visibleOnCard ?? false,
       visibleOnPdp: input.visibleOnPdp ?? true,
     }

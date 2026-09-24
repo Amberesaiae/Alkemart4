@@ -42,6 +42,12 @@ export const categories = pgTable("categories", {
   replacementNodeId: text("replacement_node_id").references(
     (): AnyPgColumn => categories.id,
   ),
+  /**
+   * Google product category ID (migration 0034). Enables a valid Merchant
+   * Center feed, which is how our sellers reach Google Shopping free listings
+   * — Google as a distribution channel, never as a data source to scrape.
+   */
+  googleCategoryId: integer("google_category_id"),
   sortOrder: integer("sort_order").notNull().default(0),
   version: integer("version").notNull().default(1),
 })

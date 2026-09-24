@@ -1,6 +1,7 @@
 import { Hono } from "hono"
 import { HTTPException } from "hono/http-exception"
 import { suggestAttributes } from "../../lib/attribute-suggest"
+import { proposalsFor } from "../../lib/match-fingerprint"
 import type { WorkersAiLike } from "../../env"
 import { z } from "zod"
 import {
@@ -295,10 +296,93 @@ export const vendorProducts = new Hono<AppEnv>()
       mapCatalogWriteError(err)
     }
   })
+  /**
+   * The listing form for a category: which typed fields apply, and which are
+   * required before the product can be proposed.
+   *
+   * This is the Jumia/Jiji mechanic — the category determines the form. A
+   * category with no profile returns an empty list and the form is unchanged,
+   * which is what keeps common goods (produce, crafts, second-hand) cheap to
+   * list.
+   */
+  .get("/form-fields", async (c) => {
+    sellerIdOrThrow(c)
+    const categoryId = c.req.query("categoryId")?.trim()
+    if (!categoryId) throw new HTTPException(400, { message: "categoryId required" })
+    const repo = c.get("repo")
+    const [profiles, definitions] = await Promise.all([
+      repo.listAttributeProfiles(),
+      repo.listAttributeDefinitions(),
+    ])
+    const profile = profiles.find((p) => p.categoryId === categoryId)
+    if (!profile) return c.json({ profileId: null, fields: [] })
+    const byId = new Map(definitions.map((d) => [d.id, d]))
+    const fields = [...profile.definitions]
+      .sort((a, b) => a.position - b.position)
+      .flatMap((pd) => {
+        const def = byId.get(pd.definitionId)
+        return def ? [{ ...def, required: pd.required || def.required }] : []
+      })
+    return c.json({ profileId: profile.id, fields })
+  })
   .post("/:id/propose", async (c) => {
     const sellerId = sellerIdOrThrow(c)
-    const updated = await c.get("repo").proposeVendorProduct(sellerId, c.req.param("id"))
+    const productId = c.req.param("id")
+    const repo = c.get("repo")
+
+    // Required attributes are enforced HERE, at publish — never at draft save.
+    // A seller on bad mobile data must be able to keep a half-finished listing.
+    const owned = (await repo.listVendorProducts(sellerId)).find(
+      (p) => p.product.id === productId,
+    )
+    if (!owned) throw new HTTPException(404, { message: "product not found" })
+
+    const [profiles, definitions, values] = await Promise.all([
+      repo.listAttributeProfiles(),
+      repo.listAttributeDefinitions(),
+      repo.listProductAttributeValues(productId),
+    ])
+    const profile = profiles.find((p) => p.categoryId === owned.product.primaryCategoryId)
+    if (profile) {
+      const byId = new Map(definitions.map((d) => [d.id, d]))
+      const answered = new Set(values.map((v) => v.definitionId))
+      const missing = profile.definitions
+        .filter((pd) => (pd.required || byId.get(pd.definitionId)?.required) && !answered.has(pd.definitionId))
+        .map((pd) => byId.get(pd.definitionId)?.label ?? pd.code)
+      if (missing.length > 0) {
+        throw new HTTPException(400, {
+          message: `complete before publishing: ${missing.join(", ")}`,
+        })
+      }
+    }
+
+    const updated = await repo.proposeVendorProduct(sellerId, productId)
     if (!updated) throw new HTTPException(404, { message: "product not found" })
+
+    // Propose identity matches so this product can join a comparison cluster.
+    // Evidence only — an admin confirms; nothing merges here. Failures are
+    // swallowed: a seller's publish must never fail because matching did.
+    try {
+      const catalogue = await repo.listAdminProducts()
+      const subject = catalogue.find((x) => x.id === productId)
+      if (subject) {
+        const proposals = proposalsFor(subject, catalogue)
+        for (const proposal of proposals) {
+          await repo
+            .proposeMatchCandidate(productId, proposal.candidateId, proposal.source, proposal.evidence)
+            .catch(() => undefined)
+        }
+      }
+    } catch (err) {
+      console.error(
+        JSON.stringify({
+          route: "propose-match",
+          productId,
+          error: err instanceof Error ? err.message : String(err),
+        }),
+      )
+    }
+
     return c.json(updated)
   })
   .post("/:id/appeal", async (c) => {

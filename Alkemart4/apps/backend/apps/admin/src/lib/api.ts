@@ -449,6 +449,70 @@ export const adminTaxonomy = {
     apiFetch<{ proposals: TaxonomyProposal[]; count: number }>("/admin/taxonomy/proposals/review"),
 }
 
+
+export type AttributeType = "text" | "number" | "boolean" | "option" | "multi_option"
+
+export type AdminAttributeDefinition = {
+  id: string
+  code: string
+  label: string
+  type: AttributeType
+  unitFamily: string | null
+  allowedValues: string[] | null
+  filterable: boolean
+  searchable: boolean
+  required: boolean
+  variantAxis: boolean
+  visibleOnCard: boolean
+  visibleOnPdp: boolean
+  scope: "universal" | "profile"
+}
+
+export type AdminAttributeProfile = {
+  id: string
+  name: string
+  categoryId: string | null
+  version: number
+  definitions?: { definitionId: string; position: number; required: boolean }[]
+}
+
+/**
+ * Typed-attribute governance. Definitions describe a fact; profiles bind an
+ * ordered set of them to a category. Vendors write the values, never these.
+ */
+export const adminAttributes = {
+  definitions: () =>
+    apiFetch<{ items: AdminAttributeDefinition[] }>("/admin/attributes/definitions"),
+  createDefinition: (data: {
+    code: string
+    label: string
+    type: AttributeType
+    unitFamily?: string | null
+    allowedValues?: string[] | null
+    filterable?: boolean
+    searchable?: boolean
+    required?: boolean
+    variantAxis?: boolean
+    visibleOnCard?: boolean
+    visibleOnPdp?: boolean
+    scope?: "universal" | "profile"
+  }) =>
+    apiFetch<{ definition: AdminAttributeDefinition }>("/admin/attributes/definitions", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  profiles: () => apiFetch<{ items: AdminAttributeProfile[] }>("/admin/attributes/profiles"),
+  createProfile: (data: {
+    name: string
+    categoryId?: string | null
+    definitions: { definitionId: string; position?: number; required?: boolean }[]
+  }) =>
+    apiFetch<{ profile: AdminAttributeProfile }>("/admin/attributes/profiles", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+}
+
 // Seller queue — Workers `/admin/sellers` (+ legacy Mercur path fallback)
 export const sellerQueue = {
   list: async () => {
