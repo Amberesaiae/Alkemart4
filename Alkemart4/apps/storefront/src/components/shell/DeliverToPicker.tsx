@@ -1,4 +1,5 @@
-import { CaretDown } from "@phosphor-icons/react"
+import { useState } from "react"
+import { CaretDown, CrosshairSimple } from "@phosphor-icons/react"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,6 +13,8 @@ import {
   useDeliverToIsDetected,
 } from "@/lib/deliver-to"
 import { cn } from "@/lib/utils"
+import { locatePrecisely } from "@/lib/geo"
+import { nearestRegionByCoords } from "@alkemart/shared/ghana"
 
 /**
  * "Deliver to" — the buyer's browsing context.
@@ -31,6 +34,35 @@ import { cn } from "@/lib/utils"
 export function DeliverToPicker({ className }: { className?: string }) {
   const [area, setArea] = useDeliverTo()
   const detected = useDeliverToIsDetected()
+  const [locating, setLocating] = useState(false)
+  const [locateError, setLocateError] = useState<string | null>(null)
+
+  /**
+   * On a Ghanaian mobile network the IP often resolves to the carrier's
+   * gateway in Accra, so a buyer in Tamale is told "Greater Accra". GPS is the
+   * only thing that fixes that — but only on an explicit tap: a cold prompt
+   * gets denied and Chrome then suppresses it for good.
+   */
+  const useMyLocation = async () => {
+    setLocating(true)
+    setLocateError(null)
+    try {
+      const result = await locatePrecisely((lat, lon) => nearestRegionByCoords(lat, lon))
+      if (result.ok) {
+        setArea(result.region)
+        return
+      }
+      setLocateError(
+        result.reason === "denied"
+          ? "Permission declined — pick your area below."
+          : result.reason === "outside-ghana"
+            ? "You seem to be outside Ghana — pick an area below."
+            : "Could not read your location — pick your area below.",
+      )
+    } finally {
+      setLocating(false)
+    }
+  }
 
   return (
     <DropdownMenu>
@@ -64,6 +96,23 @@ export function DeliverToPicker({ className }: { className?: string }) {
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="max-h-80 min-w-[14rem] overflow-y-auto">
+        <DropdownMenuItem
+          onSelect={(e) => {
+            e.preventDefault()
+            void useMyLocation()
+          }}
+          className="gap-2 font-bold"
+        >
+          <CrosshairSimple size={14} weight="bold" aria-hidden />
+          {locating ? "Locating…" : "Use my location"}
+        </DropdownMenuItem>
+        {locateError ? (
+          <p role="status" className="px-2 pb-1.5 text-[11px] text-muted-foreground">
+            {locateError}
+          </p>
+        ) : null}
+        <DropdownMenuSeparator />
+
         {detected ? (
           <>
             <div className="px-2 py-1.5 text-[11px] text-muted-foreground">

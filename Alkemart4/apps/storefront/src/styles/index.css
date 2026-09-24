@@ -292,6 +292,17 @@ body {
   outline-offset: 2px;
   border-radius: 4px;
 }
+/*
+ * Scroll targets are not controls. `<main tabIndex={-1}>` exists so the skip
+ * link and route announcer can move focus there; ringing the entire content
+ * area when that happens reads as the page being selected, which is what it
+ * looked like. Interactive elements below keep their ring.
+ */
+[tabindex="-1"]:focus-visible,
+[tabindex="-1"]:focus {
+  outline: none;
+}
+
 /* Links/buttons already rounded — keep ring readable */
 a:focus-visible,
 button:focus-visible,
@@ -720,4 +731,35 @@ html {
 }
 .studio-edit [data-studio-section]:hover {
   outline-color: #febf31;
+}
+
+/* ─── Scrollbars ───
+ * The default desktop scrollbar is a wide grey slab that competes with the
+ * content beside it. Thin and low-contrast until hovered: still obviously a
+ * scrollbar, no longer the loudest thing in the column. Firefox honours
+ * scrollbar-width/color; WebKit needs the pseudo-elements.
+ */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in oklab, var(--foreground) 18%, transparent) transparent;
+}
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background-color: color-mix(in oklab, var(--foreground) 18%, transparent);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background-color: color-mix(in oklab, var(--foreground) 32%, transparent);
+}
+/* The utility that hides them entirely still wins. */
+.scrollbar-none {
+  scrollbar-width: none;
 }
