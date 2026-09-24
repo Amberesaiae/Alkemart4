@@ -6,6 +6,7 @@ import { ArrowRight, Package, TrendUp, ShoppingBag, Clock, PlusCircle, WarningCi
 import { format } from "date-fns"
 import { PageShell } from "../components/page-shell"
 import { PageHeader } from "../components/page-header"
+import { SalesBars, bucketLast7Days } from "../components/SalesBars"
 
 export const Route = createFileRoute('/')({
   component: DashboardPage,
@@ -14,15 +15,21 @@ export const Route = createFileRoute('/')({
 function DashboardPage() {
   const qc = useQueryClient()
   const { data: stats, isLoading: statsLoading, isError: statsError } = useDashboardStats()
-  const { data: recentOrders, isLoading: ordersLoading, isError: ordersError } = useOrders({ limit: 5 })
+  const { data: recentOrders, isLoading: ordersLoading, isError: ordersError } = useOrders({ limit: 100 })
   const { data: tasksData } = useTasks()
   const tasks = tasksData?.tasks ?? []
   const { data: traffic } = useShopTraffic()
   const { data: health } = useHealth()
+  const tableOrders = (recentOrders?.orders ?? []).slice(0, 5)
+  const salesWeek = bucketLast7Days(recentOrders?.orders ?? [])
+  const topProducts = traffic?.top ?? []
 
   // format currency
-  const formatGhs = (amount = 0) => 
+  const formatGhs = (amount = 0) =>
     new Intl.NumberFormat('en-GH', { style: 'currency', currency: 'GHS' }).format(amount)
+  const ordersCount = stats?.orders_count || 0
+  const gmv = stats?.gmv_ghs || 0
+  const avgOrder = ordersCount > 0 ? formatGhs(gmv / ordersCount) : "—"
 
   return (
     <PageShell>
@@ -80,31 +87,79 @@ function DashboardPage() {
       )}
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard 
-          title="Total Sales" 
-          value={statsLoading ? "" : formatGhs(stats?.gmv_ghs || 0)} 
+        <StatCard
+          title="Total Sales"
+          value={statsLoading ? "" : formatGhs(gmv)}
           icon={TrendUp}
-          highlight
+          dark
           loading={statsLoading}
         />
-        <StatCard 
-          title="Total Orders" 
-          value={statsLoading ? "" : String(stats?.orders_count || 0)} 
+        <StatCard
+          title="Total Orders"
+          value={statsLoading ? "" : String(ordersCount)}
           icon={ShoppingBag}
           loading={statsLoading}
         />
-        <StatCard 
-          title="Active Listings" 
-          value={statsLoading ? "" : String(stats?.products_count || 0)} 
+        <StatCard
+          title="Avg Order"
+          value={statsLoading ? "" : avgOrder}
+          icon={TrendUp}
+          loading={statsLoading}
+        />
+        <StatCard
+          title="Active Listings"
+          value={statsLoading ? "" : String(stats?.products_count || 0)}
           icon={Package}
           loading={statsLoading}
         />
-        <StatCard 
-          title="Pending Action" 
-          value={statsLoading ? "" : String(tasks.length || 0)}
-          icon={Clock}
-          loading={statsLoading}
-        />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <Card className="p-5 lg:col-span-2">
+          <h2 className="text-lg font-bold tracking-tight mb-1">Sales — last 7 days</h2>
+          <p className="text-xs font-medium text-muted-foreground mb-3">
+            Taller means a better day. Tap Revenue or Orders to switch.
+          </p>
+          <SalesBars days={salesWeek} caption="Buckets use Accra days from your own orders — nothing sampled, nothing guessed." />
+        </Card>
+        {topProducts.length > 0 ? (
+          <Card className="p-5">
+            <div className="flex items-center justify-between mb-1">
+              <h2 className="text-lg font-bold tracking-tight">Top products</h2>
+              <Link to="/products">
+                <Button variant="ghost" size="sm" className="gap-1 font-bold text-xs">
+                  All <ArrowRight className="h-3.5 w-3.5" />
+                </Button>
+              </Link>
+            </div>
+            <p className="text-xs font-medium text-muted-foreground mb-3">Most viewed in the last 30 days.</p>
+            <ul className="divide-y divide-border/60">
+              {topProducts.slice(0, 5).map((p) => (
+                <li key={p.productId}>
+                  <Link
+                    to="/products/$id"
+                    params={{ id: p.productId }}
+                    className="flex items-center gap-3 py-2.5"
+                  >
+                    {p.thumbnail ? (
+                      <img src={p.thumbnail} alt="" className="h-11 w-11 rounded-lg object-cover bg-muted" />
+                    ) : (
+                      <span className="h-11 w-11 rounded-lg bg-muted flex items-center justify-center">
+                        <Package className="h-5 w-5 text-muted-foreground/50" />
+                      </span>
+                    )}
+                    <span className="flex-1 min-w-0">
+                      <span className="block truncate text-sm font-bold">{p.title}</span>
+                      <span className="block text-xs font-medium text-muted-foreground tabular-nums">
+                        {p.views.toLocaleString()} views
+                      </span>
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </Card>
+        ) : null}
       </div>
 
       <Card className="p-5">
@@ -229,7 +284,7 @@ function DashboardPage() {
                         </TableCell>
                       </TableRow>
                     ))
-                  ) : !recentOrders?.orders || recentOrders.orders.length === 0 ? (
+                  ) : tableOrders.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={5} className="px-4 py-12 text-center">
                         <div className="flex flex-col items-center justify-center text-muted-foreground">
@@ -240,7 +295,7 @@ function DashboardPage() {
                       </TableCell>
                     </TableRow>
                   ) : (
-                    recentOrders.orders.map((order) => (
+                    tableOrders.map((order) => (
                       <TableRow key={order.id}>
                         <TableCell className="font-bold text-primary">
                           #{order.display_id ?? order.id.slice(-6)}
@@ -279,19 +334,19 @@ function DashboardPage() {
   )
 }
 
-function StatCard({ title, value, icon: Icon, highlight = false, loading = false }: { title: string, value: string, icon: React.ComponentType<{ className?: string }>, highlight?: boolean, loading?: boolean }) {
+function StatCard({ title, value, icon: Icon, highlight = false, dark = false, loading = false }: { title: string, value: string, icon: React.ComponentType<{ className?: string }>, highlight?: boolean, dark?: boolean, loading?: boolean }) {
   return (
     <Card className={cn(
-      "p-5 flex flex-col gap-4 border-2 transition-colors hover:shadow-md",
-      highlight ? "bg-primary text-primary-foreground border-primary" : "bg-card text-card-foreground"
+      "p-5 flex flex-col gap-4 border-2",
+      dark ? "bg-ink text-white border-ink" : highlight ? "bg-primary text-primary-foreground border-primary" : "bg-card text-card-foreground"
     )}>
       <div className="flex items-center justify-between">
-        <p className={cn("text-sm font-bold", highlight ? "text-primary-foreground/80" : "text-muted-foreground")}>{title}</p>
-        <div className={cn("p-2 rounded-lg", highlight ? "bg-black/10 text-primary-foreground" : "bg-muted text-foreground")}>
+        <p className={cn("text-sm font-bold", dark ? "text-white/70" : highlight ? "text-primary-foreground/80" : "text-muted-foreground")}>{title}</p>
+        <div className={cn("p-2 rounded-lg", dark ? "bg-white/10 text-white" : highlight ? "bg-black/10 text-primary-foreground" : "bg-muted text-foreground")}>
           <Icon className="h-5 w-5" />
         </div>
       </div>
-      <h3 className="text-2xl sm:text-3xl font-black tracking-tight">
+      <h3 className="text-2xl sm:text-3xl font-black tracking-tight tabular-nums">
         {loading ? <Skeleton className="h-8 w-20" /> : value}
       </h3>
     </Card>
