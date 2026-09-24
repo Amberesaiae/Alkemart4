@@ -166,7 +166,7 @@ function ReturnRequestPage() {
   if (orderQ.isLoading) {
     return (
       <div className="mx-auto max-w-2xl space-y-4 pb-8">
-        <Skeleton className="h-8 w-48 rounded-xl" />
+        <Skeleton className="h-8 w-48 rounded-lg" />
         <Skeleton className="h-64 w-full rounded-3xl" />
       </div>
     )
@@ -223,7 +223,7 @@ function ReturnRequestPage() {
               return (
                 <label
                   key={item.id}
-                  className={`flex items-center gap-3 rounded-2xl border p-3 cursor-pointer transition-colors ${
+                  className={`flex items-center gap-3 rounded-2xl border p-3 cursor-pointer ${
                     isSelected
                       ? "border-primary bg-muted"
                       : "border-border/80 bg-background hover:border-muted-foreground/30"
@@ -239,7 +239,7 @@ function ReturnRequestPage() {
                     <img
                       src={item.thumbnail}
                       alt=""
-                      className="h-12 w-12 shrink-0 rounded-xl border border-border object-cover bg-muted"
+                      className="h-12 w-12 shrink-0 rounded-lg border border-border object-cover bg-muted"
                     />
                   ) : null}
                   <div className="flex-1 min-w-0">
@@ -339,7 +339,7 @@ function ReturnRequestPage() {
           <Button
             type="submit"
             size="lg"
-            className="min-h-12 flex-1 rounded-xl"
+            className="min-h-12 flex-1 rounded-lg"
             disabled={!canSubmit || submitReturn.isPending}
             isLoading={submitReturn.isPending}
           >
@@ -349,7 +349,7 @@ function ReturnRequestPage() {
             asChild
             size="lg"
             variant="outline"
-            className="min-h-12 flex-1 rounded-xl"
+            className="min-h-12 flex-1 rounded-lg"
           >
             <Link to="/order/$id" params={{ id }}>Cancel</Link>
           </Button>

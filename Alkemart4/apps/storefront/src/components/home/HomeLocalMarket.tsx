@@ -4,7 +4,7 @@ import { ArrowRight, MapPin, Storefront } from "@phosphor-icons/react";
 export function HomeLocalMarket() {
   return (
     <section
-      className="relative isolate overflow-hidden rounded-xl bg-primary text-primary-foreground"
+      className="relative isolate overflow-hidden rounded-lg bg-primary text-primary-foreground"
       aria-labelledby="local-market-title"
     >
       <div
@@ -55,7 +55,7 @@ export function HomeLocalMarket() {
             className="absolute inset-y-0 left-0 w-28 bg-gradient-to-r from-primary to-transparent"
             aria-hidden="true"
           />
-          <div className="absolute bottom-6 left-6 right-6 flex items-end justify-between gap-4 rounded-xl bg-foreground/90 p-4 text-background backdrop-blur-sm sm:left-auto sm:max-w-xs">
+          <div className="absolute bottom-6 left-6 right-6 flex items-end justify-between gap-4 rounded-lg bg-foreground/90 p-4 text-background backdrop-blur-sm sm:left-auto sm:max-w-xs">
             <div>
               <p className="text-[0.65rem] font-black uppercase tracking-[0.18em] text-primary">
                 Seller spotlight

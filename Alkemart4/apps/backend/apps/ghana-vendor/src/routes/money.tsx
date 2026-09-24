@@ -40,7 +40,7 @@ function MoneyPage() {
         <Button
           variant="outline"
           size="sm"
-          className="rounded-xl shrink-0"
+          className="rounded-lg shrink-0"
           disabled={isFetching}
           onClick={() => { void refetch() }}
         >
@@ -49,8 +49,8 @@ function MoneyPage() {
       </div>
       {isLoading ? (
         <div className="space-y-3" role="status" aria-label="Loading money">
-          <Skeleton className="h-24 w-full rounded-xl" />
-          <Skeleton className="h-64 w-full rounded-xl" />
+          <Skeleton className="h-24 w-full rounded-lg" />
+          <Skeleton className="h-64 w-full rounded-lg" />
         </div>
       ) : null}
       {isError ? (

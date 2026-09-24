@@ -69,7 +69,7 @@ export function DraftPreview({ sections, selectedId, issues, showHidden, feature
 }) {
   if (!sections.length) {
     return (
-      <div className="rounded-xl border border-dashed border-border bg-white p-4">
+      <div className="rounded-lg border border-dashed border-border bg-white p-4">
         <EmptyState
           title="Empty homepage"
           description="Add sections from the library. The storefront falls back to the default category mosaic until managed content is published."
@@ -92,12 +92,12 @@ export function DraftPreview({ sections, selectedId, issues, showHidden, feature
             <article
               aria-label={`${name}, ${sectionLabels[section.type]}, layer ${index + 1} of ${sections.length}${live ? "" : ", hidden from buyers"}${errorCount ? `, ${errorCount} problems to fix` : ""}`}
               className={cn(
-                "group overflow-hidden rounded-xl border bg-white transition-shadow",
+                "group overflow-hidden rounded-lg border bg-white",
                 errorCount
                   ? "border-destructive"
                   : isSelected
                     ? "border-primary shadow-md"
-                    : "border-border shadow-xs hover:border-foreground/30 hover:shadow-sm",
+                    : "border-border shadow-xs hover:border-foreground/30",
               )}
             >
               <div className="flex items-center gap-2 border-b border-border/70 px-2.5 py-1.5">
@@ -121,7 +121,7 @@ export function DraftPreview({ sections, selectedId, issues, showHidden, feature
                     {errorCount} to fix
                   </Badge>
                 ) : null}
-                <span className="flex shrink-0 items-center transition-opacity focus-within:opacity-100 lg:opacity-0 lg:group-hover:opacity-100 lg:group-focus-within:opacity-100" role="group" aria-label={`Stack ${name}`}>
+                <span className="flex shrink-0 items-center focus-within:opacity-100 lg:opacity-0 lg:group-hover:opacity-100 lg:group-focus-within:opacity-100" role="group" aria-label={`Stack ${name}`}>
                   <Button
                     type="button"
                     variant="ghost"
@@ -214,7 +214,7 @@ function InsertGap({ index, last, name, onAdd }: { index: number; last?: boolean
         onClick={onAdd}
         aria-label={last ? "Add section at the end" : `Insert section before ${name ?? `position ${index + 1}`}`}
         title={last ? "Add section at the end" : "Insert section here"}
-        className="relative h-6 gap-1 rounded-full bg-white px-2.5 text-[11px] shadow-xs transition-opacity focus-visible:opacity-100 lg:opacity-0 lg:group-hover/gap:opacity-100 lg:group-focus-within/gap:opacity-100 [@media(hover:none)]:opacity-100"
+        className="relative h-6 gap-1 rounded-full bg-white px-2.5 text-[11px] shadow-xs focus-visible:opacity-100 lg:opacity-0 lg:group-hover/gap:opacity-100 lg:group-focus-within/gap:opacity-100 [@media(hover:none)]:opacity-100"
       >
         <Plus className="h-3 w-3" aria-hidden="true" />
         {last ? "Add" : null}
@@ -313,7 +313,7 @@ function StudioShelf({ section, categories, featured }: {
         <h2 className="px-1 text-xl font-extrabold tracking-tight">{title}</h2>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {Array.from({ length: Math.min(section.limit, 4) }).map((_, index) => (
-            <Skeleton key={index} className="aspect-[3/4] rounded-xl bg-tone-neutral-soft" />
+            <Skeleton key={index} className="aspect-[3/4] rounded-lg bg-tone-neutral-soft" />
           ))}
         </div>
       </section>
@@ -402,7 +402,7 @@ function StudioDealRail({ section, categories, featured }: {
       return (
         <MerchDealRail title={section.title} subtitle={section.subtitle} eyebrow={section.eyebrow} countdownTo={section.countdownTo}>
           {Array.from({ length: Math.min(section.limit, 4) }).map((_, index) => (
-            <Skeleton key={index} className="aspect-[3/4] w-44 shrink-0 rounded-xl bg-tone-neutral-soft sm:w-56" />
+            <Skeleton key={index} className="aspect-[3/4] w-44 shrink-0 rounded-lg bg-tone-neutral-soft sm:w-56" />
           ))}
         </MerchDealRail>
       )
@@ -511,7 +511,7 @@ function StudioStoreRail({ section }: { section: Extract<HomeSection, { type: "s
         <h2 className="px-1 text-xl font-extrabold tracking-tight">{section.title}</h2>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {Array.from({ length: Math.min(section.limit, 4) }).map((_, index) => (
-            <Skeleton key={index} className="aspect-[4/3] rounded-xl bg-tone-neutral-soft" />
+            <Skeleton key={index} className="aspect-[4/3] rounded-lg bg-tone-neutral-soft" />
           ))}
         </div>
       </section>

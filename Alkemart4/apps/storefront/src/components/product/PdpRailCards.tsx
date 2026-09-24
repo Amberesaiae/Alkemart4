@@ -48,7 +48,7 @@ function CardShell({
   return (
     <section
       aria-label={label}
-      className="space-y-3 rounded-xl border border-border/80 bg-card p-4 shadow-2xs"
+      className="space-y-3 rounded-lg border border-border/80 bg-card p-4 shadow-2xs"
     >
       <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
         {title}

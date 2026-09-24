@@ -82,7 +82,7 @@ function NavItem({ href, label, icon: Icon, collapsed, isActive }: {
     <Link
       to={href}
       className={cn(
-        "flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-colors",
+        "flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-bold",
         collapsed && "justify-center px-2",
         isActive
           ? "bg-primary text-primary-foreground shadow-md"
@@ -104,7 +104,7 @@ export function Sidebar() {
 
   return (
     <aside aria-label="Sidebar" className={cn(
-      "bg-black text-white flex flex-col h-screen sticky top-0 border-r border-white/10 shrink-0 transition-colors duration-200",
+      "bg-black text-white flex flex-col h-screen sticky top-0 border-r border-white/10 shrink-0",
       collapsed ? "w-16" : "w-64"
     )}>
       <div className={cn(
@@ -120,7 +120,7 @@ export function Sidebar() {
         )}
         <button
           onClick={() => setCollapsed(c => !c)}
-          className="rounded-md p-1 text-white/70 hover:text-white hover:bg-white/10 transition-colors"
+          className="rounded-md p-1 text-white/70 hover:text-white hover:bg-white/10"
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           aria-expanded={!collapsed}
         >
@@ -162,7 +162,7 @@ export function Sidebar() {
           onClick={() => logout()}
           disabled={isLoggingOut}
           className={cn(
-            "flex items-center gap-3 w-full px-4 py-3 rounded-xl text-sm font-bold transition-colors",
+            "flex items-center gap-3 w-full px-4 py-3 rounded-lg text-sm font-bold",
             collapsed ? "justify-center px-2" : "",
             "text-white/70 hover:bg-white/10 hover:text-white",
             isLoggingOut && "opacity-50 cursor-not-allowed"

@@ -150,7 +150,7 @@ function HelpPage() {
         ) : null}
         <Link
           to="/"
-          className="rounded-xl border border-border bg-card px-4 py-3 text-sm font-semibold hover:border-primary/40"
+          className="rounded-lg border border-border bg-card px-4 py-3 text-sm font-semibold hover:border-primary/40"
         >
           ← Shop
         </Link>
@@ -169,7 +169,7 @@ function QuickLink({
   return (
     <Link
       to={to}
-      className="rounded-xl border border-border bg-card px-4 py-3 text-sm font-semibold hover:border-primary/40"
+      className="rounded-lg border border-border bg-card px-4 py-3 text-sm font-semibold hover:border-primary/40"
     >
       {label} →
     </Link>
@@ -184,7 +184,7 @@ function HelpHighlight(props: {
   return (
     <li className="rounded-2xl border border-border bg-card p-4 text-center shadow-sm">
       <div className="mb-2 flex justify-center">
-        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-muted">
+        <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-muted">
           <IconSafe name={props.icon} size={28} />
         </div>
       </div>

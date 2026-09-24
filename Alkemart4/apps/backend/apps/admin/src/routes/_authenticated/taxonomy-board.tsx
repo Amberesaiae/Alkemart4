@@ -63,7 +63,7 @@ export function WorkersTaxonomyPage() {
         </Button>
       </div>
 
-      <section aria-label="Taxonomy proposals" className="border rounded-xl bg-card p-5 mb-6">
+      <section aria-label="Taxonomy proposals" className="border rounded-lg bg-card p-5 mb-6">
         <h2 className="font-semibold text-lg">Proposals awaiting review</h2>
         <p className="text-sm text-muted-foreground mt-1">
           Evidence only — nothing auto-applies. Act with New Category or Deprecate below.
@@ -95,7 +95,7 @@ export function WorkersTaxonomyPage() {
         </div>
       </section>
 
-      <div className="border rounded-xl bg-card">
+      <div className="border rounded-lg bg-card">
         <Table label="Taxonomy nodes">
           <caption className="sr-only">Taxonomy nodes list</caption>
           <TableHeader>

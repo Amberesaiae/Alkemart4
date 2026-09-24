@@ -34,7 +34,7 @@ function InlineDialog({
   children?: React.ReactNode
 }) {
   return (
-    <div className="mt-4 p-4 rounded-xl border border-border bg-muted/30 space-y-3">
+    <div className="mt-4 p-4 rounded-lg border border-border bg-muted/30 space-y-3">
       <div>
         <p className="font-bold text-sm">{title}</p>
         {description && <p className="text-xs text-muted-foreground mt-0.5">{description}</p>}
@@ -153,7 +153,7 @@ function ReturnsPage() {
           <button
             key={tab.id}
             onClick={() => setFilter(tab.id)}
-            className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors border ${
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap border ${
               filter === tab.id
                 ? "bg-primary text-primary-foreground border-primary shadow-2xs"
                 : "bg-card text-muted-foreground border-border/60 hover:border-primary/40 hover:bg-accent hover:text-accent-foreground"
@@ -167,7 +167,7 @@ function ReturnsPage() {
       {isLoading ? (
         <div className="space-y-4">
           {Array.from({ length: 3 }).map((_, i) => (
-            <Skeleton key={i} className="h-32 w-full rounded-xl" />
+            <Skeleton key={i} className="h-32 w-full rounded-lg" />
           ))}
         </div>
       ) : isError ? (

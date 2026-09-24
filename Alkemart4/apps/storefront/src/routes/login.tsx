@@ -238,7 +238,7 @@ function SignInPage() {
               />
               {auth.isError ? (
                 <div
-                  className="flex items-start gap-2.5 rounded-xl border border-destructive/20 bg-destructive/10 p-3 text-sm"
+                  className="flex items-start gap-2.5 rounded-lg border border-destructive/20 bg-destructive/10 p-3 text-sm"
                   role="alert"
                 >
                   <WarningCircle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" aria-hidden />

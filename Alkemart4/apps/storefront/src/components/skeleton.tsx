@@ -13,12 +13,13 @@ import { PRODUCT_GRID_CLASS } from "@/components/product-grid"
  *
  * Geometry matters more than colour: every skeleton here mirrors the real
  * component's boxes (2-line title, seller line, price line, rating line), so
- * nothing jumps when the data lands.
+ * nothing jumps when the data lands. Placeholders are still blocks — never
+ * animated (e-commerce is read, not watched).
  */
 export function Skeleton({ className }: { className?: string }) {
   return (
     <div
-      className={cn("animate-pulse rounded-md bg-black/[0.055] dark:bg-white/[0.08]", className)}
+      className={cn("rounded-md bg-black/[0.055] dark:bg-white/[0.08]", className)}
       aria-hidden
     />
   )
@@ -41,7 +42,7 @@ const cardShell = "overflow-hidden rounded-lg border border-border bg-card shado
 export function ProductCardSkeleton({ className }: { className?: string }) {
   return (
     <div className={cn("flex h-full w-full flex-col text-left", className)} aria-hidden>
-      <Shimmer className="aspect-square w-full shrink-0 rounded-xl bg-muted/20 dark:bg-muted/40" />
+      <Shimmer className="aspect-square w-full shrink-0 rounded-lg bg-muted/20 dark:bg-muted/40" />
       <div className="flex flex-1 flex-col pt-2.5 pb-1 gap-1.5 min-w-0">
         <Shimmer className="h-4 sm:h-5 w-3/4 rounded-md" />
         <Shimmer className="h-4 sm:h-5 w-1/2 rounded-md" />
@@ -104,7 +105,7 @@ export function ShelfSkeleton({
 export function StoreCardSkeleton({ className }: { className?: string }) {
   return (
     <div className={cn("flex flex-col text-left", className)} aria-hidden>
-      <Shimmer className="aspect-[16/10] w-full rounded-xl bg-muted/20 dark:bg-muted/40" />
+      <Shimmer className="aspect-[16/10] w-full rounded-lg bg-muted/20 dark:bg-muted/40" />
       <div className="flex flex-col gap-1.5 pt-2.5">
         <div className="flex items-center justify-between">
           <Shimmer className="h-4 sm:h-5 w-3/5 rounded-md" />
@@ -146,7 +147,7 @@ export function DealTabsSkeleton({ count = 6, className }: { count?: number; cla
       {Array.from({ length: count }).map((_, i) => (
         <div
           key={i}
-          className="flex shrink-0 flex-col items-center gap-2 rounded-xl border border-border/60 bg-card px-4 py-2.5 sm:min-w-24"
+          className="flex shrink-0 flex-col items-center gap-2 rounded-lg border border-border/60 bg-card px-4 py-2.5 sm:min-w-24"
         >
           <Skeleton className="h-6 w-6 rounded-md" />
           <Skeleton className="h-3 w-14 rounded-md" />

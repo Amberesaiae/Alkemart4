@@ -31,7 +31,7 @@ export function HomeAdvertiseBand({
   return (
     <section
       className={cn(
-        "home-band home-band-primary relative overflow-hidden rounded-xl px-4 py-5 sm:px-6 sm:py-5",
+        "home-band home-band-primary relative overflow-hidden rounded-lg px-4 py-5 sm:px-6 sm:py-5",
         className,
       )}
       aria-labelledby="advertise-band-title"

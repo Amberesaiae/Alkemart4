@@ -57,7 +57,7 @@ function GuidesPage() {
               <Link
                 to="/guides/$slug"
                 params={{ slug: g.slug }}
-                className="block h-full rounded-2xl border border-border bg-card p-5 transition-colors hover:border-primary/60"
+                className="block h-full rounded-2xl border border-border bg-card p-5 hover:border-primary/60"
               >
                 <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
                   Guide · By {g.author}

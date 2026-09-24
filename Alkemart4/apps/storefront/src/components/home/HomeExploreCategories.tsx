@@ -15,7 +15,7 @@ export function HomeExploreCategories({
   return (
     <section
       aria-labelledby="explore-categories-title"
-      className="overflow-hidden rounded-xl bg-foreground text-background"
+      className="overflow-hidden rounded-lg bg-foreground text-background"
     >
       <div className="grid lg:grid-cols-[0.72fr_1.28fr]">
         <div className="flex flex-col justify-between border-b border-background/15 p-6 sm:p-8 lg:min-h-80 lg:border-b-0 lg:border-r">
@@ -41,7 +41,7 @@ export function HomeExploreCategories({
               key={category.id}
               to="/categories/$slug"
               params={{ slug: category.handle || category.id }}
-              className={`group flex min-h-28 items-center gap-4 border-b border-background/15 p-5 transition-colors hover:bg-background hover:text-foreground ${index % 2 === 0 ? "sm:border-r" : ""} ${index >= 4 ? "sm:border-b-0" : ""}`}
+              className={`group flex min-h-28 items-center gap-4 border-b border-background/15 p-5 hover:bg-background hover:text-foreground ${index % 2 === 0 ? "sm:border-r" : ""} ${index >= 4 ? "sm:border-b-0" : ""}`}
             >
               <span className="font-mono text-xs text-primary">
                 0{index + 1}
@@ -57,7 +57,7 @@ export function HomeExploreCategories({
                 {category.name}
               </span>
               <ArrowUpRight
-                className="shrink-0 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
+                className="shrink-0 group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
                 size={19}
                 weight="bold"
               />

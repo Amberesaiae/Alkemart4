@@ -36,7 +36,7 @@ function DashboardPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <PageHeader title="Overview" description="Here's what's happening at your stall today." />
         <Link to="/quick-sell">
-            <Button size="lg" className="w-full sm:w-auto gap-2 shadow-lg transition-transform">
+            <Button size="lg" className="w-full sm:w-auto gap-2 shadow-lg">
             <PlusCircle className="h-5 w-5" />
             Quick Sell
           </Button>
@@ -120,7 +120,7 @@ function DashboardPage() {
           <p className="text-xs font-medium text-muted-foreground mb-3">
             Taller means a better day. Tap Revenue or Orders to switch.
           </p>
-          <SalesBars days={salesWeek} caption="Buckets use Accra days from your own orders — nothing sampled, nothing guessed." />
+          <SalesBars days={salesWeek} caption="Buckets use Accra days from your own orders — nothing sampled, nothing guessed." loading={ordersLoading} />
         </Card>
         {topProducts.length > 0 ? (
           <Card className="p-5">
@@ -190,7 +190,7 @@ function DashboardPage() {
               <li key={h.key}>
                 <a
                   href={h.href}
-                  className="flex items-center gap-3 p-3 rounded-xl border hover:bg-muted/50 transition-colors"
+                  className="flex items-center gap-3 p-3 rounded-lg border hover:bg-muted/50"
                 >
                   <WarningCircle
                     className={`h-5 w-5 shrink-0 ${h.state === "blocked" ? "text-destructive" : "text-warning-fg"}`}
@@ -222,7 +222,7 @@ function DashboardPage() {
               <li key={t.kind}>
                 <a
                   href={t.href}
-                  className="flex items-center gap-3 p-3 rounded-xl border hover:bg-muted/50 transition-colors"
+                  className="flex items-center gap-3 p-3 rounded-lg border hover:bg-muted/50"
                 >
                   <WarningCircle className="h-5 w-5 text-warning-fg shrink-0" />
                   <span className="flex-1 min-w-0">
@@ -346,7 +346,7 @@ function StatCard({ title, value, icon: Icon, highlight = false, dark = false, l
           <Icon className="h-5 w-5" />
         </div>
       </div>
-      <h3 className="text-2xl sm:text-3xl font-black tracking-tight tabular-nums">
+      <h3 className="text-xl sm:text-2xl font-black tracking-tight tabular-nums leading-tight break-words">
         {loading ? <Skeleton className="h-8 w-20" /> : value}
       </h3>
     </Card>

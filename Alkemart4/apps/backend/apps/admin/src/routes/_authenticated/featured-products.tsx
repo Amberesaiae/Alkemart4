@@ -82,7 +82,7 @@ function FeaturedProductsPage() {
         </div>
       </div>
 
-      <div className="border rounded-xl bg-card">
+      <div className="border rounded-lg bg-card">
         <Table label="Featured products">
           <caption className="sr-only">Featured products list</caption>
           <TableHeader>

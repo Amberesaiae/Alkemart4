@@ -70,7 +70,7 @@ function ReviewsPage() {
     <PageShell>
       <PageHeader title="Reviews" description="Buyer reviews awaiting moderation. Publish to show them, hide to suppress." />
 
-      <div className="border rounded-xl bg-card">
+      <div className="border rounded-lg bg-card">
         <Table label="Pending reviews">
           <caption className="sr-only">Reviews awaiting moderation</caption>
           <TableHeader>
@@ -127,7 +127,7 @@ function ReviewsPage() {
         {target && (
           <div className="space-y-4">
             <h3 className="text-lg font-semibold">Moderate review</h3>
-            <div className="rounded-xl border p-4 space-y-2 bg-muted/30">
+            <div className="rounded-lg border p-4 space-y-2 bg-muted/30">
               <Stars rating={target.rating} />
               {target.title && <p className="font-bold">{target.title}</p>}
               <p className="text-sm">{target.body}</p>

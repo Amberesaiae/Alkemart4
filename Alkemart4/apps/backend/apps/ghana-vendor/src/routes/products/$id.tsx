@@ -326,8 +326,8 @@ function ProductDetailPage() {
         <div className="space-y-6">
           <Skeleton className="h-8 w-48 rounded-lg" />
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            <Skeleton className="lg:col-span-4 h-80 rounded-xl" />
-            <Skeleton className="lg:col-span-8 h-96 rounded-xl" />
+            <Skeleton className="lg:col-span-4 h-80 rounded-lg" />
+            <Skeleton className="lg:col-span-8 h-96 rounded-lg" />
           </div>
         </div>
       </PageShell>
@@ -337,7 +337,7 @@ function ProductDetailPage() {
   if (isError || !product) {
     return (
       <PageShell>
-        <Card className="p-12 text-center max-w-lg mx-auto shadow-xs rounded-xl">
+        <Card className="p-12 text-center max-w-lg mx-auto shadow-xs rounded-lg">
           <WarningCircle className="h-12 w-12 mx-auto mb-3 text-destructive" />
           <h2 className="text-xl font-bold mb-1">Product not found</h2>
           <p className="text-muted-foreground text-sm mb-6">
@@ -363,13 +363,13 @@ function ProductDetailPage() {
             variant="outline"
             size="sm"
             onClick={() => navigate({ to: "/products" })}
-            className="h-8 px-2.5 rounded-xl border-border/80 text-xs font-semibold gap-1.5 hover:bg-muted shrink-0"
+            className="h-8 px-2.5 rounded-lg border-border/80 text-xs font-semibold gap-1.5 hover:bg-muted shrink-0"
             aria-label="Back to products"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
           </Button>
           {displayImage ? (
-            <img src={displayImage} alt="" className="h-11 w-11 rounded-xl object-cover border border-border/60 shrink-0" />
+            <img src={displayImage} alt="" className="h-11 w-11 rounded-lg object-cover border border-border/60 shrink-0" />
           ) : null}
           <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
@@ -416,7 +416,7 @@ function ProductDetailPage() {
                   <Trash className="h-4 w-4" />
                 </Button>
               ) : product.status !== "published" ? (
-                <div className="flex gap-1.5 items-center bg-destructive/10 border border-destructive/30 p-1 rounded-xl">
+                <div className="flex gap-1.5 items-center bg-destructive/10 border border-destructive/30 p-1 rounded-lg">
                   <span className="text-xs text-destructive font-bold px-1">Delete?</span>
                   <Button onClick={handleDelete} size="sm" variant="destructive" isLoading={del.isPending} className="h-7 text-xs">
                     Confirm
@@ -435,7 +435,7 @@ function ProductDetailPage() {
 
       {/* Moderation alerts */}
       {rejectionReason && (
-        <div className="p-4 bg-destructive/10 border-2 border-destructive/30 rounded-xl">
+        <div className="p-4 bg-destructive/10 border-2 border-destructive/30 rounded-lg">
           <div className="flex items-start gap-3">
             <WarningCircle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
             <div className="flex-1">
@@ -476,7 +476,7 @@ function ProductDetailPage() {
       )}
 
       {changesRequestedReason && !rejectionReason && (
-        <div className="p-4 bg-warning/10 border border-warning/30 rounded-xl">
+        <div className="p-4 bg-warning/10 border border-warning/30 rounded-lg">
           <div className="flex items-start gap-3">
             <Clock className="h-5 w-5 text-warning-fg shrink-0 mt-0.5" />
             <div>
@@ -488,18 +488,18 @@ function ProductDetailPage() {
       )}
 
       <Tabs defaultValue="overview" className="space-y-4">
-        <TabsList className="w-full justify-start overflow-x-auto rounded-xl [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          <TabsTrigger value="overview" className="gap-1.5 rounded-xl">
+        <TabsList className="w-full justify-start overflow-x-auto rounded-lg [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <TabsTrigger value="overview" className="gap-1.5 rounded-lg">
             <Package className="h-4 w-4" /> Overview
           </TabsTrigger>
-          <TabsTrigger value="media" className="gap-1.5 rounded-xl">
+          <TabsTrigger value="media" className="gap-1.5 rounded-lg">
             <UploadSimple className="h-4 w-4" /> Photo
           </TabsTrigger>
-          <TabsTrigger value="pricing" className="gap-1.5 rounded-xl">
+          <TabsTrigger value="pricing" className="gap-1.5 rounded-lg">
             <CurrencyCircleDollar className="h-4 w-4" /> Price &amp; stock
           </TabsTrigger>
           {!editing && hasOptions ? (
-            <TabsTrigger value="variants" className="gap-1.5 rounded-xl">
+            <TabsTrigger value="variants" className="gap-1.5 rounded-lg">
               <Tag className="h-4 w-4" /> Combinations
             </TabsTrigger>
           ) : null}
@@ -507,7 +507,7 @@ function ProductDetailPage() {
 
         <TabsContent value="overview">
           {editing ? (
-            <Card className="p-6 space-y-5 border border-border/80 shadow-xs rounded-xl bg-card">
+            <Card className="p-6 space-y-5 border border-border/80 shadow-xs rounded-lg bg-card">
               <div className="space-y-2">
                 <Label htmlFor="edit-title" className="text-sm font-semibold">
                   Title <span className="text-xs font-normal text-muted-foreground">({form.title.length}/120)</span>
@@ -612,7 +612,7 @@ function ProductDetailPage() {
               </div>
             </Card>
           ) : (
-            <Card className="p-6 space-y-4 border border-border/80 shadow-xs rounded-xl bg-card">
+            <Card className="p-6 space-y-4 border border-border/80 shadow-xs rounded-lg bg-card">
               <p className="text-sm text-foreground/90 whitespace-pre-wrap leading-relaxed">
                 {product.description || "No description yet — add one so shoppers know what they're buying."}
               </p>
@@ -653,7 +653,7 @@ function ProductDetailPage() {
         </TabsContent>
 
         <TabsContent value="media">
-          <Card className="overflow-hidden border border-border/80 shadow-xs rounded-xl bg-card">
+          <Card className="overflow-hidden border border-border/80 shadow-xs rounded-lg bg-card">
             <div className="aspect-video bg-muted/40 relative overflow-hidden flex items-center justify-center">
               {displayImage ? (
                 <img
@@ -734,7 +734,7 @@ function ProductDetailPage() {
                   href={`${storefrontBase()}/products/${product.handle}`}
                   target="_blank"
                   rel="noreferrer"
-                  className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl border border-border/70 bg-background text-xs font-bold text-foreground hover:text-primary hover:border-primary/50 shadow-2xs transition"
+                  className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg border border-border/70 bg-background text-xs font-bold text-foreground hover:text-primary hover:border-primary/50 shadow-2xs transition"
                 >
                   <ArrowSquareOut className="h-3.5 w-3.5 text-primary" /> View on live store
                 </a>
@@ -745,7 +745,7 @@ function ProductDetailPage() {
 
         <TabsContent value="pricing">
           {editing && !hasOptions ? (
-            <Card className="p-6 space-y-5 border border-border/80 shadow-xs rounded-xl bg-card">
+            <Card className="p-6 space-y-5 border border-border/80 shadow-xs rounded-lg bg-card">
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="edit-price" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
@@ -761,7 +761,7 @@ function ProductDetailPage() {
                       step="0.01"
                       min="0"
                       placeholder="0.00"
-                      className="pl-14 h-11 text-base font-bold bg-background rounded-xl"
+                      className="pl-14 h-11 text-base font-bold bg-background rounded-lg"
                       value={form.priceGhs}
                       onChange={e => setForm(p => ({ ...p, priceGhs: e.target.value }))}
                     />
@@ -777,7 +777,7 @@ function ProductDetailPage() {
                     step="1"
                     min="0"
                     placeholder="0"
-                    className="h-11 text-base font-bold bg-background rounded-xl"
+                    className="h-11 text-base font-bold bg-background rounded-lg"
                     value={form.stockQty}
                     onChange={e => setForm(p => ({ ...p, stockQty: e.target.value }))}
                   />
@@ -788,7 +788,7 @@ function ProductDetailPage() {
                 const s = parseInt(form.stockQty, 10) || 0
                 if (p > 0 && s > 0) {
                   return (
-                    <p className="flex items-center justify-between p-3.5 rounded-xl bg-muted border border-primary/25 text-xs font-semibold">
+                    <p className="flex items-center justify-between p-3.5 rounded-lg bg-muted border border-primary/25 text-xs font-semibold">
                       Stock value
                       <span className="font-black text-sm tabular-nums">
                         GH₵ {(p * s).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -800,13 +800,13 @@ function ProductDetailPage() {
               })()}
             </Card>
           ) : editing ? (
-            <Card className="p-6 border border-border/80 shadow-xs rounded-xl bg-card">
+            <Card className="p-6 border border-border/80 shadow-xs rounded-lg bg-card">
               <p className="text-sm text-muted-foreground">
                 Price &amp; stock live on each combination — finish content edits here, then adjust them under <strong>Combinations</strong>.
               </p>
             </Card>
           ) : !quickOfferOpen ? (
-            <Card className="p-6 space-y-4 border border-border/80 shadow-xs rounded-xl bg-card">
+            <Card className="p-6 space-y-4 border border-border/80 shadow-xs rounded-lg bg-card">
               <div className="flex items-center justify-between">
                 <div className="flex items-baseline gap-3">
                   <p className="text-3xl font-black text-foreground tabular-nums tracking-tight">
@@ -828,7 +828,7 @@ function ProductDetailPage() {
                     }}
                     variant="outline"
                     size="sm"
-                    className="gap-1.5 text-xs font-bold rounded-xl"
+                    className="gap-1.5 text-xs font-bold rounded-lg"
                   >
                     <PencilSimple className="h-3.5 w-3.5 text-primary" /> Adjust
                   </Button>
@@ -844,7 +844,7 @@ function ProductDetailPage() {
               ) : null}
             </Card>
           ) : (
-            <Card className="p-6 space-y-4 border border-border/80 shadow-xs rounded-xl bg-card">
+            <Card className="p-6 space-y-4 border border-border/80 shadow-xs rounded-lg bg-card">
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-1.5">
                   <Label htmlFor="quick-price" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
@@ -859,7 +859,7 @@ function ProductDetailPage() {
                       type="number"
                       step="0.01"
                       min="0"
-                      className="pl-14 h-11 text-base font-bold bg-background rounded-xl"
+                      className="pl-14 h-11 text-base font-bold bg-background rounded-lg"
                       value={quickPrice}
                       onChange={e => setQuickPrice(e.target.value)}
                     />
@@ -874,7 +874,7 @@ function ProductDetailPage() {
                     type="number"
                     step="1"
                     min="0"
-                    className="h-11 text-base font-bold bg-background rounded-xl"
+                    className="h-11 text-base font-bold bg-background rounded-lg"
                     value={quickStock}
                     onChange={e => setQuickStock(e.target.value)}
                   />
@@ -885,11 +885,11 @@ function ProductDetailPage() {
                   onClick={() => { void handleSaveQuickOffers() }}
                   isLoading={savingQuickOffers}
                   size="sm"
-                  className="gap-1.5 font-bold rounded-xl"
+                  className="gap-1.5 font-bold rounded-lg"
                 >
                   <FloppyDisk className="h-3.5 w-3.5" /> Save
                 </Button>
-                <Button onClick={() => setQuickOfferOpen(false)} variant="outline" size="sm" className="rounded-xl">
+                <Button onClick={() => setQuickOfferOpen(false)} variant="outline" size="sm" className="rounded-lg">
                   Cancel
                 </Button>
               </div>
@@ -907,10 +907,10 @@ function ProductDetailPage() {
       {editing ? (
         <div className="sticky bottom-0 z-20 -mx-4 border-t border-border/60 bg-background/95 px-4 py-3 backdrop-blur sm:-mx-6 sm:px-6">
           <div className="flex items-center justify-end gap-2">
-            <Button onClick={() => setEditing(false)} variant="outline" size="sm" className="rounded-xl">
+            <Button onClick={() => setEditing(false)} variant="outline" size="sm" className="rounded-lg">
               Cancel
             </Button>
-            <Button onClick={handleSave} isLoading={update.isPending} size="sm" className="gap-1.5 font-bold shadow-xs rounded-xl">
+            <Button onClick={handleSave} isLoading={update.isPending} size="sm" className="gap-1.5 font-bold shadow-xs rounded-lg">
               <FloppyDisk className="h-4 w-4" /> Save changes
             </Button>
           </div>
@@ -1113,7 +1113,7 @@ function VariantsSection({ productId }: { productId: string }) {
   }
 
   return (
-    <Card className="p-6 space-y-5 border border-border/80 shadow-xs rounded-xl bg-card">
+    <Card className="p-6 space-y-5 border border-border/80 shadow-xs rounded-lg bg-card">
       <div className="flex items-center justify-between border-b border-border/60 pb-3">
         <div>
           <h2 className="font-bold text-base text-foreground flex items-center gap-2">
@@ -1138,7 +1138,7 @@ function VariantsSection({ productId }: { productId: string }) {
             return (
               <li
                 key={combo.variantId}
-                className={"rounded-xl border p-4 space-y-3 " + (combo.active ? "border-border/60 bg-muted/20" : "border-dashed border-border bg-muted/10 opacity-80")}
+                className={"rounded-lg border p-4 space-y-3 " + (combo.active ? "border-border/60 bg-muted/20" : "border-dashed border-border bg-muted/10 opacity-80")}
               >
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-bold text-sm">{comboDisplayName(combo)}</span>
@@ -1178,7 +1178,7 @@ function VariantsSection({ productId }: { productId: string }) {
                         type="number"
                         step="0.01"
                         min="0"
-                        className="pl-11 h-10 text-sm font-bold bg-background rounded-xl"
+                        className="pl-11 h-10 text-sm font-bold bg-background rounded-lg"
                         value={e.price}
                         onChange={(ev) => setEdit(combo.variantId, { price: ev.target.value })}
                       />
@@ -1193,7 +1193,7 @@ function VariantsSection({ productId }: { productId: string }) {
                       type="number"
                       step="1"
                       min="0"
-                      className="h-10 text-sm font-bold bg-background rounded-xl tabular-nums"
+                      className="h-10 text-sm font-bold bg-background rounded-lg tabular-nums"
                       value={e.stock}
                       onChange={(ev) => setEdit(combo.variantId, { stock: ev.target.value })}
                     />
@@ -1204,7 +1204,7 @@ function VariantsSection({ productId }: { productId: string }) {
                       disabled={!dirty || savingId === combo.variantId}
                       isLoading={savingId === combo.variantId}
                       onClick={() => { void handleSaveCombo(combo) }}
-                      className="rounded-xl font-bold"
+                      className="rounded-lg font-bold"
                     >
                       Save
                     </Button>
@@ -1213,13 +1213,13 @@ function VariantsSection({ productId }: { productId: string }) {
                       variant="outline"
                       disabled={savingId === combo.variantId}
                       onClick={() => { void handleToggleActive(combo) }}
-                      className="rounded-xl"
+                      className="rounded-lg"
                     >
                       {combo.active ? "Archive" : "Restore"}
                     </Button>
                   </div>
                 </div>
-                <details className="rounded-xl border border-border/60 bg-background/60 px-3 py-2">
+                <details className="rounded-lg border border-border/60 bg-background/60 px-3 py-2">
                   <summary className="cursor-pointer text-xs font-bold text-muted-foreground hover:text-foreground">
                     Offer terms — condition, was-price, delivery & policy refs
                   </summary>
@@ -1232,7 +1232,7 @@ function VariantsSection({ productId }: { productId: string }) {
                         value={e.condition}
                         onValueChange={(v) => setEdit(combo.variantId, { condition: v })}
                       >
-                        <SelectTrigger id={"combo-condition-" + combo.variantId} className="h-10 bg-background rounded-xl text-sm">
+                        <SelectTrigger id={"combo-condition-" + combo.variantId} className="h-10 bg-background rounded-lg text-sm">
                           <SelectValue placeholder="Unspecified" />
                         </SelectTrigger>
                         <SelectContent>
@@ -1251,7 +1251,7 @@ function VariantsSection({ productId }: { productId: string }) {
                         id={"combo-delivery-" + combo.variantId}
                         maxLength={200}
                         placeholder="e.g. 2–3 days in Accra"
-                        className="h-10 text-sm bg-background rounded-xl"
+                        className="h-10 text-sm bg-background rounded-lg"
                         value={e.deliveryPromise}
                         onChange={(ev) => setEdit(combo.variantId, { deliveryPromise: ev.target.value })}
                       />
@@ -1266,7 +1266,7 @@ function VariantsSection({ productId }: { productId: string }) {
                         step="0.01"
                         min="0"
                         placeholder="Optional"
-                        className="h-10 text-sm bg-background rounded-xl tabular-nums"
+                        className="h-10 text-sm bg-background rounded-lg tabular-nums"
                         value={e.compareAt}
                         onChange={(ev) => setEdit(combo.variantId, { compareAt: ev.target.value })}
                       />
@@ -1279,7 +1279,7 @@ function VariantsSection({ productId }: { productId: string }) {
                         id={"combo-source-" + combo.variantId}
                         maxLength={500}
                         placeholder="Required when was-price is set"
-                        className="h-10 text-sm bg-background rounded-xl"
+                        className="h-10 text-sm bg-background rounded-lg"
                         value={e.compareAtSource}
                         onChange={(ev) => setEdit(combo.variantId, { compareAtSource: ev.target.value })}
                       />
@@ -1292,7 +1292,7 @@ function VariantsSection({ productId }: { productId: string }) {
                         id={"combo-warranty-" + combo.variantId}
                         maxLength={500}
                         placeholder="e.g. 6-month shop warranty"
-                        className="h-10 text-sm bg-background rounded-xl"
+                        className="h-10 text-sm bg-background rounded-lg"
                         value={e.warrantyRef}
                         onChange={(ev) => setEdit(combo.variantId, { warrantyRef: ev.target.value })}
                       />
@@ -1305,7 +1305,7 @@ function VariantsSection({ productId }: { productId: string }) {
                         id={"combo-returns-" + combo.variantId}
                         maxLength={500}
                         placeholder="e.g. 7-day returns"
-                        className="h-10 text-sm bg-background rounded-xl"
+                        className="h-10 text-sm bg-background rounded-lg"
                         value={e.returnsRef}
                         onChange={(ev) => setEdit(combo.variantId, { returnsRef: ev.target.value })}
                       />
@@ -1318,7 +1318,7 @@ function VariantsSection({ productId }: { productId: string }) {
                         id={"combo-origin-" + combo.variantId}
                         maxLength={200}
                         placeholder="e.g. Accra warehouse"
-                        className="h-10 text-sm bg-background rounded-xl"
+                        className="h-10 text-sm bg-background rounded-lg"
                         value={e.fulfillmentOrigin}
                         onChange={(ev) => setEdit(combo.variantId, { fulfillmentOrigin: ev.target.value })}
                       />
@@ -1334,7 +1334,7 @@ function VariantsSection({ productId }: { productId: string }) {
         </ul>
       )}
 
-      <div className="rounded-xl border border-border/60 bg-muted/20 p-4 space-y-3">
+      <div className="rounded-lg border border-border/60 bg-muted/20 p-4 space-y-3">
         <h3 className="font-bold text-sm">Add a combination</h3>
         {options.length > 0 && !addingOption ? (
           <div className="flex flex-col sm:flex-row gap-2">
@@ -1343,14 +1343,14 @@ function VariantsSection({ productId }: { productId: string }) {
               maxLength={41}
               placeholder={"New value (e.g. XL)"}
               onChange={(e) => setNewValue(e.target.value)}
-              className="h-10 bg-background rounded-xl"
+              className="h-10 bg-background rounded-lg"
               aria-label="New option value"
             />
             <div className="flex gap-2">
-              <Button size="sm" onClick={() => { void handleAddValue() }} isLoading={addOption.isPending} className="rounded-xl font-bold whitespace-nowrap">
+              <Button size="sm" onClick={() => { void handleAddValue() }} isLoading={addOption.isPending} className="rounded-lg font-bold whitespace-nowrap">
                 Add value
               </Button>
-              <Button size="sm" variant="outline" onClick={() => setAddingOption(true)} className="rounded-xl whitespace-nowrap">
+              <Button size="sm" variant="outline" onClick={() => setAddingOption(true)} className="rounded-lg whitespace-nowrap">
                 + Option type
               </Button>
             </div>
@@ -1362,7 +1362,7 @@ function VariantsSection({ productId }: { productId: string }) {
               maxLength={41}
               placeholder="Option name (e.g. Colour)"
               onChange={(e) => setNewOption(e.target.value)}
-              className="h-10 bg-background rounded-xl"
+              className="h-10 bg-background rounded-lg"
               aria-label="New option name"
             />
             <Input
@@ -1370,7 +1370,7 @@ function VariantsSection({ productId }: { productId: string }) {
               maxLength={41}
               placeholder="New value (e.g. Navy)"
               onChange={(e) => setNewValue(e.target.value)}
-              className="h-10 bg-background rounded-xl"
+              className="h-10 bg-background rounded-lg"
               aria-label="New option value"
             />
             <Input
@@ -1378,15 +1378,15 @@ function VariantsSection({ productId }: { productId: string }) {
               maxLength={41}
               placeholder="Current listing is... (e.g. Red)"
               onChange={(e) => setExistingValue(e.target.value)}
-              className="h-10 bg-background rounded-xl sm:col-span-2"
+              className="h-10 bg-background rounded-lg sm:col-span-2"
               aria-label="Current listing value"
             />
             <div className="flex gap-2 sm:col-span-2">
-              <Button size="sm" onClick={() => { void handleAddValue() }} isLoading={addOption.isPending} className="rounded-xl font-bold">
+              <Button size="sm" onClick={() => { void handleAddValue() }} isLoading={addOption.isPending} className="rounded-lg font-bold">
                 Add option type
               </Button>
               {options.length > 0 && (
-                <Button size="sm" variant="outline" onClick={() => { setAddingOption(false); setNewOption(""); setExistingValue(""); setNewValue("") }} className="rounded-xl">
+                <Button size="sm" variant="outline" onClick={() => { setAddingOption(false); setNewOption(""); setExistingValue(""); setNewValue("") }} className="rounded-lg">
                   Cancel
                 </Button>
               )}
@@ -1447,7 +1447,7 @@ function ValuePhotos({ productId, options }: {
   }
 
   return (
-    <div className="rounded-xl border border-border/60 bg-muted/20 p-4 space-y-3">
+    <div className="rounded-lg border border-border/60 bg-muted/20 p-4 space-y-3">
       <h3 className="font-bold text-sm">Swatch photos (optional)</h3>
       <p className="text-xs text-muted-foreground font-medium">
         One photo per value on visual options (e.g. Colour) - buyers see it as the selector tile and gallery lead.
@@ -1457,7 +1457,7 @@ function ValuePhotos({ productId, options }: {
           <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{opt.name}</p>
           <ul className="flex flex-wrap gap-2">
             {opt.values.map((v) => (
-              <li key={v.id} className="flex items-center gap-2 rounded-xl border border-border/60 bg-card px-2 py-1.5">
+              <li key={v.id} className="flex items-center gap-2 rounded-lg border border-border/60 bg-card px-2 py-1.5">
                 {v.imageUrl ? (
                   <img src={v.imageUrl} alt="" className="h-8 w-8 rounded-lg object-cover" />
                 ) : (

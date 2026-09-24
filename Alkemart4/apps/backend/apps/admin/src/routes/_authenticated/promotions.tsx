@@ -59,7 +59,7 @@ function PromotionsPage() {
         </Button>
       </div>
 
-      <div className="border rounded-xl bg-card">
+      <div className="border rounded-lg bg-card">
         <Table label="Promotions">
           <caption className="sr-only">Promotions list</caption>
           <TableHeader>

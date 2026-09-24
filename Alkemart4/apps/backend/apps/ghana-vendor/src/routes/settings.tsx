@@ -191,8 +191,8 @@ function SettingsPage() {
       <PageShell className="max-w-3xl">
         <PageHeader title="Settings" description="Configure your store details and payouts." />
         <div className="space-y-4 mt-6">
-          <Skeleton className="h-12 w-full rounded-xl" />
-          <Skeleton className="h-80 w-full rounded-xl" />
+          <Skeleton className="h-12 w-full rounded-lg" />
+          <Skeleton className="h-80 w-full rounded-lg" />
         </div>
       </PageShell>
     )
@@ -243,7 +243,7 @@ function SettingsPage() {
                 {/* Connecting line before step (except first) */}
                 {idx > 0 && (
                   <div
-                    className={`h-0.5 flex-1 transition-colors ${
+                    className={`h-0.5 flex-1 ${
                       isPast ? "bg-primary" : "bg-border"
                     }`}
                   />
@@ -256,7 +256,7 @@ function SettingsPage() {
                   className="group flex flex-col sm:flex-row items-center gap-2 mx-2 cursor-pointer focus:outline-none"
                 >
                   <span
-                    className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold transition-colors ${
+                    className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
                       isActive
                         ? "bg-primary text-primary-foreground ring-4 ring-primary/20 shadow-xs"
                         : isPast
@@ -267,7 +267,7 @@ function SettingsPage() {
                     {isPast ? <Check className="h-4 w-4 stroke-[3]" /> : step.number}
                   </span>
                   <span
-                    className={`text-xs sm:text-sm font-semibold whitespace-nowrap transition-colors ${
+                    className={`text-xs sm:text-sm font-semibold whitespace-nowrap ${
                       isActive
                         ? "text-foreground font-bold"
                         : isPast
@@ -282,7 +282,7 @@ function SettingsPage() {
                 {/* Connecting line after step (except last) */}
                 {idx < STEPS.length - 1 && (
                   <div
-                    className={`h-0.5 flex-1 transition-colors ${
+                    className={`h-0.5 flex-1 ${
                       idx < activeIndex ? "bg-primary" : "bg-border"
                     }`}
                   />
@@ -305,7 +305,7 @@ function SettingsPage() {
               {/* Store Branding: Tall Hero Cover with Extra Large Centered Overlapping Logo */}
               <div className="relative mb-24 sm:mb-28">
                 {/* Cover Banner */}
-                <div className="relative h-60 sm:h-72 w-full rounded-xl overflow-hidden border border-border bg-muted/30 group shadow-xs">
+                <div className="relative h-60 sm:h-72 w-full rounded-lg overflow-hidden border border-border bg-muted/30 group shadow-xs">
                   {seller?.banner ? (
                     <img
                       src={seller.banner}
@@ -377,7 +377,7 @@ function SettingsPage() {
                         const url = await upload.mutateAsync(file)
                         updateProfile.mutate({ logo: url })
                       }}
-                      triggerClassName="absolute inset-0 rounded-full bg-black/55 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white text-xs font-bold cursor-pointer backdrop-blur-2xs"
+                      triggerClassName="absolute inset-0 rounded-full bg-black/55 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center text-white text-xs font-bold cursor-pointer backdrop-blur-2xs"
                       triggerText={seller?.logo ? "Change" : "Upload"}
                     />
 
@@ -686,7 +686,7 @@ function SettingsPage() {
                         onClick={() => setProvider(key)}
                         aria-pressed={active}
                         aria-label={net.label}
-                        className={`group relative h-20 sm:h-24 w-full rounded-xl border-2 p-3 flex items-center justify-center bg-white dark:bg-zinc-900 transition-colors cursor-pointer shadow-xs ${
+                        className={`group relative h-20 sm:h-24 w-full rounded-lg border-2 p-3 flex items-center justify-center bg-white dark:bg-zinc-900 cursor-pointer shadow-xs ${
                           active
                             ? "border-tone-success ring-2 ring-tone-success/30"
                             : "border-border hover:border-muted-foreground/40 hover:bg-muted/10"
@@ -700,7 +700,7 @@ function SettingsPage() {
                         <img
                           src={net.logo}
                           alt={net.short}
-                          className="h-12 sm:h-14 w-auto max-w-full object-contain transition-transform group-"
+                          className="h-12 sm:h-14 w-auto max-w-full object-contain group-"
                         />
                       </button>
                     )
@@ -760,14 +760,14 @@ function AlertsCard() {
       </CardHeader>
       <CardContent className="space-y-1">
         {isLoading ? (
-          <Skeleton className="h-12 w-full rounded-xl" />
+          <Skeleton className="h-12 w-full rounded-lg" />
         ) : isError ? (
           <p className="text-sm text-destructive">Could not load alert settings.</p>
         ) : (
           topics.map((t) => {
             const copy = ALERT_TOPIC_COPY[t.topic] ?? { label: t.topic, hint: "" }
             return (
-              <label key={t.topic} className="flex items-start gap-3 rounded-xl px-2 py-2.5 hover:bg-muted/50">
+              <label key={t.topic} className="flex items-start gap-3 rounded-lg px-2 py-2.5 hover:bg-muted/50">
                 <input
                   type="checkbox"
                   className="mt-1 h-4 w-4"

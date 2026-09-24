@@ -53,7 +53,7 @@ export function ShopStudio() {
 
   return (
     <StudioWorkbench
-      className="min-h-[70vh] overflow-hidden rounded-xl border border-border"
+      className="min-h-[70vh] overflow-hidden rounded-lg border border-border"
       device={device}
       onDevice={setDevice}
       toolbar={<p className="text-sm font-extrabold">Shop window</p>}
@@ -69,7 +69,7 @@ export function ShopStudio() {
               key={id}
               type="button"
               onClick={() => setBeat(id)}
-              className={`rounded-xl border px-3 py-2 text-left text-sm font-bold ${
+              className={`rounded-lg border px-3 py-2 text-left text-sm font-bold ${
                 beat === id ? "border-primary bg-white shadow-xs" : "border-transparent hover:bg-muted/60"
               }`}
             >
@@ -206,7 +206,7 @@ function PicksPane() {
       {value.length ? (
         <ol className="space-y-1">
           {value.map((id, i) => (
-            <li key={id} className="flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-medium">
+            <li key={id} className="flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium">
               <span className="font-bold text-primary tabular-nums">#{i + 1}</span>
               <span className="flex-1 truncate">{titleOf(id)}</span>
               <button type="button" aria-label="Move up" disabled={i === 0} onClick={() => move(i, -1)} className="px-1 disabled:opacity-30"><CaretUp size={12} weight="bold" /></button>
@@ -218,7 +218,7 @@ function PicksPane() {
       ) : (
         <p className="text-xs text-muted-foreground">Tick products below. Rank 1 leads the shop card.</p>
       )}
-      <ul className="max-h-56 space-y-1 overflow-y-auto rounded-xl border p-2">
+      <ul className="max-h-56 space-y-1 overflow-y-auto rounded-lg border p-2">
         {allProducts.map((p) => (
           <li key={p.id}>
             <label className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm hover:bg-muted/60">
@@ -264,7 +264,7 @@ function DeliveryPane() {
           type="button"
           onClick={() => setValue(null)}
           aria-pressed={current == null}
-          className={`h-10 rounded-xl border px-3.5 text-sm font-bold ${current == null ? "border-foreground bg-foreground text-background" : "border-border text-muted-foreground"}`}
+          className={`h-10 rounded-lg border px-3.5 text-sm font-bold ${current == null ? "border-foreground bg-foreground text-background" : "border-border text-muted-foreground"}`}
         >
           Not set
         </button>
@@ -274,7 +274,7 @@ function DeliveryPane() {
             type="button"
             onClick={() => setValue(band)}
             aria-pressed={current === band}
-            className={`h-10 rounded-xl border px-3.5 text-sm font-bold tabular-nums ${current === band ? "border-primary bg-primary text-primary-foreground" : "border-border text-muted-foreground"}`}
+            className={`h-10 rounded-lg border px-3.5 text-sm font-bold tabular-nums ${current === band ? "border-primary bg-primary text-primary-foreground" : "border-border text-muted-foreground"}`}
           >
             {band} min
           </button>
@@ -342,7 +342,7 @@ function DisplayPane() {
       {orderValue.length ? (
         <ul className="space-y-1">
           {orderValue.map((id, i) => (
-            <li key={id} className="flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-medium">
+            <li key={id} className="flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium">
               <span className="tabular-nums text-muted-foreground">{i + 1}.</span>
               <span className="flex-1 truncate">{nameOf(id)}</span>
               <button type="button" aria-label="Move up" disabled={i === 0} onClick={() => move(i, -1)} className="px-1 disabled:opacity-30"><CaretUp size={12} weight="bold" /></button>

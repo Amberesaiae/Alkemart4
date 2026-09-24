@@ -113,8 +113,8 @@ export function StoreRail({ section }: { section: Extract<HomeSection, { type: "
 
 function LateNightPromoTile() {
   return (
-    <div className="group relative flex aspect-[16/10] w-72 sm:w-80 md:w-[22rem] shrink-0 snap-start flex-col overflow-hidden rounded-xl ring-1 ring-border/80 shadow-xs bg-card p-4 justify-between select-none">
-      <div className="absolute -right-6 -bottom-6 w-44 h-44 sm:w-48 sm:h-48 rounded-full overflow-hidden shadow-md ring-2 ring-border/40 transition-transform duration-500 group-hover:scale-105">
+    <div className="group relative flex aspect-[16/10] w-72 sm:w-80 md:w-[22rem] shrink-0 snap-start flex-col overflow-hidden rounded-lg ring-1 ring-border/80 shadow-xs bg-card p-4 justify-between select-none">
+      <div className="absolute -right-6 -bottom-6 w-44 h-44 sm:w-48 sm:h-48 rounded-full overflow-hidden shadow-md ring-2 ring-border/40 group-hover:scale-105">
         <img
           src="/images/categories/food.webp"
           alt=""
@@ -172,13 +172,13 @@ function StoreRailCard({ shop }: { shop: StoreVendor }) {
         className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
       >
         {/* 1. Media Container */}
-        <div className="relative w-full overflow-hidden rounded-xl bg-muted/20 dark:bg-muted/40 aspect-[16/10] ring-1 ring-black/[0.04]">
+        <div className="relative w-full overflow-hidden rounded-lg bg-muted/20 dark:bg-muted/40 aspect-[16/10] ring-1 ring-black/[0.04]">
           <img
             src={coverUrl}
             alt=""
             loading="lazy"
             decoding="async"
-            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+            className="h-full w-full object-cover group-hover:scale-105"
           />
 
           {earnedTopRated ? (
@@ -198,7 +198,7 @@ function StoreRailCard({ shop }: { shop: StoreVendor }) {
         {/* 2. Information Outside the Card */}
         <div className="flex flex-col pt-2.5 pb-0.5 gap-0.5">
           <div className="flex items-center justify-between gap-2">
-            <span className="truncate text-sm sm:text-base font-semibold text-foreground group-hover:text-primary transition-colors">
+            <span className="truncate text-sm sm:text-base font-semibold text-foreground group-hover:text-primary">
               {shop.name}
             </span>
           </div>

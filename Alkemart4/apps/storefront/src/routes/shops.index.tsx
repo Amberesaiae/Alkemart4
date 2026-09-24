@@ -225,7 +225,7 @@ export function ShopsPage() {
                 onClick={() => setSelectedCategory(tab.id)}
                 aria-pressed={active}
                 className={cn(
-                  "inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs sm:text-sm font-semibold transition-all shrink-0",
+                  "inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs sm:text-sm font-semibold shrink-0",
                   active
                     ? "bg-foreground text-background font-bold shadow-xs"
                     : "border border-border/80 bg-card text-muted-foreground hover:bg-muted hover:text-foreground",
@@ -280,10 +280,10 @@ export function ShopsPage() {
               placeholder="Search stores by name, category, or area..."
               aria-label="Search stores"
               className={cn(
-                "h-11 w-full rounded-xl border border-border/80 bg-background/80 shadow-2xs",
+                "h-11 w-full rounded-lg border border-border/80 bg-background/80 shadow-2xs",
                 "py-2 pl-10 pr-4 text-sm font-medium text-foreground outline-none",
                 "placeholder:text-muted-foreground/75",
-                "focus:border-primary focus:bg-background focus-visible:ring-2 focus-visible:ring-primary/20 transition-all",
+                "focus:border-primary focus:bg-background focus-visible:ring-2 focus-visible:ring-primary/20",
               )}
             />
           </div>
@@ -295,7 +295,7 @@ export function ShopsPage() {
               onClick={() => setOpenOnly((v) => !v)}
               aria-pressed={openOnly}
               className={cn(
-                "h-9 shrink-0 rounded-full border px-3 text-xs sm:text-sm font-semibold transition-colors",
+                "h-9 shrink-0 rounded-full border px-3 text-xs sm:text-sm font-semibold",
                 openOnly
                   ? "border-foreground bg-foreground text-background font-bold shadow-2xs"
                   : "border-border/80 bg-card text-muted-foreground hover:bg-muted hover:text-foreground",
@@ -308,7 +308,7 @@ export function ShopsPage() {
               onClick={() => setMinRating((v) => !v)}
               aria-pressed={minRating}
               className={cn(
-                "h-9 shrink-0 rounded-full border px-3 text-xs sm:text-sm font-semibold transition-colors",
+                "h-9 shrink-0 rounded-full border px-3 text-xs sm:text-sm font-semibold",
                 minRating
                   ? "border-foreground bg-foreground text-background font-bold shadow-2xs"
                   : "border-border/80 bg-card text-muted-foreground hover:bg-muted hover:text-foreground",
@@ -321,7 +321,7 @@ export function ShopsPage() {
               onClick={() => setFastDelivery((v) => !v)}
               aria-pressed={fastDelivery}
               className={cn(
-                "h-9 shrink-0 rounded-full border px-3 text-xs sm:text-sm font-semibold transition-colors",
+                "h-9 shrink-0 rounded-full border px-3 text-xs sm:text-sm font-semibold",
                 fastDelivery
                   ? "border-foreground bg-foreground text-background font-bold shadow-2xs"
                   : "border-border/80 bg-card text-muted-foreground hover:bg-muted hover:text-foreground",
@@ -340,7 +340,7 @@ export function ShopsPage() {
                 onClick={() => setSort(s.key)}
                 aria-pressed={sort === s.key}
                 className={cn(
-                  "h-9 shrink-0 rounded-full border px-3 text-xs sm:text-sm font-semibold transition-colors",
+                  "h-9 shrink-0 rounded-full border px-3 text-xs sm:text-sm font-semibold",
                   sort === s.key
                     ? "border-primary bg-primary text-primary-foreground font-bold shadow-2xs"
                     : "border-border/80 bg-card text-muted-foreground hover:bg-muted hover:text-foreground",
@@ -365,7 +365,7 @@ export function ShopsPage() {
           <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
             {Array.from({ length: 6 }).map((_, i) => (
               <li key={i}>
-                <Skeleton className="aspect-[16/10] w-full rounded-xl" />
+                <Skeleton className="aspect-[16/10] w-full rounded-lg" />
                 <div className="space-y-2 pt-2.5">
                   <Skeleton className="h-4 w-3/4" />
                   <Skeleton className="h-3 w-1/2" />
@@ -384,7 +384,7 @@ export function ShopsPage() {
             ))}
           </ul>
         ) : (
-          <div className="rounded-xl border border-border/80 bg-card p-10 text-center space-y-3">
+          <div className="rounded-lg border border-border/80 bg-card p-10 text-center space-y-3">
             <p className="text-base font-bold text-foreground">No stores match your search</p>
             <p className="text-xs sm:text-sm text-muted-foreground max-w-md mx-auto">
               Try adjusting your filters, selecting &quot;All Stores&quot;, or searching for another area like Osu, East Legon, or Kumasi.
@@ -438,16 +438,16 @@ function ShopGridCard({ shop }: { shop: StoreVendor }) {
         to="/shops/$slug"
         params={{ slug: shop.slug }}
         aria-label={`Visit ${shop.name}`}
-        className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-xl"
+        className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-lg"
       >
         {/* 1. 16:10 Media Container */}
-        <div className="relative w-full overflow-hidden rounded-xl bg-muted/20 aspect-[16/10] ring-1 ring-black/[0.04]">
+        <div className="relative w-full overflow-hidden rounded-lg bg-muted/20 aspect-[16/10] ring-1 ring-black/[0.04]">
           <img
             src={coverUrl}
             alt=""
             loading="lazy"
             decoding="async"
-            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+            className="h-full w-full object-cover group-hover:scale-105"
           />
 
           {earnedTopRated ? (
@@ -468,7 +468,7 @@ function ShopGridCard({ shop }: { shop: StoreVendor }) {
         <div className="flex flex-col pt-3 pb-1 gap-1">
           {/* Row 1: Name */}
           <div className="flex items-center justify-between gap-2">
-            <h2 className="truncate text-base font-bold text-foreground group-hover:text-primary transition-colors">
+            <h2 className="truncate text-base font-bold text-foreground group-hover:text-primary">
               {shop.name}
             </h2>
           </div>

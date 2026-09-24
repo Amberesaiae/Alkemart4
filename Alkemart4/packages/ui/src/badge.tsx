@@ -24,7 +24,7 @@ import { cn } from "./cn"
 const badgeVariants = cva(
   cn(
     "inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-md",
-    "font-bold uppercase tracking-[0.04em] transition-colors",
+    "font-bold uppercase tracking-[0.04em]",
     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
   ),
   {

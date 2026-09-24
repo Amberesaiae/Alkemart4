@@ -58,7 +58,7 @@ export function DatePicker({
           aria-describedby={ariaDescribedBy}
           aria-invalid={ariaInvalid}
           className={cn(
-            "w-full justify-start text-left font-medium h-10 px-3 border-input bg-background hover:bg-muted/50 rounded-xl transition-colors",
+            "w-full justify-start text-left font-medium h-10 px-3 border-input bg-background hover:bg-muted/50 rounded-lg",
             !parsedDate && "text-muted-foreground font-normal",
             className
           )}

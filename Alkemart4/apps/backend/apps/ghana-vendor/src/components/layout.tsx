@@ -72,7 +72,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 key={item.to}
                 to={item.to}
                 className={cn(
-                  "flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-colors text-sm",
+                  "flex items-center gap-3 px-4 py-3 rounded-lg font-bold text-sm",
                   isActive 
                     ? "bg-primary text-primary-foreground shadow-md" 
                     : "text-white/70 hover:bg-white/10 hover:text-white"
@@ -122,7 +122,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 key={item.to}
                 to={item.to}
                 className={cn(
-                  "flex flex-col items-center p-2 rounded-lg min-w-[64px] transition-colors",
+                  "flex flex-col items-center p-2 rounded-lg min-w-[64px]",
                   isActive ? "text-primary font-bold" : "hover:text-ink-foreground"
                 )}
               aria-current={isActive ? "page" : undefined}
@@ -134,7 +134,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         })}
         <button
           onClick={() => logout.mutate()}
-          className="flex flex-col items-center gap-0.5 text-ink-foreground/60 hover:text-ink-foreground transition-colors"
+          className="flex flex-col items-center gap-0.5 text-ink-foreground/60 hover:text-ink-foreground"
           aria-label="Sign out"
         >
           <SignOut className="h-5 w-5" aria-hidden="true" />

@@ -236,7 +236,7 @@ function ReturnsOverviewPage() {
           <button
             key={tab.value || "all"}
             onClick={() => setFilter(tab.value)}
-            className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors border ${
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap border ${
               filter === tab.value
                 ? "bg-primary text-primary-foreground border-primary shadow-2xs"
                 : "bg-card text-muted-foreground border-border/60 hover:border-primary/40 hover:bg-accent hover:text-accent-foreground"

@@ -174,7 +174,7 @@ function HomepageStudioPage() {
       <PageShell>
         <div className="flex flex-col gap-4" role="status" aria-label="Loading Homepage Studio">
           <Skeleton className="h-10 w-64" />
-          <Skeleton className="h-[70vh] rounded-xl" />
+          <Skeleton className="h-[70vh] rounded-lg" />
         </div>
       </PageShell>
     )

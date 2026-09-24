@@ -1,7 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router"
 import { useMemo, useState } from "react"
 import { useQueryClient } from "@tanstack/react-query"
-import { useProducts, useProposeProduct, useCategories } from "../../lib/hooks"
+import { useProducts, useProposeProduct, useCategories, useUpdateVariant } from "../../lib/hooks"
+import { toast } from "sonner"
 import { Card, Button, Badge, Input, Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@workspace/ui"
 import {
   PlusCircle,
@@ -18,6 +19,8 @@ import {
   X,
   ArrowRight,
   Cube,
+  Minus,
+  Plus,
 } from "@phosphor-icons/react"
 import { PageShell } from "../../components/page-shell"
 
@@ -32,15 +35,84 @@ function storefrontBase(): string {
   return (raw ? raw : "http://127.0.0.1:5175").replace(/\/$/, "")
 }
 
+/**
+ * Per-card commerce controls: stock stepper + live toggle. Both ride the
+ * variant PATCH endpoint, which never triggers re-review — safe to fire
+ * inline from the grid. Hidden when the card lacks variant/stock data
+ * instead of guessing.
+ */
+function QuickStockRow({
+  productId,
+  variantId,
+  stock,
+  active,
+}: {
+  productId: string
+  variantId: string | null
+  stock: number | null
+  active: boolean | undefined
+}) {
+  const updateVariant = useUpdateVariant()
+  if (!variantId || stock === null) return null
+  const busy = updateVariant.isPending
+  const send = (patch: { onHand?: number; active?: boolean }, ok: string) =>
+    updateVariant.mutate(
+      { productId, variantId, patch },
+      {
+        onSuccess: () => toast.success(ok),
+        onError: (e) => toast.error(e instanceof Error ? e.message : "Couldn't update stock."),
+      },
+    )
+  return (
+    <div className="flex items-center justify-between">
+      <div className="flex items-center gap-1" role="group" aria-label="Adjust stock">
+        <button
+          type="button"
+          disabled={busy || stock <= 0}
+          onClick={() => send({ onHand: stock - 1 }, "Stock updated.")}
+          aria-label="Decrease stock by one"
+          className="flex h-7 w-7 items-center justify-center rounded-lg border border-border/80 text-muted-foreground hover:text-foreground hover:border-foreground disabled:opacity-40"
+        >
+          <Minus className="h-3.5 w-3.5" weight="bold" />
+        </button>
+        <span className="min-w-10 text-center text-sm font-bold tabular-nums" aria-live="polite">
+          {stock}
+        </span>
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => send({ onHand: stock + 1 }, "Stock updated.")}
+          aria-label="Increase stock by one"
+          className="flex h-7 w-7 items-center justify-center rounded-lg border border-border/80 text-muted-foreground hover:text-foreground hover:border-foreground disabled:opacity-40"
+        >
+          <Plus className="h-3.5 w-3.5" weight="bold" />
+        </button>
+      </div>
+      {typeof active === "boolean" ? (
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => send({ active: !active }, active ? "Taken offline." : "Live on the store.")}
+          className="text-xs font-bold text-muted-foreground hover:text-foreground disabled:opacity-40"
+        >
+          {active ? "Take offline" : "Put live"}
+        </button>
+      ) : null}
+    </div>
+  )
+}
+
 function ProductsPage() {
   const qc = useQueryClient()
   const [offset, setOffset] = useState(0)
   const { data, isLoading, isError } = useProducts({ limit: PAGE_SIZE, offset })
   const { data: categoriesData } = useCategories()
   const propose = useProposeProduct()
+  const updateVariant = useUpdateVariant()
 
   const [search, setSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
+  const [categoryFilter, setCategoryFilter] = useState<string>("all")
   const [viewMode, setViewMode] = useState<"grid" | "table">("grid")
 
   const categories = categoriesData?.product_categories ?? []
@@ -67,7 +139,7 @@ function ProductsPage() {
     return { total, published, inReview, drafts, rejected, totalStock, totalValuation }
   }, [allProducts])
 
-  // Filter products by search and status
+  // Filter products by search, status, and the seller's own categories.
   const filteredProducts = useMemo(() => {
     return allProducts.filter((p) => {
       const matchesSearch =
@@ -79,16 +151,35 @@ function ProductsPage() {
         statusFilter === "all" ||
         (statusFilter === "draft" ? p.status === "draft" || !p.status : p.status === statusFilter)
 
-      return matchesSearch && matchesStatus
+      const matchesCategory =
+        categoryFilter === "all" ||
+        (p.categories ?? []).some((c) => c.id === categoryFilter)
+
+      return matchesSearch && matchesStatus && matchesCategory
     })
-  }, [allProducts, search, statusFilter])
+  }, [allProducts, search, statusFilter, categoryFilter])
+
+  // The seller's own category shelf: id, name, live count. Switching swaps
+  // the grid — publish/stock decisions happen per category, not in a pile.
+  const sellerCategories = useMemo(() => {
+    const seen = new Map<string, { id: string; name: string; count: number }>()
+    for (const p of allProducts) {
+      for (const c of p.categories ?? []) {
+        const name = categoryNameOf(c.id) ?? c.id
+        const entry = seen.get(c.id) ?? { id: c.id, name, count: 0 }
+        entry.count += 1
+        seen.set(c.id, entry)
+      }
+    }
+    return [...seen.values()].sort((a, b) => b.count - a.count || a.name.localeCompare(b.name))
+  }, [allProducts, categories])
 
   const getStatusBadge = (status: string, product?: Record<string, unknown>) => {
     switch (status) {
       case "published":
         return (
           <span className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider px-2.5 py-1 rounded-md bg-ink text-white shadow-xs">
-            <span className="h-1.5 w-1.5 rounded-full bg-current animate-pulse" /> Live
+            <span className="h-1.5 w-1.5 rounded-full bg-current" /> Live
           </span>
         )
       case "proposed":
@@ -155,7 +246,7 @@ function ProductsPage() {
         </div>
 
         <Link to="/quick-sell">
-          <Button size="default" className="w-full sm:w-auto gap-2 shadow-sm font-bold px-5 rounded-xl">
+          <Button size="default" className="w-full sm:w-auto gap-2 shadow-sm font-bold px-5 rounded-lg">
             <PlusCircle className="h-4 w-4" weight="bold" />
             Add Product
           </Button>
@@ -179,7 +270,7 @@ function ProductsPage() {
                   type="button"
                   onClick={() => setStatusFilter(tab.id)}
                   aria-pressed={isSelected}
-                  className={`group text-left p-4 rounded-lg border transition-colors cursor-pointer flex flex-col justify-between gap-2 ${
+                  className={`group text-left p-4 rounded-lg border cursor-pointer flex flex-col justify-between gap-2 ${
                     isSelected
                       ? "bg-card border-foreground shadow-xs"
                       : "bg-card/70 hover:bg-card border-border/80"
@@ -201,15 +292,43 @@ function ProductsPage() {
             })}
           </div>
 
+          {/* ── Own-category shelf switcher: text tabs, no pills. Selecting
+              narrows the grid (and table) to that shelf for stock/publish
+              decisions. Hidden when the seller has a single shelf. */}
+          {sellerCategories.length > 1 ? (
+            <div className="flex items-center gap-1 overflow-x-auto border-b border-border/60" role="tablist" aria-label="Filter by category">
+              {[{ id: "all", name: "All", count: allProducts.length }, ...sellerCategories].map((c) => {
+                const selected = categoryFilter === c.id
+                return (
+                  <button
+                    key={c.id}
+                    type="button"
+                    role="tab"
+                    aria-selected={selected}
+                    onClick={() => setCategoryFilter(c.id)}
+                    className={`shrink-0 px-3 py-2 text-sm font-bold border-b-2 -mb-px cursor-pointer ${
+                      selected
+                        ? "border-foreground text-foreground"
+                        : "border-transparent text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {c.name}
+                    <span className="ml-1.5 font-semibold text-muted-foreground tabular-nums">{c.count}</span>
+                  </button>
+                )
+              })}
+            </div>
+          ) : null}
+
           {/* ── Spacious Horizontal Search & Controls Section ── */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-2 rounded-xl border border-border/80 bg-card/60 shadow-2xs">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-2 rounded-lg border border-border/80 bg-card/60 shadow-2xs">
             <div className="relative flex-1">
               <MagnifyingGlass className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
               <Input
                 placeholder="Search products..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="pl-10 h-10.5 text-sm bg-background border-border/70 focus:border-primary rounded-xl transition-colors w-full"
+                className="pl-10 h-10.5 text-sm bg-background border-border/70 focus:border-primary rounded-lg w-full"
               />
               {search && (
                 <button
@@ -229,7 +348,7 @@ function ProductsPage() {
                 </span>
               )}
 
-              <div className="inline-flex rounded-xl border border-border/80 p-1 bg-muted/30">
+              <div className="inline-flex rounded-lg border border-border/80 p-1 bg-muted/30">
                 <button
                   type="button"
                   onClick={() => setViewMode("grid")}
@@ -264,7 +383,7 @@ function ProductsPage() {
 
       {/* ── Main Content Area ── */}
       {isError ? (
-        <Card className="p-8 text-center border border-destructive/20 shadow-xs rounded-xl">
+        <Card className="p-8 text-center border border-destructive/20 shadow-xs rounded-lg">
           <WarningCircle className="h-10 w-10 mx-auto mb-3 text-destructive" />
           <h2 className="text-lg font-bold mb-1">Failed to load products</h2>
           <p className="text-muted-foreground text-sm mb-4">Something went wrong. Please try again.</p>
@@ -275,12 +394,12 @@ function ProductsPage() {
       ) : isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[1, 2, 3].map((i) => (
-            <Card key={i} className="h-80 animate-pulse bg-muted/40 border-border/60 rounded-xl" />
+            <Card key={i} className="h-80 bg-muted/40 border-border/60 rounded-lg" />
           ))}
         </div>
       ) : allProducts.length === 0 ? (
-        <Card className="flex flex-col items-center justify-center p-14 text-center border-dashed border-2 shadow-xs bg-muted/10 rounded-xl">
-          <div className="h-16 w-16 bg-muted text-primary rounded-xl flex items-center justify-center mb-4 shadow-inner">
+        <Card className="flex flex-col items-center justify-center p-14 text-center border-dashed border-2 shadow-xs bg-muted/10 rounded-lg">
+          <div className="h-16 w-16 bg-muted text-primary rounded-lg flex items-center justify-center mb-4 shadow-inner">
             <Package className="h-8 w-8" weight="bold" />
           </div>
           <h2 className="text-xl font-bold mb-1">No products yet</h2>
@@ -295,7 +414,7 @@ function ProductsPage() {
           </Link>
         </Card>
       ) : filteredProducts.length === 0 ? (
-        <Card className="p-12 text-center shadow-xs rounded-xl">
+        <Card className="p-12 text-center shadow-xs rounded-lg">
           <MagnifyingGlass className="h-8 w-8 mx-auto mb-2 text-muted-foreground opacity-50" />
           <p className="font-bold text-base text-foreground mb-1">No matching products</p>
           <p className="text-sm text-muted-foreground mb-4">No products found matching your current search or status filter.</p>
@@ -371,24 +490,32 @@ function ProductsPage() {
                 </div>
 
                 {/* Card Action Footer */}
-                <div className="p-3 bg-muted/15 border-t border-border/60 flex items-center gap-2">
-                  <Link to="/products/$id" params={{ id: product.id }} className="flex-1">
-                    <Button className="w-full gap-1.5 h-8.5 text-xs font-bold rounded-xl" size="sm" variant="outline">
-                      <PencilSimple className="h-3.5 w-3.5 text-primary" />
-                      Manage Listing
-                    </Button>
-                  </Link>
+                <div className="p-3 bg-muted/15 border-t border-border/60 space-y-2">
+                  <QuickStockRow
+                    productId={product.id}
+                    variantId={product.variants?.[0]?.id ?? null}
+                    stock={typeof product.metadata?.onHand === "number" ? product.metadata.onHand : null}
+                    active={product.combos?.[0]?.active}
+                  />
+                  <div className="flex items-center gap-2">
+                    <Link to="/products/$id" params={{ id: product.id }} className="flex-1">
+                      <Button className="w-full gap-1.5 h-8.5 text-xs font-bold rounded-lg" size="sm" variant="outline">
+                        <PencilSimple className="h-3.5 w-3.5 text-primary" />
+                        Manage Listing
+                      </Button>
+                    </Link>
 
-                  {product.status === "draft" && (
-                    <Button
-                      size="sm"
-                      className="h-8.5 text-xs font-semibold gap-1 rounded-xl"
-                      onClick={() => handlePropose(product.id)}
-                      isLoading={propose.isPending && propose.variables === product.id}
-                    >
-                      Submit
-                    </Button>
-                  )}
+                    {product.status === "draft" && (
+                      <Button
+                        size="sm"
+                        className="h-8.5 text-xs font-semibold gap-1 rounded-lg"
+                        onClick={() => handlePropose(product.id)}
+                        isLoading={propose.isPending && propose.variables === product.id}
+                      >
+                        Submit
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </div>
             )
@@ -398,7 +525,7 @@ function ProductsPage() {
           {filteredProducts.length <= 2 && statusFilter === "all" && search === "" && (
             <Link
               to="/quick-sell"
-              className="group relative flex flex-col items-center justify-center p-8 rounded-xl border-2 border-dashed border-border/80 hover:border-primary bg-muted/10 hover:bg-muted/20 transition-colors min-h-[320px] text-center"
+              className="group relative flex flex-col items-center justify-center p-8 rounded-lg border-2 border-dashed border-border/80 hover:border-primary bg-muted/10 hover:bg-muted/20 min-h-[320px] text-center"
             >
               <div className="h-12 w-12 rounded-lg bg-muted text-primary flex items-center justify-center mb-3">
                 <PlusCircle className="h-6 w-6" weight="bold" />
@@ -415,7 +542,7 @@ function ProductsPage() {
         </div>
       ) : (
         /* ── Refined Table View ── */
-        <Card className="overflow-hidden shadow-2xs rounded-xl border">
+        <Card className="overflow-hidden shadow-2xs rounded-lg border">
           <Table>
             <TableHeader>
               <TableRow className="bg-muted/30">
@@ -438,7 +565,7 @@ function ProductsPage() {
                 return (
                   <TableRow key={product.id} className="hover:bg-muted/20">
                     <TableCell>
-                      <div className="h-11 w-11 rounded-xl overflow-hidden bg-muted/60 border border-border/60 flex items-center justify-center">
+                      <div className="h-11 w-11 rounded-lg overflow-hidden bg-muted/60 border border-border/60 flex items-center justify-center">
                         {product.thumbnail ? (
                           <img src={product.thumbnail} alt="" className="h-full w-full object-cover" />
                         ) : (
@@ -447,7 +574,7 @@ function ProductsPage() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Link to="/products/$id" params={{ id: product.id }} className="font-bold text-sm hover:text-primary transition-colors line-clamp-1">
+                      <Link to="/products/$id" params={{ id: product.id }} className="font-bold text-sm hover:text-primary line-clamp-1">
                         {product.title || "Untitled"}
                       </Link>
                       <span className="text-xs text-muted-foreground font-mono">

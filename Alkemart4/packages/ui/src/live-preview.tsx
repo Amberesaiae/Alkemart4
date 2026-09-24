@@ -43,7 +43,7 @@ export function LivePreview({
   return (
     <div className={cn("flex flex-col gap-3", className)}>
       {!hideToolbar ? (
-      <div className="flex items-center justify-between gap-2 rounded-xl border border-border bg-muted/40 p-2">
+      <div className="flex items-center justify-between gap-2 rounded-lg border border-border bg-muted/40 p-2">
         <div className="inline-flex rounded-lg border border-border bg-background p-0.5 shadow-2xs" role="group" aria-label="Preview width">
           <Button
             type="button"

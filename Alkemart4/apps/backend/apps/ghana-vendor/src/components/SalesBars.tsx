@@ -33,8 +33,27 @@ function formatTick(value: number, metric: "revenue" | "orders"): string {
   return `GH₵${Math.round(value)}`
 }
 
-export function SalesBars({ days, caption }: { days: SalesDay[]; caption: string }) {
+export function SalesBars({ days, caption, loading = false }: { days: SalesDay[]; caption: string; loading?: boolean }) {
   const [metric, setMetric] = useState<"revenue" | "orders">("revenue")
+  if (loading) {
+    // Static geometry mirror of the loaded chart (fixed heights, no motion):
+    // axis gutter + 7 bar silhouettes + weekday slots, so nothing jumps.
+    const bars = [52, 84, 38, 96, 64, 76, 48]
+    return (
+      <div aria-hidden>
+        <div className="mb-3 inline-flex rounded-lg border border-border/80 p-1 bg-muted/30">
+          <span className="px-3 py-1.5 text-xs font-bold text-muted-foreground">Revenue</span>
+          <span className="px-3 py-1.5 text-xs font-bold text-muted-foreground">Orders</span>
+        </div>
+        <div className="flex h-[220px] items-end gap-2 pl-[52px]" aria-hidden>
+          {bars.map((h, i) => (
+            <div key={i} className="flex-1 rounded bg-muted" style={{ height: `${h}%` }} />
+          ))}
+        </div>
+        <p className="mt-2 text-xs font-medium text-muted-foreground">{caption}</p>
+      </div>
+    )
+  }
   const total = days.reduce((s, d) => s + (metric === "revenue" ? d.revenue : d.orders), 0)
   const max = maxOf(days, metric)
   const bestIndex = days.findIndex(
@@ -66,7 +85,7 @@ export function SalesBars({ days, caption }: { days: SalesDay[]; caption: string
             type="button"
             onClick={() => setMetric(m)}
             aria-pressed={metric === m}
-            className={`px-3 py-1.5 rounded-md text-xs font-bold transition-colors cursor-pointer ${
+            className={`px-3 py-1.5 rounded-md text-xs font-bold cursor-pointer ${
               metric === m ? "bg-card text-foreground shadow-xs border border-border/80" : "text-muted-foreground"
             }`}
           >

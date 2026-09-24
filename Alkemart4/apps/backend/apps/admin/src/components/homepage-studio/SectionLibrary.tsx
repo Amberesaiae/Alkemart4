@@ -59,7 +59,7 @@ export function SectionLibrary({ open, disabled, title, onClose, onPick }: {
               key={preset.id}
               type="button"
               onClick={() => pick(preset.build())}
-              className="rounded-xl border border-border p-3.5 text-left transition-shadow hover:border-foreground/30 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="rounded-lg border border-border p-3.5 text-left hover:border-foreground/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <span className="block text-sm font-semibold">{preset.label}</span>
               <span className="block text-xs text-muted-foreground">{preset.description}</span>
@@ -88,9 +88,9 @@ export function SectionLibrary({ open, disabled, title, onClose, onPick }: {
                         if (presets.length === 1) pick(presets[0].build())
                         else setPendingType(type)
                       }}
-                      className="flex items-start gap-2.5 rounded-xl border border-border p-3.5 text-left transition-shadow hover:border-foreground/30 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
+                      className="flex items-start gap-2.5 rounded-lg border border-border p-3.5 text-left hover:border-foreground/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
                     >
-                      <span className={cn("flex size-8 shrink-0 items-center justify-center rounded-xl", accent.chip)} aria-hidden="true">
+                      <span className={cn("flex size-8 shrink-0 items-center justify-center rounded-lg", accent.chip)} aria-hidden="true">
                         <AccentIcon className="h-4 w-4" />
                       </span>
                       <span className="min-w-0">

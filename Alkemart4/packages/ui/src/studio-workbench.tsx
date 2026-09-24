@@ -43,7 +43,7 @@ export function StudioWorkbench({
         <section className="min-h-0 overflow-y-auto bg-tone-neutral-soft p-3 sm:p-5" aria-label="Canvas">
           {onDevice ? (
             <div className="mb-3 flex justify-center">
-              <div className="inline-flex rounded-xl border border-border bg-white p-0.5 shadow-xs" role="group" aria-label="Canvas size">
+              <div className="inline-flex rounded-lg border border-border bg-white p-0.5 shadow-xs" role="group" aria-label="Canvas size">
                 <Button
                   type="button"
                   size="sm"

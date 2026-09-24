@@ -61,7 +61,7 @@ export function ListingFilterStrip({
   return (
     <div
       className={cn(
-        "listing-filter-strip grid gap-4 rounded-xl border border-border bg-card p-4",
+        "listing-filter-strip grid gap-4 rounded-lg border border-border bg-card p-4",
         "sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 lg:items-start",
         className,
       )}

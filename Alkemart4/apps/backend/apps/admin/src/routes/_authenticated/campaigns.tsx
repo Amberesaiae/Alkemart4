@@ -81,7 +81,7 @@ function CampaignsPage() {
       </div>
 
       {isLoading ? (
-        <Skeleton className="h-64 w-full rounded-xl" />
+        <Skeleton className="h-64 w-full rounded-lg" />
       ) : isError ? (
         <div className="bg-destructive/10 text-destructive p-4 rounded-md flex items-center justify-between">
           <span>Failed to load campaigns.</span>
@@ -262,7 +262,7 @@ function CampaignDetail({ id, onClose }: { id: string; onClose: () => void }) {
   return (
     <Modal isOpen onClose={onClose} title={detail?.campaign.name ?? "Campaign"}>
       {isLoading || !detail ? (
-        <Skeleton className="h-64 w-full rounded-xl" />
+        <Skeleton className="h-64 w-full rounded-lg" />
       ) : (
         <div className="space-y-5 max-h-[75vh] overflow-y-auto pr-1">
           <div className="flex items-center gap-2 flex-wrap">
@@ -526,7 +526,7 @@ function PreviewPane({
         <Eye className="h-4 w-4 mr-1" /> Check live course
       </Button>
       {checked ? (
-        <div className={`${widthClass} rounded-xl border border-border bg-muted/30 p-4 text-sm`}>
+        <div className={`${widthClass} rounded-lg border border-border bg-muted/30 p-4 text-sm`}>
           {live ? (
             <p>
               <span className="font-bold text-emerald-700">Live on the homepage</span> — buyers see

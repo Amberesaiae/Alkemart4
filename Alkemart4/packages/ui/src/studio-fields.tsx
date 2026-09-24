@@ -221,7 +221,7 @@ export function StudioImageField({ label, hint, value, onValueChange, ratio = "l
 
       {trimmed && !invalid ? (
         <div className="flex flex-col gap-1.5">
-          <div className={cn("relative overflow-hidden rounded-xl border border-border bg-muted", merchRatioClass[ratio])}>
+          <div className={cn("relative overflow-hidden rounded-lg border border-border bg-muted", merchRatioClass[ratio])}>
             {failed ? (
               <p className="absolute inset-0 flex items-center justify-center p-3 text-center text-xs font-semibold text-muted-foreground">
                 That image could not be loaded.

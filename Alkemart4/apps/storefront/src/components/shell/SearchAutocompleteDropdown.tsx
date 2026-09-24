@@ -201,7 +201,7 @@ export function SearchAutocompleteDropdown({
     <>
       {/* Subtle backdrop overlay for focus */}
       <div
-        className="fixed inset-0 z-40 bg-black/20 backdrop-blur-[0.5px] transition-opacity animate-in fade-in duration-150"
+        className="fixed inset-0 z-40 bg-black/20 backdrop-blur-[0.5px]"
         aria-hidden="true"
         onClick={onClose}
       />
@@ -215,7 +215,7 @@ export function SearchAutocompleteDropdown({
           "absolute left-0 right-0 top-full mt-2 z-50",
           "w-full overflow-hidden",
           "rounded-2xl border border-border/80 bg-card text-card-foreground shadow-xl",
-          "animate-in fade-in-50 zoom-in-98 duration-150",
+          "",
           "max-h-[80vh] overflow-y-auto scrollbar-none",
         )}
       >
@@ -232,7 +232,7 @@ export function SearchAutocompleteDropdown({
                   <button
                     type="button"
                     onClick={handleClearAllRecent}
-                    className="hover:text-foreground transition-colors"
+                    className="hover:text-foreground"
                   >
                     Clear all
                   </button>
@@ -241,7 +241,7 @@ export function SearchAutocompleteDropdown({
                   {recentSearches.map((item) => (
                     <div
                       key={item}
-                      className="group flex items-center justify-between py-2 text-sm text-foreground hover:text-primary transition-colors"
+                      className="group flex items-center justify-between py-2 text-sm text-foreground hover:text-primary"
                     >
                       <button
                         type="button"
@@ -255,7 +255,7 @@ export function SearchAutocompleteDropdown({
                         type="button"
                         aria-label={`Remove ${item}`}
                         onClick={(e) => handleRemoveRecent(e, item)}
-                        className="text-muted-foreground/60 hover:text-foreground p-1 transition-colors"
+                        className="text-muted-foreground/60 hover:text-foreground p-1"
                       >
                         <X size={13} />
                       </button>
@@ -279,8 +279,8 @@ export function SearchAutocompleteDropdown({
                       type="button"
                       onClick={() => handleSelectCategory(cat.slug)}
                       className={cn(
-                        "flex items-center gap-2.5 rounded-xl px-3 py-2 text-left text-xs sm:text-sm font-medium text-foreground",
-                        "hover:bg-muted/70 transition-colors",
+                        "flex items-center gap-2.5 rounded-lg px-3 py-2 text-left text-xs sm:text-sm font-medium text-foreground",
+                        "hover:bg-muted/70",
                       )}
                     >
                       <IconComp size={16} className="text-muted-foreground shrink-0" />
@@ -302,7 +302,7 @@ export function SearchAutocompleteDropdown({
                     key={store.handle}
                     type="button"
                     onClick={() => handleSelectStore(store.handle)}
-                    className="flex items-center gap-2.5 rounded-xl p-2 text-left hover:bg-muted/60 transition-colors"
+                    className="flex items-center gap-2.5 rounded-lg p-2 text-left hover:bg-muted/60"
                   >
                     <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
                       <Storefront size={16} />
@@ -325,7 +325,7 @@ export function SearchAutocompleteDropdown({
             <button
               type="button"
               onClick={() => handleExecuteSearch(cleanQuery)}
-              className="flex w-full items-center justify-between rounded-xl p-2.5 text-left hover:bg-muted transition-colors text-foreground group"
+              className="flex w-full items-center justify-between rounded-lg p-2.5 text-left hover:bg-muted text-foreground group"
             >
               <div className="flex items-center gap-2.5 min-w-0">
                 <MagnifyingGlass size={16} className="text-muted-foreground shrink-0" />
@@ -356,7 +356,7 @@ export function SearchAutocompleteDropdown({
                         to="/product/$id"
                         params={{ id: prod.slug?.trim() ? `${prod.slug.trim()}-${prod.id}` : prod.id }}
                         onClick={onClose}
-                        className="flex items-center gap-3 py-2.5 hover:bg-muted/50 rounded-lg px-2 -mx-2 transition-colors group"
+                        className="flex items-center gap-3 py-2.5 hover:bg-muted/50 rounded-lg px-2 -mx-2 group"
                       >
                         <div className="size-11 shrink-0 overflow-hidden rounded-lg bg-muted border border-border/60">
                           <img
@@ -367,7 +367,7 @@ export function SearchAutocompleteDropdown({
                           />
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="truncate text-xs sm:text-sm font-semibold text-foreground group-hover:text-primary transition-colors">
+                          <p className="truncate text-xs sm:text-sm font-semibold text-foreground group-hover:text-primary">
                             {prod.title}
                           </p>
                           <div className="flex items-center gap-2 mt-0.5 text-xs text-muted-foreground">
@@ -393,7 +393,7 @@ export function SearchAutocompleteDropdown({
               <button
                 type="button"
                 onClick={() => handleExecuteSearch(cleanQuery)}
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-foreground text-background py-2.5 text-xs font-bold hover:opacity-90 transition-opacity"
+                className="flex w-full items-center justify-center gap-2 rounded-lg bg-foreground text-background py-2.5 text-xs font-bold hover:opacity-90"
               >
                 <span>View all results for &ldquo;{cleanQuery}&rdquo;</span>
                 <ArrowRight size={14} weight="bold" />

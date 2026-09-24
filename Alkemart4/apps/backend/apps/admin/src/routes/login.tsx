@@ -92,8 +92,8 @@ function LoginPage() {
           </div>
 
           <div className="space-y-3.5">
-            <div className="group flex items-start gap-4 rounded-xl border border-white/10 bg-white/[0.04] p-4 backdrop-blur transition-colors hover:border-primary/40 hover:bg-white/[0.07]">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-muted text-primary group- transition-transform">
+            <div className="group flex items-start gap-4 rounded-lg border border-white/10 bg-white/[0.04] p-4 backdrop-blur hover:border-primary/40 hover:bg-white/[0.07]">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted text-primary group-">
                 <ShieldCheck className="h-5 w-5" weight="bold" aria-hidden />
               </div>
               <div className="space-y-0.5">
@@ -104,8 +104,8 @@ function LoginPage() {
               </div>
             </div>
 
-            <div className="group flex items-start gap-4 rounded-xl border border-white/10 bg-white/[0.04] p-4 backdrop-blur transition-colors hover:border-primary/40 hover:bg-white/[0.07]">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-muted text-primary group- transition-transform">
+            <div className="group flex items-start gap-4 rounded-lg border border-white/10 bg-white/[0.04] p-4 backdrop-blur hover:border-primary/40 hover:bg-white/[0.07]">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted text-primary group-">
                 <Package className="h-5 w-5" weight="bold" aria-hidden />
               </div>
               <div className="space-y-0.5">
@@ -116,8 +116,8 @@ function LoginPage() {
               </div>
             </div>
 
-            <div className="group flex items-start gap-4 rounded-xl border border-white/10 bg-white/[0.04] p-4 backdrop-blur transition-colors hover:border-primary/40 hover:bg-white/[0.07]">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-muted text-primary group- transition-transform">
+            <div className="group flex items-start gap-4 rounded-lg border border-white/10 bg-white/[0.04] p-4 backdrop-blur hover:border-primary/40 hover:bg-white/[0.07]">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted text-primary group-">
                 <Scales className="h-5 w-5" weight="bold" aria-hidden />
               </div>
               <div className="space-y-0.5">
@@ -137,7 +137,7 @@ function LoginPage() {
             Restricted Access · Audit Logged
           </span>
           <span className="inline-flex items-center gap-1.5 text-primary/80 font-medium">
-            <span className="h-1.5 w-1.5 rounded-full bg-tone-success animate-pulse" />
+            <span className="h-1.5 w-1.5 rounded-full bg-tone-success" />
             Ops Online
           </span>
         </div>
@@ -155,7 +155,7 @@ function LoginPage() {
         </div>
 
         <div className="flex flex-1 flex-col items-center justify-center px-4 py-10 sm:px-8">
-          <div className="w-full max-w-md rounded-xl border border-black/10 bg-white p-8 shadow-[0_20px_50px_-24px_rgb(0_0_0_/_0.35)] sm:p-10">
+          <div className="w-full max-w-md rounded-lg border border-black/10 bg-white p-8 shadow-[0_20px_50px_-24px_rgb(0_0_0_/_0.35)] sm:p-10">
             <header className="mb-8 space-y-2">
               <p className="text-[11px] font-bold uppercase tracking-widest text-primary">
                 Alkemart Ops
@@ -167,7 +167,7 @@ function LoginPage() {
             <form onSubmit={handleSubmit} className="space-y-5" noValidate>
               {error ? (
                 <div
-                  className="flex items-start gap-2.5 rounded-xl border border-destructive/20 bg-destructive/10 p-3.5 text-sm"
+                  className="flex items-start gap-2.5 rounded-lg border border-destructive/20 bg-destructive/10 p-3.5 text-sm"
                   role="alert"
                 >
                   <WarningCircle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" aria-hidden />

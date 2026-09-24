@@ -266,21 +266,21 @@ function StorePage() {
       <div
         role="tablist"
         aria-label="Store sections"
-        className="grid grid-cols-1 sm:grid-cols-3 gap-2 p-1.5 bg-muted/50 dark:bg-muted/20 border border-border/80 rounded-xl"
+        className="grid grid-cols-1 sm:grid-cols-3 gap-2 p-1.5 bg-muted/50 dark:bg-muted/20 border border-border/80 rounded-lg"
       >
         <button
           role="tab"
           id="tab-branding"
           aria-selected={activeCategory === "branding"}
           onClick={() => setActiveCategory("branding")}
-          className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors text-left cursor-pointer ${
+          className={`flex items-center gap-3 px-4 py-3 rounded-lg text-left cursor-pointer ${
             activeCategory === "branding"
               ? "bg-card text-foreground shadow-sm ring-1 ring-border"
               : "text-muted-foreground hover:text-foreground hover:bg-card/40"
           }`}
         >
           <div
-            className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-colors ${
+            className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${
               activeCategory === "branding"
                 ? "bg-primary text-primary-foreground shadow-xs"
                 : "bg-muted text-muted-foreground"
@@ -304,14 +304,14 @@ function StorePage() {
           id="tab-catalog"
           aria-selected={activeCategory === "catalog"}
           onClick={() => setActiveCategory("catalog")}
-          className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors text-left cursor-pointer ${
+          className={`flex items-center gap-3 px-4 py-3 rounded-lg text-left cursor-pointer ${
             activeCategory === "catalog"
               ? "bg-card text-foreground shadow-sm ring-1 ring-border"
               : "text-muted-foreground hover:text-foreground hover:bg-card/40"
           }`}
         >
           <div
-            className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-colors ${
+            className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${
               activeCategory === "catalog"
                 ? "bg-primary text-primary-foreground shadow-xs"
                 : "bg-muted text-muted-foreground"
@@ -332,14 +332,14 @@ function StorePage() {
           id="tab-operations"
           aria-selected={activeCategory === "operations"}
           onClick={() => setActiveCategory("operations")}
-          className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors text-left cursor-pointer ${
+          className={`flex items-center gap-3 px-4 py-3 rounded-lg text-left cursor-pointer ${
             activeCategory === "operations"
               ? "bg-card text-foreground shadow-sm ring-1 ring-border"
               : "text-muted-foreground hover:text-foreground hover:bg-card/40"
           }`}
         >
           <div
-            className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-colors ${
+            className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${
               activeCategory === "operations"
                 ? "bg-primary text-primary-foreground shadow-xs"
                 : "bg-muted text-muted-foreground"
@@ -361,7 +361,7 @@ function StorePage() {
           id="store-error-summary"
           tabIndex={-1}
           role="alert"
-          className="p-4 rounded-xl border-2 border-destructive/40 bg-destructive/10 focus:outline-none focus:ring-2 focus:ring-destructive"
+          className="p-4 rounded-lg border-2 border-destructive/40 bg-destructive/10 focus:outline-none focus:ring-2 focus:ring-destructive"
         >
           <h2 className="font-black flex items-center gap-2 text-destructive">
             <WarningCircle className="h-5 w-5" /> Fix {errorEntries.length} problem{errorEntries.length > 1 ? "s" : ""} to publish
@@ -384,7 +384,7 @@ function StorePage() {
 
       {/* Sticky publish bar for Brand & Marketing edits */}
       {activeCategory === "branding" && (
-        <div className="sticky top-0 z-10 -mx-1 px-3 py-2.5 bg-background/95 backdrop-blur flex flex-wrap items-center gap-3 border rounded-xl shadow-xs">
+        <div className="sticky top-0 z-10 -mx-1 px-3 py-2.5 bg-background/95 backdrop-blur flex flex-wrap items-center gap-3 border rounded-lg shadow-xs">
           <div className="flex items-center gap-2 text-xs font-bold text-muted-foreground" aria-live="polite">
             <span>Branding: {cardStatus("branding")}</span>
             <span aria-hidden="true">·</span>
@@ -466,7 +466,7 @@ function StorePage() {
                     />
                     {errors.seoDescription && <p id="store-field-seoDescription-error" className="text-xs font-medium text-destructive">{errors.seoDescription}</p>}
                   </div>
-                  <div className="rounded-xl border p-3.5 bg-muted/30" aria-label="Search result preview">
+                  <div className="rounded-lg border p-3.5 bg-muted/30" aria-label="Search result preview">
                     <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Search Preview</p>
                     <p className="font-semibold text-sm text-primary leading-snug truncate">
                       {seller.name}{form.tagline.trim() ? ` — ${form.tagline.trim()}` : ""}
@@ -577,7 +577,7 @@ function StorePage() {
 
         {/* ── Live Preview Side Panel (Toggleable) ── */}
         {showPreview && (
-          <div id="store-preview" className="xl:sticky xl:top-16 animate-in fade-in slide-in-from-right-3 duration-200">
+          <div id="store-preview" className="xl:sticky xl:top-16">
             <LivePreview
               title="Live preview of your shop"
               pageUrl={shopUrl}
@@ -653,7 +653,7 @@ function AvailabilityCard() {
 
         {paused ? (
           <div className="space-y-3">
-            <div className="p-3 rounded-xl bg-warning/10 border border-warning/20 text-xs space-y-1">
+            <div className="p-3 rounded-lg bg-warning/10 border border-warning/20 text-xs space-y-1">
               <p className="font-bold text-warning-fg">Order intake is currently paused.</p>
               {availability?.note && <p className="text-warning-fg/90">{availability.note}</p>}
               {availability?.pausedUntil && (
@@ -1160,7 +1160,7 @@ function CollectionsCard() {
   }
 
   return (
-    <Card className="p-6 space-y-5 border border-border/80 shadow-xs rounded-xl bg-card">
+    <Card className="p-6 space-y-5 border border-border/80 shadow-xs rounded-lg bg-card">
       <div className="flex items-center justify-between border-b border-border/60 pb-3">
         <div>
           <h2 className="font-bold text-base text-foreground">Shelves</h2>
@@ -1179,16 +1179,16 @@ function CollectionsCard() {
           maxLength={81}
           placeholder="New shelf (e.g. Harmattan Deals)"
           onChange={(e) => setName(e.target.value)}
-          className="h-10 bg-background rounded-xl"
+          className="h-10 bg-background rounded-lg"
           aria-label="New shelf name"
         />
-        <Button size="sm" onClick={() => { void handleCreate() }} isLoading={create.isPending} className="rounded-xl font-bold whitespace-nowrap">
+        <Button size="sm" onClick={() => { void handleCreate() }} isLoading={create.isPending} className="rounded-lg font-bold whitespace-nowrap">
           Add shelf
         </Button>
       </div>
 
       {isLoading ? (
-        <Skeleton className="h-20 w-full rounded-xl" />
+        <Skeleton className="h-20 w-full rounded-lg" />
       ) : null}
 
       {shelves.length > 0 ? (
@@ -1198,7 +1198,7 @@ function CollectionsCard() {
             const open = openId === shelf.id
             const candidates = catalog.filter((p) => !shelf.productIds.includes(p.id))
             return (
-              <li key={shelf.id} className="rounded-xl border border-border/60 bg-muted/20 p-4 space-y-3">
+              <li key={shelf.id} className="rounded-lg border border-border/60 bg-muted/20 p-4 space-y-3">
                 <div className="flex items-center gap-2 flex-wrap">
                   <button
                     type="button"
@@ -1215,23 +1215,23 @@ function CollectionsCard() {
                     {shelf.productIds.length} item{shelf.productIds.length === 1 ? "" : "s"}
                   </span>
                   <span className="ml-auto flex gap-2">
-                    <Button size="sm" variant="outline" className="rounded-xl h-7 text-xs" onClick={() => { void toggleVisibility(shelf) }} disabled={update.isPending}>
+                    <Button size="sm" variant="outline" className="rounded-lg h-7 text-xs" onClick={() => { void toggleVisibility(shelf) }} disabled={update.isPending}>
                       {shelf.visibility === "published" ? "Unpublish" : "Publish"}
                     </Button>
-                    <Button size="sm" variant={confirmId === shelf.id ? "destructive" : "outline"} className="rounded-xl h-7 text-xs" onClick={() => { void handleDelete(shelf) }} disabled={remove.isPending}>
+                    <Button size="sm" variant={confirmId === shelf.id ? "destructive" : "outline"} className="rounded-lg h-7 text-xs" onClick={() => { void handleDelete(shelf) }} disabled={remove.isPending}>
                       {confirmId === shelf.id ? "Confirm delete" : "Delete"}
                     </Button>
                   </span>
                 </div>
                 {open ? (
-                  <div className="space-y-3 rounded-xl border border-border/60 bg-background/60 p-3">
+                  <div className="space-y-3 rounded-lg border border-border/60 bg-background/60 p-3">
                     <div className="grid gap-3 sm:grid-cols-2">
                       <div className="space-y-1.5">
                         <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Name</Label>
                         <Input
                           value={e.name}
                           maxLength={81}
-                          className="h-10 text-sm bg-background rounded-xl"
+                          className="h-10 text-sm bg-background rounded-lg"
                           onChange={(ev) => setDraft((p) => ({ ...p, [shelf.id]: { ...e, name: ev.target.value } }))}
                           aria-label="Shelf name"
                         />
@@ -1242,7 +1242,7 @@ function CollectionsCard() {
                           value={e.description}
                           maxLength={2000}
                           placeholder="Optional"
-                          className="h-10 text-sm bg-background rounded-xl"
+                          className="h-10 text-sm bg-background rounded-lg"
                           onChange={(ev) => setDraft((p) => ({ ...p, [shelf.id]: { ...e, description: ev.target.value } }))}
                           aria-label="Shelf description"
                         />
@@ -1252,7 +1252,7 @@ function CollectionsCard() {
                         <Input
                           type="datetime-local"
                           value={e.startsAt}
-                          className="h-10 text-sm bg-background rounded-xl"
+                          className="h-10 text-sm bg-background rounded-lg"
                           onChange={(ev) => setDraft((p) => ({ ...p, [shelf.id]: { ...e, startsAt: ev.target.value } }))}
                           aria-label="Shelf start"
                         />
@@ -1262,13 +1262,13 @@ function CollectionsCard() {
                         <Input
                           type="datetime-local"
                           value={e.endsAt}
-                          className="h-10 text-sm bg-background rounded-xl"
+                          className="h-10 text-sm bg-background rounded-lg"
                           onChange={(ev) => setDraft((p) => ({ ...p, [shelf.id]: { ...e, endsAt: ev.target.value } }))}
                           aria-label="Shelf end"
                         />
                       </div>
                     </div>
-                    <Button size="sm" className="rounded-xl font-bold" disabled={update.isPending} onClick={() => { void handleSave(shelf) }}>
+                    <Button size="sm" className="rounded-lg font-bold" disabled={update.isPending} onClick={() => { void handleSave(shelf) }}>
                       Save shelf
                     </Button>
                     <div className="space-y-2">
@@ -1283,7 +1283,7 @@ function CollectionsCard() {
                               <Button
                                 size="sm"
                                 variant="ghost"
-                                className="h-7 rounded-xl text-xs"
+                                className="h-7 rounded-lg text-xs"
                                 disabled={setProducts.isPending}
                                 onClick={() => { void handleRemoveMember(shelf, pid) }}
                               >
@@ -1296,7 +1296,7 @@ function CollectionsCard() {
                       {candidates.length > 0 ? (
                         <div className="flex gap-2">
                           <select
-                            className="h-10 min-w-0 flex-1 rounded-xl border border-input bg-background px-3 text-sm"
+                            className="h-10 min-w-0 flex-1 rounded-lg border border-input bg-background px-3 text-sm"
                             defaultValue=""
                             onChange={(ev) => { void handleAddMember(shelf, ev.target.value); ev.target.value = "" }}
                             aria-label="Add a product to this shelf"

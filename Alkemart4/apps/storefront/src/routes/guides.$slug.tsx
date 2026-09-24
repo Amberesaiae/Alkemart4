@@ -121,7 +121,7 @@ function GuidePage() {
                     <Link
                       to="/guides/$slug"
                       params={{ slug: r.slug }}
-                      className="block rounded-2xl border border-border bg-card p-4 transition-colors hover:border-primary/60"
+                      className="block rounded-2xl border border-border bg-card p-4 hover:border-primary/60"
                     >
                       <p className="text-sm font-bold text-foreground">{r.title}</p>
                       <p className="mt-1 text-xs leading-relaxed text-muted-foreground">

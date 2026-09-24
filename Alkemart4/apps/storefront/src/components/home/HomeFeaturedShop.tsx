@@ -59,10 +59,10 @@ export function HomeFeaturedShop({
           <Link to="/shops/$slug" params={{ slug: handle }} className="mr-2 hidden items-center gap-1 text-sm font-bold text-foreground hover:text-primary sm:inline-flex">
             Visit shop <ArrowRight size={14} weight="bold" />
           </Link>
-          <button type="button" aria-label="Scroll featured products left" onClick={() => move(-1)} className="flex size-9 items-center justify-center rounded-full border border-black/10 bg-card hover:bg-muted transition-colors shadow-2xs">
+          <button type="button" aria-label="Scroll featured products left" onClick={() => move(-1)} className="flex size-9 items-center justify-center rounded-full border border-black/10 bg-card hover:bg-muted shadow-2xs">
             <CaretLeft size={18} weight="bold" />
           </button>
-          <button type="button" aria-label="Scroll featured products right" onClick={() => move(1)} className="flex size-9 items-center justify-center rounded-full border border-black/10 bg-card hover:bg-muted transition-colors shadow-2xs">
+          <button type="button" aria-label="Scroll featured products right" onClick={() => move(1)} className="flex size-9 items-center justify-center rounded-full border border-black/10 bg-card hover:bg-muted shadow-2xs">
             <CaretRight size={18} weight="bold" />
           </button>
         </div>
@@ -73,12 +73,12 @@ export function HomeFeaturedShop({
         <Link
           to="/shops/$slug"
           params={{ slug: handle }}
-          className="group relative flex aspect-[16/10] w-72 sm:w-80 md:w-[22rem] shrink-0 snap-start flex-col justify-between overflow-hidden rounded-xl ring-1 ring-black/[0.06] shadow-xs bg-muted"
+          className="group relative flex aspect-[16/10] w-72 sm:w-80 md:w-[22rem] shrink-0 snap-start flex-col justify-between overflow-hidden rounded-lg ring-1 ring-black/[0.06] shadow-xs bg-muted"
         >
           <img
             src={cover}
             alt={name}
-            className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+            className="absolute inset-0 h-full w-full object-cover group-hover:scale-105"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-black/10" />
           <div className="relative z-10 p-3.5 sm:p-4">

@@ -239,7 +239,7 @@ function StorePage() {
         />
       ) : null}
       <nav aria-label="Breadcrumb" className="flex min-w-0 items-center gap-1.5 overflow-x-auto whitespace-nowrap text-sm text-muted-foreground scrollbar-none">
-        <Link to={vendor?.coverImageUrl ? "/" : "/shops"} className="hover:text-foreground transition-colors">
+        <Link to={vendor?.coverImageUrl ? "/" : "/shops"} className="hover:text-foreground">
           {vendor?.coverImageUrl ? "Home" : "Stores"}
         </Link>
         <span aria-hidden="true" className="text-border">›</span>
@@ -266,7 +266,7 @@ function StorePage() {
 
       {vendor && name ? (
         <div className="space-y-6">
-          <div className="overflow-hidden rounded-xl border border-border bg-card shadow-xs">
+          <div className="overflow-hidden rounded-lg border border-border bg-card shadow-xs">
             {vendor.coverImageUrl ? (
               <div className="relative h-52 w-full overflow-hidden sm:h-72">
                 <img
@@ -332,7 +332,7 @@ function StorePage() {
                         </span>
                         <a
                           href="#buyer-reviews"
-                          className="inline-flex shrink-0 items-center gap-0.5 font-medium text-foreground transition-colors hover:underline"
+                          className="inline-flex shrink-0 items-center gap-0.5 font-medium text-foreground hover:underline"
                         >
                           {trust.ratingCount} review{trust.ratingCount === 1 ? "" : "s"}
                           <CaretRight className="h-3.5 w-3.5" weight="bold" />
@@ -350,7 +350,7 @@ function StorePage() {
                     onChange={(e) => setQuery(e.target.value)}
                     placeholder={vendor.coverImageUrl ? "Search Menu" : `Search ${name}`}
                     aria-label={vendor.coverImageUrl ? "Search Menu" : `Search ${name}`}
-                    className="h-11 sm:h-12 w-full rounded-[10px] border border-border bg-card pl-11 pr-4 text-sm text-foreground placeholder:text-muted-foreground transition-colors focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                    className="h-11 sm:h-12 w-full rounded-[10px] border border-border bg-card pl-11 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                   />
                 </div>
               </div>
@@ -383,7 +383,7 @@ function StorePage() {
               <>
                 <a
                   href="#most-popular"
-                  className="inline-flex shrink-0 items-center border-b-2 border-primary pb-3 -mb-px text-sm font-bold text-foreground transition-colors"
+                  className="inline-flex shrink-0 items-center border-b-2 border-primary pb-3 -mb-px text-sm font-bold text-foreground"
                 >
                   Most Popular
                 </a>
@@ -393,7 +393,7 @@ function StorePage() {
                     <a
                       key={label}
                       href={s.title ? `#store-cat-${slugify(s.title)}` : "#all"}
-                      className="inline-flex shrink-0 items-center border-b-2 border-transparent pb-3 -mb-px text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+                      className="inline-flex shrink-0 items-center border-b-2 border-transparent pb-3 -mb-px text-sm font-medium text-muted-foreground hover:text-foreground"
                     >
                       {label}
                     </a>
@@ -413,7 +413,7 @@ function StorePage() {
                       setActiveSubCategory("All")
                     }}
                     className={cn(
-                      "inline-flex shrink-0 items-center border-b-2 pb-3 -mb-px text-sm transition-colors cursor-pointer",
+                      "inline-flex shrink-0 items-center border-b-2 pb-3 -mb-px text-sm cursor-pointer",
                       isActive
                         ? "border-primary font-bold text-foreground"
                         : "border-transparent font-medium text-muted-foreground hover:text-foreground",
@@ -437,7 +437,7 @@ function StorePage() {
                     type="button"
                     onClick={() => setActiveSubCategory(sub)}
                     className={cn(
-                      "shrink-0 rounded-full px-4 py-1.5 text-xs transition-colors cursor-pointer",
+                      "shrink-0 rounded-full px-4 py-1.5 text-xs cursor-pointer",
                       isActive
                         ? "bg-ink text-white font-semibold shadow-xs"
                         : "bg-tone-neutral-soft text-muted-foreground hover:bg-border font-medium",
@@ -495,18 +495,18 @@ function StorePage() {
                 to="/shops/collections/$collectionId"
                 params={{ collectionId: shelf.id }}
                 search={{ shop: slug }}
-                className="group flex items-center gap-3 rounded-xl border border-border bg-card p-3 transition-colors hover:border-primary/60"
+                className="group flex items-center gap-3 rounded-lg border border-border bg-card p-3 hover:border-primary/60"
               >
                 {shelf.imageUrl ? (
                   <img
                     src={shelf.imageUrl}
                     alt=""
                     aria-hidden
-                    className="h-14 w-14 shrink-0 rounded-xl object-cover"
+                    className="h-14 w-14 shrink-0 rounded-lg object-cover"
                     loading="lazy"
                   />
                 ) : (
-                  <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-muted text-lg font-bold text-muted-foreground" aria-hidden>
+                  <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg bg-muted text-lg font-bold text-muted-foreground" aria-hidden>
                     {shelf.name.slice(0, 1).toUpperCase()}
                   </div>
                 )}
@@ -585,7 +585,7 @@ function StorePage() {
           <h2 className="type-section text-foreground">Buyer reviews</h2>
           <div className="grid gap-3 md:grid-cols-3">
             {trust.ratingAvg !== null ? (
-              <div className="flex flex-col justify-center rounded-xl border border-border bg-card p-5">
+              <div className="flex flex-col justify-center rounded-lg border border-border bg-card p-5">
                 <p className="text-4xl font-bold text-foreground">{trust.ratingAvg}</p>
                 <ProductRating value={trust.ratingAvg} size={16} />
                 <p className="mt-1 text-sm font-medium text-muted-foreground">
@@ -594,7 +594,7 @@ function StorePage() {
               </div>
             ) : null}
             {trust.recentReviews.slice(0, trust.ratingAvg !== null ? 2 : 3).map((r, i) => (
-              <figure key={`${r.createdAt}-${i}`} className="flex flex-col gap-2 rounded-xl border border-border bg-card p-5">
+              <figure key={`${r.createdAt}-${i}`} className="flex flex-col gap-2 rounded-lg border border-border bg-card p-5">
                 <ProductRating value={r.rating} size={14} />
                 <blockquote className="text-sm leading-relaxed text-foreground">“{r.body}”</blockquote>
                 <figcaption className="mt-auto text-xs font-medium text-muted-foreground">
@@ -613,7 +613,7 @@ function StorePage() {
             {verifications.map((v) => (
               <li
                 key={v.id}
-                className="flex items-start gap-2 rounded-xl border border-border bg-card p-3 text-sm"
+                className="flex items-start gap-2 rounded-lg border border-border bg-card p-3 text-sm"
               >
                 <SealCheck className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
                 <span className="font-medium text-foreground">
@@ -627,7 +627,7 @@ function StorePage() {
 
       {vendor && trust ? (
         <section className="grid gap-3 md:grid-cols-2" aria-label="About this shop">
-          <div className="space-y-3 rounded-xl border border-border bg-card p-5">
+          <div className="space-y-3 rounded-lg border border-border bg-card p-5">
             <h2 className="type-section text-foreground">About {name}</h2>
             <p className="text-sm leading-relaxed text-muted-foreground">
               {vendor.bio ?? `${name} sells on Alkemart. Ask the seller anything before you buy.`}
@@ -665,7 +665,7 @@ function StorePage() {
               ) : null}
             </dl>
           </div>
-          <div className="space-y-3 rounded-xl border border-border bg-card p-5">
+          <div className="space-y-3 rounded-lg border border-border bg-card p-5">
             <h2 className="type-section text-foreground">Shop policies</h2>
             {trust.policy?.shipping ? (
               <div className="flex items-start gap-2.5 text-sm">
@@ -708,7 +708,7 @@ function StorePage() {
                     target="_blank"
                     rel="noreferrer"
                     aria-label={`${name} on ${label}`}
-                    className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:border-primary/60 hover:text-foreground"
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-border text-muted-foreground hover:border-primary/60 hover:text-foreground"
                   >
                     <Icon className="h-4 w-4" />
                   </a>
@@ -733,7 +733,7 @@ function slugify(s: string): string {
 function StorePageSkeleton() {
   return (
     <div className="space-y-6" role="status" aria-label="Loading store">
-      <div className="overflow-hidden rounded-xl border border-border bg-card shadow-xs">
+      <div className="overflow-hidden rounded-lg border border-border bg-card shadow-xs">
         <Skeleton className="h-48 w-full rounded-none sm:h-64" />
         <div className="p-5 sm:p-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -748,7 +748,7 @@ function StorePageSkeleton() {
                 <Skeleton className="h-4 w-20 rounded" />
               </div>
             </div>
-            <Skeleton className="h-12 w-full shrink-0 rounded-xl sm:w-80 md:w-96" />
+            <Skeleton className="h-12 w-full shrink-0 rounded-lg sm:w-80 md:w-96" />
           </div>
         </div>
       </div>

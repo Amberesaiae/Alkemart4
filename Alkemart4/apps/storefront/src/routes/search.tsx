@@ -264,7 +264,7 @@ function SearchPage() {
               <section className="mt-8 w-full" aria-label="Recent searches">
                 <div className="flex flex-wrap gap-2">
                   {recent.map((term) => (
-                    <span key={term} className="inline-flex items-center gap-1 rounded-xl border border-border bg-background/70 px-4 py-2 text-sm text-foreground shadow-sm">
+                    <span key={term} className="inline-flex items-center gap-1 rounded-lg border border-border bg-background/70 px-4 py-2 text-sm text-foreground shadow-sm">
                       <button type="button" onClick={() => popularClick(term)} className="min-h-11 font-medium">{term}</button>
                       <button type="button" onClick={() => removeQuery(term)} className="ml-0.5 inline-flex min-h-9 min-w-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground" aria-label={`Remove ${term}`}><X size={16} weight="bold" aria-hidden /></button>
                     </span>

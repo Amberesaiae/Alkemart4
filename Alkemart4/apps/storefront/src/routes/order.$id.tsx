@@ -148,7 +148,7 @@ function OrderDetailPage() {
                   : "Cash on delivery — open the box with the rider and inspect before you pay. Refuse free if anything is wrong."}
               </p>
               {!paidMomo ? (
-                <p className="mt-3 max-w-md rounded-xl border border-border bg-card p-3 text-xs leading-relaxed text-muted-foreground">
+                <p className="mt-3 max-w-md rounded-lg border border-border bg-card p-3 text-xs leading-relaxed text-muted-foreground">
                   <span className="font-bold text-foreground">Stay safe:</span>{" "}
                   alkemart never asks for MoMo payment before your order
                   arrives. Anyone demanding upfront payment is not us.
@@ -220,7 +220,7 @@ function OrderDetailPage() {
             <Button
               type="submit"
               size="lg"
-              className="min-h-11 w-full rounded-xl"
+              className="min-h-11 w-full rounded-lg"
               disabled={!email.trim() || isFetching}
             >
               {isFetching ? "Looking up…" : "View order"}
@@ -264,7 +264,7 @@ function OrderDetailPage() {
           <Button
             type="submit"
             size="lg"
-            className="min-h-11 w-full rounded-xl"
+            className="min-h-11 w-full rounded-lg"
             disabled={!email.trim() || isFetching}
           >
             {isFetching ? "Looking up…" : "View order"}
@@ -297,7 +297,7 @@ function OrderDetailPage() {
               </p>
             ) : null}
             <div className="flex flex-wrap items-center gap-2 pt-1">
-              <span className="rounded-xl bg-muted px-3 py-1.5 text-sm font-semibold tabular-nums">
+              <span className="rounded-lg bg-muted px-3 py-1.5 text-sm font-semibold tabular-nums">
                 {formatOrderLabel(data)}
               </span>
               <CopyButton
@@ -411,7 +411,7 @@ function OrderDetailPage() {
                         <img
                           src={i.thumbnail}
                           alt=""
-                          className="h-12 w-12 shrink-0 rounded-xl border border-border object-cover bg-muted"
+                          className="h-12 w-12 shrink-0 rounded-lg border border-border object-cover bg-muted"
                         />
                       ) : null}
                       <span className="min-w-0 flex-1">
@@ -450,7 +450,7 @@ function OrderDetailPage() {
               asChild
               size="lg"
               variant="outline"
-              className="min-h-12 flex-1 rounded-xl"
+              className="min-h-12 flex-1 rounded-lg"
             >
               <Link to="/orders">Your orders</Link>
             </Button>
@@ -464,7 +464,7 @@ function OrderDetailPage() {
                 asChild
                 size="lg"
                 variant="outline"
-                className="rounded-xl border-destructive/40 text-destructive hover:bg-destructive/10"
+                className="rounded-lg border-destructive/40 text-destructive hover:bg-destructive/10"
               >
                 <Link to="/order/$id/return" params={{ id: data.id }}>
                   Request Return

@@ -66,7 +66,7 @@ function AppealsPage() {
     <PageShell>
       <PageHeader title="Appeals" description="Seller appeals against rejected listings. Reopen sends the product back for review." />
 
-      <div className="border rounded-xl bg-card">
+      <div className="border rounded-lg bg-card">
         <Table label="Open appeals">
           <caption className="sr-only">Open seller appeals</caption>
           <TableHeader>
@@ -158,7 +158,7 @@ function AppealsPage() {
                 role="radio"
                 aria-checked={decision === d}
                 onClick={() => setDecision(d)}
-                className={`p-3 rounded-xl border-2 text-sm font-bold transition-colors ${
+                className={`p-3 rounded-lg border-2 text-sm font-bold ${
                   decision === d
                     ? "border-primary bg-muted text-primary"
                     : "border-border hover:border-primary/40 text-muted-foreground"

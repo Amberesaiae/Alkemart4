@@ -134,10 +134,10 @@ export function AppHeader({
                   onFocus={() => setDesktopDropdownOpen(true)}
                   placeholder="Looking for?"
                   className={cn(
-                    "h-11 w-full rounded-xl border border-border/80 bg-background/80 shadow-2xs",
+                    "h-11 w-full rounded-lg border border-border/80 bg-background/80 shadow-2xs",
                     "py-2 pl-10 pr-11 text-sm font-medium text-foreground outline-none",
                     "placeholder:text-muted-foreground/75",
-                    "focus:border-primary focus:bg-background focus-visible:ring-2 focus-visible:ring-primary/20 transition-all",
+                    "focus:border-primary focus:bg-background focus-visible:ring-2 focus-visible:ring-primary/20",
                   )}
                   aria-label="Search products"
                   autoComplete="off"
@@ -146,7 +146,7 @@ export function AppHeader({
                 <button
                   type="button"
                   onClick={() => setFilterOpen(true)}
-                  className="absolute right-1.5 top-1/2 -translate-y-1/2 inline-flex size-8 items-center justify-center rounded-lg text-foreground hover:bg-muted transition-colors"
+                  className="absolute right-1.5 top-1/2 -translate-y-1/2 inline-flex size-8 items-center justify-center rounded-lg text-foreground hover:bg-muted"
                   aria-label="Open search filters"
                 >
                   <SlidersHorizontal size={18} weight="bold" />
@@ -175,7 +175,7 @@ export function AppHeader({
             <Link
               to="/"
               className={cn(
-                "hidden md:inline-flex items-center justify-center px-4 py-2 rounded-xl text-sm transition-colors",
+                "hidden md:inline-flex items-center justify-center px-4 py-2 rounded-lg text-sm",
                 isHome
                   ? "bg-muted text-foreground font-bold shadow-2xs"
                   : "text-muted-foreground hover:text-foreground hover:bg-muted/60 font-semibold",
@@ -188,7 +188,7 @@ export function AppHeader({
             <Link
               to="/shops"
               className={cn(
-                "hidden md:inline-flex items-center justify-center px-4 py-2 rounded-xl text-sm transition-colors",
+                "hidden md:inline-flex items-center justify-center px-4 py-2 rounded-lg text-sm",
                 pathname.startsWith("/shops")
                   ? "bg-muted text-foreground font-bold shadow-2xs"
                   : "text-muted-foreground hover:text-foreground hover:bg-muted/60 font-semibold",
@@ -204,7 +204,7 @@ export function AppHeader({
                   type="button"
                   id="account-menu-button"
                   className={cn(
-                    "inline-flex h-10 items-center gap-2 rounded-xl px-2.5 sm:px-3 text-sm font-semibold transition-colors",
+                    "inline-flex h-10 items-center gap-2 rounded-lg px-2.5 sm:px-3 text-sm font-semibold",
                     "text-muted-foreground hover:bg-muted/70 hover:text-foreground",
                     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                     (isAccountActive || accountOpen) && "bg-muted text-foreground font-bold",
@@ -243,7 +243,7 @@ export function AppHeader({
             <Link
               to="/cart"
               className={cn(
-                "relative inline-flex h-10 items-center gap-2 rounded-xl px-2.5 sm:px-3 text-sm font-semibold transition-colors",
+                "relative inline-flex h-10 items-center gap-2 rounded-lg px-2.5 sm:px-3 text-sm font-semibold",
                 "text-muted-foreground hover:bg-muted/70 hover:text-foreground",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                 pathname.startsWith("/cart") && "bg-muted text-foreground font-bold",
@@ -296,10 +296,10 @@ export function AppHeader({
                 onFocus={() => setMobileDropdownOpen(true)}
                 placeholder="Looking for?"
                 className={cn(
-                  "h-10 min-h-10 w-full rounded-xl border border-border/80 bg-background/80 shadow-2xs",
+                  "h-10 min-h-10 w-full rounded-lg border border-border/80 bg-background/80 shadow-2xs",
                   "py-2 pl-10 pr-11 text-sm font-medium text-foreground outline-none",
                   "placeholder:text-muted-foreground/75",
-                  "focus:border-primary focus:bg-background focus-visible:ring-2 focus-visible:ring-primary/20 transition-all",
+                  "focus:border-primary focus:bg-background focus-visible:ring-2 focus-visible:ring-primary/20",
                 )}
                 aria-label="Search products"
                 autoComplete="off"
@@ -308,7 +308,7 @@ export function AppHeader({
               <button
                 type="button"
                 onClick={() => setFilterOpen(true)}
-                className="absolute right-1.5 top-1/2 -translate-y-1/2 inline-flex size-8 items-center justify-center rounded-lg text-foreground hover:bg-muted transition-colors"
+                className="absolute right-1.5 top-1/2 -translate-y-1/2 inline-flex size-8 items-center justify-center rounded-lg text-foreground hover:bg-muted"
                 aria-label="Open search filters"
               >
                 <SlidersHorizontal size={18} weight="bold" />

@@ -93,25 +93,25 @@ function DisputeDetail({ id, onBack }: { id: string; onBack: () => void }) {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {meta?.dispute_reason ? (
-          <div className="p-4 bg-muted/30 rounded-xl border">
+          <div className="p-4 bg-muted/30 rounded-lg border">
             <p className="text-xs font-bold uppercase text-muted-foreground mb-1">Dispute Reason</p>
             <p className="text-sm">{String(meta.dispute_reason)}</p>
           </div>
         ) : null}
         {meta?.dispute_opened_at ? (
-          <div className="p-4 bg-muted/30 rounded-xl border">
+          <div className="p-4 bg-muted/30 rounded-lg border">
             <p className="text-xs font-bold uppercase text-muted-foreground mb-1">Opened</p>
             <p className="text-sm">{format(new Date(String(meta.dispute_opened_at)), "PPP")}</p>
           </div>
         ) : null}
         {dispute.order && (
-          <div className="p-4 bg-muted/30 rounded-xl border">
+          <div className="p-4 bg-muted/30 rounded-lg border">
             <p className="text-xs font-bold uppercase text-muted-foreground mb-1">Order Value</p>
             <p className="text-sm font-bold">{formatGhs((dispute.order.total || 0) / 100)}</p>
           </div>
         )}
         {meta?.resolved_at ? (
-          <div className="p-4 bg-success/10 rounded-xl border border-success/20">
+          <div className="p-4 bg-success/10 rounded-lg border border-success/20">
             <p className="text-xs font-bold uppercase text-success mb-1">Resolution</p>
             <p className="text-sm font-bold capitalize">{String(meta.resolution || "resolved")}</p>
             {meta.resolution_note ? <p className="text-xs text-muted-foreground mt-1">{String(meta.resolution_note)}</p> : null}
@@ -147,7 +147,7 @@ function DisputeDetail({ id, onBack }: { id: string; onBack: () => void }) {
                   key={d}
                   type="button"
                   onClick={() => setDecision(d)}
-                  className={`p-3 rounded-xl border-2 text-sm font-bold text-center transition-colors ${
+                  className={`p-3 rounded-lg border-2 text-sm font-bold text-center ${
                     decision === d
                       ? "border-primary bg-muted text-primary"
                       : "border-border hover:border-primary/40 text-muted-foreground"
@@ -227,7 +227,7 @@ function DisputesPage() {
     <PageShell>
       <PageHeader title="Disputes" description="Escalated return disputes requiring admin resolution." />
 
-      <div className="border rounded-xl bg-card">
+      <div className="border rounded-lg bg-card">
         <Table label="Return disputes">
           <caption className="sr-only">Return disputes list</caption>
           <TableHeader>

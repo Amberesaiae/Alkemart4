@@ -46,7 +46,7 @@ export function CategoryIconRail({
           type="button"
           onClick={() => scroll("left")}
           aria-label="Scroll left"
-          className="absolute -left-3 top-[2rem] z-20 flex h-9 w-9 items-center justify-center rounded-full border border-border bg-card text-foreground shadow-md transition-all hover:scale-105 hover:bg-tone-neutral-soft active:scale-95"
+          className="absolute -left-3 top-[2rem] z-20 flex h-9 w-9 items-center justify-center rounded-full border border-border bg-card text-foreground shadow-md hover:scale-105 hover:bg-tone-neutral-soft active:scale-95"
         >
           <CaretLeft size={16} weight="bold" />
         </button>
@@ -73,7 +73,7 @@ export function CategoryIconRail({
           type="button"
           onClick={() => scroll("right")}
           aria-label="Scroll right"
-          className="absolute -right-3 top-[2rem] z-20 flex h-9 w-9 items-center justify-center rounded-full border border-border bg-card text-foreground shadow-md transition-all hover:scale-105 hover:bg-tone-neutral-soft active:scale-95"
+          className="absolute -right-3 top-[2rem] z-20 flex h-9 w-9 items-center justify-center rounded-full border border-border bg-card text-foreground shadow-md hover:scale-105 hover:bg-tone-neutral-soft active:scale-95"
         >
           <CaretRight size={16} weight="bold" />
         </button>
@@ -150,7 +150,7 @@ function RailItem(props: {
     >
       <span
         className={cn(
-          "flex h-16 w-16 items-center justify-center rounded-full bg-tone-neutral-soft transition-all duration-200 group-hover:scale-105 sm:h-[4.5rem] sm:w-[4.5rem]",
+          "flex h-16 w-16 items-center justify-center rounded-full bg-tone-neutral-soft group-hover:scale-105 sm:h-[4.5rem] sm:w-[4.5rem]",
           props.active
             ? "text-foreground ring-2 ring-primary ring-offset-2 ring-offset-background"
             : "text-foreground",

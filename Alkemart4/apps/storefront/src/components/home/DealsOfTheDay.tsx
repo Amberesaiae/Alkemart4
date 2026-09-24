@@ -140,7 +140,7 @@ export function DealsOfTheDay({ section, category, categories, featured, feature
     <Link
       key={promo.id}
       to={promo.href}
-      className="group flex min-h-[180px] flex-col justify-between gap-3 rounded-xl bg-ink p-4 text-white shadow-xs transition-transform duration-200 hover:-translate-y-0.5 sm:p-5"
+      className="group flex min-h-[180px] flex-col justify-between gap-3 rounded-lg bg-ink p-4 text-white shadow-xs hover:-translate-y-0.5 sm:p-5"
     >
       <span className="min-w-0">
         {promo.eyebrow ? (
@@ -234,7 +234,7 @@ function DealTab({
       aria-selected={active}
       onClick={onClick}
       className={cn(
-        "flex shrink-0 items-center gap-2 whitespace-nowrap border-b-2 px-3 py-2.5 text-sm font-bold transition-colors",
+        "flex shrink-0 items-center gap-2 whitespace-nowrap border-b-2 px-3 py-2.5 text-sm font-bold",
         active
           ? "border-primary text-foreground"
           : "border-transparent text-muted-foreground hover:text-foreground",

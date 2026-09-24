@@ -24,7 +24,7 @@ function RootComponent() {
       <div className="flex min-h-[100dvh] items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
           <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-          <p className="text-sm font-semibold text-muted-foreground animate-pulse">Loading Alkemart...</p>
+          <p className="text-sm font-semibold text-muted-foreground">Loading Alkemart...</p>
         </div>
       </div>
     )

@@ -95,7 +95,7 @@ function NotifyMeBlock({
   const signedIn = typeof window !== "undefined" && Boolean(getWorkersAccessToken());
   if (!outOfStock) return null;
   return (
-    <div className="space-y-2 rounded-xl border border-border bg-card p-4">
+    <div className="space-y-2 rounded-lg border border-border bg-card p-4">
       <h2 className="text-sm font-bold text-foreground">Price & stock alerts</h2>
       {!signedIn ? (
         <p className="text-xs text-muted-foreground">
@@ -115,7 +115,7 @@ function NotifyMeBlock({
               type="button"
               size="sm"
               variant="outline"
-              className="rounded-xl"
+              className="rounded-lg"
               disabled={sub.isPending}
               onClick={() => sub.mutate({ kind: "back_in_stock" })}
             >
@@ -130,13 +130,13 @@ function NotifyMeBlock({
                 inputMode="decimal"
                 placeholder="Target GH₵ (e.g. 899.99)"
                 aria-label="Price target in cedis"
-                className="h-9 min-w-0 flex-1 rounded-xl border border-input bg-background px-3 text-sm"
+                className="h-9 min-w-0 flex-1 rounded-lg border border-input bg-background px-3 text-sm"
               />
               <Button
                 type="button"
                 size="sm"
                 variant="outline"
-                className="rounded-xl whitespace-nowrap"
+                className="rounded-lg whitespace-nowrap"
                 disabled={sub.isPending || !target.trim()}
                 onClick={() => {
                   const n = Number(target.replace(/[^0-9.]/g, ""));
@@ -704,7 +704,7 @@ function ProductDetailPage() {
                     <Shimmer className="h-4 w-32" />
                   </div>
                   <Shimmer className="h-12 w-full rounded-lg" />
-                  <Shimmer className="h-24 w-full rounded-xl" />
+                  <Shimmer className="h-24 w-full rounded-lg" />
                 </div>
               </div>
             </div>
@@ -864,7 +864,7 @@ function ProductDetailPage() {
                       {pdpRating ? (
                         <a
                           href="#buyer-reviews"
-                          className="inline-flex items-center gap-1.5 font-bold text-muted-foreground transition-colors hover:text-foreground"
+                          className="inline-flex items-center gap-1.5 font-bold text-muted-foreground hover:text-foreground"
                           aria-label={pdpRating.label}
                         >
                           <span aria-hidden className="text-warning text-sm">
@@ -961,7 +961,7 @@ function ProductDetailPage() {
                                   disabled={!buyable}
                                   onClick={() => handleComboSelect(chosen)}
                                   className={
-                                    "min-h-9 min-w-9 rounded-lg border px-2.5 py-1.5 text-xs font-bold transition-colors " +
+                                    "min-h-9 min-w-9 rounded-lg border px-2.5 py-1.5 text-xs font-bold " +
                                     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring " +
                                     (selected
                                       ? "border-primary bg-muted text-foreground ring-1 ring-primary"
@@ -1033,7 +1033,7 @@ function ProductDetailPage() {
                               type="button"
                               onClick={() => setPeerSort(value)}
                               className={
-                                "rounded-md px-2 py-0.5 text-[11px] font-bold transition-colors " +
+                                "rounded-md px-2 py-0.5 text-[11px] font-bold " +
                                 (peerSort === value
                                   ? "bg-primary text-primary-foreground"
                                   : "text-muted-foreground hover:bg-muted")

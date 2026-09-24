@@ -347,7 +347,7 @@ function AccountPage() {
             type="button"
             size="sm"
             variant="outline"
-            className="rounded-xl"
+            className="rounded-lg"
             onClick={() => setShowForm((v) => !v)}
           >
             {showForm ? "Cancel" : "Add address"}
@@ -402,7 +402,7 @@ function AccountPage() {
                     type="button"
                     size="sm"
                     variant="outline"
-                    className="rounded-xl"
+                    className="rounded-lg"
                     disabled={setDefault.isPending}
                     onClick={() => setDefault.mutate(a.id)}
                   >
@@ -468,7 +468,7 @@ function AccountPage() {
             ) : null}
             <Button
               type="submit"
-              className="min-h-11 w-full rounded-xl"
+              className="min-h-11 w-full rounded-lg"
               disabled={createAddr.isPending}
             >
               {createAddr.isPending ? "Saving…" : "Save address"}

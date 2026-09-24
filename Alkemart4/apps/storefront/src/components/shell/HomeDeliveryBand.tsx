@@ -23,7 +23,7 @@ export function HomeDeliveryBand({
   return (
     <section
       className={cn(
-        "relative overflow-hidden rounded-xl bg-foreground px-6 py-8 sm:px-10 sm:py-10 shadow-md",
+        "relative overflow-hidden rounded-lg bg-foreground px-6 py-8 sm:px-10 sm:py-10 shadow-md",
         className,
       )}
     >
@@ -52,7 +52,7 @@ export function HomeDeliveryBand({
         </div>
 
         <div className="mx-auto flex shrink-0 items-center justify-center sm:mx-0">
-          <div className="flex h-32 w-32 items-center justify-center rounded-xl bg-white/10 sm:h-36 sm:w-36 lg:h-40 lg:w-40 shadow-inner">
+          <div className="flex h-32 w-32 items-center justify-center rounded-lg bg-white/10 sm:h-36 sm:w-36 lg:h-40 lg:w-40 shadow-inner">
             <img
               src={deliveryArt}
               alt=""

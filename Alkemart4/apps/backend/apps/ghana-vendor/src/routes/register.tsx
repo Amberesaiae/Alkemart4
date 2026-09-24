@@ -56,7 +56,7 @@ function RegisterPage() {
           <span className="ml-2 text-sm font-bold uppercase tracking-widest text-white/50">Seller</span>
         </span>
         <div className="relative max-w-md space-y-7">
-          <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-md">
+          <div className="inline-flex h-12 w-12 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-md">
             <Storefront className="h-6 w-6" weight="bold" aria-hidden />
           </div>
           <div className="space-y-3">
@@ -109,7 +109,7 @@ function RegisterPage() {
         </div>
 
         <div className="flex flex-1 flex-col items-center justify-center px-4 py-10 sm:px-8">
-          <div className="w-full max-w-sm rounded-xl border bg-card p-6 shadow-md sm:p-8">
+          <div className="w-full max-w-sm rounded-lg border bg-card p-6 shadow-md sm:p-8">
             <header className="mb-6 space-y-1.5">
               <p className="text-xs font-bold uppercase tracking-widest text-primary">
                 Seller Hub
@@ -123,7 +123,7 @@ function RegisterPage() {
             <form onSubmit={handleSubmit} className="space-y-4" noValidate>
               {register.isError ? (
                 <div
-                  className="flex items-start gap-2.5 rounded-xl border border-destructive/20 bg-destructive/10 p-3 text-sm"
+                  className="flex items-start gap-2.5 rounded-lg border border-destructive/20 bg-destructive/10 p-3 text-sm"
                   role="alert"
                 >
                   <WarningCircle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" aria-hidden />

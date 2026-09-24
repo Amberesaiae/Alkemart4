@@ -80,7 +80,7 @@ export function HeaderCategoryDropdown({ pathname }: { pathname: string }) {
         <button
           type="button"
           className={cn(
-            "inline-flex h-9 w-9 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-lg border transition-all",
+            "inline-flex h-9 w-9 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-lg border",
             open
               ? "border-primary bg-muted text-primary-strong shadow-xs"
               : "border-border/80 bg-background text-foreground hover:bg-muted hover:border-border",
@@ -96,7 +96,7 @@ export function HeaderCategoryDropdown({ pathname }: { pathname: string }) {
       <PopoverContent
         align="start"
         sideOffset={8}
-        className="z-50 w-[95vw] sm:w-[680px] md:w-[840px] lg:w-[940px] max-w-[1040px] max-h-[82vh] overflow-hidden rounded-xl border border-border/80 bg-card p-0 shadow-2xl outline-none"
+        className="z-50 w-[95vw] sm:w-[680px] md:w-[840px] lg:w-[940px] max-w-[1040px] max-h-[82vh] overflow-hidden rounded-lg border border-border/80 bg-card p-0 shadow-2xl outline-none"
       >
         {/* Desktop 2-Pane Mega Menu (Jumia reference layout) */}
         <div className="hidden md:flex h-[520px] max-h-[75vh]">
@@ -117,7 +117,7 @@ export function HeaderCategoryDropdown({ pathname }: { pathname: string }) {
                     onFocus={() => setSelectedHandle(slug)}
                     onClick={() => setSelectedHandle(slug)}
                     className={cn(
-                      "flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-left text-xs font-semibold transition-colors",
+                      "flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-left text-xs font-semibold",
                       isSelected
                         ? "bg-card text-primary-strong shadow-2xs font-bold ring-1 ring-border/80"
                         : "text-foreground hover:bg-muted/60",
@@ -139,7 +139,7 @@ export function HeaderCategoryDropdown({ pathname }: { pathname: string }) {
                       size={13}
                       weight={isSelected ? "bold" : "regular"}
                       className={cn(
-                        "shrink-0 transition-transform",
+                        "shrink-0",
                         isSelected ? "text-primary-strong translate-x-0.5" : "text-muted-foreground/60",
                       )}
                     />
@@ -153,7 +153,7 @@ export function HeaderCategoryDropdown({ pathname }: { pathname: string }) {
                 to="/categories/$slug"
                 params={{ slug: "all" }}
                 onClick={() => setOpen(false)}
-                className="flex items-center justify-between rounded-md px-2 py-1.5 text-xs font-bold text-primary-strong hover:bg-muted/60 transition-colors"
+                className="flex items-center justify-between rounded-md px-2 py-1.5 text-xs font-bold text-primary-strong hover:bg-muted/60"
               >
                 <span>All Categories</span>
                 <CaretRight size={13} />
@@ -161,7 +161,7 @@ export function HeaderCategoryDropdown({ pathname }: { pathname: string }) {
               <Link
                 to="/shops"
                 onClick={() => setOpen(false)}
-                className="flex items-center justify-between rounded-md px-2 py-1.5 text-xs font-semibold text-foreground hover:bg-muted/60 transition-colors"
+                className="flex items-center justify-between rounded-md px-2 py-1.5 text-xs font-semibold text-foreground hover:bg-muted/60"
               >
                 <span>Stores</span>
                 <CaretRight size={13} />
@@ -206,7 +206,7 @@ export function HeaderCategoryDropdown({ pathname }: { pathname: string }) {
                             params={{ slug: selectedHandle }}
                             search={item.handle ? { sub: item.handle } : undefined}
                             onClick={() => setOpen(false)}
-                            className="block py-1 text-xs text-muted-foreground hover:text-primary-strong hover:underline font-medium transition-colors"
+                            className="block py-1 text-xs text-muted-foreground hover:text-primary-strong hover:underline font-medium"
                           >
                             {item.label}
                           </Link>
@@ -275,7 +275,7 @@ export function HeaderCategoryDropdown({ pathname }: { pathname: string }) {
                     <CaretDown
                       size={14}
                       weight="bold"
-                      className={cn("transition-transform", isExpanded && "rotate-180")}
+                      className={cn("", isExpanded && "rotate-180")}
                     />
                   </button>
                 </div>

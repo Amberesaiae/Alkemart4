@@ -163,9 +163,9 @@ function AboutPage() {
             {PILLARS.map((p) => (
               <li
                 key={p.title}
-                className="flex gap-4 rounded-2xl border border-border bg-card p-5 shadow-sm transition-colors hover:border-foreground/25"
+                className="flex gap-4 rounded-2xl border border-border bg-card p-5 shadow-sm hover:border-foreground/25"
               >
-                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-muted text-foreground">
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-muted text-foreground">
                   <IconSafe name={p.icon} size={22} />
                 </span>
                 <div className="space-y-1">
@@ -210,7 +210,7 @@ function AboutPage() {
                 d: "Pay the rider. Mobile Money when a seller offers it.",
               },
             ].map((s) => (
-              <li key={s.n} className="space-y-2 rounded-2xl bg-card p-5 shadow-sm transition-shadow hover:shadow-md">
+              <li key={s.n} className="space-y-2 rounded-2xl bg-card p-5 shadow-sm">
                 <span className="text-xs font-bold text-primary">{s.n}</span>
                 <h3 className="font-bold text-foreground">{s.t}</h3>
                 <p className="text-sm leading-relaxed text-muted-foreground">

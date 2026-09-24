@@ -24,10 +24,10 @@ function CategoryMosaicSkeleton() {
   return (
     <section aria-hidden="true" className="w-full">
       <div className="grid grid-cols-2 gap-2.5 sm:gap-3 lg:grid-cols-5 lg:grid-rows-2 lg:h-[420px] lg:gap-3.5">
-        <Shimmer className="col-span-2 aspect-[16/10] rounded-xl lg:col-span-3 lg:row-span-2 lg:aspect-auto lg:h-full" />
-        <Shimmer className="col-span-1 aspect-square rounded-xl sm:aspect-[4/3] lg:aspect-auto lg:h-full" />
-        <Shimmer className="col-span-1 aspect-square rounded-xl sm:aspect-[4/3] lg:aspect-auto lg:h-full" />
-        <Shimmer className="col-span-2 aspect-[16/9] rounded-xl sm:aspect-[21/9] lg:col-span-2 lg:aspect-auto lg:h-full" />
+        <Shimmer className="col-span-2 aspect-[16/10] rounded-lg lg:col-span-3 lg:row-span-2 lg:aspect-auto lg:h-full" />
+        <Shimmer className="col-span-1 aspect-square rounded-lg sm:aspect-[4/3] lg:aspect-auto lg:h-full" />
+        <Shimmer className="col-span-1 aspect-square rounded-lg sm:aspect-[4/3] lg:aspect-auto lg:h-full" />
+        <Shimmer className="col-span-2 aspect-[16/9] rounded-lg sm:aspect-[21/9] lg:col-span-2 lg:aspect-auto lg:h-full" />
       </div>
     </section>
   )
@@ -65,7 +65,7 @@ function CategoryGridSkeleton({ columns = 4 }: { columns?: number }) {
       <div className={cn("grid grid-cols-2 gap-3", columns >= 6 ? "sm:grid-cols-6" : "sm:grid-cols-4")}>
         {Array.from({ length: Math.min(columns, 6) }).map((_, i) => (
           <div key={i} className="space-y-3">
-            <Shimmer className="aspect-square rounded-xl" />
+            <Shimmer className="aspect-square rounded-lg" />
             <Shimmer className="mx-auto h-4 w-3/4" />
           </div>
         ))}
@@ -79,9 +79,9 @@ function PromoGridSkeleton() {
     <section aria-hidden="true" className="space-y-4">
       <Shimmer className="h-7 w-44 rounded-lg" />
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
-        <Shimmer className="min-h-52 rounded-xl" />
-        <Shimmer className="min-h-52 rounded-xl" />
-        <Shimmer className="min-h-52 rounded-xl" />
+        <Shimmer className="min-h-52 rounded-lg" />
+        <Shimmer className="min-h-52 rounded-lg" />
+        <Shimmer className="min-h-52 rounded-lg" />
       </div>
     </section>
   )
@@ -105,10 +105,10 @@ function ShelfFallback({ section }: { section: HomeSection }) {
   }
   if (section.type === "promo_grid") return <PromoGridSkeleton />
   if (section.type === "promo_band" || section.type === "countdown_banner") {
-    return <Shimmer className="h-28 rounded-xl" />
+    return <Shimmer className="h-28 rounded-lg" />
   }
-  if (section.type === "promo_hero") return <Shimmer className="h-[320px] rounded-xl sm:h-[380px]" />
-  if (section.type === "marquee") return <Shimmer className="h-12 rounded-xl" />
+  if (section.type === "promo_hero") return <Shimmer className="h-[320px] rounded-lg sm:h-[380px]" />
+  if (section.type === "marquee") return <Shimmer className="h-12 rounded-lg" />
   return null
 }
 

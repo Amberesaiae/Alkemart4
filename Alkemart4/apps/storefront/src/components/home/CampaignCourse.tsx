@@ -80,7 +80,7 @@ function CreativeArt({ creative, title }: { creative: CourseCreative; title: str
       src={creative.imageUrl}
       alt=""
       aria-hidden
-      className="h-40 w-full rounded-xl object-cover sm:h-56"
+      className="h-40 w-full rounded-lg object-cover sm:h-56"
       loading="lazy"
     />
   )
@@ -171,7 +171,7 @@ function CampaignBlock({
       className={cn(
         "space-y-3",
         placementCode === "hero" || placementCode === "promo_band"
-          ? "rounded-xl border border-border bg-card p-4 sm:p-6"
+          ? "rounded-lg border border-border bg-card p-4 sm:p-6"
           : undefined,
       )}
     >

@@ -122,7 +122,7 @@ export function ListingQuickFilters({
             }
           }}
           className={cn(
-            "inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-xs font-bold transition-all shadow-2xs",
+            "inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-xs font-bold shadow-2xs",
             isExpressActive
               ? "bg-primary text-primary-foreground ring-1 ring-primary-strong"
               : "border border-border/80 bg-background text-foreground hover:bg-muted",
@@ -184,7 +184,7 @@ export function ListingQuickFilters({
                         <span className="flex items-center gap-2 truncate">
                           <span
                             className={cn(
-                              "flex h-3.5 w-3.5 items-center justify-center rounded-xs border transition-colors",
+                              "flex h-3.5 w-3.5 items-center justify-center rounded-xs border",
                               checked
                                 ? "border-primary bg-primary text-primary-foreground"
                                 : "border-border/80 bg-background",
@@ -260,7 +260,7 @@ export function ListingQuickFilters({
                   </div>
                   <button
                     type="submit"
-                    className="h-8 rounded-md bg-primary px-3 text-xs font-bold text-primary-foreground shadow-xs hover:bg-primary-strong transition-colors"
+                    className="h-8 rounded-md bg-primary px-3 text-xs font-bold text-primary-foreground shadow-xs hover:bg-primary-strong"
                   >
                     Go
                   </button>

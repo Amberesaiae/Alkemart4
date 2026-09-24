@@ -109,7 +109,7 @@ function CategoriesPage() {
         </Button>
       </div>
 
-      <div className="border rounded-xl bg-card">
+      <div className="border rounded-lg bg-card">
         <Table label="Product categories">
           <caption className="sr-only">Product categories list</caption>
           <TableHeader>

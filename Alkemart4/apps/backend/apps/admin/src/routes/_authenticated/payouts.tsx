@@ -67,7 +67,7 @@ function TriggerPayoutDialog({ isOpen, onClose }: { isOpen: boolean; onClose: ()
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-semibold">Trigger Payout</h3>
-          <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-muted/60 border text-xs">
+          <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted/60 border text-xs">
             <img src="/momo/mtn.png" alt="MTN" className="h-6 w-6 object-contain rounded-md shadow-2xs" />
             <img src="/momo/telecel.png" alt="Telecel" className="h-6 w-auto object-contain rounded-md shadow-2xs" />
             <img src="/momo/airteltigo.png" alt="AT" className="h-6 w-auto object-contain rounded-md bg-white p-0.5 shadow-2xs" />
@@ -130,7 +130,7 @@ function TriggerPayoutDialog({ isOpen, onClose }: { isOpen: boolean; onClose: ()
         </div>
 
         {selectedSeller && isValid && (
-          <div className="bg-muted/30 rounded-xl p-4 text-sm space-y-2 border">
+          <div className="bg-muted/30 rounded-lg p-4 text-sm space-y-2 border">
             <p className="font-bold text-foreground">Confirmation</p>
             <div className="flex items-center justify-between text-xs">
               <span className="text-muted-foreground">Seller:</span>
@@ -214,7 +214,7 @@ function PayoutsPage() {
         </Button>
       </div>
 
-      <div className="border rounded-xl bg-card">
+      <div className="border rounded-lg bg-card">
         <Table label="Payouts">
           <caption className="sr-only">Payouts list</caption>
           <TableHeader>

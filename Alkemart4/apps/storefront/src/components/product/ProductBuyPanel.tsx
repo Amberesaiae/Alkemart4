@@ -55,7 +55,7 @@ export function ProductBuyPanel({
   return (
     <div
       className={cn(
-        "space-y-4 rounded-xl border border-border bg-card p-4 shadow-sm",
+        "space-y-4 rounded-lg border border-border bg-card p-4 shadow-sm",
         sticky && "lg:sticky lg:top-24",
         className,
       )}
@@ -79,7 +79,7 @@ export function ProductBuyPanel({
         </div>
       )}
 
-      <div className="rounded-xl border border-border/60 bg-muted/30 p-3 space-y-1.5 text-xs text-muted-foreground">
+      <div className="rounded-lg border border-border/60 bg-muted/30 p-3 space-y-1.5 text-xs text-muted-foreground">
         <div className="flex items-center gap-2 font-medium text-foreground">
           <span>📦</span>
           <span>Fast Ghana Delivery</span>
@@ -137,7 +137,7 @@ export function ProductBuyPanel({
       </Button>
 
       {sellerHandle ? (
-        <div className="rounded-xl border border-border/60 bg-muted/30 p-3">
+        <div className="rounded-lg border border-border/60 bg-muted/30 p-3">
           <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             Sold by
           </p>
@@ -148,7 +148,7 @@ export function ProductBuyPanel({
             <Link
               to="/shops/$slug"
               params={{ slug: sellerHandle }}
-              className="shrink-0 text-xs font-semibold underline underline-offset-2 transition-colors hover:text-primary"
+              className="shrink-0 text-xs font-semibold underline underline-offset-2 hover:text-primary"
             >
               Visit shop
             </Link>
@@ -156,7 +156,7 @@ export function ProductBuyPanel({
         </div>
       ) : null}
 
-      <div className="space-y-1.5 rounded-xl border border-border/60 p-3">
+      <div className="space-y-1.5 rounded-lg border border-border/60 p-3">
         <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           Secure payments via Paystack
         </p>
@@ -176,7 +176,7 @@ export function ProductBuyPanel({
 
       {success ? (
         <div
-          className="rounded-xl bg-tone-success-soft text-tone-success-ink border border-tone-success/40 p-3 text-center text-sm font-medium"
+          className="rounded-lg bg-tone-success-soft text-tone-success-ink border border-tone-success/40 p-3 text-center text-sm font-medium"
           aria-live="polite"
         >
           <Check size={14} weight="bold" aria-hidden className="mr-1 inline" /> Added to your cart!{" "}

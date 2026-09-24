@@ -58,7 +58,7 @@ function ReviewCard({ review }: { review: VendorReview }) {
         {new Date(review.createdAt).toLocaleDateString()}
       </p>
       {review.vendorResponse ? (
-        <div className="rounded-xl bg-muted/40 border p-3 text-sm">
+        <div className="rounded-lg bg-muted/40 border p-3 text-sm">
           <p className="font-bold flex items-center gap-1.5 text-xs uppercase tracking-wide text-muted-foreground mb-1">
             <ChatCircleText className="h-4 w-4" /> Your reply
           </p>

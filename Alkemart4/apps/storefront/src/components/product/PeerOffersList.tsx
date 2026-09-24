@@ -43,7 +43,7 @@ export function PeerOffersList({
   return (
     <div
       className={cn(
-        "space-y-3 rounded-xl border border-border bg-card p-4 shadow-xs",
+        "space-y-3 rounded-lg border border-border bg-card p-4 shadow-xs",
         className,
       )}
     >
@@ -73,7 +73,7 @@ export function PeerOffersList({
                 type="button"
                 onClick={() => onSelect(o.offerId)}
                 className={cn(
-                  "flex w-full items-center justify-between gap-3 rounded-xl p-2.5 text-left text-sm transition-all",
+                  "flex w-full items-center justify-between gap-3 rounded-lg p-2.5 text-left text-sm",
                   selected
                     ? "bg-muted font-semibold ring-1 ring-primary/40 shadow-xs text-foreground"
                     : "hover:bg-muted/60 text-muted-foreground hover:text-foreground",
@@ -82,7 +82,7 @@ export function PeerOffersList({
                 <div className="flex items-center gap-2.5 min-w-0">
                   <div
                     className={cn(
-                      "flex size-4 shrink-0 items-center justify-center rounded-full border transition-all",
+                      "flex size-4 shrink-0 items-center justify-center rounded-full border",
                       selected
                         ? "border-primary bg-primary text-primary-foreground"
                         : "border-border bg-background",

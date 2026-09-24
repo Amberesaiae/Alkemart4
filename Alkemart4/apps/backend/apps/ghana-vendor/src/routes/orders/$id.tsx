@@ -33,11 +33,11 @@ function OrderDetailPage() {
   if (isLoading) {
     return (
       <PageShell>
-        <div className="space-y-6 animate-pulse">
+        <div className="space-y-6">
           <div className="h-10 w-48 bg-muted rounded-md" />
           <div className="grid md:grid-cols-3 gap-6">
-            <div className="md:col-span-2 h-[400px] bg-muted rounded-xl" />
-            <div className="h-[400px] bg-muted rounded-xl" />
+            <div className="md:col-span-2 h-[400px] bg-muted rounded-lg" />
+            <div className="h-[400px] bg-muted rounded-lg" />
           </div>
         </div>
       </PageShell>

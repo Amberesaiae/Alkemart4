@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
 import { useState } from "react"
 import { Storefront, Package, TrendUp, CheckCircle, WarningCircle } from "@phosphor-icons/react"
 import { useLogin } from "../lib/auth"
-import { Button, PasswordInput, Input, Label } from "@workspace/ui"
+import { Button, PasswordInput, Input, Label, Notice } from "@workspace/ui"
 
 export const Route = createFileRoute("/login")({
   validateSearch: (search: Record<string, unknown>) => {
@@ -90,8 +90,8 @@ function LoginPage() {
           </div>
 
           <div className="space-y-3.5">
-            <div className="group flex items-start gap-4 rounded-xl border border-white/10 bg-white/[0.04] p-4 backdrop-blur transition-colors hover:border-primary/40 hover:bg-white/[0.07]">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-muted text-primary group- transition-transform">
+            <div className="group flex items-start gap-4 rounded-lg border border-white/10 bg-white/[0.04] p-4 backdrop-blur hover:border-primary/40 hover:bg-white/[0.07]">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted text-primary group-">
                 <Storefront className="h-5 w-5" weight="bold" aria-hidden />
               </div>
               <div className="space-y-0.5">
@@ -102,8 +102,8 @@ function LoginPage() {
               </div>
             </div>
 
-            <div className="group flex items-start gap-4 rounded-xl border border-white/10 bg-white/[0.04] p-4 backdrop-blur transition-colors hover:border-primary/40 hover:bg-white/[0.07]">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-muted text-primary group- transition-transform">
+            <div className="group flex items-start gap-4 rounded-lg border border-white/10 bg-white/[0.04] p-4 backdrop-blur hover:border-primary/40 hover:bg-white/[0.07]">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted text-primary group-">
                 <Package className="h-5 w-5" weight="bold" aria-hidden />
               </div>
               <div className="space-y-0.5">
@@ -114,8 +114,8 @@ function LoginPage() {
               </div>
             </div>
 
-            <div className="group flex items-start gap-4 rounded-xl border border-white/10 bg-white/[0.04] p-4 backdrop-blur transition-colors hover:border-primary/40 hover:bg-white/[0.07]">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-muted text-primary group- transition-transform">
+            <div className="group flex items-start gap-4 rounded-lg border border-white/10 bg-white/[0.04] p-4 backdrop-blur hover:border-primary/40 hover:bg-white/[0.07]">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted text-primary group-">
                 <TrendUp className="h-5 w-5" weight="bold" aria-hidden />
               </div>
               <div className="space-y-0.5">
@@ -132,7 +132,7 @@ function LoginPage() {
         <div className="relative z-10 flex items-center justify-between border-t border-white/10 pt-4 text-xs text-white/50">
           <span>Seller Hub · Powered by Alkemart</span>
           <span className="inline-flex items-center gap-1.5 text-primary/80 font-medium">
-            <span className="h-1.5 w-1.5 rounded-full bg-tone-success animate-pulse" />
+            <span className="h-1.5 w-1.5 rounded-full bg-tone-success" />
             24/7 Platform Active
           </span>
         </div>
@@ -150,7 +150,7 @@ function LoginPage() {
         </div>
 
         <div className="flex flex-1 flex-col items-center justify-center px-4 py-10 sm:px-8">
-          <div className="w-full max-w-md rounded-xl border border-black/10 bg-white p-8 shadow-[0_20px_50px_-24px_rgb(0_0_0_/_0.35)] sm:p-10">
+          <div className="w-full max-w-md rounded-lg border border-black/10 bg-white p-8 shadow-[0_20px_50px_-24px_rgb(0_0_0_/_0.35)] sm:p-10">
             <header className="mb-8 space-y-2">
               <p className="text-xs font-bold uppercase tracking-widest text-primary">
                 Seller Hub
@@ -163,31 +163,12 @@ function LoginPage() {
 
             <form onSubmit={handleSubmit} className="space-y-5" noValidate>
               {registered ? (
-                <div
-                  className="flex items-start gap-2.5 rounded-xl border border-tone-success-ink/25 bg-tone-success-soft p-3.5 text-sm"
-                  role="status"
-                >
-                  <CheckCircle className="mt-0.5 h-4 w-4 shrink-0 text-tone-success-ink" aria-hidden />
-                  <p className="font-semibold text-tone-success-ink">
-                    Stall created! Sign in to start selling.
-                  </p>
-                </div>
+                <Notice tone="success" title="Stall created! Sign in to start selling." icon={<CheckCircle aria-hidden />} />
               ) : null}
               {login.isError ? (
-                <div
-                  className="flex items-start gap-2.5 rounded-xl border border-tone-danger-ink/25 bg-tone-danger-soft p-3.5 text-sm"
-                  role="alert"
-                >
-                  <WarningCircle className="mt-0.5 h-4 w-4 shrink-0 text-tone-danger-ink" aria-hidden />
-                  <div>
-                    <p className="font-semibold text-tone-danger-ink">
-                      Couldn&apos;t sign you in. Check your details and try again.
-                    </p>
-                    {login.error instanceof Error && login.error.message ? (
-                      <p className="mt-0.5 text-xs text-tone-danger-ink/80">{login.error.message}</p>
-                    ) : null}
-                  </div>
-                </div>
+                <Notice tone="danger" title="Couldn't sign you in. Check your details and try again." icon={<WarningCircle aria-hidden />}>
+                  {login.error instanceof Error && login.error.message ? login.error.message : null}
+                </Notice>
               ) : null}
 
               <div className="space-y-2">

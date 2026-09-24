@@ -2,7 +2,7 @@
  * Alkemart PLP Sidebar Filters.
  *
  * Visual hierarchy:
- * - Single cohesive card container (rounded-xl, subtle border and shadow)
+ * - Single cohesive card container (rounded-lg, subtle border and shadow)
  * - Uppercase, clean tracking section headers (CATEGORY, BRAND, PRICE, RATING)
  * - Clear, readable typography (text-sm for categories, text-xs for controls)
  * - Synchronized with URL-owned ListingFacetState
@@ -102,7 +102,7 @@ function FilterSection({
           size={14}
           preferAsset={false}
           className={cn(
-            "shrink-0 opacity-70 transition-transform duration-200",
+            "shrink-0 opacity-70",
             open ? "rotate-90" : "rotate-0",
           )}
         />

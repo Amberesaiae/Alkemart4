@@ -69,7 +69,7 @@ export function HomeHowItWorks({
         {STEPS.map((step, i) => (
           <li
             key={step.id}
-            className="flex flex-col overflow-hidden rounded-lg border border-border bg-card shadow-sm transition hover:shadow-md"
+            className="flex flex-col overflow-hidden rounded-lg border border-border bg-card shadow-sm transition"
           >
             <div className="relative flex h-28 items-center justify-center bg-muted/50 sm:h-32">
               <span

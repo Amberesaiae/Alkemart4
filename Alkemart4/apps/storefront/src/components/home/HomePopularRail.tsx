@@ -32,7 +32,7 @@ export function HomePopularRail({
             type="button"
             aria-label="Scroll popular picks left"
             onClick={() => move(-1)}
-            className="flex size-9 items-center justify-center rounded-full border border-black/10 bg-card hover:bg-muted transition-colors shadow-2xs"
+            className="flex size-9 items-center justify-center rounded-full border border-black/10 bg-card hover:bg-muted shadow-2xs"
           >
             <CaretLeft size={18} weight="bold" />
           </button>
@@ -40,7 +40,7 @@ export function HomePopularRail({
             type="button"
             aria-label="Scroll popular picks right"
             onClick={() => move(1)}
-            className="flex size-9 items-center justify-center rounded-full border border-black/10 bg-card hover:bg-muted transition-colors shadow-2xs"
+            className="flex size-9 items-center justify-center rounded-full border border-black/10 bg-card hover:bg-muted shadow-2xs"
           >
             <CaretRight size={18} weight="bold" />
           </button>

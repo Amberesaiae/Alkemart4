@@ -100,7 +100,7 @@ export function ListingFilterDropdown({
           size={16}
           preferAsset={false}
           className={cn(
-            "shrink-0 transition-transform duration-200",
+            "shrink-0",
             open ? "rotate-90" : "rotate-0",
           )}
         />
@@ -112,7 +112,7 @@ export function ListingFilterDropdown({
           role="dialog"
           aria-labelledby={buttonId}
           aria-label="Listing filters"
-          className="absolute left-0 top-[calc(100%+8px)] z-30 w-[min(20rem,calc(100vw-2rem))] space-y-4 rounded-xl border border-border bg-card p-4 shadow-lg"
+          className="absolute left-0 top-[calc(100%+8px)] z-30 w-[min(20rem,calc(100vw-2rem))] space-y-4 rounded-lg border border-border bg-card p-4 shadow-lg"
         >
           {subCategories.length > 0 ? (
             <div className="space-y-1.5">
@@ -260,7 +260,7 @@ export function ListingFilterDropdown({
             <button
               type="button"
               onClick={() => setOpen(false)}
-              className="inline-flex min-h-11 flex-1 items-center justify-center rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+              className="inline-flex min-h-11 flex-1 items-center justify-center rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
             >
               Show results
             </button>
@@ -270,7 +270,7 @@ export function ListingFilterDropdown({
                 onClick={() => {
                   onClearAll()
                 }}
-                className="inline-flex min-h-11 items-center justify-center rounded-xl border border-border bg-background px-4 text-sm font-semibold transition hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+                className="inline-flex min-h-11 items-center justify-center rounded-lg border border-border bg-background px-4 text-sm font-semibold transition hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
               >
                 Clear
               </button>

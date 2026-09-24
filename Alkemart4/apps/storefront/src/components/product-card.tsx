@@ -111,7 +111,7 @@ export function ProductCard({
     return (
       <article
         className={cn(
-          "group flex h-full max-h-[112px] flex-row items-stretch overflow-hidden rounded-xl border border-black/[0.08] bg-card shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md",
+          "group flex h-full max-h-[112px] flex-row items-stretch overflow-hidden rounded-lg border border-black/[0.08] bg-card shadow-xs hover:-translate-y-0.5",
           className,
         )}
       >
@@ -127,7 +127,7 @@ export function ProductCard({
             params={{ id: detailId }}
             className="rounded-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
           >
-            <h3 className="line-clamp-2 text-sm font-semibold leading-snug text-foreground transition-colors group-hover:text-primary-strong">
+            <h3 className="line-clamp-2 text-sm font-semibold leading-snug text-foreground group-hover:text-primary-strong">
               {product.title}
             </h3>
           </Link>
@@ -163,7 +163,7 @@ export function ProductCard({
   return (
     <article
       className={cn(
-        "group flex h-full w-full flex-col text-left transition-all duration-200 hover:-translate-y-0.5",
+        "group flex h-full w-full flex-col text-left hover:-translate-y-0.5",
         className,
       )}
     >
@@ -171,7 +171,7 @@ export function ProductCard({
       <Media
         product={product}
         detailId={detailId}
-        className="aspect-square w-full shrink-0 rounded-xl overflow-hidden bg-muted/20 dark:bg-muted/40 ring-1 ring-black/[0.04]"
+        className="aspect-square w-full shrink-0 rounded-lg overflow-hidden bg-muted/20 dark:bg-muted/40 ring-1 ring-black/[0.04]"
         imageFit={imageFit}
         stock={stock}
         cart={cart}
@@ -188,7 +188,7 @@ export function ProductCard({
         >
           <h3
             title={product.title}
-            className="truncate text-sm sm:text-base font-semibold text-foreground transition-colors group-hover:text-primary-strong leading-snug"
+            className="truncate text-sm sm:text-base font-semibold text-foreground group-hover:text-primary-strong leading-snug"
           >
             {product.title}
           </h3>
@@ -298,7 +298,7 @@ function Media(props: {
         onLoad={() => setLoaded(true)}
         onError={() => setBroken(true)}
         className={cn(
-          "relative z-[1] h-full w-full transition duration-300 group-hover:scale-[1.04] motion-reduce:transition-none motion-reduce:group-hover:scale-100",
+          "relative z-[1] h-full w-full transition group-hover:scale-[1.04] motion-reduce:transition-none motion-reduce:group-hover:scale-100",
           imageFit === "contain" ? "object-contain p-2.5 sm:p-3" : "object-cover",
           loaded ? "opacity-100" : "opacity-0",
         )}
@@ -324,7 +324,7 @@ function Media(props: {
   )
 
   return (
-    <div className={cn("relative w-full overflow-hidden bg-muted/20 dark:bg-muted/40 rounded-xl", className)}>
+    <div className={cn("relative w-full overflow-hidden bg-muted/20 dark:bg-muted/40 rounded-lg", className)}>
       {onQuickView ? (
         <button
           type="button"
@@ -355,7 +355,7 @@ function Media(props: {
           <AddToCartControl
             variant="icon"
             {...cart}
-            className="size-7 sm:size-8 rounded-full bg-primary text-primary-foreground hover:bg-primary-strong active:scale-95 shadow-xs transition-transform hover:scale-105"
+            className="size-7 sm:size-8 rounded-full bg-primary text-primary-foreground hover:bg-primary-strong active:scale-95 shadow-xs hover:scale-105"
           />
         </span>
       ) : null}

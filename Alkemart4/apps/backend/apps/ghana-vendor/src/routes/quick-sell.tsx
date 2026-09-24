@@ -228,9 +228,9 @@ function QuickSellPage() {
       <>
       <div className="flex items-center justify-center mb-8">
         <div className="flex items-center gap-2">
-          <div className={`h-8 w-8 rounded-full flex items-center justify-center font-bold text-sm transition-colors ${step === 1 ? 'bg-primary text-primary-foreground' : 'bg-primary text-primary-foreground'}`}>1</div>
-          <div className={`h-1 w-12 rounded-full transition-colors ${step === 2 ? 'bg-primary' : 'bg-muted'}`} />
-          <div className={`h-8 w-8 rounded-full flex items-center justify-center font-bold text-sm transition-colors ${step === 2 ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>2</div>
+          <div className={`h-8 w-8 rounded-full flex items-center justify-center font-bold text-sm ${step === 1 ? 'bg-primary text-primary-foreground' : 'bg-primary text-primary-foreground'}`}>1</div>
+          <div className={`h-1 w-12 rounded-full ${step === 2 ? 'bg-primary' : 'bg-muted'}`} />
+          <div className={`h-8 w-8 rounded-full flex items-center justify-center font-bold text-sm ${step === 2 ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>2</div>
         </div>
       </div>
 
@@ -284,7 +284,7 @@ function QuickSellPage() {
             <div className="flex flex-col sm:flex-row gap-6">
               <div className="w-full sm:w-1/3">
                 <div 
-                  className="aspect-square bg-muted rounded-xl border-2 border-dashed border-border flex items-center justify-center overflow-hidden relative cursor-pointer group"
+                  className="aspect-square bg-muted rounded-lg border-2 border-dashed border-border flex items-center justify-center overflow-hidden relative cursor-pointer group"
                   onClick={() => fileInputRef.current?.click()}
                 >
                   {preview ? (
@@ -300,7 +300,7 @@ function QuickSellPage() {
                       {fileError}
                     </div>
                   )}
-                  <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100">
                     <span className="text-white font-semibold text-sm">Change</span>
                   </div>
                 </div>
@@ -427,7 +427,7 @@ function QuickSellPage() {
                     </Button>
                   </div>
                   {hasVariations && (
-                    <div className="space-y-4 rounded-xl border-2 border-border p-4">
+                    <div className="space-y-4 rounded-lg border-2 border-border p-4">
                       <p className="text-xs text-muted-foreground font-semibold">
                         List each variation you have — each row is its own combination with its own stock and price.
                       </p>
@@ -626,7 +626,7 @@ function SetupGate({ readiness }: { readiness: SellerReadiness }) {
 
         <ul className="space-y-2 mb-8">
           {items.map(([key, done]) => (
-            <li key={key} className="flex items-center gap-3 p-3 rounded-xl border-2 border-border">
+            <li key={key} className="flex items-center gap-3 p-3 rounded-lg border-2 border-border">
               {done ? (
                 <CheckCircle className="h-5 w-5 text-success shrink-0" />
               ) : (

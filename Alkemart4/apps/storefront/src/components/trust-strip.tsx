@@ -65,9 +65,9 @@ export function TrustStrip({
         {list.map((item) => (
           <li
             key={item.title}
-            className="flex flex-col rounded-xl border border-border bg-card p-4 shadow-sm"
+            className="flex flex-col rounded-lg border border-border bg-card p-4 shadow-sm"
           >
-            <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-muted">
+            <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-lg bg-muted">
               <IconSafe name={item.icon} size={28} />
             </div>
             <h3 className="text-sm font-bold text-foreground">{item.title}</h3>

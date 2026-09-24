@@ -136,7 +136,7 @@ export function SearchFilterDialog({
         <DialogHeader className="border-b border-border/80 px-6 py-4 text-left shrink-0">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2.5">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-muted text-foreground">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-muted text-foreground">
                 <SlidersHorizontal size={20} weight="bold" />
               </div>
               <div>
@@ -174,7 +174,7 @@ export function SearchFilterDialog({
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="What are you looking for?"
-                className="h-11 w-full rounded-xl border border-border/80 bg-background/80 pl-10 pr-9 text-sm font-medium text-foreground outline-none placeholder:text-muted-foreground/75 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                className="h-11 w-full rounded-lg border border-border/80 bg-background/80 pl-10 pr-9 text-sm font-medium text-foreground outline-none placeholder:text-muted-foreground/75 focus:border-primary focus:ring-2 focus:ring-primary/20"
                 autoComplete="off"
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
@@ -224,7 +224,7 @@ export function SearchFilterDialog({
                     type="button"
                     onClick={() => toggleCategory(handle)}
                     className={cn(
-                      "flex min-h-11 items-center gap-2 rounded-xl border px-3 text-left text-xs font-bold transition-all",
+                      "flex min-h-11 items-center gap-2 rounded-lg border px-3 text-left text-xs font-bold",
                       isSelected
                         ? "border-primary bg-muted text-foreground font-bold shadow-2xs ring-1 ring-primary/40"
                         : "border-border/80 bg-background text-foreground hover:border-primary/50 hover:bg-muted/50",
@@ -261,7 +261,7 @@ export function SearchFilterDialog({
                   value={minPrice}
                   onChange={(e) => setMinPrice(e.target.value)}
                   placeholder="Min"
-                  className="h-10 w-full rounded-xl border border-border/80 bg-background/80 pl-11 pr-3 text-sm font-semibold outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                  className="h-10 w-full rounded-lg border border-border/80 bg-background/80 pl-11 pr-3 text-sm font-semibold outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                   aria-label="Minimum price in Ghana Cedis"
                 />
               </div>
@@ -276,7 +276,7 @@ export function SearchFilterDialog({
                   value={maxPrice}
                   onChange={(e) => setMaxPrice(e.target.value)}
                   placeholder="Max"
-                  className="h-10 w-full rounded-xl border border-border/80 bg-background/80 pl-11 pr-3 text-sm font-semibold outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                  className="h-10 w-full rounded-lg border border-border/80 bg-background/80 pl-11 pr-3 text-sm font-semibold outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                   aria-label="Maximum price in Ghana Cedis"
                 />
               </div>
@@ -294,7 +294,7 @@ export function SearchFilterDialog({
                     type="button"
                     onClick={() => applyPreset(preset.min, preset.max)}
                     className={cn(
-                      "rounded-lg border px-2.5 py-1 text-xs font-semibold transition-colors",
+                      "rounded-lg border px-2.5 py-1 text-xs font-semibold",
                       isMatch
                         ? "border-primary bg-muted text-foreground font-bold shadow-2xs"
                         : "border-border/70 bg-muted/40 text-muted-foreground hover:bg-muted hover:text-foreground",
@@ -317,7 +317,7 @@ export function SearchFilterDialog({
                 type="button"
                 onClick={() => setInStockOnly(!inStockOnly)}
                 className={cn(
-                  "flex w-full items-start gap-3 rounded-xl border p-3 text-left transition-all",
+                  "flex w-full items-start gap-3 rounded-lg border p-3 text-left",
                   inStockOnly
                     ? "border-primary bg-muted ring-1 ring-primary/40"
                     : "border-border/80 bg-background hover:bg-muted/50",
@@ -356,7 +356,7 @@ export function SearchFilterDialog({
                     type="button"
                     onClick={() => setSort(opt.id as any)}
                     className={cn(
-                      "flex flex-col items-center justify-center gap-1 rounded-xl border p-2.5 text-center text-xs font-semibold transition-all",
+                      "flex flex-col items-center justify-center gap-1 rounded-lg border p-2.5 text-center text-xs font-semibold",
                       active
                         ? "border-primary bg-muted text-foreground font-bold ring-1 ring-primary/40 shadow-2xs"
                         : "border-border/80 bg-background text-muted-foreground hover:bg-muted/60 hover:text-foreground",
@@ -387,7 +387,7 @@ export function SearchFilterDialog({
           <Button
             type="button"
             onClick={handleApply}
-            className="h-10 px-5 rounded-xl bg-primary text-primary-foreground font-black text-xs uppercase tracking-wider shadow-xs hover:brightness-105 transition-all"
+            className="h-10 px-5 rounded-lg bg-primary text-primary-foreground font-black text-xs uppercase tracking-wider shadow-xs hover:brightness-105"
           >
             Apply Filters{activeCount > 0 ? ` (${activeCount})` : ""}
           </Button>

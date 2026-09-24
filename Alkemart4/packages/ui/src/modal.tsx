@@ -20,19 +20,19 @@ function Modal({ isOpen, onClose, title, children, footer, className }: LegacyMo
         <DialogPrimitive.Overlay
           className={cn(
             "fixed inset-0 z-50 bg-black/60 backdrop-blur-xs",
-            "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+            "data-[state=open]: data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:",
           )}
         />
         <DialogPrimitive.Content
           style={{ position: "fixed", top: "50%", left: "50%", transform: "translate(-50%, -50%)" }}
           className={cn(
             "fixed left-1/2 top-1/2 z-50 w-[calc(100%-2rem)] max-w-lg max-h-[85vh] overflow-y-auto rounded-2xl border border-border bg-background p-6 text-foreground shadow-2xl",
-            "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
-            "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
+            "data-[state=open]: data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:",
+            "data-[state=closed]:zoom-out-95 data-[state=open]:",
             className,
           )}
         >
-          <DialogPrimitive.Close className="absolute top-4 right-4 rounded-lg h-8 w-8 inline-flex items-center justify-center text-muted-foreground opacity-70 hover:opacity-100 hover:bg-muted hover:text-foreground transition-all focus:outline-none focus:ring-2 focus:ring-ring">
+          <DialogPrimitive.Close className="absolute top-4 right-4 rounded-lg h-8 w-8 inline-flex items-center justify-center text-muted-foreground opacity-70 hover:opacity-100 hover:bg-muted hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring">
             <X className="h-4 w-4" />
           </DialogPrimitive.Close>
 

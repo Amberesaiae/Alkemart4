@@ -86,7 +86,7 @@ function CommissionRatesPage() {
         </Button>
       </div>
 
-      <div className="border rounded-xl bg-card">
+      <div className="border rounded-lg bg-card">
         <Table label="Commission rates">
           <caption className="sr-only">Commission rates list</caption>
           <TableHeader>

@@ -200,7 +200,7 @@ export function Calendar({
               aria-selected={isSelected}
               aria-disabled={isDisabled}
               className={cn(
-                "h-8 w-8 rounded-lg text-xs font-medium flex items-center justify-center transition-all cursor-pointer",
+                "h-8 w-8 rounded-lg text-xs font-medium flex items-center justify-center cursor-pointer",
                 // Current month vs outside
                 isCurrentMonth ? "text-foreground" : "text-muted-foreground/40",
                 // Hover effect

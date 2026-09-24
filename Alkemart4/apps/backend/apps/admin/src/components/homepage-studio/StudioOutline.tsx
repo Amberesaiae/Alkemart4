@@ -99,7 +99,7 @@ function OutlineRow({
     <li>
       <div
         className={cn(
-          "flex items-center gap-1 rounded-xl border px-1.5 py-1",
+          "flex items-center gap-1 rounded-lg border px-1.5 py-1",
           selected ? "border-primary bg-white shadow-xs" : "border-transparent hover:bg-muted/60",
         )}
       >

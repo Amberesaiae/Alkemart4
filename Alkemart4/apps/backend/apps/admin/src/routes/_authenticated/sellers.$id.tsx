@@ -27,7 +27,7 @@ function SellerDetailPage() {
     return (
       <PageShell>
         <Skeleton className="h-8 w-48 mb-2" />
-        <Skeleton className="h-44 w-full rounded-xl mb-6" />
+        <Skeleton className="h-44 w-full rounded-lg mb-6" />
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <Card className="lg:col-span-2"><Skeleton className="h-64 w-full" /></Card>
           <Card><Skeleton className="h-48 w-full" /></Card>
@@ -81,7 +81,7 @@ function SellerDetailPage() {
       </Button>
 
       {/* Hero: cover + identity + lifecycle actions */}
-      <div className="rounded-xl border bg-card overflow-hidden mb-6">
+      <div className="rounded-lg border bg-card overflow-hidden mb-6">
         <div className="h-36 sm:h-44 bg-muted relative">
           {seller.banner ? (
             <img src={seller.banner} alt="" className="h-full w-full object-cover" />
@@ -92,7 +92,7 @@ function SellerDetailPage() {
         <div className="px-6 pb-6">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div className="flex items-end gap-4">
-              <div className="h-16 w-16 rounded-xl bg-card border shadow-sm flex items-center justify-center shrink-0 overflow-hidden -mt-8 relative">
+              <div className="h-16 w-16 rounded-lg bg-card border shadow-sm flex items-center justify-center shrink-0 overflow-hidden -mt-8 relative">
                 {seller.logo ? (
                   <img src={seller.logo} alt={`${seller.name || "Shop"} logo`} className="h-full w-full object-cover" />
                 ) : (

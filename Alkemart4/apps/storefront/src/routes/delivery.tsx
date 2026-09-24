@@ -102,7 +102,7 @@ function DeliveryPage() {
             {DELIVERY_STEPS.map((step, i) => (
               <div
                 key={step.title}
-                className="flex flex-col gap-3 rounded-xl border border-border bg-card p-5 shadow-sm transition-colors hover:border-foreground/25"
+                className="flex flex-col gap-3 rounded-lg border border-border bg-card p-5 shadow-sm hover:border-foreground/25"
               >
                 <span
                   className="flex size-9 items-center justify-center rounded-full bg-primary font-bold text-primary-foreground text-sm"
@@ -129,9 +129,9 @@ function DeliveryPage() {
             Delivery methods
           </h2>
           <div className="grid gap-4 sm:grid-cols-2">
-            <div className="flex items-start gap-4 rounded-xl border border-border bg-card p-5 shadow-sm transition-colors hover:border-foreground/25">
+            <div className="flex items-start gap-4 rounded-lg border border-border bg-card p-5 shadow-sm hover:border-foreground/25">
               <div
-                className="flex shrink-0 items-center justify-center rounded-xl bg-muted size-14 sm:size-16"
+                className="flex shrink-0 items-center justify-center rounded-lg bg-muted size-14 sm:size-16"
                 aria-hidden="true"
               >
                 <img
@@ -153,9 +153,9 @@ function DeliveryPage() {
                 </p>
               </div>
             </div>
-            <div className="flex items-start gap-4 rounded-xl border border-border bg-card p-5 shadow-sm transition-colors hover:border-foreground/25">
+            <div className="flex items-start gap-4 rounded-lg border border-border bg-card p-5 shadow-sm hover:border-foreground/25">
               <div
-                className="flex shrink-0 items-center justify-center rounded-xl bg-muted size-14 sm:size-16"
+                className="flex shrink-0 items-center justify-center rounded-lg bg-muted size-14 sm:size-16"
                 aria-hidden="true"
               >
                 <img
@@ -185,7 +185,7 @@ function DeliveryPage() {
           <h2 className="text-xl font-bold tracking-tight text-foreground">
             Delivery areas
           </h2>
-          <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+          <div className="rounded-lg border border-border bg-card p-5 shadow-sm">
             <p className="text-sm leading-relaxed text-muted-foreground">
               Sellers cover Greater Accra, Kumasi, Takoradi and beyond.
               Exact options appear once you enter your address at checkout.

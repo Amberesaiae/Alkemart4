@@ -90,7 +90,7 @@ export function SearchFacets({
                     : active.seller_handles.includes(value)
                 return (
                   <li key={value}>
-                    <label className="flex cursor-pointer items-center gap-2.5 text-sm hover:text-foreground transition-colors">
+                    <label className="flex cursor-pointer items-center gap-2.5 text-sm hover:text-foreground">
                       <Checkbox
                         checked={selected}
                         onCheckedChange={() => {

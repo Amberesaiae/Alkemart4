@@ -20,7 +20,7 @@ function SellerCard({ seller, onApprove, onSuspend, selected, onSelect }: {
   onSelect?: () => void
 }) {
   return (
-    <div className="p-6 border rounded-xl bg-card shadow-sm flex flex-col justify-between">
+    <div className="p-6 border rounded-lg bg-card shadow-sm flex flex-col justify-between">
       <div className="mb-4">
         <div className="flex items-start gap-3">
           {onSelect && (
@@ -33,7 +33,7 @@ function SellerCard({ seller, onApprove, onSuspend, selected, onSelect }: {
           )}
           <div className="min-w-0">
             <h3 className="font-semibold text-lg">
-              <Link to={"/sellers/$id"} params={{ id: seller.id }} className="hover:text-primary transition-colors">
+              <Link to={"/sellers/$id"} params={{ id: seller.id }} className="hover:text-primary">
                 {seller.name || "Unnamed Shop"}
               </Link>
             </h3>
@@ -159,7 +159,7 @@ function SellersQueuePage() {
           <Skeleton className="h-6 w-32 mb-4" />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {[1, 2].map(i => (
-              <div key={i} className="p-6 border rounded-xl bg-card flex flex-col">
+              <div key={i} className="p-6 border rounded-lg bg-card flex flex-col">
                 <Skeleton className="h-6 w-40 mb-3" />
                 <Skeleton className="h-4 w-24 mb-2" />
                 <Skeleton className="h-4 w-56 mb-2" />
@@ -224,7 +224,7 @@ function SellersQueuePage() {
               <div
                 role="toolbar"
                 aria-label="Bulk seller actions"
-                className="sticky bottom-4 mt-4 flex items-center gap-3 rounded-xl border bg-card p-4 shadow-md"
+                className="sticky bottom-4 mt-4 flex items-center gap-3 rounded-lg border bg-card p-4 shadow-md"
               >
                 <span className="text-sm font-semibold" aria-live="polite">
                   {selected.length} selected

@@ -46,7 +46,7 @@ export function HomeMarketPromise() {
         to={campaign.to}
         params={campaign.slug ? { slug: campaign.slug } : undefined}
         aria-label={campaign.label}
-        className="block aspect-[3/1] min-h-64 overflow-hidden rounded-xl bg-muted ring-1 ring-black/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+        className="block aspect-[3/1] min-h-64 overflow-hidden rounded-lg bg-muted ring-1 ring-black/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
       >
         <img key={campaign.image} src={campaign.image} alt="" className="h-full w-full object-cover" />
       </Link>
@@ -58,7 +58,7 @@ export function HomeMarketPromise() {
       </button>
       <div className="absolute bottom-3 left-1/2 z-20 flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-black/40 px-2.5 py-1.5 backdrop-blur-sm">
         {CAMPAIGNS.map((item, index) => (
-          <button key={item.label} type="button" onClick={() => setActive(index)} aria-label={`Show campaign ${index + 1}`} aria-current={index === active} className={cn("h-1.5 rounded-full transition-all", index === active ? "w-6 bg-white" : "w-1.5 bg-white/60 hover:bg-white")} />
+          <button key={item.label} type="button" onClick={() => setActive(index)} aria-label={`Show campaign ${index + 1}`} aria-current={index === active} className={cn("h-1.5 rounded-full", index === active ? "w-6 bg-white" : "w-1.5 bg-white/60 hover:bg-white")} />
         ))}
       </div>
     </section>

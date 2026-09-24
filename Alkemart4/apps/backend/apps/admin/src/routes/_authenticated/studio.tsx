@@ -130,7 +130,7 @@ function LiveStudioPage() {
     return (
       <div className="flex h-[calc(100dvh-0px)] flex-col gap-3 p-5" role="status" aria-label="Loading Live Studio">
         <Skeleton className="h-12 w-full" />
-        <Skeleton className="h-full w-full rounded-xl" />
+        <Skeleton className="h-full w-full rounded-lg" />
       </div>
     )
   }
@@ -157,9 +157,9 @@ function LiveStudioPage() {
           </Button>
         </Link>
         <span className="hidden items-center gap-1.5 rounded-full bg-tone-danger-soft px-2.5 py-1 text-xs font-bold uppercase tracking-wider text-tone-danger-ink sm:inline-flex">
-          <span className="h-1.5 w-1.5 rounded-full bg-current animate-pulse" /> Live
+          <span className="h-1.5 w-1.5 rounded-full bg-current" /> Live
         </span>
-        <div className="mx-auto flex items-center gap-1 rounded-xl border border-border bg-muted/60 p-1">
+        <div className="mx-auto flex items-center gap-1 rounded-lg border border-border bg-muted/60 p-1">
           <Button
             variant={!editMode ? "secondary" : "ghost"}
             size="sm"
@@ -201,7 +201,7 @@ function LiveStudioPage() {
           className={
             device === "mobile"
               ? "w-full max-w-[390px] overflow-hidden rounded-[2rem] border border-border bg-background shadow-lg"
-              : "w-full overflow-hidden rounded-xl border border-border bg-background shadow-lg"
+              : "w-full overflow-hidden rounded-lg border border-border bg-background shadow-lg"
           }
         >
           <iframe

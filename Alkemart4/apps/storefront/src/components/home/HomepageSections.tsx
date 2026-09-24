@@ -570,12 +570,12 @@ function ProductShelf({
         action={action}
       >
         {isMostOrdered ? (
-          <div className="group relative flex aspect-square sm:aspect-[4/3] w-52 sm:w-60 shrink-0 snap-start flex-col overflow-hidden rounded-xl ring-1 ring-black/[0.06] shadow-xs">
+          <div className="group relative flex aspect-square sm:aspect-[4/3] w-52 sm:w-60 shrink-0 snap-start flex-col overflow-hidden rounded-lg ring-1 ring-black/[0.06] shadow-xs">
             <div className="relative h-3/5 w-full overflow-hidden bg-muted">
               <img
                 src="/images/categories/food.webp"
                 alt=""
-                className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                className="h-full w-full object-cover group-hover:scale-105"
               />
               <span className="absolute top-2.5 left-2.5 rounded-[6px] bg-primary px-2 py-0.5 text-xs font-bold uppercase tracking-wider text-primary-foreground shadow-xs">
                 Express Rider

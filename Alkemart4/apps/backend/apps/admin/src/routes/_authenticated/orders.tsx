@@ -76,7 +76,7 @@ function OrdersPage() {
         </Select>
       </div>
 
-      <div className="border rounded-xl bg-card">
+      <div className="border rounded-lg bg-card">
         <Table label="Marketplace orders">
           <caption className="sr-only">Marketplace orders list</caption>
           <TableHeader>
@@ -111,7 +111,7 @@ function OrdersPage() {
               data.orders.map((order: AdminOrder) => (
                 <TableRow key={order.id} className="hover:bg-muted/50">
                   <TableCell className="font-medium">
-                    <Link to={"/orders/$id"} params={{ id: order.id }} className="hover:text-primary transition-colors">
+                    <Link to={"/orders/$id"} params={{ id: order.id }} className="hover:text-primary">
                       #{order.display_id ?? "N/A"}
                     </Link>
                   </TableCell>

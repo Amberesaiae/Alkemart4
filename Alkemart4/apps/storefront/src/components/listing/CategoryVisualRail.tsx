@@ -128,7 +128,7 @@ export function CategoryVisualRail({ items, title, className }: Props) {
           type="button"
           onClick={() => scroll("left")}
           aria-label="Scroll categories left"
-          className="absolute -left-2 top-1/2 z-20 -translate-y-1/2 flex h-9 w-9 items-center justify-center rounded-full border border-border bg-card text-foreground shadow-md opacity-0 transition-opacity hover:bg-muted group-hover/rail:opacity-100 focus-visible:opacity-100 disabled:pointer-events-none"
+          className="absolute -left-2 top-1/2 z-20 -translate-y-1/2 flex h-9 w-9 items-center justify-center rounded-full border border-border bg-card text-foreground shadow-md opacity-0 hover:bg-muted group-hover/rail:opacity-100 focus-visible:opacity-100 disabled:pointer-events-none"
         >
           <CaretLeft size={18} weight="bold" />
         </button>
@@ -146,7 +146,7 @@ export function CategoryVisualRail({ items, title, className }: Props) {
                 {/* The card — image fills up the card */}
                 <div
                   className={cn(
-                    "relative flex aspect-square w-full items-center justify-center overflow-hidden rounded-xl border transition-all duration-200",
+                    "relative flex aspect-square w-full items-center justify-center overflow-hidden rounded-lg border",
                     item.active
                       ? "border-primary ring-2 ring-primary/50 shadow-xs"
                       : "border-border/80 bg-muted/20 hover:border-primary/60 hover:shadow-xs",
@@ -158,7 +158,7 @@ export function CategoryVisualRail({ items, title, className }: Props) {
                       alt=""
                       loading="lazy"
                       decoding="async"
-                      className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                      className="h-full w-full object-cover group-hover:scale-105"
                     />
                   ) : (
                     <div className="flex h-full w-full items-center justify-center bg-muted/40 text-muted-foreground">
@@ -170,7 +170,7 @@ export function CategoryVisualRail({ items, title, className }: Props) {
                 {/* Text is outside the card */}
                 <span
                   className={cn(
-                    "mt-2 line-clamp-2 min-h-[2.25rem] w-full text-center text-xs sm:text-sm font-semibold leading-tight transition-colors",
+                    "mt-2 line-clamp-2 min-h-[2.25rem] w-full text-center text-xs sm:text-sm font-semibold leading-tight",
                     item.active
                       ? "text-primary-strong font-bold"
                       : "text-foreground group-hover:text-primary-strong",
@@ -199,7 +199,7 @@ export function CategoryVisualRail({ items, title, className }: Props) {
           type="button"
           onClick={() => scroll("right")}
           aria-label="Scroll categories right"
-          className="absolute -right-2 top-1/2 z-20 -translate-y-1/2 flex h-9 w-9 items-center justify-center rounded-full border border-border bg-card text-foreground shadow-md opacity-0 transition-opacity hover:bg-muted group-hover/rail:opacity-100 focus-visible:opacity-100 disabled:pointer-events-none"
+          className="absolute -right-2 top-1/2 z-20 -translate-y-1/2 flex h-9 w-9 items-center justify-center rounded-full border border-border bg-card text-foreground shadow-md opacity-0 hover:bg-muted group-hover/rail:opacity-100 focus-visible:opacity-100 disabled:pointer-events-none"
         >
           <CaretRight size={18} weight="bold" />
         </button>

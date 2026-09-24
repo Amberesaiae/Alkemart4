@@ -135,7 +135,7 @@ export function HeaderCategoryNav({ pathname }: { pathname: string }) {
             to="/shops"
             onClick={() => setHoveredSlug(null)}
             className={cn(
-              "inline-flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md px-2.5 text-xs sm:text-[13px] font-semibold transition-colors",
+              "inline-flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md px-2.5 text-xs sm:text-[13px] font-semibold",
               pathname.startsWith("/shops")
                 ? "bg-muted text-foreground font-bold"
                 : "text-foreground/90 hover:bg-muted/60 hover:text-foreground",
@@ -160,7 +160,7 @@ export function HeaderCategoryNav({ pathname }: { pathname: string }) {
                 onMouseLeave={handleCategoryLeave}
                 onClick={() => setHoveredSlug(null)}
                 className={cn(
-                  "inline-flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md px-2.5 text-xs sm:text-[13px] transition-colors",
+                  "inline-flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md px-2.5 text-xs sm:text-[13px]",
                   active || isHovered
                     ? "bg-muted text-foreground font-bold shadow-2xs"
                     : "text-muted-foreground font-medium sm:font-semibold hover:bg-muted/60 hover:text-foreground",
@@ -188,7 +188,7 @@ export function HeaderCategoryNav({ pathname }: { pathname: string }) {
         <>
           {/* Backdrop overlay */}
           <div
-            className="fixed inset-x-0 bottom-0 z-40 bg-black/25 backdrop-blur-[0.5px] transition-opacity duration-150 animate-in fade-in"
+            className="fixed inset-x-0 bottom-0 z-40 bg-black/25 backdrop-blur-[0.5px]"
             style={{ top: headerBottom }}
             onClick={() => setHoveredSlug(null)}
             aria-hidden="true"
@@ -196,7 +196,7 @@ export function HeaderCategoryNav({ pathname }: { pathname: string }) {
 
           {/* Mega Menu Dropdown Panel */}
           <div
-            className="absolute left-0 right-0 top-full z-50 border-b border-border/80 bg-card shadow-2xl animate-in fade-in-50 duration-150"
+            className="absolute left-0 right-0 top-full z-50 border-b border-border/80 bg-card shadow-2xl"
             onMouseEnter={handleMenuEnter}
             onMouseLeave={handleMenuLeave}
             role="region"
@@ -221,7 +221,7 @@ export function HeaderCategoryNav({ pathname }: { pathname: string }) {
                                     to="/search"
                                     search={{ q: item.searchQuery || item.label }}
                                     onClick={() => setHoveredSlug(null)}
-                                    className="block py-1 text-xs text-muted-foreground hover:text-primary hover:underline font-medium transition-colors"
+                                    className="block py-1 text-xs text-muted-foreground hover:text-primary hover:underline font-medium"
                                   >
                                     {item.label}
                                   </Link>
@@ -235,7 +235,7 @@ export function HeaderCategoryNav({ pathname }: { pathname: string }) {
                                   params={{ slug: hoveredSlug }}
                                   search={item.handle ? { sub: item.handle } : undefined}
                                   onClick={() => setHoveredSlug(null)}
-                                  className="block py-1 text-xs text-muted-foreground hover:text-primary hover:underline font-medium transition-colors"
+                                  className="block py-1 text-xs text-muted-foreground hover:text-primary hover:underline font-medium"
                                 >
                                   {item.label}
                                 </Link>

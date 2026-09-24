@@ -124,7 +124,7 @@ function Step(props: {
       className="flex flex-col rounded-2xl border border-border bg-card p-6 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       aria-label={`Step ${props.n}: ${props.title}`}
     >
-      <div className="surface-soft mb-4 flex justify-center rounded-xl py-4 ring-1 ring-border/50">
+      <div className="surface-soft mb-4 flex justify-center rounded-lg py-4 ring-1 ring-border/50">
         <Illustration name={props.art} size="sm" alt="" />
       </div>
       <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">

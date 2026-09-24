@@ -149,7 +149,7 @@ function ProductModerationPage() {
         </div>
         <div className="grid grid-cols-1 gap-4">
           {[1, 2].map(i => (
-            <div key={i} className="flex flex-col sm:flex-row gap-6 p-6 border rounded-xl bg-card">
+            <div key={i} className="flex flex-col sm:flex-row gap-6 p-6 border rounded-lg bg-card">
               <Skeleton className="h-32 w-32 shrink-0 rounded-lg" />
               <div className="flex-1 space-y-3">
                 <Skeleton className="h-6 w-48" />
@@ -199,7 +199,7 @@ function ProductModerationPage() {
           </div>
           <div className="grid grid-cols-1 gap-4">
             {products.map((p: ProposedProduct) => (
-              <div key={p.id} className="flex flex-col sm:flex-row gap-6 p-6 border rounded-xl bg-card shadow-sm">
+              <div key={p.id} className="flex flex-col sm:flex-row gap-6 p-6 border rounded-lg bg-card shadow-sm">
                 <Checkbox
                   checked={selected.includes(p.id)}
                   onCheckedChange={() => toggleOne(p.id)}
@@ -209,7 +209,7 @@ function ProductModerationPage() {
               <button
                 type="button"
                 onClick={() => setDetailId(p.id)}
-                className="h-32 w-32 shrink-0 rounded-lg overflow-hidden bg-muted border flex items-center justify-center hover:border-primary/60 transition-colors"
+                className="h-32 w-32 shrink-0 rounded-lg overflow-hidden bg-muted border flex items-center justify-center hover:border-primary/60"
                 aria-label={`Review ${p.title || "product"} details`}
               >
                 {p.thumbnail ? (
@@ -280,7 +280,7 @@ function ProductModerationPage() {
             <div
               role="toolbar"
               aria-label="Bulk moderation actions"
-              className="sticky bottom-4 mt-4 flex items-center gap-3 rounded-xl border bg-card p-4 shadow-md"
+              className="sticky bottom-4 mt-4 flex items-center gap-3 rounded-lg border bg-card p-4 shadow-md"
             >
               <span className="text-sm font-semibold" aria-live="polite">
                 {selected.length} selected
@@ -436,7 +436,7 @@ function ProductDetailDrawer({ productId, detail, isLoading, isError, onClose, o
 
         {isLoading ? (
           <div className="space-y-3">
-            <Skeleton className="aspect-video w-full rounded-xl" />
+            <Skeleton className="aspect-video w-full rounded-lg" />
             <Skeleton className="h-4 w-2/3" />
             <Skeleton className="h-4 w-1/2" />
           </div>
@@ -447,7 +447,7 @@ function ProductDetailDrawer({ productId, detail, isLoading, isError, onClose, o
 
         {detail ? (
           <>
-            <div className="aspect-video w-full overflow-hidden rounded-xl border bg-muted">
+            <div className="aspect-video w-full overflow-hidden rounded-lg border bg-muted">
               {detail.product.imageUrl ? (
                 <img src={detail.product.imageUrl} alt={detail.product.title} className="h-full w-full object-cover" />
               ) : (
@@ -494,7 +494,7 @@ function ProductDetailDrawer({ productId, detail, isLoading, isError, onClose, o
               {combos.length === 0 ? (
                 <p className="text-sm text-muted-foreground">Single listing — no combinations.</p>
               ) : (
-                <div className="overflow-hidden rounded-xl border">
+                <div className="overflow-hidden rounded-lg border">
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="bg-muted/50 text-left text-xs uppercase tracking-wider text-muted-foreground">

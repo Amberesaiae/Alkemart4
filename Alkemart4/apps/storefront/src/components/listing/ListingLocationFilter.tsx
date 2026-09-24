@@ -63,7 +63,7 @@ export function ListingLocationFilter({
             value={value.province ?? ALL}
             onValueChange={(v) => onChange({ province: v === ALL ? null : v, city: value.city })}
           >
-            <SelectTrigger aria-labelledby="location-region-label" className="h-10 rounded-xl type-sm font-medium">
+            <SelectTrigger aria-labelledby="location-region-label" className="h-10 rounded-lg type-sm font-medium">
               <SelectValue placeholder="All regions" />
             </SelectTrigger>
             <SelectContent>
@@ -84,7 +84,7 @@ export function ListingLocationFilter({
             value={value.city ?? ALL}
             onValueChange={(v) => onChange({ province: value.province, city: v === ALL ? null : v })}
           >
-            <SelectTrigger aria-labelledby="location-city-label" className="h-10 rounded-xl type-sm font-medium">
+            <SelectTrigger aria-labelledby="location-city-label" className="h-10 rounded-lg type-sm font-medium">
               <SelectValue placeholder="All cities" />
             </SelectTrigger>
             <SelectContent>

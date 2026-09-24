@@ -70,7 +70,7 @@ export function HomeHowItWorks({
           <li
             key={step.id}
             className={cn(
-              "flex items-center gap-4 rounded-xl shadow-sm sm:gap-5",
+              "flex items-center gap-4 rounded-lg shadow-sm sm:gap-5",
               "bg-[var(--footer-bg)] px-4 py-4 sm:px-5 sm:py-5",
               "shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06)]",
             )}

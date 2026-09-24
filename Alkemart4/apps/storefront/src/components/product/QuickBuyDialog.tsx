@@ -88,7 +88,7 @@ export function QuickBuyDialog({
   return (
     <Modal isOpen={open} onClose={onClose} className="max-w-md">
       <div className="space-y-3">
-        <div className="aspect-[4/3] w-full overflow-hidden rounded-xl bg-muted">
+        <div className="aspect-[4/3] w-full overflow-hidden rounded-lg bg-muted">
           {image ? (
             <img
               src={image}
@@ -143,7 +143,7 @@ export function QuickBuyDialog({
         ) : null}
 
         <div className="flex items-center gap-2.5 pt-1">
-          <div className="flex items-center gap-1 rounded-xl border border-border">
+          <div className="flex items-center gap-1 rounded-lg border border-border">
             <button
               type="button"
               onClick={() => setQty((q) => Math.max(1, q - 1))}
@@ -170,7 +170,7 @@ export function QuickBuyDialog({
             onClick={() => void onAdd()}
             disabled={!canAdd || pending}
             className={cn(
-              "h-11 flex-1 rounded-xl bg-primary px-4 text-sm font-bold text-primary-foreground",
+              "h-11 flex-1 rounded-lg bg-primary px-4 text-sm font-bold text-primary-foreground",
               "transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-55",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
             )}

@@ -43,7 +43,7 @@ function WishlistPage() {
         <Skeleton className="h-8 w-48" />
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 6 }).map((_, i) => (
-            <Skeleton key={i} className="h-64 w-full rounded-xl" />
+            <Skeleton key={i} className="h-64 w-full rounded-lg" />
           ))}
         </div>
       </div>
@@ -96,7 +96,7 @@ function WishlistPage() {
         {data.products.map((product) => (
           <div
             key={product.id}
-            className="group relative overflow-hidden rounded-xl border border-border bg-card"
+            className="group relative overflow-hidden rounded-lg border border-border bg-card"
           >
             <Link
               to={"/product/$id"}
@@ -108,7 +108,7 @@ function WishlistPage() {
                   <img
                     src={product.thumbnail}
                     alt={product.title}
-                    className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+                    className="h-full w-full object-cover transition group-hover:scale-105"
                     loading="lazy"
                   />
                 ) : (

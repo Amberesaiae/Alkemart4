@@ -12,7 +12,7 @@ export function StudioProductCard({ product }: { product: PreviewProduct }) {
   const low = product.availableQty > 0 && product.availableQty <= 5
   const out = product.availableQty <= 0
   return (
-    <div className="overflow-hidden rounded-xl border border-border bg-card">
+    <div className="overflow-hidden rounded-lg border border-border bg-card">
       <div className="relative aspect-square bg-tone-neutral-soft">
         {product.imageUrl ? (
           <img

@@ -82,13 +82,13 @@ export function HomeCategoryRail({
             params={{ slug: category.handle || category.id }}
             className="group w-40 shrink-0 snap-start sm:w-44"
           >
-            <div className="overflow-hidden rounded-xl bg-muted">
+            <div className="overflow-hidden rounded-lg bg-muted">
               <img
                 src={ART[category.handle!.toLowerCase()]}
                 alt=""
                 loading="lazy"
                 decoding="async"
-                className="aspect-square w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                className="aspect-square w-full object-cover group-hover:scale-105"
               />
             </div>
             <div className="mt-2 flex items-start justify-between gap-2">

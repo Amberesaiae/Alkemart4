@@ -62,7 +62,7 @@ export function ProductImageGallery({
 
   if (!active) {
     return (
-      <div className={cn("overflow-hidden rounded-xl border border-border bg-card", className)}>
+      <div className={cn("overflow-hidden rounded-lg border border-border bg-card", className)}>
         <NoPhotoTile
           title={title}
           categoryLabel={categoryLabel}
@@ -79,7 +79,7 @@ export function ProductImageGallery({
           <img
             src={mainSrc}
             alt={title || "Product image"}
-            className="aspect-square w-full bg-white object-contain p-2 transition-opacity"
+            className="aspect-square w-full bg-white object-contain p-2"
           />
         ) : (
           <NoPhotoTile
@@ -104,7 +104,7 @@ export function ProductImageGallery({
               aria-label={`View image ${i + 1}`}
               onClick={() => setActiveIdx(i)}
               className={cn(
-                "h-14 w-14 shrink-0 overflow-hidden rounded-md border-2 bg-white transition-colors",
+                "h-14 w-14 shrink-0 overflow-hidden rounded-md border-2 bg-white",
                 i === activeIdx
                   ? "border-primary shadow-2xs"
                   : "border-border/70 hover:border-primary/60",

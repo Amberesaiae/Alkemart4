@@ -107,7 +107,7 @@ function OrdersPage() {
           />
           <Button
             type="submit"
-            className="min-h-11 w-full rounded-xl"
+            className="min-h-11 w-full rounded-lg"
             disabled={!lookupId.trim()}
           >
             Open
@@ -123,7 +123,7 @@ function OrdersPage() {
                 <li key={rid}>
                   <button
                     type="button"
-                    className="w-full rounded-xl border border-border bg-muted/20 px-3 py-2.5 text-left text-sm font-medium transition hover:border-primary/40 hover:bg-muted/40"
+                    className="w-full rounded-lg border border-border bg-muted/20 px-3 py-2.5 text-left text-sm font-medium transition hover:border-primary/40 hover:bg-muted/40"
                     onClick={() => goToOrder(rid)}
                   >
                     {maskOrderId(rid)}
@@ -183,7 +183,7 @@ function OrdersPage() {
                   to="/order/$id"
                   params={{ id: o.id }}
                   search={{}}
-                  className="block rounded-2xl border border-border bg-card p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md sm:p-5"
+                  className="block rounded-2xl border border-border bg-card p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-primary/40 sm:p-5"
                 >
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="space-y-1.5">

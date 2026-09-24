@@ -51,7 +51,7 @@ export function ListingHero({
             aria-hidden
           />
           {/* Rounded frame so category photos crop cleanly (cover, not letterbox) */}
-          <div className="relative z-10 h-full w-full overflow-hidden rounded-xl bg-muted shadow-sm ring-1 ring-black/[0.06]">
+          <div className="relative z-10 h-full w-full overflow-hidden rounded-lg bg-muted shadow-sm ring-1 ring-black/[0.06]">
             <img
               src={imageSrc}
               alt={imageAlt}

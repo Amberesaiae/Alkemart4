@@ -113,7 +113,7 @@ function FooterCol({
       <details className="group lg:hidden">
         <summary className="footer-muted flex min-h-11 cursor-pointer list-none items-center justify-between gap-2 py-1 text-xs font-bold uppercase tracking-wider focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary [&::-webkit-details-marker]:hidden">
           {title}
-          <span aria-hidden="true" className="text-base font-normal leading-none transition-transform group-open:rotate-45">+</span>
+          <span aria-hidden="true" className="text-base font-normal leading-none group-open:rotate-45">+</span>
         </summary>
         <nav className="flex flex-col gap-0.5 pb-2" aria-label={title}>
           {children}

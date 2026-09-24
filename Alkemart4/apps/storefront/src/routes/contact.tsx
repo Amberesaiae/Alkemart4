@@ -146,9 +146,9 @@ function ContactPage() {
           {CHANNELS.map((c) => (
             <li
               key={c.title}
-              className="flex flex-col rounded-2xl border border-border bg-card p-5 shadow-sm transition-colors hover:border-foreground/25 hover:shadow-md"
+              className="flex flex-col rounded-2xl border border-border bg-card p-5 shadow-sm hover:border-foreground/25"
             >
-              <span className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-muted">
+              <span className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-muted">
                 <IconSafe name={c.icon} size={20} />
               </span>
               <h2 className="font-bold text-foreground">{c.title}</h2>
@@ -261,7 +261,7 @@ function ContactPage() {
               ) : null}
               {sent ? (
                 <p
-                  className="rounded-xl bg-muted px-4 py-3 text-sm font-medium text-foreground"
+                  className="rounded-lg bg-muted px-4 py-3 text-sm font-medium text-foreground"
                   role="status"
                   aria-live="polite"
                 >
@@ -342,7 +342,7 @@ function ContactPage() {
 }
 
 const inputClass =
-  "min-h-11 w-full rounded-xl border border-border bg-background px-3.5 py-2.5 text-base sm:text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 focus-visible:ring-2 focus-visible:ring-ring"
+  "min-h-11 w-full rounded-lg border border-border bg-background px-3.5 py-2.5 text-base sm:text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 focus-visible:ring-2 focus-visible:ring-ring"
 
 function Field({
   label,
