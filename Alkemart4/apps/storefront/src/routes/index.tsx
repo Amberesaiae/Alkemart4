@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef } from "react"
 import { createFileRoute } from "@tanstack/react-router"
 import { useQuery } from "@tanstack/react-query"
 import { HomepageSections, HomepageSkeleton } from "@/components/home"
+import { NearbyShops } from "@/components/home/NearbyShops"
 import { CampaignCourse } from "@/components/home/CampaignCourse"
 import { assignBucket, fetchCourse, orderShelvesForBucket } from "@/lib/course"
 import { PageSeo } from "@/components/page-seo"
@@ -176,6 +177,10 @@ function HomePage() {
           {course && course.placements.length > 0 ? (
             <CampaignCourse course={course} />
           ) : null}
+          {/* Sits above the merchandising course: once a buyer has shared where
+              they are, proximity beats curation. Collapses entirely when there
+              is no pin or no shop has coordinates. */}
+          <NearbyShops />
           <HomepageSections
             sections={managedSections}
             categories={effectiveCats}

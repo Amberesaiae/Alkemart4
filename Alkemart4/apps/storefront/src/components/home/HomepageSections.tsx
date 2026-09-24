@@ -658,8 +658,21 @@ function ManagedProductShelf({
       </Link>
     );
 
+  // A skeleton here reserved a full shelf of height, and then `products.length
+  // < 4` below removed it — so every beat that could not fill flashed in and
+  // snapped the page upward as its query landed. On a young catalogue that is
+  // most of them, and it reads as the page fighting the buyer.
+  //
+  // A shelf that may collapse must not claim space before it is known to fill.
+  // Appearing (growing downward) is far less disruptive than vanishing, so we
+  // render nothing until the answer is in. `rule` beats resolve from the
+  // catalogue and can always collapse; curated beats have their picks up front
+  // and are safe to skeleton.
+  const canCollapse = section.source !== "manual" && section.source !== "featured";
   if (resolved.loading) {
-    return <ShelfSkeleton count={Math.min(section.limit, 5)} layout={layout} />;
+    return canCollapse ? null : (
+      <ShelfSkeleton count={Math.min(section.limit, 5)} layout={layout} />
+    );
   }
   if (section.source === "category" && !category) {
     return (
