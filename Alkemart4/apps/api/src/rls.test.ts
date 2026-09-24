@@ -82,21 +82,28 @@ describe.runIf(LIVE)("rls tenant isolation", () => {
       expect(seenA.map((r) => (r as unknown as { id: string }).id)).toEqual([oa])
       const updated = await tx.unsafe(`UPDATE offers SET on_hand = 9 WHERE id = '${ob}'`)
       expect(updated.count).toBe(0)
+      // A failed statement aborts the whole transaction — fence the evil
+      // insert in a savepoint so the proof continues (production discipline).
+      await tx.unsafe(`SAVEPOINT evil_sp`)
       await expect(
         tx.unsafe(
           `INSERT INTO offers (id, seller_id, product_id, variant_id, price_pesewas, on_hand) VALUES ('rls-evil-${suffix}', '${sb}', '${prod}', '${vb}', 1, 1)`,
         ),
       ).rejects.toThrow()
+      await tx.unsafe(`ROLLBACK TO SAVEPOINT evil_sp`)
 
       // Flip the fence: B sees only B.
       await tx.unsafe(`SET LOCAL app.seller_id = '${sb}'`)
       const seenB = await tx.unsafe(`SELECT id FROM offers ORDER BY id`)
       expect(seenB.map((r) => (r as unknown as { id: string }).id)).toEqual([ob])
 
-      // Owner connection (no role set): sees everything — platform paths intact.
+      // Owner connection (no role set): sees everything, including the
+      // pre-existing production rows — platform paths intact.
       await tx.unsafe(`RESET ROLE`)
       const seenOwner = await tx.unsafe(`SELECT id FROM offers ORDER BY id`)
-      expect(seenOwner.map((r) => (r as unknown as { id: string }).id)).toEqual([oa, ob])
+      expect(seenOwner.map((r) => (r as unknown as { id: string }).id)).toEqual(
+        expect.arrayContaining([oa, ob]),
+      )
     })
   }, 120_000)
 })

@@ -18,6 +18,12 @@ DO $$ BEGIN
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 
+-- The deploying login (direct or pooler user) must be a MEMBER of seller_api
+-- or SET ROLE fails with "permission denied". Dynamic: no login hardcoded.
+DO $$ BEGIN
+  EXECUTE format('GRANT seller_api TO %I', current_user);
+END $$;
+
 GRANT USAGE ON SCHEMA public TO seller_api;
 GRANT SELECT, INSERT, UPDATE, DELETE
   ON offers, orders, order_items, payouts, payout_holds
