@@ -708,3 +708,16 @@ html {
   color: color-mix(in srgb, var(--ink) 55%, #ffffff);
   max-width: 90%;
 }
+
+/* Admin Live Studio edit mode (?studio=1): gold hover outlines on tagged
+   sections + a persistent edit badge. Inert unless body.studio-edit. */
+.studio-edit [data-studio-section] {
+  cursor: pointer;
+  border-radius: 12px;
+  transition: outline-color 120ms ease;
+  outline: 2px dashed transparent;
+  outline-offset: 4px;
+}
+.studio-edit [data-studio-section]:hover {
+  outline-color: #febf31;
+}

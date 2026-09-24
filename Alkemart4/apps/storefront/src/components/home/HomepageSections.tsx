@@ -49,6 +49,8 @@ import { HomePopularRail } from "@/components/home/HomePopularRail";
 import { HomeFeaturedShop } from "@/components/home/HomeFeaturedShop";
 import { HomeCategoryRail } from "@/components/home/HomeCategoryRail";
 import { HomeMarketPromise } from "@/components/home/HomeMarketPromise";
+import { StudioSection } from "@/components/home/StudioSection";
+import { useStudioEditClass } from "@/lib/studio-edit";
 import { resolveMosaicTiles } from "@/lib/catalog-nav";
 import type { CourseShelf } from "@/lib/course";
 
@@ -71,6 +73,7 @@ export function HomepageSections({
   productsLoading,
   courseShelves = [],
 }: Props) {
+  useStudioEditClass();
   const live = visibleSections(sections);
   const categoryById = new Map(
     categories.map((category) => [category.id, category]),
@@ -122,8 +125,9 @@ export function HomepageSections({
     courseShelves.flatMap((shelf) => {
       const cards = takeUnseen(shelf.cards, 8);
       if (!cards.length && !productsLoading) return [];
-      return [
-        <section key={`course-${shelf.key}`} aria-label={shelf.title} className="space-y-3">
+      const shelfId = `course-${shelf.key}`;
+      const shelfBody = (
+        <>
           <h2 className="type-section text-foreground">{shelf.title}</h2>
           {productsLoading && !cards.length ? (
             <ShelfSkeleton count={4} />
@@ -134,6 +138,13 @@ export function HomepageSections({
               ))}
             </ProductGridShell>
           )}
+        </>
+      );
+      return [
+        <section key={shelfId} aria-label={shelf.title} className="space-y-3">
+          <StudioSection id={shelfId} label={shelf.title}>
+            {shelfBody}
+          </StudioSection>
         </section>,
       ];
     });
@@ -264,7 +275,12 @@ export function HomepageSections({
               </div>
             ) : null}
             <div className={desktopPrimary ? undefined : "lg:hidden"}>
-              {content}
+              <StudioSection
+                id={section.id}
+                label={"title" in section && section.title ? section.title : section.id}
+              >
+                {content}
+              </StudioSection>
             </div>
             {injectCourse ? renderCourseShelves() : null}
           </Fragment>
