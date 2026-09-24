@@ -301,7 +301,9 @@ function Media(props: {
           "relative z-[1] h-full w-full",
           // Out-of-stock products stay on the shelf now, so the artwork has to
           // say so at a glance — the badge alone reads as decoration in a grid.
-          props.stock === "out" && "opacity-45 saturate-50",
+          // opacity-45 is not a default Tailwind step, so the class was never
+          // generated and the dim silently did nothing. 40 is.
+          props.stock === "out" && "opacity-40 grayscale",
           imageFit === "contain" ? "object-contain p-2.5 sm:p-3" : "object-cover",
           loaded ? "opacity-100" : "opacity-0",
         )}

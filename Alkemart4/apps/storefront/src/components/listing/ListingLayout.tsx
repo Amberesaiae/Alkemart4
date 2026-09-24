@@ -150,9 +150,15 @@ export function ListingLayout({
                 ) : null}
               </div>
             </div>
-          </div>
 
-          {applied}
+            {/* Applied filters live INSIDE the bar, under the title and sort.
+                Below the card they read as page content; here they are visibly
+                part of the control that produced them, and the result count
+                sits directly above so the buyer can connect the two. */}
+            {applied ? (
+              <div className="mt-2.5 border-t border-border/60 pt-2.5">{applied}</div>
+            ) : null}
+          </div>
 
           {children}
         </div>

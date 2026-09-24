@@ -13,6 +13,7 @@ import {
   ListingAppliedFacets,
   ListingFilterDropdown,
   ListingAttributeFacets,
+  ListingFacetBar,
   ListingFilters,
   ListingLayout,
   ListingPagination,
@@ -570,14 +571,24 @@ function BrowsePage() {
             />
           }
           applied={
-            <ListingAppliedFacets
+            <>
+              {/* Short reach: the 3 facets that most usefully split the current
+                  results, beside the sort control. The sidebar keeps the full set. */}
+              <ListingFacetBar
+                categorySlug={isAll ? "all" : slug}
+                state={facets}
+                onChange={applyFacets}
+                className="mb-2"
+              />
+              <ListingAppliedFacets
               facets={applied}
               state={facets}
               onChange={applyFacets}
               onClearAll={clearAllFacets}
               count={count}
               loadingCount={loading && products.length === 0}
-            />
+              />
+            </>
           }
           sort={sort}
           onSortChange={applySort}

@@ -162,6 +162,7 @@ export function ListingFilters({
   className,
 }: Props) {
   const [showAllSellers, setShowAllSellers] = useState(false)
+  const inDepartment = activeCategorySlug !== "all" && activeCategorySlug !== ""
   const [localMin, setLocalMin] = useState<string>(
     state.priceMin != null ? String(state.priceMin) : "",
   )
@@ -199,7 +200,7 @@ export function ListingFilters({
             <span className="text-xs font-bold uppercase tracking-wider">
               {_departmentName && _departmentName !== "All" ? _departmentName : "Categories"}
             </span>
-            {state.subCategory !== "all" || (activeCategorySlug !== "all" && activeCategorySlug !== "") ? (
+            {state.subCategory !== "all" || inDepartment ? (
               <span className="rounded-full bg-current/15 px-1.5 py-0.5 text-[10px] font-bold">
                 Filtered
               </span>
@@ -226,7 +227,18 @@ export function ListingFilters({
               </Link>
             </li>
 
-            {categories.map((c) => {
+            {/*
+              Progressive rail: inside a department, only its siblings stay.
+              Twelve departments collapse to a handful, and the freed space goes
+              to the filters below — which is the whole point of the rail once a
+              buyer has navigated. Nothing animates: the list re-renders in
+              place, so the item you clicked never slides out from under the
+              cursor.
+            */}
+            {(inDepartment
+              ? categories.filter((c) => (c.handle || c.id) === activeCategorySlug)
+              : categories
+            ).map((c) => {
               const slug = c.handle || c.id
               const on = activeCategorySlug === slug
 
