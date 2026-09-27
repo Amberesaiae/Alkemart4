@@ -1,5 +1,11 @@
 # Lifecycle — Admin
 
+Production reporting queries use Drizzle's timestamp-column encoders for
+range bounds; raw aggregate timestamp bounds are explicitly ISO-encoded.
+The same rule applies to payout-statement ranges and return-deadline sweeps.
+`apps/api/src/postgres-reporting.test.ts` checks the actual Drizzle-to-driver
+parameters without requiring a live database.
+
 ## Flow
 
 `login → seller approve/moderate → product moderate → orders → payouts` (+ migrate helpers)
@@ -107,4 +113,3 @@ messages admin can read (each opening audit-logged). Close the conversation
 for both sides or dismiss. Product questions can be hidden. Rules → **Make an
 offer**: accepted-price hours, reply hours, lowest offer %, open offers per
 buyer (`/admin/settings/deal-policy`).
-

@@ -42,7 +42,7 @@ import {
   type ReturnWish,
   applyRecoveries,
 } from "@alkemart/domain"
-import { and, asc, desc, eq, gte, inArray, isNull, ne, or, sql } from "drizzle-orm"
+import { and, asc, desc, eq, gte, inArray, isNull, lt, lte, ne, or, sql } from "drizzle-orm"
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js"
 import { marketCurrency } from "@alkemart/shared/markets"
 import { PostgresLedgerStore, payoutEntry, payoutReversalEntry, refundEntries, saleEntries, type LedgerStore } from "./ledger"
@@ -861,9 +861,10 @@ export class PostgresCheckoutRepository implements CheckoutRepository {
     const conds = [
       filter.sellerId ? eq(orders.sellerId, filter.sellerId) : undefined,
       filter.placedFrom ? gte(orderGroups.createdAt, filter.placedFrom) : undefined,
-      filter.placedTo ? sql`${orderGroups.createdAt} < ${filter.placedTo}` : undefined,
-      filter.deliveredFrom ? sql`${deliveredAt} >= ${filter.deliveredFrom}` : undefined,
-      filter.deliveredTo ? sql`${deliveredAt} < ${filter.deliveredTo}` : undefined,
+      filter.placedTo ? lt(orderGroups.createdAt, filter.placedTo) : undefined,
+      // This aggregate is raw SQL, so it has no timestamp-column encoder.
+      filter.deliveredFrom ? sql`${deliveredAt} >= ${filter.deliveredFrom.toISOString()}` : undefined,
+      filter.deliveredTo ? sql`${deliveredAt} < ${filter.deliveredTo.toISOString()}` : undefined,
     ].filter((c) => c !== undefined)
     const rows = await this.db
       .select({
@@ -915,7 +916,7 @@ export class PostgresCheckoutRepository implements CheckoutRepository {
     const conds = [
       filter.sellerId ? eq(payouts.sellerId, filter.sellerId) : undefined,
       filter.paidFrom ? gte(payouts.paidAt, filter.paidFrom) : undefined,
-      filter.paidTo ? sql`${payouts.paidAt} < ${filter.paidTo}` : undefined,
+      filter.paidTo ? lt(payouts.paidAt, filter.paidTo) : undefined,
     ].filter((c) => c !== undefined)
     const rows = await this.db.select().from(payouts).where(conds.length ? and(...conds) : undefined)
     return rows.map((p) => ({
@@ -1459,7 +1460,7 @@ export class PostgresCheckoutRepository implements CheckoutRepository {
       f.orderIds ? (f.orderIds.length ? inArray(returnCases.orderId, f.orderIds) : sql`false`) : undefined,
       f.buyerEmail ? sql`lower(${returnCases.buyerEmail}) = ${f.buyerEmail.toLowerCase()}` : undefined,
       f.statuses ? (f.statuses.length ? inArray(returnCases.status, f.statuses) : sql`false`) : undefined,
-      f.dueAt ? and(ne(returnCases.status, "closed"), sql`${returnCases.respondBy} <= ${f.dueAt}`) : undefined,
+      f.dueAt ? and(ne(returnCases.status, "closed"), lte(returnCases.respondBy, f.dueAt)) : undefined,
       f.refundPending ? and(eq(returnCases.refundVia, "provider"), eq(returnCases.refundStatus, "pending")) : undefined,
     ].filter(Boolean)
     const rows = await this.db

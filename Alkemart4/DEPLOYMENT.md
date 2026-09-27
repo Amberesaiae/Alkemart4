@@ -74,12 +74,14 @@ export VITE_ALKEMART_API_URL=https://alkemart-api.glean-circular-passport.worker
 ```
 
 Vendor/admin preview iframes point at the storefront via
-`VITE_ALKEMART_STOREFRONT_URL` (defaults to `http://127.0.0.1:5175` for local
+`VITE_STOREFRONT_URL` (the v2 apps' build variable) for local
 dev). Set it to the production storefront origin for Pages builds, or live
 previews will point at localhost:
 
 ```bash
-export VITE_ALKEMART_STOREFRONT_URL=https://alkemart4-storefront.pages.dev
+export VITE_STOREFRONT_URL=https://alkemart4-storefront.pages.dev
+export VITE_VENDOR_APP_URL=https://alkemart4-vendor.pages.dev
+export VITE_PUBLIC_SITE_URL=https://alkemart4-storefront.pages.dev
 ```
 
 | App | Build from | Pages project |
@@ -87,6 +89,11 @@ export VITE_ALKEMART_STOREFRONT_URL=https://alkemart4-storefront.pages.dev
 | Storefront | `apps/storefront-v2` | `alkemart4-storefront` |
 | Vendor | `apps/vendor-v2` | `alkemart4-vendor` |
 | Admin | `apps/admin-v2` | `alkemart4-admin` |
+
+`bun run deploy:pages` supplies all these production defaults, overriding
+local development origins from `.env.local`. Set explicit environment variables
+to use custom domains. The legacy `VITE_ALKEMART_STOREFRONT_URL` is accepted by
+the deployment script as a fallback for `VITE_STOREFRONT_URL`.
 
 The v2 apps are the live UIs (pilot build, 2026-09-27). `apps/storefront` and
 `apps/backend/apps/*` are **retired**: never build or deploy them. Each v2 app
