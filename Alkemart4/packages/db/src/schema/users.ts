@@ -11,6 +11,11 @@ export const users = pgTable("users", {
   passwordHash: text("password_hash").notNull(),
   role: userRoleEnum("role").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  /** Buyer profile (0037). */
+  firstName: text("first_name"),
+  lastName: text("last_name"),
+  phone: text("phone"),
+  passwordChangedAt: timestamp("password_changed_at", { withTimezone: true }),
 })
 
 export const sellerMembers = pgTable(

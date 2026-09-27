@@ -1,3 +1,4 @@
+import { sellerReplyTime } from "../../lib/messages"
 import { Hono } from "hono"
 import { HTTPException } from "hono/http-exception"
 import { sellerBadges } from "@alkemart/shared/storefront-badges"
@@ -111,6 +112,7 @@ export const sellers = new Hono<AppEnv>()
         ratingCount: rating?.count ?? 0,
         salesCount: orderTotals.get(s.id)?.orders ?? 0,
         deliveryMinutes: delivery.minutes,
+        deliveryDays: delivery.days,
         hours: contact.hours,
         badges: sellerBadges(
           {
@@ -139,7 +141,12 @@ export const sellers = new Hono<AppEnv>()
   .get("/:handle/verifications", async (c) => {
     const shop = await c.get("repo").getSellerShop(c.req.param("handle"))
     if (!shop) throw new HTTPException(404, { message: "seller not found" })
-    const verifications = await c.get("repo").listSellerVerifications(shop.seller.id)
+    const all = await c.get("repo").listSellerVerifications(shop.seller.id)
+    // Public: active badges and what they mean — never the private evidence
+    // (it can hold ID numbers) and never revoked/expired rows.
+    const verifications = all
+      .filter((v) => v.status === "verified")
+      .map((v) => ({ id: v.id, sellerId: v.sellerId, kind: v.kind, status: v.status, meaning: v.meaning, issuedAt: v.issuedAt, expiresAt: v.expiresAt }))
     return c.json({ sellerId: shop.seller.id, verifications })
   })
   .get("/:handle", async (c) => {    const shop = await c.get("repo").getSellerShop(c.req.param("handle"))
@@ -178,8 +185,11 @@ export const sellers = new Hono<AppEnv>()
         logo: profile?.logo ?? null,
         banner: profile?.banner ?? null,
         deliveryMinutes: delivery.minutes,
+        deliveryDays: delivery.days,
+        dispatchHours: delivery.dispatchHours,
         badges,
         trust,
+        replyTime: await sellerReplyTime(c.get("messages"), shop.seller.id).catch(() => null),
       },
       featuredProductIds,
     })

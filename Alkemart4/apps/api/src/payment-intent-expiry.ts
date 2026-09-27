@@ -1,6 +1,7 @@
 import { primaryDb } from "./db"
 import { parseEnv } from "./env"
 import { PostgresCheckoutRepository } from "./postgres-checkout-repository"
+import { reconcileStaleIntent } from "./lib/intent-reconcile"
 
 /**
  * Abandoned momo/card checkouts hold reserved stock with no buyer attached.
@@ -17,13 +18,9 @@ export async function runPaymentIntentExpiry(event: unknown, env: unknown, ctx: 
   const stale = await checkout.listStalePendingIntents(cutoff)
   let expired = 0
   for (const intent of stale) {
-    try {
-      await checkout.updatePaymentIntentStatus(intent.id, "expired")
-      await checkout.releaseReservations(intent.id)
-      expired += 1
-    } catch {
-      /* already transitioned elsewhere — leave it be */
-    }
+    // Same rule as the queue consumer: ask Paystack before expiring.
+    const result = await reconcileStaleIntent(checkout, intent, { paystackSecretKey: parsed.PAYSTACK_SECRET_KEY }).catch(() => "skipped" as const)
+    if (result === "expired") expired += 1
   }
   console.log(JSON.stringify({ job: "payment-intent-expiry", expired, scanned: stale.length }))
   void event

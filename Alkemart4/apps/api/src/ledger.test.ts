@@ -4,14 +4,17 @@ import { InMemoryCheckoutRepository } from "./checkout-repository"
 import { demoCatalog } from "./demo-seed"
 
 async function confirmedOrder(currency = marketCurrency()) {
-  const checkout = new InMemoryCheckoutRepository(demoCatalog())
+  // The pilot runs at 0% commission; give this shop a rate so the fee maths is exercised.
+  const snapshot = demoCatalog()
+  for (const s of snapshot.sellers) if (s.id === "seller-a") s.commissionBps = 700
+  const checkout = new InMemoryCheckoutRepository(snapshot)
   const cart = await checkout.createCart()
   await checkout.addCartItem(cart.id, "offer-a", 1)
   const quote = await checkout.quote(cart.id)
   const intent = await checkout.createPaymentIntent({
     id: `intent-${Math.random().toString(36).slice(2)}`,
     cartId: cart.id,
-    method: "cod",
+    method: "momo",
     status: "initiated",
     amountPesewas: quote.totalPesewas,
     currency,
@@ -34,7 +37,7 @@ describe("money ledger", () => {
     expect(kinds).toEqual(["platform_fee", "sale"])
     const sale = rows.find((r) => r.kind === "sale")!
     const fee = rows.find((r) => r.kind === "platform_fee")!
-    // offer-a: 1500 + delivery 500 (demo seed, seller-a @ 700bps)
+    // offer-a: 1500 + delivery 500 (seller-a set to 700bps above)
     expect(sale.amountMinor).toBe(1500n)
     expect(sale.currency).toBe("GHS")
     expect(fee.amountMinor).toBe((1500n * 700n) / 10_000n)

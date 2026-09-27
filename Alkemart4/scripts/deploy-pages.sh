@@ -16,9 +16,11 @@ deploy_one() {
   (cd "$ROOT/$dir" && wrangler pages deploy dist --project-name "$project" --commit-dirty=true)
 }
 
-deploy_one apps/storefront alkemart4-storefront
-deploy_one apps/backend/apps/ghana-vendor alkemart4-vendor
-deploy_one apps/backend/apps/admin alkemart4-admin
+# The v2 apps are the live UIs (pilot build). The old apps (apps/storefront,
+# apps/backend/apps/*) are retired — never deploy them again.
+deploy_one apps/storefront-v2 alkemart4-storefront
+deploy_one apps/vendor-v2 alkemart4-vendor
+deploy_one apps/admin-v2 alkemart4-admin
 
 echo "Done. Production aliases:"
 echo "  https://alkemart4-storefront.pages.dev"

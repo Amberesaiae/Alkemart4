@@ -55,7 +55,7 @@ async function setup() {
   })
   const adminToken = await signSessionJwt({ userId: "admin-1", role: "admin" }, JWT)
 
-  const deliverOrder = async (qty: number) => {
+  const deliverOrder = async (qty: number, method: "momo" | "cod" = "momo") => {
     const cart = await checkoutRepo.createCart()
     await checkoutRepo.addCartItem(cart.id, "offer-a", qty)
     const quote = await checkoutRepo.quote(cart.id)
@@ -63,7 +63,7 @@ async function setup() {
     await checkoutRepo.createPaymentIntent({
       id: intentId,
       cartId: cart.id,
-      method: "cod",
+      method,
       status: "initiated",
       amountPesewas: quote.totalPesewas,
       currency: "GHS",
@@ -109,7 +109,7 @@ async function setup() {
     method,
     headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
   })
-  return { app, adminToken, sellerToken, order1, order2, auth }
+  return { app, adminToken, sellerToken, order1, order2, auth, deliverOrder, checkoutRepo }
 }
 
 describe("GET /vendor/payouts/statement (Phase 4D)", () => {
@@ -227,5 +227,30 @@ describe("GET /vendor/payouts/statement (Phase 4D)", () => {
     expect(frozen.totals.pendingNetPesewas).toBe("0")
     expect(frozen.totals.heldNetPesewas).toBe("4185")
     expect(frozen.lines.every((l) => l.state === "held" && l.holdReason === "account review")).toBe(true)
+  })
+
+  it("pay-on-delivery: cash stays with the seller, never enters a payout, commission is owed", async () => {
+    const { app, sellerToken, deliverOrder, checkoutRepo, auth } = await setup()
+    const cashOrder = await deliverOrder(1, "cod")
+
+    const res = await app.request("/vendor/payouts/statement", auth(sellerToken), testEnv())
+    expect(res.status).toBe(200)
+    const body = (await res.json()) as {
+      commissionBps: number
+      totals: Record<string, string>
+      lines: Array<{ orderId: string; state: string; netPesewas: string; commissionPesewas: string; cashCollectedPesewas: string | null }>
+    }
+    const line = body.lines.find((l) => l.orderId === cashOrder)!
+    expect(line.state).toBe("cash")
+    expect(line.netPesewas).toBe("0")
+    expect(BigInt(line.cashCollectedPesewas!)).toBeGreaterThan(0n)
+    expect(BigInt(line.commissionPesewas)).toBeGreaterThan(0n)
+    expect(body.totals.commissionOwedPesewas).toBe(line.commissionPesewas)
+    // The two online orders from setup are still the only payable balance.
+    const pending = body.lines.filter((l) => l.state === "pending")
+    expect(pending.map((l) => l.orderId)).not.toContain(cashOrder)
+
+    const payable = await checkoutRepo.listDeliveredUnpaidOrders("seller-a")
+    expect(payable.map((o) => o.id)).not.toContain(cashOrder)
   })
 })

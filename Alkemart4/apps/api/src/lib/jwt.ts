@@ -4,6 +4,8 @@ export type SessionClaims = {
   userId: string
   role: SessionRole
   sellerId?: string
+  /** Issued-at (unix seconds) — lets sensitive routes reject sessions older than a password change. */
+  iat?: number
 }
 
 const encoder = new TextEncoder()
@@ -64,6 +66,7 @@ function parseClaims(payload: unknown): SessionClaims {
     userId: p.userId,
     role: p.role as SessionRole,
     ...(sellerId ? { sellerId } : {}),
+    ...(typeof p.iat === "number" ? { iat: p.iat } : {}),
   }
 }
 

@@ -252,6 +252,13 @@ export type CreateVendorProductInput = {
   attributes?: { label: string; value: string }[]
   /** Phase 1B enrichment at publish (Level C default; no barcode required). */
   identity?: UpdateProductIdentityInput
+  /**
+   * Create as a draft (default: proposed). Drafts are finished — photos,
+   * specs, terms — then sent for review via propose, which enforces required
+   * attributes. A dropped connection leaves a resumable draft, not a
+   * half-complete listing in the review queue.
+   */
+  asDraft?: boolean
 }
 
 export type UpdateProductVariantInput = {
@@ -583,6 +590,51 @@ export type ZeroResultQueryDto = {
   at: string
 }
 
+/** What buyers searched for, and where search failed them. */
+export type SearchInsightsDto = {
+  days: number
+  searches: number
+  zeroResultSearches: number
+  top: { query: string; count: number; avgResults: number }[]
+  zero: { query: string; count: number; lastAt: string }[]
+  byDay: { date: string; searches: number; zero: number }[]
+}
+
+/** Shared aggregation so memory and Postgres answer identically. */
+export function aggregateSearchLog(rows: { query: string; resultCount: number; at: Date }[], days: number): SearchInsightsDto {
+  const norm = (q: string) => q.trim().toLowerCase().replace(/\s+/g, " ")
+  const byQuery = new Map<string, { count: number; results: number; zero: number; lastAt: Date }>()
+  const byDay = new Map<string, { searches: number; zero: number }>()
+  for (const r of rows) {
+    const k = norm(r.query)
+    if (!k) continue
+    const q = byQuery.get(k) ?? { count: 0, results: 0, zero: 0, lastAt: r.at }
+    q.count++
+    q.results += r.resultCount
+    if (r.resultCount === 0) q.zero++
+    if (r.at > q.lastAt) q.lastAt = r.at
+    byQuery.set(k, q)
+    const d = r.at.toISOString().slice(0, 10)
+    const day = byDay.get(d) ?? { searches: 0, zero: 0 }
+    day.searches++
+    if (r.resultCount === 0) day.zero++
+    byDay.set(d, day)
+  }
+  const entries = [...byQuery.entries()]
+  return {
+    days,
+    searches: rows.length,
+    zeroResultSearches: rows.filter((r) => r.resultCount === 0).length,
+    top: entries.sort((a, b) => b[1].count - a[1].count).slice(0, 20).map(([query, v]) => ({ query, count: v.count, avgResults: Math.round(v.results / v.count) })),
+    zero: entries
+      .filter(([, v]) => v.zero > 0)
+      .sort((a, b) => b[1].zero - a[1].zero || +b[1].lastAt - +a[1].lastAt)
+      .slice(0, 30)
+      .map(([query, v]) => ({ query, count: v.zero, lastAt: v.lastAt.toISOString() })),
+    byDay: [...byDay.entries()].sort((a, b) => a[0].localeCompare(b[0])).map(([date, v]) => ({ date, ...v })),
+  }
+}
+
 export class CatalogConflictError extends Error {
   constructor(message = "offer already exists") {
     super(message)
@@ -665,6 +717,12 @@ export interface CatalogRepository {
     images: { url: string; alt?: string | null }[],
   ): Promise<VendorProductDto | null>
   listVendorProducts(sellerId: string): Promise<VendorProductDto[]>
+  /**
+   * "Sell one like this" (phase 6): add this seller's offer to a published
+   * product already in the catalogue, on one of its variants. No new product,
+   * no re-review; buyers compare the offers side by side.
+   */
+  addOfferToExistingProduct(input: { sellerId: string; productId: string; variantId?: string | null; pricePesewas: bigint; onHand: number; condition?: string | null }): Promise<{ offerId: string; variantId: string }>
   listAdminProducts(status?: ProductStatus): Promise<AdminProductDto[]>
   listAdminProductsWithFlags(status?: ProductStatus): Promise<(AdminProductDto & { flags: ProductFlag[] })[]>
   moderateProduct(
@@ -746,6 +804,7 @@ export interface CatalogRepository {
   // ── Phase 2D: query telemetry ──
   logSearchQuery(query: string, resultCount: number): Promise<void>
   listZeroResultQueries(limit?: number): Promise<ZeroResultQueryDto[]>
+  searchInsights(days: number): Promise<SearchInsightsDto>
   // ── Phase 3B: peer comparison ──
   peersForProduct(
     productId: string,
@@ -2398,7 +2457,7 @@ export class InMemoryCatalogRepository implements CatalogRepository {
       title: input.title,
       description: input.description,
       slug: uniqueInMemorySlug(this.data.products, slugRoot(input.title, productId)),
-      status: "proposed",
+      status: input.asDraft ? "draft" : "proposed",
       primaryCategoryId: input.primaryCategoryId,
       sellerId: input.sellerId,
       // Was dropped here while the Postgres path persisted it — a divergence
@@ -3026,6 +3085,14 @@ export class InMemoryCatalogRepository implements CatalogRepository {
     if (this.queryLog.length > 500) this.queryLog.splice(0, this.queryLog.length - 500)
   }
 
+  async searchInsights(days: number): Promise<SearchInsightsDto> {
+    const since = Date.now() - days * 86_400_000
+    return aggregateSearchLog(
+      this.queryLog.map((q) => ({ query: q.query, resultCount: q.resultCount, at: new Date(q.at) })).filter((q) => q.at.getTime() >= since),
+      days,
+    )
+  }
+
   async listZeroResultQueries(limit = 20): Promise<ZeroResultQueryDto[]> {
     return this.queryLog
       .filter((q) => q.resultCount === 0)
@@ -3383,15 +3450,46 @@ export class InMemoryCatalogRepository implements CatalogRepository {
 
   async listVendorProducts(sellerId: string): Promise<VendorProductDto[]> {
     const items: VendorProductDto[] = []
+    const memo = new Map<string, ReturnType<typeof assembleExtras>>()
     for (const offer of this.data.offers) {
       if (offer.sellerId !== sellerId) continue
       const product = this.data.products.find((p) => p.id === offer.productId)
       const variant = this.data.variants.find((v) => v.id === offer.variantId)
       if (!product || !variant) continue
-      items.push(toVendorProductDto(product, variant, offer))
+      // Same extras as the Postgres path (options, combos, gallery) — the
+      // doubles must not quietly return less than production.
+      let extras = memo.get(product.id)
+      if (!extras) {
+        extras = assembleExtras(this.data, product.id)
+        memo.set(product.id, extras)
+      }
+      items.push(toVendorProductDto(product, variant, offer, extras))
     }
     items.sort((a, b) => a.product.title.localeCompare(b.product.title))
     return items
+  }
+
+  async addOfferToExistingProduct(input: { sellerId: string; productId: string; variantId?: string | null; pricePesewas: bigint; onHand: number; condition?: string | null }) {
+    const product = this.data.products.find((p) => p.id === input.productId)
+    if (!product || product.status !== "published") throw new CatalogValidationError("That product isn't in the catalogue.")
+    const variants = this.data.variants.filter((v) => v.productId === product.id)
+    const variant = input.variantId ? variants.find((v) => v.id === input.variantId) : variants[0]
+    if (!variant) throw new CatalogValidationError("Pick which version you sell.")
+    if (this.data.offers.some((o) => o.sellerId === input.sellerId && o.productId === product.id && o.variantId === variant.id)) throw new CatalogConflictError()
+    const offer: CatalogOffer = {
+      id: crypto.randomUUID(),
+      sellerId: input.sellerId,
+      productId: product.id,
+      variantId: variant.id,
+      pricePesewas: input.pricePesewas,
+      onHand: input.onHand,
+      reserved: 0,
+      currency: marketCurrency(),
+      active: true,
+      condition: input.condition ?? null,
+    }
+    this.data.offers.push(offer)
+    return { offerId: offer.id, variantId: variant.id }
   }
 
   async listAdminProducts(status?: ProductStatus): Promise<AdminProductDto[]> {
@@ -3595,7 +3693,7 @@ export class InMemoryCatalogRepository implements CatalogRepository {
       id: crypto.randomUUID(),
       sellerId,
       kind,
-      status: "pending",
+      status: "verified", // an admin issuing it with evidence is the check
       evidence: input.evidence ?? null,
       issuedBy: input.issuedBy.trim(),
       issuedAt: now,
@@ -4057,7 +4155,7 @@ export class PostgresCatalogRepository implements CatalogRepository {
             title: input.title,
             description: input.description,
             slug,
-            status: "proposed",
+            status: input.asDraft ? "draft" : "proposed",
           primaryCategoryId: input.primaryCategoryId,
           sellerId: input.sellerId,
           imageUrl: input.imageUrl ?? null,
@@ -4365,6 +4463,35 @@ export class PostgresCatalogRepository implements CatalogRepository {
     }
     items.sort((a, b) => a.product.title.localeCompare(b.product.title))
     return items
+  }
+
+  async addOfferToExistingProduct(input: { sellerId: string; productId: string; variantId?: string | null; pricePesewas: bigint; onHand: number; condition?: string | null }) {
+    const [product] = await this.wdb.select({ id: products.id, status: products.status }).from(products).where(eq(products.id, input.productId)).limit(1)
+    if (!product || product.status !== "published") throw new CatalogValidationError("That product isn't in the catalogue.")
+    const variants = await this.wdb.select({ id: productVariants.id }).from(productVariants).where(eq(productVariants.productId, product.id))
+    const variant = input.variantId ? variants.find((v) => v.id === input.variantId) : variants[0]
+    if (!variant) throw new CatalogValidationError("Pick which version you sell.")
+    const [clash] = await this.wdb
+      .select({ id: offers.id })
+      .from(offers)
+      .where(and(eq(offers.sellerId, input.sellerId), eq(offers.productId, product.id), eq(offers.variantId, variant.id)))
+      .limit(1)
+    if (clash) throw new CatalogConflictError()
+    const offerId = crypto.randomUUID()
+    await this.wdb.insert(offers).values({
+      id: offerId,
+      sellerId: input.sellerId,
+      productId: product.id,
+      variantId: variant.id,
+      pricePesewas: input.pricePesewas,
+      onHand: input.onHand,
+      reserved: 0,
+      currency: marketCurrency(),
+      active: true,
+      condition: input.condition ?? null,
+    })
+    invalidateSnapshot(this.db, this.wdb)
+    return { offerId, variantId: variant.id }
   }
 
   async updateProductVariant(
@@ -5483,6 +5610,23 @@ export class PostgresCatalogRepository implements CatalogRepository {
     }
   }
 
+  async searchInsights(days: number): Promise<SearchInsightsDto> {
+    try {
+      const since = new Date(Date.now() - days * 86_400_000)
+      // Capped read: enough for weeks of a young marketplace; move to a SQL
+      // GROUP BY (or a daily rollup) once volume makes this heavy.
+      const rows = await this.wdb
+        .select({ query: searchQueryLog.query, resultCount: searchQueryLog.resultCount, at: searchQueryLog.createdAt })
+        .from(searchQueryLog)
+        .where(sql`${searchQueryLog.createdAt} >= ${since}`)
+        .orderBy(desc(searchQueryLog.createdAt))
+        .limit(20_000)
+      return aggregateSearchLog(rows.map((r) => ({ ...r, at: r.at ?? new Date(0) })), days)
+    } catch {
+      return aggregateSearchLog([], days)
+    }
+  }
+
   async listZeroResultQueries(limit = 20): Promise<ZeroResultQueryDto[]> {
     try {
       const rows = await this.wdb
@@ -5650,7 +5794,7 @@ export class PostgresCatalogRepository implements CatalogRepository {
         id,
         sellerId,
         kind,
-        status: "pending",
+        status: "verified", // an admin issuing it with evidence is the check
         evidence: input.evidence ?? null,
         issuedBy: input.issuedBy.trim(),
         issuedAt: now,
@@ -5665,7 +5809,7 @@ export class PostgresCatalogRepository implements CatalogRepository {
       id,
       sellerId,
       kind,
-      status: "pending",
+      status: "verified", // an admin issuing it with evidence is the check
       evidence: input.evidence ?? null,
       meaning: verificationMeaning(kind),
       issuedAt: now.toISOString(),

@@ -90,6 +90,12 @@ export const adminSearch = new Hono<AppEnv>()
       zeroResultSample,
     })
   })
+  /** Top searches, zero-result searches and daily volume for the last N days. */
+  .get("/insights", async (c) => {
+    const raw = Number(c.req.query("days") ?? 30)
+    const days = Number.isFinite(raw) ? Math.min(90, Math.max(1, Math.trunc(raw))) : 30
+    return c.json(await c.get("repo").searchInsights(days))
+  })
   .get("/zero-result", async (c) => {
     const rawLimit = Number(c.req.query("limit") ?? 20)
     const limit = Number.isFinite(rawLimit) ? Math.min(100, Math.max(1, Math.trunc(rawLimit))) : 20

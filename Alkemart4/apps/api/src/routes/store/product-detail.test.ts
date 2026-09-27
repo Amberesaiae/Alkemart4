@@ -189,7 +189,7 @@ describe("GET /store/products/:id with variants", () => {
     )
     const orderId = ((await mineRes.json()) as { items: { id: string }[] }).items[0]!.id
     for (const next of ["ship", "deliver"]) {
-      await app.request(`/vendor/orders/${orderId}/${next}`, json("POST", {}, sellerToken), testEnv())
+      await app.request(`/vendor/orders/${orderId}/${next}`, json("POST", next === "deliver" ? { code: await buyerCode(app, orderId) } : {}, sellerToken), testEnv())
     }
     await app.request(
       "/store/reviews",
@@ -215,3 +215,14 @@ describe("GET /store/products/:id with variants", () => {
     expect(detail.reviews[0]).toMatchObject({ rating: 5, title: "Fits well" })
   })
 })
+
+/** The buyer's handover code, read the way the buyer reads it (order lookup). */
+async function buyerCode(app: { request: (...a: never[]) => Response | Promise<Response> }, orderId: string, email = "buyer@alkemart.test") {
+  const res = await (app.request as unknown as (p: string, i: RequestInit, e?: unknown) => Promise<Response>)(
+    "/store/orders/lookup",
+    { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ orderId, email }) },
+    testEnv(),
+  )
+  const body = (await res.json()) as { orderGroup: { orders: { id: string; handoverCode: string | null }[] } }
+  return body.orderGroup.orders.find((o) => o.id === orderId)?.handoverCode ?? ""
+}

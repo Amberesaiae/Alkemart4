@@ -3,6 +3,7 @@ import { HTTPException } from "hono/http-exception"
 import { z } from "zod"
 import type { AppEnv } from "../../context"
 import { readJsonBody } from "../../lib/session"
+import { dealsForCart } from "../../lib/deals"
 
 const AddItemBody = z.object({
   offerId: z.string().min(1),
@@ -66,7 +67,9 @@ export const storeCart = new Hono<AppEnv>()
     const cart = await checkout.getCart(c.req.param("id"))
     if (!cart) throw new HTTPException(404, { message: "cart not found" })
     const items = await checkout.listCartItems(cart.id)
-    const quote = await checkout.quote(cart.id)
+    // A signed-in buyer's accepted "make an offer" prices, exactly as checkout will charge.
+    const { deals } = await dealsForCart(c, items)
+    const quote = await checkout.quote(cart.id, undefined, deals)
     const views = await checkout.getOfferViews(items.map((i) => i.offerId))
     const enriched = items.map((i) => {
       const view = views.get(i.offerId)
@@ -74,9 +77,12 @@ export const storeCart = new Hono<AppEnv>()
         id: i.id,
         offerId: i.offerId,
         sellerId: i.sellerId,
+        productId: view?.offer.productId ?? null,
         qty: i.qty,
         title: view?.productTitle ?? i.offerId,
-        unitPricePesewas: (view?.offer.pricePesewas ?? 0n).toString(),
+        unitPricePesewas: (deals?.[i.offerId] && deals[i.offerId]!.qty === i.qty ? BigInt(deals[i.offerId]!.unitPricePesewas) : (view?.offer.pricePesewas ?? 0n)).toString(),
+        listPricePesewas: (view?.offer.pricePesewas ?? 0n).toString(),
+        dealApplied: !!(deals?.[i.offerId] && deals[i.offerId]!.qty === i.qty),
         sellerName: view?.sellerName ?? i.sellerId,
         sellerHandle: view?.sellerHandle ?? null,
       }

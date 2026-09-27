@@ -8,12 +8,16 @@ import {
   offers,
   orders,
   orderGroups,
+  orderEvents,
   orderItems,
   paymentIntents,
+  payoutEvents,
   payoutHolds,
   payoutLines,
   payouts,
+  paystackEvents,
   products,
+  returnCases,
   reviews,
   sellers,
   stockSubscriptions,
@@ -22,16 +26,27 @@ import {
 import {
   assertFulfillmentTransition,
   assertPaymentTransition,
+  canMovePayout,
   computePayoutBatch,
+  freezePromise,
+  InvalidFulfillmentTransitionError,
   isSellable,
   quoteCart,
+  type DeliveryConfirmedBy,
+  type OrderFact,
   type OrderFulfillmentStatus,
+  type PayoutFact,
   type PaymentIntentStatus,
+  type ReturnReason,
+  type ReturnStatus,
+  type ReturnWish,
+  applyRecoveries,
 } from "@alkemart/domain"
-import { and, asc, desc, eq, gte, inArray, isNull, sql } from "drizzle-orm"
+import { and, asc, desc, eq, gte, inArray, isNull, ne, or, sql } from "drizzle-orm"
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js"
 import { marketCurrency } from "@alkemart/shared/markets"
-import { PostgresLedgerStore, payoutEntry, saleEntries, type LedgerStore } from "./ledger"
+import { PostgresLedgerStore, payoutEntry, payoutReversalEntry, refundEntries, saleEntries, type LedgerStore } from "./ledger"
+import { deliveryPromiseFromMetadata } from "./lib/delivery-promise"
 import type {
   CartItemRow,
   CartRow,
@@ -42,10 +57,20 @@ import type {
   OrderGroupRow,
   PaymentIntentRow,
   PayoutRow,
+  PaystackEventRow,
+  OrderActor,
+  OrderEventRow,
+  SellerOrderSummary,
   ShippingAddress,
   OrderRow,
+  OrderFactFilter,
+  ReturnCaseChange,
+  ReturnCaseFilter,
+  ReturnCaseRow,
+  ReturnTimelineEntry,
   StockSubscriptionDto,
 } from "./checkout-repository"
+import { ReturnCaseOpenError, PayoutBlockedError, feesFromFulfillment, orderFulfillment, withDeals, withFees, type IntentDeals } from "./checkout-repository"
 
 type Db = PostgresJsDatabase
 
@@ -70,6 +95,43 @@ function mapOrder(row: typeof orders.$inferSelect, payoutId: string | null = nul
     deliveryFeePesewas: row.deliveryFeePesewas,
     status: row.status as OrderFulfillmentStatus,
     payoutId,
+    dispatchBy: row.dispatchBy ?? null,
+    deliverEarliest: row.deliverEarliest ?? null,
+    deliverLatest: row.deliverLatest ?? null,
+    fulfillmentMethod: row.fulfillmentMethod,
+    deliveryZone: row.deliveryZone ?? null,
+    handoverCode: row.handoverCode ?? null,
+    handoverFailures: row.handoverFailures,
+    deliveryConfirmedBy: row.deliveryConfirmedBy ?? null,
+    payoutReleaseAt: row.payoutReleaseAt ?? null,
+    refundedPesewas: row.refundedPesewas ?? 0n,
+  }
+}
+
+function mapReturnCase(r: typeof returnCases.$inferSelect): ReturnCaseRow {
+  return {
+    id: r.id,
+    orderId: r.orderId,
+    sellerId: r.sellerId,
+    buyerEmail: r.buyerEmail,
+    reason: r.reason as ReturnReason,
+    wish: r.wish as ReturnWish,
+    note: r.note,
+    status: r.status as ReturnStatus,
+    respondBy: r.respondBy,
+    declineReason: r.declineReason,
+    outcome: r.outcome as ReturnCaseRow["outcome"],
+    refundPesewas: r.refundPesewas,
+    refundVia: r.refundVia ?? null,
+    refundStatus: r.refundStatus ?? null,
+    refundRef: r.refundRef,
+    sellerRecoveryPesewas: r.sellerRecoveryPesewas,
+    recoveredPayoutId: r.recoveredPayoutId,
+    adminNote: r.adminNote,
+    timeline: (r.timeline ?? []) as ReturnTimelineEntry[],
+    createdAt: r.createdAt,
+    updatedAt: r.updatedAt,
+    closedAt: r.closedAt,
   }
 }
 
@@ -86,6 +148,8 @@ function mapIntent(row: typeof paymentIntents.$inferSelect): PaymentIntentRow {
     momoProvider: row.momoProvider,
     momoPhone: row.momoPhone,
     shippingAddress: (row.shippingAddress as ShippingAddress | null) ?? null,
+    fulfillment: row.fulfillment ?? null,
+    deals: row.deals ?? null,
     createdAt: row.createdAt,
   }
 }
@@ -240,7 +304,7 @@ export class PostgresCheckoutRepository implements CheckoutRepository {
     }))
   }
 
-  async quote(cartId: string) {
+  async quote(cartId: string, fees?: Map<string, bigint>, deals?: IntentDeals | null) {
     const items = await this.listCartItems(cartId)
     const [cart] = await this.db.select().from(carts).where(eq(carts.id, cartId)).limit(1)
     const currency = cart?.currency ?? marketCurrency()
@@ -257,7 +321,7 @@ export class PostgresCheckoutRepository implements CheckoutRepository {
         deliveryFeePesewas: view.deliveryFeePesewas,
       }
     })
-    return quoteCart(lines, currency)
+    return quoteCart(withDeals(withFees(lines, fees), deals), currency)
   }
 
   async createPaymentIntent(
@@ -277,6 +341,8 @@ export class PostgresCheckoutRepository implements CheckoutRepository {
         momoProvider: input.momoProvider,
         momoPhone: input.momoPhone,
         shippingAddress: input.shippingAddress,
+        fulfillment: input.fulfillment ?? null,
+        deals: input.deals ?? null,
       })
       .returning()
     if (!row) throw new Error("failed to create payment intent")
@@ -509,7 +575,7 @@ export class PostgresCheckoutRepository implements CheckoutRepository {
           productTitle: joined.productTitle,
         })
       }
-      const quote = quoteCart(quoteLines, intent.currency)
+      const quote = quoteCart(withDeals(withFees(quoteLines, feesFromFulfillment(intent.fulfillment)), intent.deals), intent.currency)
       if (quote.totalPesewas !== intent.amountPesewas) {
         throw new Error("quote total mismatch")
       }
@@ -530,6 +596,13 @@ export class PostgresCheckoutRepository implements CheckoutRepository {
       const createdOrders: OrderRow[] = []
       for (const seller of quote.sellers) {
         const orderId = crypto.randomUUID()
+        // Freeze the seller's delivery promise onto the order (0036).
+        const [meta] = await tx
+          .select({ metadata: sellers.metadata })
+          .from(sellers)
+          .where(eq(sellers.id, seller.sellerId))
+          .limit(1)
+        const promise = freezePromise(group.createdAt, deliveryPromiseFromMetadata(meta?.metadata))
         const [order] = await tx
           .insert(orders)
           .values({
@@ -539,9 +612,17 @@ export class PostgresCheckoutRepository implements CheckoutRepository {
             subtotalPesewas: seller.subtotalPesewas,
             deliveryFeePesewas: seller.deliveryFeePesewas,
             status: "placed",
+            dispatchBy: promise.dispatchBy,
+            deliverEarliest: promise.deliverEarliest,
+            deliverLatest: promise.deliverLatest,
+            ...orderFulfillment(intent.fulfillment?.[seller.sellerId]),
           })
           .returning()
         if (!order) throw new Error("failed to create order")
+        await tx
+          .insert(orderEvents)
+          .values({ id: crypto.randomUUID(), orderId, status: "placed", actor: "buyer", at: group.createdAt })
+          .onConflictDoNothing()
         createdOrders.push(mapOrder(order))
 
         for (const line of seller.lines) {
@@ -632,6 +713,45 @@ export class PostgresCheckoutRepository implements CheckoutRepository {
   async listOrdersForSeller(sellerId: string) {
     const rows = await this.db.select().from(orders).where(eq(orders.sellerId, sellerId))
     return rows.map((r) => mapOrder(r))
+  }
+
+  /** Two queries regardless of order count: orders⋈group⋈intent, then items. */
+  async listSellerOrderSummaries(sellerId: string): Promise<SellerOrderSummary[]> {
+    const rows = await this.db
+      .select({
+        order: orders,
+        placedAt: orderGroups.createdAt,
+        shippingAddress: paymentIntents.shippingAddress,
+        method: paymentIntents.method,
+      })
+      .from(orders)
+      .leftJoin(orderGroups, eq(orderGroups.id, orders.orderGroupId))
+      .leftJoin(paymentIntents, eq(paymentIntents.id, orderGroups.paymentIntentId))
+      .where(eq(orders.sellerId, sellerId))
+      .orderBy(desc(orderGroups.createdAt))
+    const ids = rows.map((r) => r.order.id)
+    const itemRows = ids.length
+      ? await this.db
+          .select({ orderId: orderItems.orderId, productId: orderItems.productId, title: orderItems.title, qty: orderItems.qty })
+          .from(orderItems)
+          .where(inArray(orderItems.orderId, ids))
+      : []
+    const itemsByOrder = new Map<string, SellerOrderSummary["items"]>()
+    for (const i of itemRows) {
+      const list = itemsByOrder.get(i.orderId) ?? []
+      list.push({ productId: i.productId, title: i.title, qty: i.qty })
+      itemsByOrder.set(i.orderId, list)
+    }
+    return rows.map((r) => {
+      const addr = (r.shippingAddress as ShippingAddress | null) ?? null
+      return {
+        ...mapOrder(r.order),
+        placedAt: r.placedAt ?? null,
+        items: itemsByOrder.get(r.order.id) ?? [],
+        shipTo: addr ? { city: addr.city || null, region: addr.province ?? null } : null,
+        paymentMethod: r.method ?? null,
+      }
+    })
   }
 
   async listRecentOrderGroups(limit = 50) {
@@ -736,20 +856,144 @@ export class PostgresCheckoutRepository implements CheckoutRepository {
     }
   }
 
-  async updateOrderStatus(orderId: string, sellerId: string, status: OrderFulfillmentStatus) {
-    const [row] = await this.db
-      .select()
+  async listOrderFacts(filter: OrderFactFilter): Promise<OrderFact[]> {
+    const deliveredAt = sql<Date | null>`(SELECT min(e.at) FROM order_events e WHERE e.order_id = ${orders.id} AND e.status = 'delivered')`
+    const conds = [
+      filter.sellerId ? eq(orders.sellerId, filter.sellerId) : undefined,
+      filter.placedFrom ? gte(orderGroups.createdAt, filter.placedFrom) : undefined,
+      filter.placedTo ? sql`${orderGroups.createdAt} < ${filter.placedTo}` : undefined,
+      filter.deliveredFrom ? sql`${deliveredAt} >= ${filter.deliveredFrom}` : undefined,
+      filter.deliveredTo ? sql`${deliveredAt} < ${filter.deliveredTo}` : undefined,
+    ].filter((c) => c !== undefined)
+    const rows = await this.db
+      .select({
+        order: orders,
+        placedAt: orderGroups.createdAt,
+        buyerEmail: orderGroups.buyerEmail,
+        method: paymentIntents.method,
+        shippingAddress: paymentIntents.shippingAddress,
+        deliveredAt,
+      })
       .from(orders)
-      .where(and(eq(orders.id, orderId), eq(orders.sellerId, sellerId)))
-      .limit(1)
-    if (!row) return null
-    assertFulfillmentTransition(row.status as OrderFulfillmentStatus, status)
-    const [updated] = await this.db
+      .innerJoin(orderGroups, eq(orderGroups.id, orders.orderGroupId))
+      .leftJoin(paymentIntents, eq(paymentIntents.id, orderGroups.paymentIntentId))
+      .where(conds.length ? and(...conds) : undefined)
+    if (!rows.length) return []
+    const items = await this.db
+      .select()
+      .from(orderItems)
+      .where(inArray(orderItems.orderId, rows.map((r) => r.order.id)))
+    const byOrder = new Map<string, OrderFact["items"]>()
+    for (const i of items) {
+      const list = byOrder.get(i.orderId) ?? []
+      list.push({ productId: i.productId, title: i.title, qty: i.qty, amountPesewas: i.unitPricePesewas * BigInt(i.qty) })
+      byOrder.set(i.orderId, list)
+    }
+    return rows.map((r) => {
+      const addr = (r.shippingAddress as ShippingAddress | null) ?? null
+      const delivered = r.deliveredAt ? new Date(r.deliveredAt) : null
+      return {
+        orderId: r.order.id,
+        orderGroupId: r.order.orderGroupId,
+        sellerId: r.order.sellerId,
+        placedAt: r.placedAt,
+        status: r.order.status as OrderFact["status"],
+        deliveredAt: r.order.status === "delivered" ? delivered : null,
+        subtotalPesewas: r.order.subtotalPesewas,
+        deliveryFeePesewas: r.order.deliveryFeePesewas,
+        paymentMethod: (r.method as OrderFact["paymentMethod"]) ?? null,
+        fulfillmentMethod: r.order.fulfillmentMethod ?? "delivery",
+        buyerKey: r.buyerEmail?.trim().toLowerCase() || null,
+        region: addr?.province ?? null,
+        city: addr?.city ?? null,
+        items: byOrder.get(r.order.id) ?? [],
+      }
+    })
+  }
+
+  async listPayoutFacts(filter: { sellerId?: string; paidFrom?: Date; paidTo?: Date }): Promise<PayoutFact[]> {
+    const conds = [
+      filter.sellerId ? eq(payouts.sellerId, filter.sellerId) : undefined,
+      filter.paidFrom ? gte(payouts.paidAt, filter.paidFrom) : undefined,
+      filter.paidTo ? sql`${payouts.paidAt} < ${filter.paidTo}` : undefined,
+    ].filter((c) => c !== undefined)
+    const rows = await this.db.select().from(payouts).where(conds.length ? and(...conds) : undefined)
+    return rows.map((p) => ({
+      payoutId: p.id,
+      sellerId: p.sellerId,
+      status: p.status,
+      grossPesewas: p.grossPesewas,
+      commissionPesewas: p.commissionPesewas,
+      netPesewas: p.netPesewas,
+      paidAt: p.paidAt ?? null,
+      reference: p.paystackReference,
+    }))
+  }
+
+  async recordDeliveryConfirmation(orderId: string, by: DeliveryConfirmedBy, releaseAt: Date) {
+    await this.db.update(orders).set({ deliveryConfirmedBy: by, payoutReleaseAt: releaseAt }).where(eq(orders.id, orderId))
+  }
+
+  async recordHandoverFailure(orderId: string) {
+    const [row] = await this.db
       .update(orders)
-      .set({ status })
+      .set({ handoverFailures: sql`${orders.handoverFailures} + 1` })
       .where(eq(orders.id, orderId))
-      .returning()
-    return updated ? mapOrder(updated) : null
+      .returning({ n: orders.handoverFailures })
+    return row?.n ?? 0
+  }
+
+  async updateOrderStatus(
+    orderId: string,
+    sellerId: string,
+    status: OrderFulfillmentStatus,
+    actor?: { kind: OrderActor; id?: string | null; note?: string | null },
+  ) {
+    return this.db.transaction(async (tx) => {
+      const [row] = await tx
+        .select()
+        .from(orders)
+        .where(and(eq(orders.id, orderId), eq(orders.sellerId, sellerId)))
+        .limit(1)
+      if (!row) return null
+      const from = row.status as OrderFulfillmentStatus
+      assertFulfillmentTransition(from, status)
+      // Conditional on the status we read: a concurrent transition wins once.
+      const [updated] = await tx
+        .update(orders)
+        .set({ status })
+        .where(and(eq(orders.id, orderId), eq(orders.status, row.status)))
+        .returning()
+      if (!updated) throw new InvalidFulfillmentTransitionError(from, status)
+      await tx
+        .insert(orderEvents)
+        .values({
+          id: crypto.randomUUID(),
+          orderId,
+          status,
+          actor: actor?.kind ?? "seller",
+          actorId: actor?.id ?? null,
+          note: actor?.note ?? null,
+        })
+        .onConflictDoNothing()
+      return mapOrder(updated)
+    })
+  }
+
+  async listOrderEvents(orderIds: string[]): Promise<OrderEventRow[]> {
+    if (orderIds.length === 0) return []
+    const rows = await this.db
+      .select()
+      .from(orderEvents)
+      .where(inArray(orderEvents.orderId, orderIds))
+      .orderBy(asc(orderEvents.at))
+    return rows.map((r) => ({
+      orderId: r.orderId,
+      status: r.status as OrderFulfillmentStatus,
+      actor: r.actor as OrderActor,
+      at: r.at,
+      note: r.note,
+    }))
   }
 
   async listDeliveredUnpaidOrders(sellerId: string) {
@@ -757,62 +1001,96 @@ export class PostgresCheckoutRepository implements CheckoutRepository {
       .select({ order: orders, payoutLineId: payoutLines.id })
       .from(orders)
       .leftJoin(payoutLines, eq(payoutLines.orderId, orders.id))
-      .where(and(eq(orders.sellerId, sellerId), eq(orders.status, "delivered"), isNull(payoutLines.id)))
+      .leftJoin(orderGroups, eq(orderGroups.id, orders.orderGroupId))
+      .leftJoin(paymentIntents, eq(paymentIntents.id, orderGroups.paymentIntentId))
+      .where(
+        and(
+          eq(orders.sellerId, sellerId),
+          eq(orders.status, "delivered"),
+          isNull(payoutLines.id),
+          // COD cash is already with the seller — never payable.
+          or(isNull(paymentIntents.method), ne(paymentIntents.method, "cod")),
+          // A held order is not payable until an admin releases the hold.
+          sql`NOT EXISTS (SELECT 1 FROM payout_holds h WHERE h.order_id = ${orders.id} AND h.status = 'held')`,
+          // Seller-only confirmations wait out the buyer's report window.
+          or(isNull(orders.payoutReleaseAt), sql`${orders.payoutReleaseAt} <= now()`),
+          // Fully refunded: nothing left to pay the seller.
+          sql`${orders.subtotalPesewas} > ${orders.refundedPesewas}`,
+        ),
+      )
     return rows.map((r) => mapOrder(r.order))
   }
 
-  async createPayout(input: {
-    sellerId: string
-    commissionBps: number
-    paystackTransferCode: string
-    paystackReference: string
-  }) {
-    const unpaid = await this.listDeliveredUnpaidOrders(input.sellerId)
-    if (unpaid.length === 0) throw new Error("no delivered unpaid orders")
-    const batch = computePayoutBatch(
-      input.sellerId,
-      input.commissionBps,
-      unpaid.map((o) => ({
-        orderId: o.id,
-        sellerId: o.sellerId,
-        subtotalPesewas: o.subtotalPesewas,
-      })),
-    )
-
+  async reservePayout(input: { sellerId: string; commissionBps: number; reference: string; createdBy: string }) {
     return this.db.transaction(async (tx) => {
-      // Re-validate payout eligibility inside the transaction: the pre-read
-      // above is stale under concurrency, and paying an already-paid order
-      // twice is unrecoverable. Unique payout_lines.orderId is the last line
-      // of defense; this check keeps the error honest and pre-insert.
-      const stillUnpaid = await tx
-        .select({ orderId: orders.id })
+      const [accountHold] = await tx
+        .select()
+        .from(payoutHolds)
+        .where(and(eq(payoutHolds.sellerId, input.sellerId), eq(payoutHolds.status, "held"), isNull(payoutHolds.orderId)))
+        .limit(1)
+      if (accountHold) throw new PayoutBlockedError("seller_hold", `Payouts are on hold for this seller: ${accountHold.reason}`)
+
+      // Eligibility read inside the transaction; unique payout_lines.order_id
+      // makes a concurrent reserve of the same order fail instead of paying twice.
+      const eligible = await tx
+        .select({ order: orders, currency: paymentIntents.currency })
         .from(orders)
         .leftJoin(payoutLines, eq(payoutLines.orderId, orders.id))
-        .where(and(eq(orders.sellerId, input.sellerId), eq(orders.status, "delivered"), isNull(payoutLines.id)))
-      const unpaidIds = new Set(stillUnpaid.map((r) => r.orderId))
-      for (const line of batch.lines) {
-        if (!unpaidIds.has(line.orderId)) {
-          throw new Error(`order ${line.orderId} is no longer payout-eligible`)
-        }
+        .innerJoin(orderGroups, eq(orderGroups.id, orders.orderGroupId))
+        .innerJoin(paymentIntents, eq(paymentIntents.id, orderGroups.paymentIntentId))
+        .where(
+          and(
+            eq(orders.sellerId, input.sellerId),
+            eq(orders.status, "delivered"),
+            isNull(payoutLines.id),
+            ne(paymentIntents.method, "cod"),
+            sql`NOT EXISTS (SELECT 1 FROM payout_holds h WHERE h.order_id = ${orders.id} AND h.status = 'held')`,
+          // Seller-only confirmations wait out the buyer's report window.
+          or(isNull(orders.payoutReleaseAt), sql`${orders.payoutReleaseAt} <= now()`),
+          sql`${orders.subtotalPesewas} > ${orders.refundedPesewas}`,
+          ),
+        )
+      if (!eligible.length) throw new PayoutBlockedError("nothing_payable", "No delivered, paid-online orders are waiting for a payout.")
+      if (new Set(eligible.map((r) => r.currency)).size !== 1) {
+        throw new PayoutBlockedError("mixed_currency", "These orders were paid in different currencies; pay them out separately.")
       }
-
+      const batch = computePayoutBatch(
+        input.sellerId,
+        input.commissionBps,
+        eligible.map((r) => ({ orderId: r.order.id, sellerId: r.order.sellerId, subtotalPesewas: r.order.subtotalPesewas - r.order.refundedPesewas })),
+      )
+      // Refunds on orders already paid out come off this payout, oldest first.
+      const owedRows = await tx
+        .select({ id: returnCases.id, amountMinor: returnCases.sellerRecoveryPesewas })
+        .from(returnCases)
+        .where(
+          and(
+            eq(returnCases.sellerId, input.sellerId),
+            sql`${returnCases.sellerRecoveryPesewas} > 0`,
+            isNull(returnCases.recoveredPayoutId),
+            or(isNull(returnCases.refundStatus), ne(returnCases.refundStatus, "failed")),
+          ),
+        )
+        .orderBy(asc(returnCases.createdAt))
+        .for("update")
+      const recovered = applyRecoveries(batch.netPesewas, owedRows)
       const payoutId = crypto.randomUUID()
-      const [payout] = await tx
+      const [row] = await tx
         .insert(payouts)
         .values({
           id: payoutId,
           sellerId: input.sellerId,
-          status: "paid",
+          status: "pending",
           grossPesewas: batch.grossPesewas,
           commissionPesewas: batch.commissionPesewas,
-          netPesewas: batch.netPesewas,
+          netPesewas: batch.netPesewas - recovered.totalMinor,
+          recoveredPesewas: recovered.totalMinor,
           commissionBps: input.commissionBps,
-          paystackTransferCode: input.paystackTransferCode,
-          paystackReference: input.paystackReference,
+          paystackReference: input.reference,
+          createdBy: input.createdBy,
         })
         .returning()
-      if (!payout) throw new Error("failed to create payout")
-
+      if (!row) throw new Error("failed to create payout")
       for (const line of batch.lines) {
         await tx.insert(payoutLines).values({
           id: crypto.randomUUID(),
@@ -823,58 +1101,134 @@ export class PostgresCheckoutRepository implements CheckoutRepository {
           netPesewas: line.netPesewas,
         })
       }
+      await tx.insert(payoutEvents).values({
+        id: crypto.randomUUID(),
+        payoutId,
+        status: "created",
+        actor: input.createdBy,
+        detail: `${batch.lines.length} order${batch.lines.length === 1 ? "" : "s"}${recovered.totalMinor > 0n ? ` · ${recovered.applied.length} refund${recovered.applied.length === 1 ? "" : "s"} taken back` : ""}`,
+      })
+      if (recovered.applied.length) {
+        await tx.update(returnCases).set({ recoveredPayoutId: payoutId }).where(inArray(returnCases.id, recovered.applied.map((r) => r.id)))
+      }
+      return toPayout(row)
+    })
+  }
 
-      // Ledger payout row in the same tx. Currency resolves from the batch's
-      // paid intents and must be uniform — a mixed-currency batch is a future
-      // case that fails loudly here instead of recording ambiguously.
-      const intentCurrencies = await tx
+  async markPayoutSent(payoutId: string, transferCode: string | null, actor: string) {
+    return this.db.transaction(async (tx) => {
+      const [row] = await tx
+        .update(payouts)
+        .set({ status: "processing", paystackTransferCode: transferCode, updatedAt: new Date() })
+        .where(and(eq(payouts.id, payoutId), eq(payouts.status, "pending")))
+        .returning()
+      if (row) {
+        await tx.insert(payoutEvents).values({ id: crypto.randomUUID(), payoutId, status: "sent", actor, detail: transferCode })
+        return toPayout(row)
+      }
+      const [cur] = await tx.select().from(payouts).where(eq(payouts.id, payoutId)).limit(1)
+      return cur ? toPayout(cur) : null
+    })
+  }
+
+  async settlePayout(payoutId: string, to: "paid" | "failed" | "reversed", opts: { actor: string; reason?: string | null; transferCode?: string | null }) {
+    return this.db.transaction(async (tx) => {
+      const [cur] = await tx.select().from(payouts).where(eq(payouts.id, payoutId)).for("update").limit(1)
+      if (!cur) return { payout: null, changed: false }
+      if (cur.status === to || !canMovePayout(cur.status, to)) return { payout: toPayout(cur), changed: false }
+      const now = new Date()
+      const [row] = await tx
+        .update(payouts)
+        .set({
+          status: to,
+          updatedAt: now,
+          ...(opts.transferCode ? { paystackTransferCode: opts.transferCode } : {}),
+          ...(to === "paid" ? { paidAt: now } : { failureReason: opts.reason ?? null }),
+        })
+        .where(eq(payouts.id, payoutId))
+        .returning()
+      const [cur2] = await tx
         .select({ currency: paymentIntents.currency })
-        .from(orders)
+        .from(payoutLines)
+        .innerJoin(orders, eq(orders.id, payoutLines.orderId))
         .innerJoin(orderGroups, eq(orderGroups.id, orders.orderGroupId))
         .innerJoin(paymentIntents, eq(paymentIntents.id, orderGroups.paymentIntentId))
-        .where(inArray(orders.id, batch.lines.map((l) => l.orderId)))
-      const currencies = new Set(intentCurrencies.map((r) => r.currency))
-      if (currencies.size !== 1 || !batch.lines.length) {
-        throw new Error("payout batch must resolve to exactly one currency")
+        .where(eq(payoutLines.payoutId, payoutId))
+        .limit(1)
+      const ledger = new PostgresLedgerStore(tx)
+      if (to === "paid") {
+        if (!cur2) throw new Error("payout has no lines to resolve currency")
+        await ledger.append(payoutEntry({ payoutId, sellerId: cur.sellerId, netMinor: cur.netPesewas, currency: cur2.currency }))
+      } else {
+        if (to === "reversed" && cur2) {
+          await ledger.append(payoutReversalEntry({ payoutId, sellerId: cur.sellerId, netMinor: cur.netPesewas, currency: cur2.currency }))
+        }
+        // The money never arrived: those orders go back into the next payout.
+        const back = await tx.select({ orderId: payoutLines.orderId }).from(payoutLines).where(eq(payoutLines.payoutId, payoutId))
+        if (back.length) {
+          // Refunded while in this payout: the order now pays only what's left,
+          // so there's nothing to take back any more.
+          await tx
+            .update(returnCases)
+            .set({ sellerRecoveryPesewas: 0n })
+            .where(and(inArray(returnCases.orderId, back.map((b) => b.orderId)), isNull(returnCases.recoveredPayoutId)))
+        }
+        await tx.delete(payoutLines).where(eq(payoutLines.payoutId, payoutId))
+        // Refunds it took back are owed again.
+        await tx.update(returnCases).set({ recoveredPayoutId: null }).where(eq(returnCases.recoveredPayoutId, payoutId))
       }
-      await new PostgresLedgerStore(tx).append(
-        payoutEntry({
-          payoutId,
-          sellerId: input.sellerId,
-          netMinor: batch.netPesewas,
-          currency: [...currencies][0] as string,
-        }),
-      )
-
-      const result: PayoutRow = {
-        id: payout.id,
-        sellerId: payout.sellerId,
-        status: payout.status,
-        grossPesewas: payout.grossPesewas,
-        commissionPesewas: payout.commissionPesewas,
-        netPesewas: payout.netPesewas,
-        commissionBps: payout.commissionBps,
-        paystackTransferCode: payout.paystackTransferCode,
-        paystackReference: payout.paystackReference,
-      }
-      return result
+      await tx.insert(payoutEvents).values({ id: crypto.randomUUID(), payoutId, status: to, actor: opts.actor, detail: opts.reason ?? null })
+      return { payout: row ? toPayout(row) : null, changed: true }
     })
+  }
+
+  async getPayoutByReference(reference: string) {
+    const [row] = await this.db.select().from(payouts).where(eq(payouts.paystackReference, reference)).limit(1)
+    return row ? toPayout(row) : null
+  }
+
+  async listPayoutLines(payoutId: string) {
+    const rows = await this.db.select().from(payoutLines).where(eq(payoutLines.payoutId, payoutId))
+    return rows.map((r) => ({ orderId: r.orderId, grossPesewas: r.grossPesewas, commissionPesewas: r.commissionPesewas, netPesewas: r.netPesewas }))
+  }
+
+  async listPayoutEvents(payoutIds: string[]) {
+    if (!payoutIds.length) return []
+    const rows = await this.db.select().from(payoutEvents).where(inArray(payoutEvents.payoutId, payoutIds)).orderBy(asc(payoutEvents.createdAt))
+    return rows.map((r) => ({ ...r }))
+  }
+
+  async addPayoutEvent(payoutId: string, status: string, actor: string, detail: string | null = null) {
+    await this.db.insert(payoutEvents).values({ id: crypto.randomUUID(), payoutId, status, actor, detail })
+  }
+
+  async recordPaystackEvent(row: Omit<PaystackEventRow, "receivedAt">) {
+    await this.db
+      .insert(paystackEvents)
+      .values(row)
+      .onConflictDoUpdate({ target: paystackEvents.id, set: { outcome: row.outcome, detail: row.detail, status: row.status } })
+  }
+
+  async listPaystackEvents(limit = 100) {
+    const rows = await this.db.select().from(paystackEvents).orderBy(desc(paystackEvents.receivedAt)).limit(Math.max(1, Math.min(limit, 500)))
+    return rows.map((r) => ({ ...r }))
+  }
+
+  async createPayout(input: {
+    sellerId: string
+    commissionBps: number
+    paystackTransferCode: string
+    paystackReference: string
+  }) {
+    const reserved = await this.reservePayout({ ...input, reference: input.paystackReference, createdBy: "system" })
+    await this.markPayoutSent(reserved.id, input.paystackTransferCode, "system")
+    const { payout } = await this.settlePayout(reserved.id, "paid", { actor: "system" })
+    return payout!
   }
 
   async getPayout(id: string) {
     const [row] = await this.db.select().from(payouts).where(eq(payouts.id, id)).limit(1)
-    if (!row) return null
-    return {
-      id: row.id,
-      sellerId: row.sellerId,
-      status: row.status,
-      grossPesewas: row.grossPesewas,
-      commissionPesewas: row.commissionPesewas,
-      netPesewas: row.netPesewas,
-      commissionBps: row.commissionBps,
-      paystackTransferCode: row.paystackTransferCode,
-      paystackReference: row.paystackReference,
-    }
+    return row ? toPayout(row) : null
   }
 
   async listRecentPayouts(limit = 50) {
@@ -884,18 +1238,7 @@ export class PostgresCheckoutRepository implements CheckoutRepository {
       .from(payouts)
       .orderBy(desc(payouts.createdAt))
       .limit(take)
-    return rows.map((row) => ({
-      id: row.id,
-      sellerId: row.sellerId,
-      status: row.status,
-      grossPesewas: row.grossPesewas,
-      commissionPesewas: row.commissionPesewas,
-      netPesewas: row.netPesewas,
-      commissionBps: row.commissionBps,
-      paystackTransferCode: row.paystackTransferCode,
-      paystackReference: row.paystackReference,
-      createdAt: row.createdAt,
-    }))
+    return rows.map((row) => ({ ...toPayout(row), createdAt: row.createdAt }))
   }
 
   async listPayoutsForSeller(sellerId: string) {
@@ -904,18 +1247,7 @@ export class PostgresCheckoutRepository implements CheckoutRepository {
       .from(payouts)
       .where(eq(payouts.sellerId, sellerId))
       .orderBy(desc(payouts.createdAt))
-    return rows.map((row) => ({
-      id: row.id,
-      sellerId: row.sellerId,
-      status: row.status,
-      grossPesewas: row.grossPesewas,
-      commissionPesewas: row.commissionPesewas,
-      netPesewas: row.netPesewas,
-      commissionBps: row.commissionBps,
-      paystackTransferCode: row.paystackTransferCode,
-      paystackReference: row.paystackReference,
-      createdAt: row.createdAt,
-    }))
+    return rows.map((row) => ({ ...toPayout(row), createdAt: row.createdAt }))
   }
 
   async listPaidLinesForSeller(sellerId: string) {
@@ -927,7 +1259,7 @@ export class PostgresCheckoutRepository implements CheckoutRepository {
         commissionPesewas: payoutLines.commissionPesewas,
         netPesewas: payoutLines.netPesewas,
         payoutStatus: payouts.status,
-        paidAt: payouts.createdAt,
+        paidAt: payouts.paidAt,
       })
       .from(payoutLines)
       .innerJoin(payouts, eq(payouts.id, payoutLines.payoutId))
@@ -1051,6 +1383,159 @@ export class PostgresCheckoutRepository implements CheckoutRepository {
       releasedAt: updated.releasedAt,
       createdAt: updated.createdAt,
     }
+  }
+
+  async createReturnCase(input: {
+    orderId: string
+    sellerId: string
+    buyerEmail: string
+    reason: ReturnReason
+    wish: ReturnWish
+    note: string
+    respondBy: Date
+  }): Promise<ReturnCaseRow> {
+    return this.db.transaction(async (tx) => {
+      const [order] = await tx
+        .select({ id: orders.id, sellerId: orders.sellerId, payoutLineId: payoutLines.id })
+        .from(orders)
+        .leftJoin(payoutLines, eq(payoutLines.orderId, orders.id))
+        .where(eq(orders.id, input.orderId))
+        .for("update", { of: orders })
+        .limit(1)
+      if (!order || order.sellerId !== input.sellerId) throw new Error("order not in this seller's orders")
+      const [open] = await tx
+        .select({ id: returnCases.id })
+        .from(returnCases)
+        .where(and(eq(returnCases.orderId, input.orderId), ne(returnCases.status, "closed")))
+        .limit(1)
+      if (open) throw new ReturnCaseOpenError(open.id)
+      const now = new Date()
+      let row: typeof returnCases.$inferSelect | undefined
+      try {
+        ;[row] = await tx
+          .insert(returnCases)
+          .values({
+            id: crypto.randomUUID(),
+            ...input,
+            status: "requested",
+            timeline: [{ at: now.toISOString(), by: "buyer", status: "requested", note: "Buyer asked for a return" }],
+          })
+          .returning()
+      } catch (err) {
+        if (isUniqueViolation(err, "return_cases_one_open")) throw new ReturnCaseOpenError("")
+        throw err
+      }
+      if (!row) throw new Error("failed to open return")
+      // The order's payout waits while the case is open (if it hasn't gone out yet).
+      if (!order.payoutLineId) {
+        const [held] = await tx
+          .select({ id: payoutHolds.id })
+          .from(payoutHolds)
+          .where(and(eq(payoutHolds.orderId, input.orderId), eq(payoutHolds.status, "held"), eq(payoutHolds.createdBy, "buyer")))
+          .limit(1)
+        if (!held) {
+          await tx.insert(payoutHolds).values({
+            id: crypto.randomUUID(),
+            sellerId: input.sellerId,
+            orderId: input.orderId,
+            reason: `Return requested: ${input.note}`,
+            status: "held",
+            createdBy: "buyer",
+          })
+        }
+      }
+      return mapReturnCase(row)
+    })
+  }
+
+  async getReturnCase(id: string) {
+    const [row] = await this.db.select().from(returnCases).where(eq(returnCases.id, id)).limit(1)
+    return row ? mapReturnCase(row) : null
+  }
+
+  async listReturnCases(f: ReturnCaseFilter) {
+    const where = [
+      f.sellerId ? eq(returnCases.sellerId, f.sellerId) : undefined,
+      f.orderIds ? (f.orderIds.length ? inArray(returnCases.orderId, f.orderIds) : sql`false`) : undefined,
+      f.buyerEmail ? sql`lower(${returnCases.buyerEmail}) = ${f.buyerEmail.toLowerCase()}` : undefined,
+      f.statuses ? (f.statuses.length ? inArray(returnCases.status, f.statuses) : sql`false`) : undefined,
+      f.dueAt ? and(ne(returnCases.status, "closed"), sql`${returnCases.respondBy} <= ${f.dueAt}`) : undefined,
+      f.refundPending ? and(eq(returnCases.refundVia, "provider"), eq(returnCases.refundStatus, "pending")) : undefined,
+    ].filter(Boolean)
+    const rows = await this.db
+      .select()
+      .from(returnCases)
+      .where(where.length ? and(...where) : undefined)
+      .orderBy(desc(returnCases.createdAt))
+      .limit(500)
+    return rows.map(mapReturnCase)
+  }
+
+  async advanceReturnCase(id: string, from: ReturnStatus, change: ReturnCaseChange) {
+    return this.db.transaction(async (tx) => {
+      const now = new Date()
+      const entry: ReturnTimelineEntry = { at: now.toISOString(), by: change.entry.by, status: change.status, note: change.entry.note }
+      const money = change.refund && change.refund.minor > 0n ? change.refund : null
+      const [row] = await tx
+        .update(returnCases)
+        .set({
+          status: change.status,
+          respondBy: change.respondBy,
+          updatedAt: now,
+          timeline: sql`${returnCases.timeline} || ${JSON.stringify([entry])}::jsonb`,
+          ...(change.declineReason !== undefined ? { declineReason: change.declineReason } : {}),
+          ...(change.outcome !== undefined ? { outcome: change.outcome } : {}),
+          ...(change.adminNote !== undefined ? { adminNote: change.adminNote } : {}),
+          ...(change.status === "closed" ? { closedAt: now } : {}),
+          ...(money
+            ? {
+                refundPesewas: money.minor,
+                refundVia: money.via,
+                refundStatus: money.status,
+                refundRef: money.ref ?? null,
+                sellerRecoveryPesewas: money.sellerRecoveryMinor,
+              }
+            : {}),
+        })
+        .where(and(eq(returnCases.id, id), eq(returnCases.status, from)))
+        .returning()
+      if (!row) return null
+      if (money) {
+        await tx
+          .update(orders)
+          .set({ refundedPesewas: sql`${orders.refundedPesewas} + ${money.minor}` })
+          .where(eq(orders.id, row.orderId))
+        const ledger = new PostgresLedgerStore(tx)
+        for (const e of refundEntries({ caseId: row.id, orderId: row.orderId, intentId: money.intentId, sellerId: row.sellerId, refundMinor: money.minor, platformMinor: money.platformMinor, currency: money.currency })) {
+          await ledger.append(e)
+        }
+      }
+      if (change.status === "closed") {
+        await tx
+          .update(payoutHolds)
+          .set({ status: "released", releasedBy: "return closed", releasedAt: now })
+          .where(and(eq(payoutHolds.orderId, row.orderId), eq(payoutHolds.status, "held"), eq(payoutHolds.createdBy, "buyer")))
+      }
+      return mapReturnCase(row)
+    })
+  }
+
+  async setReturnRefund(id: string, patch: { status: "pending" | "paid" | "failed" | "owed"; ref?: string | null; entry?: { by: ReturnCaseRow["timeline"][number]["by"]; note: string } }) {
+    const now = new Date()
+    const [cur] = await this.db.select({ status: returnCases.status }).from(returnCases).where(eq(returnCases.id, id)).limit(1)
+    if (!cur) return null
+    const entry = patch.entry ? [{ at: now.toISOString(), by: patch.entry.by, status: cur.status, note: patch.entry.note }] : []
+    const [row] = await this.db
+      .update(returnCases)
+      .set({
+        refundStatus: patch.status,
+        updatedAt: now,
+        ...(patch.ref !== undefined ? { refundRef: patch.ref } : {}),
+        ...(entry.length ? { timeline: sql`${returnCases.timeline} || ${JSON.stringify(entry)}::jsonb` } : {}),
+      })
+      .where(and(eq(returnCases.id, id), sql`${returnCases.refundPesewas} > 0`))
+      .returning()
+    return row ? mapReturnCase(row) : null
   }
 
   async enqueueNotification(input: {
@@ -1647,5 +2132,23 @@ export class PostgresCheckoutRepository implements CheckoutRepository {
       .where(and(eq(reviews.id, id), eq(reviews.sellerId, sellerId)))
       .returning()
     return row ? this.toReviewRow(row) : null
+  }
+}
+
+function toPayout(row: typeof payouts.$inferSelect): PayoutRow {
+  return {
+    id: row.id,
+    sellerId: row.sellerId,
+    status: row.status,
+    grossPesewas: row.grossPesewas,
+    commissionPesewas: row.commissionPesewas,
+    netPesewas: row.netPesewas,
+    commissionBps: row.commissionBps,
+    paystackTransferCode: row.paystackTransferCode,
+    paystackReference: row.paystackReference,
+    failureReason: row.failureReason,
+    paidAt: row.paidAt,
+    createdBy: row.createdBy,
+    recoveredPesewas: row.recoveredPesewas ?? 0n,
   }
 }

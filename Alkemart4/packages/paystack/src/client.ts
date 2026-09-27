@@ -63,6 +63,13 @@ export function mapMomoProviderToPaystackSlug(
   return slug
 }
 
+/** Paystack's currency must match what we charged (amount alone can collide across currencies). */
+export function assertPaystackCurrencyMatches(expected: string, paystackCurrency: string | null | undefined): void {
+  if (paystackCurrency != null && paystackCurrency.toUpperCase() !== expected.toUpperCase()) {
+    throw new Error(`Paystack currency mismatch: provider=${paystackCurrency} intent=${expected}`)
+  }
+}
+
 export function assertPaystackAmountMatches(
   expectedPesewas: bigint,
   paystackAmount: number,
@@ -71,6 +78,24 @@ export function assertPaystackAmountMatches(
     throw new Error(
       `Paystack amount mismatch: provider=${paystackAmount} intent=${expectedPesewas} (pesewas)`,
     )
+  }
+}
+
+/**
+ * A Paystack call that failed. `definite` means Paystack answered and said
+ * no (4xx: bad recipient, insufficient balance, duplicate reference…).
+ * Otherwise (timeout, network, 5xx) we don't know what happened and must
+ * verify by reference before acting — never assume failure and retry with
+ * a new reference (that is how money gets sent twice).
+ */
+export class PaystackError extends Error {
+  readonly httpStatus: number | null
+  readonly definite: boolean
+  constructor(message: string, httpStatus: number | null) {
+    super(message)
+    this.name = "PaystackError"
+    this.httpStatus = httpStatus
+    this.definite = httpStatus != null && httpStatus >= 400 && httpStatus < 500
   }
 }
 
@@ -108,7 +133,12 @@ export async function paystackRequest<T = Record<string, unknown>>(
     init.body = JSON.stringify(options.body)
   }
 
-  const res = await fetch(url, init)
+  let res: Response
+  try {
+    res = await fetch(url, init)
+  } catch (err) {
+    throw new PaystackError(err instanceof Error ? `Paystack unreachable: ${err.message}` : "Paystack unreachable", null)
+  }
   const json = (await res.json().catch(() => null)) as {
     status?: boolean
     message?: string
@@ -122,7 +152,8 @@ export async function paystackRequest<T = Record<string, unknown>>(
       typeof (json.data as { message?: unknown }).message === "string"
         ? String((json.data as { message: string }).message)
         : null
-    throw new Error(nested || json?.message || `Paystack API error (${res.status})`)
+    // HTTP 200 with status:false is still a definite answer from Paystack.
+    throw new PaystackError(nested || json?.message || `Paystack API error (${res.status})`, res.ok ? 400 : res.status)
   }
 
   return json.data as T
@@ -237,10 +268,11 @@ export async function initializePaystackTransaction(
 export async function verifyPaystackTransaction(
   cfg: PaystackConfig,
   reference: string,
-): Promise<{ status: string; amount: number; reference: string; raw: unknown }> {
+): Promise<{ status: string; amount: number; currency?: string | null; reference: string; raw: unknown }> {
   const data = await paystackRequest<{
     status?: string
     amount?: number
+    currency?: string
     reference?: string
   }>(cfg, `/transaction/verify/${encodeURIComponent(reference)}`, {
     method: "GET",
@@ -253,6 +285,7 @@ export async function verifyPaystackTransaction(
   return {
     status: String(data.status ?? ""),
     amount: data.amount,
+    currency: typeof data.currency === "string" ? data.currency : null,
     reference: data.reference,
     raw: data,
   }
@@ -296,4 +329,57 @@ export async function createPaystackTransfer(
     reference: data.reference,
     status: String(data.status ?? ""),
   }
+}
+
+export type PaystackTransferStatus = "pending" | "processing" | "success" | "failed" | "reversed" | "otp" | "abandoned" | "blocked" | "rejected" | "received" | string
+
+/** GET /transfer/verify/:reference — the source of truth when a webhook is late or a call timed out. */
+export async function verifyPaystackTransfer(
+  cfg: PaystackConfig,
+  reference: string,
+): Promise<{ status: PaystackTransferStatus; amount: number | null; transferCode: string | null; reason: string | null }> {
+  const data = await paystackRequest<{
+    status?: string
+    amount?: number
+    transfer_code?: string
+    gateway_response?: string | null
+    failures?: unknown
+  }>(cfg, `/transfer/verify/${encodeURIComponent(reference)}`, { method: "GET" })
+  return {
+    status: String(data?.status ?? ""),
+    amount: typeof data?.amount === "number" ? data.amount : null,
+    transferCode: data?.transfer_code ?? null,
+    reason: typeof data?.gateway_response === "string" ? data.gateway_response : null,
+  }
+}
+
+/**
+ * Paystack transfer references: 16–50 chars of a–z, 0–9, "_" and "-".
+ * One per payout, reused on every retry so Paystack can dedupe.
+ */
+export function newTransferReference(prefix = "payout"): string {
+  return `${prefix}_${crypto.randomUUID()}`
+}
+
+/**
+ * POST /refund — full refund unless `amountMinor` is given. Used when a
+ * buyer was charged but we can't fulfil (e.g. paid after checkout closed).
+ */
+export async function refundPaystackTransaction(
+  cfg: PaystackConfig,
+  input: { reference: string; amountMinor?: bigint },
+): Promise<{ status: string; refundId: string | null }> {
+  const data = await paystackRequest<{ status?: string; id?: number | string }>(cfg, "/refund", {
+    method: "POST",
+    body: { transaction: input.reference, ...(input.amountMinor != null ? { amount: Number(input.amountMinor) } : {}) },
+  })
+  return { status: String(data?.status ?? ""), refundId: data?.id != null ? String(data.id) : null }
+}
+
+/** GET /balance — available balance per currency, minor units. */
+export async function fetchPaystackBalance(cfg: PaystackConfig): Promise<{ currency: string; balanceMinor: number }[]> {
+  const data = await paystackRequest<{ currency?: string; balance?: number }[]>(cfg, "/balance", { method: "GET" })
+  return (Array.isArray(data) ? data : [])
+    .filter((b) => typeof b.currency === "string" && typeof b.balance === "number")
+    .map((b) => ({ currency: String(b.currency).toUpperCase(), balanceMinor: Number(b.balance) }))
 }

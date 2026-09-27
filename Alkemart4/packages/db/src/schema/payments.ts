@@ -39,6 +39,10 @@ export const paymentIntents = pgTable("payment_intents", {
     country_code: string
     postal_code?: string
   } | null>(),
+  /** Per seller: delivery or pickup, zone, and the fee quoted (0042). */
+  fulfillment: jsonb("fulfillment").$type<Record<string, { method: "delivery" | "pickup"; zone: "town" | "region" | "country" | null; feePesewas: string }>>(),
+  /** Per offer: accepted deal price used at checkout (0046). */
+  deals: jsonb("deals").$type<Record<string, { dealId: string; unitPricePesewas: string; qty: number }>>(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 })

@@ -83,6 +83,50 @@ export function payoutEntry(input: {
   }
 }
 
+/** A payout the network returned: money came back, so the payout is undone. */
+export function payoutReversalEntry(input: {
+  payoutId: string
+  sellerId: string
+  netMinor: bigint
+  currency: string
+  marketCode?: string
+}): LedgerEntryInput {
+  return {
+    idempotencyKey: `payout_reversal:${input.payoutId}`,
+    marketCode: input.marketCode ?? DEFAULT_MARKET_CODE,
+    sellerId: input.sellerId,
+    orderId: null,
+    intentId: null,
+    kind: "adjustment",
+    amountMinor: -input.netMinor,
+    currency: input.currency,
+  }
+}
+
+/**
+ * Money going back to a buyer on a return (0044): the refund itself, and the
+ * platform giving back its commission on the refunded amount. Keyed by case,
+ * so a retried close never books it twice.
+ */
+export function refundEntries(input: {
+  caseId: string
+  orderId: string
+  intentId: string | null
+  sellerId: string
+  refundMinor: bigint
+  platformMinor: bigint
+  currency: string
+  marketCode?: string
+}): LedgerEntryInput[] {
+  const marketCode = input.marketCode ?? DEFAULT_MARKET_CODE
+  const base = { marketCode, sellerId: input.sellerId, orderId: input.orderId, intentId: input.intentId, currency: input.currency }
+  const out: LedgerEntryInput[] = [{ ...base, idempotencyKey: `refund:${input.caseId}`, kind: "refund", amountMinor: -input.refundMinor }]
+  if (input.platformMinor > 0n) {
+    out.push({ ...base, idempotencyKey: `refund_fee:${input.caseId}`, kind: "platform_fee", amountMinor: -input.platformMinor })
+  }
+  return out
+}
+
 export interface LedgerStore {
   /** Idempotent append: returns inserted=false when the key already exists. */
   append(entry: LedgerEntryInput): Promise<{ inserted: boolean }>

@@ -299,7 +299,8 @@ describe("Phase 3A offer terms + 3D verification loop", () => {
     )
     expect(issued.status).toBe(201)
     const verification = ((await issued.json()) as { verification: { id: string; status: string; meaning: string } }).verification
-    expect(verification.status).toBe("pending")
+    // An admin issuing a badge with evidence is the verification.
+    expect(verification.status).toBe("verified")
     expect(verification.meaning).toMatch(/Identity verified/)
     const store = await app.request("/store/sellers/phase3-shop/verifications", {}, testEnv())
     expect(store.status).toBe(200)
@@ -312,5 +313,10 @@ describe("Phase 3A offer terms + 3D verification loop", () => {
     )
     expect(revoked.status).toBe(200)
     expect(((await revoked.json()) as { verification: { status: string } }).verification.status).toBe("revoked")
+    // Revoked badges leave the public shop page; evidence is never public.
+    const after = await app.request("/store/sellers/phase3-shop/verifications", {}, testEnv())
+    const body = await after.text()
+    expect((JSON.parse(body) as { verifications: { id: string }[] }).verifications.map((v) => v.id)).not.toContain(verification.id)
+    expect(body).not.toContain("doc-123")
   })
 })

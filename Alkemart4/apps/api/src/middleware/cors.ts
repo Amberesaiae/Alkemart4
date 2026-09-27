@@ -7,11 +7,15 @@ const DEFAULT_ORIGINS = [
   "http://localhost:5177",
   "http://localhost:3001",
   "http://localhost:3002",
+  "http://localhost:3003",
+  "http://localhost:3004",
   "http://127.0.0.1:5175",
   "http://127.0.0.1:5176",
   "http://127.0.0.1:5177",
   "http://127.0.0.1:3001",
   "http://127.0.0.1:3002",
+  "http://127.0.0.1:3003",
+  "http://127.0.0.1:3004",
   // Production Vercel frontends (canonical)
   "https://alkemart-storefront.vercel.app",
   "https://alkemart.vercel.app",
@@ -63,6 +67,8 @@ export const corsMiddleware: MiddlewareHandler<AppEnv> = async (c, next) => {
   c.header("Vary", "Origin")
   if (ok && origin) {
     c.header("Access-Control-Allow-Origin", origin)
+    // Downloads (CSV statements) name themselves via Content-Disposition.
+    c.header("Access-Control-Expose-Headers", "Content-Disposition")
     c.header("Access-Control-Allow-Credentials", "true")
   }
   return c.res

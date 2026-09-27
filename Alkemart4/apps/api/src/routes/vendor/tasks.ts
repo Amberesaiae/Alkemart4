@@ -17,6 +17,7 @@ export type VendorTask = {
     | "price"
     | "sla"
     | "payout"
+    | "returns"
   title: string
   detail: string
   href: string
@@ -53,6 +54,18 @@ export const vendorTasks = new Hono<AppEnv>().use("*", requireSeller).get("/", a
   const on = (topic: string) => !off.has(topic)
 
   const tasks: VendorTask[] = []
+  // Returns waiting on this seller come first: a silent seller hands the
+  // decision to alkemart once the reply time passes.
+  const waiting = (await c.get("checkoutRepo").listReturnCases({ sellerId, statuses: ["requested"] }).catch(() => [])).length
+  if (waiting > 0) {
+    tasks.push({
+      kind: "returns",
+      title: `${waiting} return${waiting === 1 ? "" : "s"} waiting for your reply`,
+      detail: "Answer before the deadline, or alkemart decides for you.",
+      href: "/orders?tab=returns",
+      count: waiting,
+    })
+  }
   if (seller.status === "pending_approval") {
     tasks.push({
       kind: "approval",
@@ -192,12 +205,12 @@ export const vendorTasks = new Hono<AppEnv>().use("*", requireSeller).get("/", a
       .get("checkoutRepo")
       .listPayoutsForSeller(sellerId)
       .catch((): (PayoutRow & { createdAt: Date | null })[] => [])
-    const failed = payouts.filter((p) => p.status === "failed").length
+    const failed = payouts.filter((p) => p.status === "failed" || p.status === "reversed").length
     if (failed > 0) {
       tasks.push({
         kind: "payout",
-        title: `${failed} payout${failed === 1 ? "" : "s"} failed`,
-        detail: "Check the Money tab and contact support with the reference.",
+        title: `${failed} payout${failed === 1 ? "" : "s"} didn't go through`,
+        detail: "Those orders are back in your next payout. See the reason in Money — check your MoMo number.",
         href: "/money",
         count: failed,
       })

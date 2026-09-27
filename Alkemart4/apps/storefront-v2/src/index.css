@@ -1,0 +1,201 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "@fontsource-variable/figtree";
+@source "../../../packages/maps/src/**/*.{ts,tsx}";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --font-heading: var(--font-sans);
+  --font-sans: "Figtree Variable", ui-sans-serif, system-ui, sans-serif;
+
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+
+  /* Commerce tokens */
+  --color-brand: var(--brand);
+  --color-brand-foreground: var(--brand-foreground);
+  --color-brand-strong: var(--brand-strong);
+  --color-surface: var(--surface);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-deal: var(--deal);
+  --color-star: var(--star);
+  --color-ink: var(--ink);
+
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+
+  --shadow-lift: 0 1px 2px rgb(17 17 20 / 0.04), 0 8px 24px -12px rgb(17 17 20 / 0.18);
+}
+
+/*
+ * Palette rules
+ * - Ink is the default action colour; brand gold (#FEBF31) is reserved for
+ *   the decisive commerce step (Buy now, Checkout, Place order) and badges.
+ * - Gold is never a translucent wash over white (it reads as cream).
+ * - Department colours are wayfinding only — category tiles, never chrome.
+ */
+:root {
+  --background: #ffffff;
+  --foreground: #111114;
+  --card: #ffffff;
+  --card-foreground: #111114;
+  --popover: #ffffff;
+  --popover-foreground: #111114;
+  --primary: #111114;
+  --primary-foreground: #ffffff;
+  --secondary: #f3f3f4;
+  --secondary-foreground: #111114;
+  --muted: #f3f3f4;
+  --muted-foreground: #62626b;
+  --accent: #f3f3f4;
+  --accent-foreground: #111114;
+  --destructive: #d92d20;
+  --border: #e7e7ea;
+  --input: #e2e2e6;
+  /* Focus ring is ink with a white halo (gold failed 3:1 on white/gold). */
+  --ring: #111114;
+  --ring-halo: #ffffff;
+  --radius: 0.75rem;
+
+  --brand: #febf31;
+  --brand-foreground: #111114;
+  --brand-strong: #e5a50f;
+  /* Page ground behind white cards — neutral, zero warmth. */
+  --surface: #f6f6f7;
+  --success: #067647;
+  --success-soft: #e7f6ec;
+  --warning: #b54708;
+  --deal: #e0245e;
+  --star: #f5a524;
+  /* Home header on desktop: a soft ink, not pure black. */
+  --ink: #1d1d24;
+
+  /* Department wayfinding colours (tile grounds). Each passes 4.5:1 with
+     its text tone in lib/departments.ts — re-check contrast if you change one. */
+  --dept-electronics: #121216;
+  --dept-fashion: #7c4dff;
+  --dept-home: #f7b04a;
+  --dept-beauty: #ff8a80;
+  --dept-gaming: #2f5bff;
+  --dept-appliances: #5ad6a8;
+  --dept-baby: #ffd95a;
+  --dept-food: #1b7f45;
+  --dept-health: #7cb8ff;
+  --dept-pets: #ffb679;
+  --dept-sports: #ff7a45;
+  --dept-auto: #3f4652;
+  --dept-books: #3f6fe0;
+  --dept-default: #e9e9ec;
+}
+
+.dark {
+  --background: #0d0d10;
+  --foreground: #f5f5f6;
+  --card: #16161a;
+  --card-foreground: #f5f5f6;
+  --popover: #16161a;
+  --popover-foreground: #f5f5f6;
+  --primary: #f5f5f6;
+  --primary-foreground: #111114;
+  --secondary: #222228;
+  --secondary-foreground: #f5f5f6;
+  --muted: #222228;
+  --muted-foreground: #a1a1aa;
+  --accent: #222228;
+  --accent-foreground: #f5f5f6;
+  --destructive: #f97066;
+  --border: #2a2a31;
+  --input: #2f2f37;
+  --ring: #febf31;
+  --surface: #0d0d10;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    @apply font-sans;
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "ss01", "cv11";
+  }
+  h1,
+  h2,
+  h3 {
+    @apply tracking-tight text-balance;
+  }
+  /* Ink ring + white halo: visible on white, gold and ink grounds alike. */
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+    box-shadow: 0 0 0 2px var(--ring-halo);
+  }
+}
+
+@utility container-page {
+  @apply mx-auto w-full max-w-[1320px] px-4 sm:px-6 lg:px-8;
+}
+
+/* Horizontal shelves: native scroll-snap, no JS carousel, no scrollbar. */
+@utility rail {
+  @apply flex snap-x snap-mandatory gap-3 overflow-x-auto overscroll-x-contain scroll-smooth sm:gap-4;
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+  & > * {
+    @apply snap-start;
+  }
+}
+
+/* Dark grounds (ink bands, the desktop home header) flip the focus ring. */
+@utility on-ink {
+  --ring: #ffffff;
+  --ring-halo: var(--ink);
+}
+
+@utility tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+@utility pb-safe {
+  padding-bottom: max(env(safe-area-inset-bottom), 0px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

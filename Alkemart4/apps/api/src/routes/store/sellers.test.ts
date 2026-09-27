@@ -163,3 +163,19 @@ describe("GET /store/sellers (stores index cards)", () => {
     expect(body.items).toEqual(body.sellers)
   })
 })
+
+describe("GET /store/sellers/:handle/verifications", () => {
+  it("shows active badges and their meaning, never evidence or revoked badges", async () => {
+    const repo = new InMemoryCatalogRepository(withSellerAOnlyProduct(demoCatalog()))
+    await repo.issueSellerVerification("seller-a", "identity", { evidence: "Ghana Card GHA-123456789-0", issuedBy: "admin-1" })
+    const revoked = await repo.issueSellerVerification("seller-a", "business", { evidence: "RGD cert", issuedBy: "admin-1" })
+    await repo.revokeSellerVerification(revoked.id, { reason: "expired certificate", revokedBy: "admin-1" })
+    const app = createApp({ authRepo: new InMemoryAuthRepository(), repo })
+    const res = await app.request("/store/sellers/seller-a/verifications", {}, testEnv())
+    const body = (await res.json()) as { verifications: Record<string, unknown>[] }
+    expect(body.verifications).toHaveLength(1)
+    expect(body.verifications[0]).toMatchObject({ kind: "identity", status: "verified" })
+    expect(body.verifications[0]).not.toHaveProperty("evidence")
+    expect(JSON.stringify(body)).not.toContain("GHA-123456789")
+  })
+})

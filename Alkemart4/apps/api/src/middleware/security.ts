@@ -33,22 +33,30 @@ export const securityMiddleware: MiddlewareHandler<AppEnv> = async (c, next) => 
     (method !== "GET" &&
       method !== "OPTIONS" &&
       (path.startsWith("/store/auth") ||
+        path.startsWith("/store/account") ||
+        path.startsWith("/store/newsletter") ||
         path.startsWith("/vendor/auth") ||
         path.startsWith("/admin/auth") ||
         path === "/store/checkout" ||
-        path === "/store/orders/lookup" ||
+        path.startsWith("/store/orders/") ||
         path.startsWith("/store/cart") ||
         path.startsWith("/store/reviews") ||
         path.startsWith("/store/subscriptions") ||
+        path.startsWith("/store/messages") ||
+        path.startsWith("/store/compare") ||
+        path.startsWith("/store/deals") ||
+        path.startsWith("/store/questions") ||
         path.startsWith("/hooks/"))) ||
     // Experiment exposure writes happen on GET by design; cap them too.
-    path.startsWith("/store/experiments")
+    path.startsWith("/store/experiments") ||
+    // Street search is forwarded to a geocoder with its own usage limits.
+    path.startsWith("/store/places/")
 
   if (sensitive) {
     const key = `${clientKey(c)}:${path}`
     const now = Date.now()
     const windowMs = 60_000
-    const max = path.startsWith("/hooks/") ? 120 : 30
+    const max = path.startsWith("/hooks/") ? 120 : path.startsWith("/store/places/") ? 40 : 30
     // Sweep expired keys before inserting. Without this the map retains one
     // entry per (IP, path) seen for the isolate's whole life.
     if (hits.size > 1000) {

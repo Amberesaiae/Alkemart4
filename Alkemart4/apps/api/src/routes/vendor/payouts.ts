@@ -1,9 +1,11 @@
-import { computePayoutBatch } from "@alkemart/domain"
+import { computePayoutBatch, payableSubtotal, payoutStatusText } from "@alkemart/domain"
 import { marketCurrency } from "@alkemart/shared/markets"
 import { Hono } from "hono"
 import { HTTPException } from "hono/http-exception"
+import type { PayoutEventRow, ReturnCaseRow } from "../../checkout-repository"
 import type { AppEnv } from "../../context"
 import { requireSeller } from "../../middleware/auth"
+import { autoPaySeller, payoutDeps } from "../../lib/payouts"
 
 function sellerIdOrThrow(c: { get(k: "auth"): AppEnv["Variables"]["auth"] }): string {
   const sellerId = c.get("auth").sellerId
@@ -24,12 +26,18 @@ export const vendorPayouts = new Hono<AppEnv>()
     const sellerId = sellerIdOrThrow(c)
     const seller = await c.get("authRepo").findSellerById(sellerId)
     if (!seller) throw new HTTPException(404, { message: "seller not found" })
+    // Backstop for automatic payouts: anything released (e.g. a report window
+    // that just ended) is sent now, so the page shows it on its way.
+    const deps = payoutDeps(c)
+    if (deps) await autoPaySeller(deps, sellerId).catch(() => null)
     const checkout = c.get("checkoutRepo")
-    const [orders, paidLines, holds] = await Promise.all([
-      checkout.listOrdersForSeller(sellerId),
-      checkout.listPaidLinesForSeller(sellerId).catch(() => []),
+    const [orders, paidLines, holds, payoutRows] = await Promise.all([
+      checkout.listSellerOrderSummaries(sellerId),
+      checkout.listPaidLinesForSeller(sellerId).catch((): Awaited<ReturnType<typeof checkout.listPaidLinesForSeller>> => []),
       checkout.listPayoutHolds(sellerId, true).catch(() => []),
+      checkout.listPayoutsForSeller(sellerId).catch((): Awaited<ReturnType<typeof checkout.listPayoutsForSeller>> => []),
     ])
+    const payoutEvents = await checkout.listPayoutEvents(payoutRows.map((p) => p.id)).catch((): PayoutEventRow[] => [])
     const delivered = orders.filter((o) => o.status === "delivered")
     const paidByOrder = new Map(paidLines.map((l) => [l.orderId, l]))
     const holdByOrder = new Map<string, { reason: string; amountPesewas: string | null }>()
@@ -41,11 +49,15 @@ export const vendorPayouts = new Hono<AppEnv>()
       })
       else sellerLevelHolds.push({ reason: h.reason })
     }
-    const unpaid = delivered.filter((o) => !paidByOrder.has(o.id))
+    // COD settlement rule: the seller's rider holds pay-on-delivery cash, so
+    // those orders are never payable — the seller owes the commission.
+    const isCash = (o: { paymentMethod: string | null }) => o.paymentMethod === "cod"
+    const commissionOn = (subtotal: bigint) => (subtotal * BigInt(seller.commissionBps)) / 10_000n
+    const unpaid = delivered.filter((o) => !paidByOrder.has(o.id) && !isCash(o))
     const batch = computePayoutBatch(
       sellerId,
       seller.commissionBps,
-      unpaid.map((o) => ({ orderId: o.id, sellerId: o.sellerId, subtotalPesewas: o.subtotalPesewas })),
+      unpaid.map((o) => ({ orderId: o.id, sellerId: o.sellerId, subtotalPesewas: payableSubtotal(o) })),
     )
     const computedByOrder = new Map(batch.lines.map((l) => [l.orderId, l]))
     // Order dates ride the buyer-facing group (orders carry no clock).
@@ -62,7 +74,17 @@ export const vendorPayouts = new Hono<AppEnv>()
       const computed = computedByOrder.get(o.id)
       const hold = holdByOrder.get(o.id)
       const sellerHold = sellerLevelHolds[0] ?? null
-      const state = paid ? "paid" : hold || sellerHold ? "held" : "pending"
+      const cash = isCash(o) && !paid
+      // In a payout Paystack hasn't confirmed yet → "sending", not "paid".
+      const state = paid
+        ? paid.payoutStatus === "paid"
+          ? "paid"
+          : "sending"
+        : cash
+          ? "cash"
+          : hold || sellerHold
+            ? "held"
+            : "pending"
       return {
         orderId: o.id,
         orderGroupId: o.orderGroupId,
@@ -70,8 +92,13 @@ export const vendorPayouts = new Hono<AppEnv>()
         status: o.status,
         state,
         subtotalPesewas: o.subtotalPesewas.toString(),
-        commissionPesewas: (paid?.commissionPesewas ?? computed?.commissionPesewas ?? 0n).toString(),
-        netPesewas: (paid?.netPesewas ?? computed?.netPesewas ?? o.subtotalPesewas).toString(),
+        paymentMethod: o.paymentMethod,
+        commissionPesewas: (paid?.commissionPesewas ?? computed?.commissionPesewas ?? (cash ? commissionOn(payableSubtotal(o)) : 0n)).toString(),
+        // Refunded to the buyer on a return (0044): not paid out, no commission.
+        refundedPesewas: (o.refundedPesewas ?? 0n).toString(),
+        // What alkemart pays the seller for this order: nothing for cash orders.
+        netPesewas: (cash ? 0n : (paid?.netPesewas ?? computed?.netPesewas ?? o.subtotalPesewas)).toString(),
+        cashCollectedPesewas: cash ? (o.subtotalPesewas + o.deliveryFeePesewas).toString() : null,
         holdReason: hold?.reason ?? sellerHold?.reason ?? null,
         payoutId: paid?.payoutId ?? null,
         payoutStatus: paid?.payoutStatus ?? null,
@@ -82,6 +109,8 @@ export const vendorPayouts = new Hono<AppEnv>()
     const pending = lines.filter((l) => l.state === "pending")
     const held = lines.filter((l) => l.state === "held")
     const paidSt = lines.filter((l) => l.state === "paid")
+    const sendingSt = lines.filter((l) => l.state === "sending")
+    const cashSt = lines.filter((l) => l.state === "cash")
     return c.json({
       sellerId,
       commissionBps: seller.commissionBps,
@@ -92,6 +121,15 @@ export const vendorPayouts = new Hono<AppEnv>()
         pendingNetPesewas: sum(pending.map((l) => BigInt(l.netPesewas))).toString(),
         heldNetPesewas: sum(held.map((l) => BigInt(l.netPesewas))).toString(),
         paidNetPesewas: sum(paidSt.map((l) => BigInt(l.netPesewas))).toString(),
+        sendingNetPesewas: sum(sendingSt.map((l) => BigInt(l.netPesewas))).toString(),
+        cashCollectedPesewas: sum(cashSt.map((l) => BigInt(l.cashCollectedPesewas ?? "0"))).toString(),
+        commissionOwedPesewas: sum(cashSt.map((l) => BigInt(l.commissionPesewas))).toString(),
+        // Refunds on orders you were already paid for, taken from your next payout.
+        refundsToRecoverPesewas: sum(
+          (await checkout.listReturnCases({ sellerId }).catch((): ReturnCaseRow[] => []))
+            .filter((r) => r.sellerRecoveryPesewas > 0n && !r.recoveredPayoutId && r.refundStatus !== "failed")
+            .map((r) => r.sellerRecoveryPesewas),
+        ).toString(),
         lineCount: lines.length,
       },
       holds: holds.map((h) => ({
@@ -102,5 +140,33 @@ export const vendorPayouts = new Hono<AppEnv>()
         createdAt: h.createdAt.toISOString(),
       })),
       lines,
+      // Where the money goes (masked) — sellers should always know.
+      payoutAccount: seller.momoPhone
+        ? { type: "momo", provider: seller.momoProvider, phoneLast4: seller.momoPhone.slice(-4) }
+        : null,
+      // Every payout with its steps, in plain words. Admin identities stay private.
+      payouts: payoutRows.map((p) => ({
+        id: p.id,
+        status: p.status,
+        statusText: payoutStatusText(p.status),
+        grossPesewas: p.grossPesewas.toString(),
+        commissionPesewas: p.commissionPesewas.toString(),
+        netPesewas: p.netPesewas.toString(),
+        // Refunds on already-paid orders taken back from this payout.
+        recoveredPesewas: (p.recoveredPesewas ?? 0n).toString(),
+        reference: p.paystackReference,
+        failureReason: p.failureReason ?? null,
+        createdAt: p.createdAt ? p.createdAt.toISOString() : null,
+        paidAt: p.paidAt ? p.paidAt.toISOString() : null,
+        orderCount: paidLines.filter((l) => l.payoutId === p.id).length,
+        steps: payoutEvents
+          .filter((e) => e.payoutId === p.id && e.status !== "checked" && e.status !== "retried")
+          .map((e) => ({
+            status: e.status,
+            by: e.actor === "paystack" ? "Paystack" : "alkemart",
+            at: e.createdAt.toISOString(),
+            detail: e.status === "failed" || e.status === "reversed" ? e.detail : null,
+          })),
+      })),
     })
   })

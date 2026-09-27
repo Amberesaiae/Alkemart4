@@ -64,13 +64,14 @@ export const GHANA_MAJOR_CITIES = [
  */
 export function resolveRegionId(input: string): string | null {
   const v = input.trim()
-  return getRegionById(v)?.id ?? getRegionByName(v)?.id ?? null
+  // Legacy slugs ("greater_accra") read as names ("greater accra").
+  return getRegionById(v)?.id ?? getRegionByName(v)?.id ?? getRegionByName(v.replace(/[_-]+/g, " "))?.id ?? null
 }
 
 /** Display name for a stored region value (ID or legacy name). */
 export function displayRegionName(stored: string | null | undefined): string | null {
   if (!stored) return null
-  return getRegionById(stored)?.name ?? getRegionByName(stored)?.name ?? stored
+  return getRegionById(stored)?.name ?? getRegionByName(stored)?.name ?? getRegionByName(stored.replace(/[_-]+/g, " "))?.name ?? stored
 }
 
 /**

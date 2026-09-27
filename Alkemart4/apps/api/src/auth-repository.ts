@@ -14,7 +14,14 @@ export type AuthUser = {
   passwordHash: string
   role: UserRole
   createdAt: Date
+  /** Profile (0037) — optional so legacy rows and fixtures still type. */
+  firstName?: string | null
+  lastName?: string | null
+  phone?: string | null
+  passwordChangedAt?: Date | null
 }
+
+export type UserProfilePatch = { firstName?: string | null; lastName?: string | null; phone?: string | null }
 
 export type SellerAvailability = "open" | "paused"
 
@@ -74,6 +81,9 @@ export interface AuthRepository {
   }): Promise<AuthUser>
   findUserByEmail(email: string): Promise<AuthUser | null>
   findUserById(id: string): Promise<AuthUser | null>
+  updateUserProfile(id: string, patch: UserProfilePatch): Promise<AuthUser>
+  /** Sets the hash and stamps password_changed_at (older sessions go stale). */
+  updateUserPassword(id: string, passwordHash: string): Promise<AuthUser>
   findSellerById(id: string): Promise<AuthSeller | null>
   findSellerByHandle(handle: string): Promise<AuthSeller | null>
   listSellers(): Promise<AuthSeller[]>
@@ -121,6 +131,10 @@ function toUser(row: {
   passwordHash: string
   role: UserRole
   createdAt: Date
+  firstName?: string | null
+  lastName?: string | null
+  phone?: string | null
+  passwordChangedAt?: Date | null
 }): AuthUser {
   return {
     id: row.id,
@@ -128,6 +142,10 @@ function toUser(row: {
     passwordHash: row.passwordHash,
     role: row.role,
     createdAt: row.createdAt,
+    firstName: row.firstName ?? null,
+    lastName: row.lastName ?? null,
+    phone: row.phone ?? null,
+    passwordChangedAt: row.passwordChangedAt ?? null,
   }
 }
 
@@ -249,6 +267,21 @@ export class InMemoryAuthRepository implements AuthRepository {
     return this.usersById.get(id) ?? null
   }
 
+  async updateUserProfile(id: string, patch: UserProfilePatch) {
+    const u = this.usersById.get(id)
+    if (!u) throw new Error("user not found")
+    Object.assign(u, patch)
+    return { ...u }
+  }
+
+  async updateUserPassword(id: string, passwordHash: string) {
+    const u = this.usersById.get(id)
+    if (!u) throw new Error("user not found")
+    u.passwordHash = passwordHash
+    u.passwordChangedAt = new Date()
+    return { ...u }
+  }
+
   async findSellerById(id: string) {
     return this.sellersById.get(id) ?? null
   }
@@ -351,7 +384,9 @@ export class InMemoryAuthRepository implements AuthRepository {
   ) {
     const seller = this.sellersById.get(id)
     if (!seller) throw new Error("seller not found")
-    return this.saveSeller({ ...seller, ...patch })
+    // Like Postgres: an undefined field means "leave it", never "erase it".
+    const defined = Object.fromEntries(Object.entries(patch).filter(([, v]) => v !== undefined))
+    return this.saveSeller({ ...seller, ...defined })
   }
 
   async updateSellerPayment(
@@ -436,6 +471,22 @@ export class PostgresAuthRepository implements AuthRepository {
   async findUserById(id: string) {
     const [row] = await this.db.select().from(users).where(eq(users.id, id)).limit(1)
     return row ? toUser(row) : null
+  }
+
+  async updateUserProfile(id: string, patch: UserProfilePatch) {
+    const [row] = await this.db.update(users).set(patch).where(eq(users.id, id)).returning()
+    if (!row) throw new Error("user not found")
+    return toUser(row)
+  }
+
+  async updateUserPassword(id: string, passwordHash: string) {
+    const [row] = await this.db
+      .update(users)
+      .set({ passwordHash, passwordChangedAt: new Date() })
+      .where(eq(users.id, id))
+      .returning()
+    if (!row) throw new Error("user not found")
+    return toUser(row)
   }
 
   async findSellerById(id: string) {

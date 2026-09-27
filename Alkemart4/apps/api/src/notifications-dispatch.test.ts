@@ -35,7 +35,7 @@ async function shipSetup() {
   await authRepo.updateSellerStatus("seller-a", "open")
   const user = (await authRepo.findUserByEmail("a@alkemart.test"))!
   const token = await signSessionJwt({ userId: user.id, role: "seller_member", sellerId: "seller-a" }, JWT)
-  const app = createApp({ repo: catalog, checkoutRepo, authRepo, jwtSecret: JWT })
+  const app = smsOnlyApp(createApp({ repo: catalog, checkoutRepo, authRepo, jwtSecret: JWT }))
 
   const cart = await checkoutRepo.createCart()
   await checkoutRepo.addCartItem(cart.id, "offer-a", 1)
@@ -55,6 +55,15 @@ async function shipSetup() {
   })
   const { orders } = await checkoutRepo.confirmPaidOrder(intentId)
   return { app, checkoutRepo, token, orderId: orders[0]!.id }
+}
+
+/**
+ * These tests are about the SMS outbox. Production mode with no public URLs
+ * configured means no order emails are enqueued, so only SMS rows exist.
+ */
+const SMS_ONLY_ENV = { ENVIRONMENT: "production" }
+function smsOnlyApp(app: ReturnType<typeof createApp>) {
+  return { request: (path: string, init?: RequestInit) => app.request(path, init, SMS_ONLY_ENV) }
 }
 
 describe("fulfillment SMS outbox", () => {
@@ -115,9 +124,11 @@ describe("fulfillment SMS outbox", () => {
       method: "POST",
       headers: { Authorization: `Bearer ${token}` },
     })
+    const code = (await checkoutRepo.getOrder(orderId))?.handoverCode ?? ""
     const deliver = await app.request(`/vendor/orders/${orderId}/deliver`, {
       method: "POST",
-      headers: { Authorization: `Bearer ${token}` },
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ code }),
     })
     expect(deliver.status).toBe(200)
     const keys = (await checkoutRepo.claimPendingNotifications(10)).map((n) => n.key).sort()
@@ -139,7 +150,7 @@ describe("fulfillment SMS outbox", () => {
     await authRepo.updateSellerStatus("seller-a", "open")
     const user = (await authRepo.findUserByEmail("b@alkemart.test"))!
     const token = await signSessionJwt({ userId: user.id, role: "seller_member", sellerId: "seller-a" }, JWT)
-    const app = createApp({ repo: catalog, checkoutRepo, authRepo, jwtSecret: JWT })
+    const app = smsOnlyApp(createApp({ repo: catalog, checkoutRepo, authRepo, jwtSecret: JWT }))
 
     const cart = await checkoutRepo.createCart()
     await checkoutRepo.addCartItem(cart.id, "offer-a", 1)

@@ -3,7 +3,7 @@ import { HTTPException } from "hono/http-exception"
 import { z } from "zod"
 import type { AppEnv } from "../../context"
 import { readJsonBody } from "../../lib/session"
-import { requireAuth } from "../../middleware/auth"
+import { requireFreshSession } from "../../middleware/auth"
 
 const PesewasString = z.string().regex(/^\d+$/)
 
@@ -32,7 +32,7 @@ async function buyerEmail(c: {
  * the subscription, and re-alerting needs a fresh subscribe.
  */
 export const storeSubscriptions = new Hono<AppEnv>()
-  .use("*", requireAuth)
+  .use("*", requireFreshSession)
   .get("/", async (c) => {
     const email = await buyerEmail(c)
     const items = await c.get("checkoutRepo").listStockSubscriptions({ buyerEmail: email })

@@ -27,6 +27,7 @@ import { InMemoryHomepageContentStore, PostgresHomepageContentStore, type Homepa
 import { InMemoryShopPolicyStore, PostgresShopPolicyStore, type ShopPolicyStore } from "./shop-policies"
 import { InMemoryTrafficStore, PostgresTrafficStore, type TrafficStore } from "./traffic"
 import { PostgresAuthRepository, type AuthRepository } from "./auth-repository"
+import { autoPaySeller } from "./lib/payouts"
 import {
   InMemoryCatalogRepository,
   PostgresCatalogRepository,
@@ -42,6 +43,8 @@ import type {
   ChargePaystackMobileMoney,
   CreatePaystackTransfer,
   CreatePaystackTransferRecipient,
+  RefundPaystackTransaction,
+  VerifyPaystackTransfer,
   InitializePaystackTransaction,
   VerifyPaystackTransaction,
   WebhookDedup,
@@ -65,6 +68,18 @@ import { adminTaxonomy } from "./routes/admin/taxonomy"
 import { adminAuth } from "./routes/admin/auth"
 import { adminMigrate } from "./routes/admin/migrate"
 import { adminOrders } from "./routes/admin/orders"
+import { adminSettings } from "./routes/admin/settings"
+import { adminReturns } from "./routes/admin/returns"
+import { vendorReturns } from "./routes/vendor/returns"
+import { storeProtection } from "./routes/store/protection"
+import { storeMessages } from "./routes/store/messages"
+import { storeCompare } from "./routes/store/compare"
+import { storeQuestions } from "./routes/store/questions"
+import { vendorMessages } from "./routes/vendor/messages"
+import { adminMessages } from "./routes/admin/messages"
+import { runReturnDeadlines } from "./lib/returns"
+import { adminBusiness } from "./routes/admin/business"
+import { vendorBusiness } from "./routes/vendor/business"
 import { adminPayouts, adminPayoutHolds } from "./routes/admin/payouts"
 import { adminProducts } from "./routes/admin/products"
 import { adminSellers } from "./routes/admin/sellers"
@@ -90,10 +105,12 @@ import { storeExperiments } from "./routes/store/experiments"
 import { storeFeed } from "./routes/store/feed"
 import { storeGuides } from "./routes/store/guides"
 import { storePreferences } from "./routes/store/preferences"
+import { storeAccount } from "./routes/store/account"
 import { storeSitemap } from "./routes/store/sitemap"
 import { storeSubscriptions } from "./routes/store/subscriptions"
 import { storeHomepage } from "./routes/store/homepage"
 import { storeGeo } from "./routes/store/geo"
+import { storePlaces } from "./routes/store/places"
 import { paystackHooks } from "./routes/hooks/paystack"
 import { vendorAuth } from "./routes/vendor/auth"
 import { vendorOnboarding } from "./routes/vendor/onboarding"
@@ -120,6 +137,25 @@ import {
   type QueueLike,
 } from "./jobs"
 import { smsProviderFromEnv } from "./sms"
+import { InMemoryAccountStore, PostgresAccountStore, type AccountStore } from "./account-store"
+import { InMemoryListingReviewStore, PostgresListingReviewStore, type ListingReviewStore } from "./listing-reviews"
+import { InMemorySettingsStore, PostgresSettingsStore, type SettingsStore } from "./settings-store"
+import { InMemoryStatementStore, PostgresStatementStore, type StatementStore } from "./statement-store"
+import { InMemoryMessagesStore, PostgresMessagesStore, type MessagesStore } from "./messages-store"
+import { InMemoryCompareStore, PostgresCompareStore, type CompareStore } from "./compare-store"
+import { InMemoryDealsStore, PostgresDealsStore, type DealsStore } from "./deals-store"
+import { InMemoryVideosStore, PostgresVideosStore, type VideosStore } from "./videos-store"
+import { vendorCatalogue } from "./routes/vendor/catalogue"
+import { vendorVideos } from "./routes/vendor/videos"
+import { storeVideos } from "./routes/store/videos"
+import { adminVideos } from "./routes/admin/videos"
+// Phase 6 routes are built but not mounted until proven (see PILOT-PLAN.md).
+void [vendorCatalogue, vendorVideos, storeVideos, adminVideos]
+import { storeDeals } from "./routes/store/deals"
+import { vendorDeals } from "./routes/vendor/deals"
+import { emailProviderFromEnv } from "./email"
+import { InMemoryNewsletterStore, PostgresNewsletterStore } from "./newsletter"
+import { storeNewsletter } from "./routes/store/newsletter"
 
 export { runNotificationDispatch, runPaymentIntentExpiry }
 
@@ -138,10 +174,20 @@ export function createApp(
     importBatchStore?: ImportBatchStore
     campaignStore?: CampaignStore
     guideStore?: GuideStore
+    accountStore?: AccountStore
+    reviewStore?: ListingReviewStore
+    settingsStore?: SettingsStore
+    statementStore?: StatementStore
+    messagesStore?: MessagesStore
+    compareStore?: CompareStore
+    dealsStore?: DealsStore
+    videosStore?: VideosStore
     jwtSecret?: string
     paystackSecretKey?: string
     createPaystackTransferRecipient?: CreatePaystackTransferRecipient
     createPaystackTransfer?: CreatePaystackTransfer
+    verifyPaystackTransfer?: VerifyPaystackTransfer
+    refundPaystackTransaction?: RefundPaystackTransaction
     chargePaystackMobileMoney?: ChargePaystackMobileMoney
     initializePaystackTransaction?: InitializePaystackTransaction
     verifyPaystackTransaction?: VerifyPaystackTransaction
@@ -168,6 +214,15 @@ export function createApp(
   const inMemoryRepo = options.repo instanceof InMemoryCatalogRepository ? options.repo : undefined
   const fallbackImports = options.importBatchStore ?? (options.repo ? new InMemoryImportBatchStore() : undefined)
   const fallbackGuides = options.guideStore ?? (options.repo ? new InMemoryGuideStore() : undefined)
+  const fallbackReviews = options.reviewStore ?? (options.repo ? new InMemoryListingReviewStore() : undefined)
+  const fallbackSettings = options.settingsStore ?? (options.repo || options.checkoutRepo ? new InMemorySettingsStore() : undefined)
+  const fallbackStatements = options.statementStore ?? (options.repo || options.checkoutRepo ? new InMemoryStatementStore() : undefined)
+  const fallbackCompare = options.compareStore ?? (options.repo || options.checkoutRepo ? new InMemoryCompareStore() : undefined)
+  const fallbackMessages = options.messagesStore ?? (options.repo || options.checkoutRepo ? new InMemoryMessagesStore() : undefined)
+  const fallbackVideos = options.videosStore ?? (options.repo || options.checkoutRepo ? new InMemoryVideosStore() : undefined)
+  const fallbackDeals = options.dealsStore ?? (options.repo || options.checkoutRepo ? new InMemoryDealsStore() : undefined)
+  const fallbackAccounts = options.accountStore ?? (options.authRepo ? new InMemoryAccountStore() : undefined)
+  const fallbackNewsletter = options.authRepo ? new InMemoryNewsletterStore() : undefined
   const fallbackCampaigns =
     options.campaignStore ??
     (inMemoryRepo
@@ -235,10 +290,17 @@ export function createApp(
       "guides",
       options.guideStore ?? fallbackGuides ?? lazy(() => new PostgresGuideStore(primaryOf(c))),
     )
+    c.set("reviews", fallbackReviews ?? lazy(() => new PostgresListingReviewStore(primaryOf(c))))
     await next()
   }
 
   const bindCheckout: MiddlewareHandler<AppEnv> = async (c, next) => {
+    c.set("settings", fallbackSettings ?? lazy(() => new PostgresSettingsStore(primaryOf(c))))
+    c.set("statements", fallbackStatements ?? lazy(() => new PostgresStatementStore(primaryOf(c))))
+    c.set("messages", fallbackMessages ?? lazy(() => new PostgresMessagesStore(primaryOf(c))))
+    c.set("compare", fallbackCompare ?? lazy(() => new PostgresCompareStore(primaryOf(c))))
+    c.set("deals", fallbackDeals ?? lazy(() => new PostgresDealsStore(primaryOf(c))))
+    c.set("videos", fallbackVideos ?? lazy(() => new PostgresVideosStore(primaryOf(c))))
     if (options.checkoutRepo) {
       c.set("checkoutRepo", options.checkoutRepo)
     } else if (options.repo instanceof InMemoryCatalogRepository) {
@@ -266,7 +328,12 @@ export function createApp(
           AT_API_KEY: raw.AT_API_KEY as string | undefined,
           AT_SENDER_ID: raw.AT_SENDER_ID as string | undefined,
         })
-        c.set("jobs", inlineJobProducer(async () => ({ checkout, sms })))
+        const email = emailProviderFromEnv({
+          RESEND_API_KEY: raw.RESEND_API_KEY as string | undefined,
+          EMAIL_FROM: raw.EMAIL_FROM as string | undefined,
+          EMAIL_REPLY_TO: raw.EMAIL_REPLY_TO as string | undefined,
+        })
+        c.set("jobs", inlineJobProducer(async () => ({ checkout, sms, email })))
       }
     }
     if (options.chargePaystackMobileMoney) {
@@ -284,9 +351,12 @@ export function createApp(
     if (options.createPaystackTransfer) {
       c.set("createPaystackTransfer", options.createPaystackTransfer)
     }
+    if (options.verifyPaystackTransfer) c.set("verifyPaystackTransfer", options.verifyPaystackTransfer)
+    if (options.refundPaystackTransaction) c.set("refundPaystackTransaction", options.refundPaystackTransaction)
     if (options.paystackSecretKey !== undefined) {
       c.set("paystackSecretKey", options.paystackSecretKey)
-    } else if (!options.checkoutRepo && !(options.repo instanceof InMemoryCatalogRepository)) {
+    } else if (!options.checkoutRepo && !(options.repo instanceof InMemoryCatalogRepository) && !options.authRepo) {
+      // Injected test repositories mean a test app: no Worker env to parse.
       c.set("paystackSecretKey", envOf(c).PAYSTACK_SECRET_KEY)
     }
     // KV webhook dedup when binding present (production Worker)
@@ -305,12 +375,28 @@ export function createApp(
     await next()
   }
 
+  /**
+   * Just the session secret, for routes that only need to recognise an
+   * optional signed-in buyer (the cart shows accepted offer prices). Never
+   * fails the request: no secret simply means "not signed in".
+   */
+  const bindSessionSecret: MiddlewareHandler<AppEnv> = async (c, next) => {
+    try {
+      c.set("jwtSecret", options.jwtSecret ?? envOf(c).JWT_SECRET)
+    } catch {
+      /* no env in this app (tests) — treat every caller as a guest */
+    }
+    await next()
+  }
+
   const bindAuth: MiddlewareHandler<AppEnv> = async (c, next) => {
     if (options.authRepo) {
       c.set("authRepo", options.authRepo)
     } else {
       c.set("authRepo", lazy(() => new PostgresAuthRepository(primaryOf(c))))
     }
+    c.set("accounts", options.accountStore ?? fallbackAccounts ?? lazy(() => new PostgresAccountStore(primaryOf(c))))
+    c.set("newsletter", fallbackNewsletter ?? lazy(() => new PostgresNewsletterStore(primaryOf(c))))
     if (options.auditLog) {
       c.set("auditLog", options.auditLog)
     } else if (fallbackAuditLog) {
@@ -343,15 +429,18 @@ export function createApp(
   }
 
   const store = new Hono<AppEnv>()
-  store.route("/auth", withBind(bindAuth, withBind(noStoreHeaders, storeAuth)))
+  store.route("/auth", withBind(bindAuth, withBind(bindCheckout, withBind(noStoreHeaders, storeAuth))))
+  store.route("/account", withBind(bindAuth, withBind(bindCheckout, withBind(noStoreHeaders, storeAccount))))
+  store.route("/newsletter", withBind(bindAuth, withBind(bindCheckout, withBind(noStoreHeaders, storeNewsletter))))
   store.route("/geo", withBind(noStoreHeaders, storeGeo))
+  store.route("/places", storePlaces)
   store.route("/categories", withBind(bindCatalog, categories))
   store.route("/catalog", withBind(bindCatalog, withBind(bindCheckout, catalog)))
   store.route("/search", withBind(bindCatalog, storeSearch))
   store.route("/products", withBind(bindCatalog, withBind(bindCheckout, products)))
   store.route("/sellers", withBind(bindAuth, withBind(bindCatalog, withBind(bindCheckout, sellers))))
-  store.route("/homepage", withBind(bindCatalog, storeHomepage))
-  store.route("/cart", withBind(bindCheckout, withBind(noStoreHeaders, storeCart)))
+  store.route("/homepage", withBind(bindAuth, withBind(bindCatalog, storeHomepage)))
+  store.route("/cart", withBind(bindSessionSecret, withBind(bindCheckout, withBind(noStoreHeaders, storeCart))))
   store.route("/checkout", withBind(bindAuth, withBind(bindCheckout, withBind(noStoreHeaders, storeCheckout))))
   store.route("/reviews", withBind(bindCheckout, storeReviews))
   store.route("/collections", withBind(bindCatalog, storeCollections))
@@ -365,37 +454,62 @@ export function createApp(
     withBind(bindAuth, withBind(bindCatalog, withBind(bindCheckout, withBind(noStoreHeaders, storeSubscriptions)))),
   )
   store.route("/sitemap", withBind(bindCatalog, storeSitemap))
+  store.route("/protection", withBind(bindCheckout, storeProtection))
+  store.route("/messages", withBind(bindAuth, withBind(bindCatalog, withBind(bindCheckout, withBind(noStoreHeaders, storeMessages)))))
+  // ⚖ Compare is held back for the first deploy (owner, 2026-09-27): built and
+  // tested, not mounted. Mount it and flip COMPARE_ENABLED in the storefront.
+  void storeCompare
+  // Make an offer — parked by the owner (2026-09-27); code kept, not mounted.
+  void storeDeals
+  // Phase 6 (paused for the MVP, not yet proven): store.route("/videos", withBind(bindCatalog, withBind(bindCheckout, storeVideos)))
+  store.route("/questions", withBind(bindAuth, withBind(bindCatalog, withBind(bindCheckout, storeQuestions))))
   store.route(
     "/orders",
-    withBind(bindAuth, withBind(bindCheckout, withBind(noStoreHeaders, storeOrders))),
+    withBind(bindAuth, withBind(bindCatalog, withBind(bindCheckout, withBind(noStoreHeaders, storeOrders)))),
   )
   app.route("/store", store)
 
   const vendor = new Hono<AppEnv>()
   vendor.use("*", bindAuth)
   vendor.use("*", noStoreHeaders)
-  vendor.route("/auth", vendorAuth)
+  vendor.route("/auth", withBind(bindCheckout, vendorAuth))
   vendor.route("/onboarding", vendorOnboarding)
   vendor.route("/products", withBind(bindCatalog, withBind(bindCheckout, vendorProducts)))
   vendor.route("/collections", withBind(bindCatalog, vendorCollections))
   vendor.route("/imports", withBind(bindCatalog, vendorImports))
   vendor.route("/payouts", withBind(bindCheckout, vendorPayouts))
+  vendor.route("/business", withBind(bindCheckout, vendorBusiness))
   vendor.route("/preferences", withBind(bindCheckout, vendorPreferences))
   vendor.route("/orders", withBind(bindCheckout, vendorOrders))
+  vendor.route("/returns", withBind(bindAuth, withBind(bindCheckout, vendorReturns)))
+  // Phase 6 (paused for the MVP, not yet proven): vendor.route("/catalogue", withBind(bindAuth, withBind(bindCatalog, withBind(bindCheckout, vendorCatalogue))))
+  // Phase 6 (paused for the MVP, not yet proven): vendor.route("/videos", withBind(bindAuth, withBind(bindCatalog, withBind(bindCheckout, vendorVideos))))
+  void vendorDeals
+  vendor.route("/messages", withBind(bindAuth, withBind(bindCatalog, withBind(bindCheckout, vendorMessages))))
   vendor.route("/reviews", withBind(bindCheckout, vendorReviews))
   vendor.route("/uploads", vendorUploads)
   vendor.route("/sellers", withBind(bindCatalog, vendorSellers))
   vendor.route("/health", withBind(bindCatalog, withBind(bindCheckout, vendorHealth)))
   vendor.route("/tasks", withBind(bindCatalog, withBind(bindCheckout, vendorTasks)))
   vendor.route("/stats/shop", withBind(bindCatalog, withBind(bindCheckout, vendorShopStats)))
-  vendor.get("/me", requireSeller, (c) => c.json(c.get("auth")))
+  vendor.get("/me", requireSeller, (c) => {
+    // Claims minus the issued-at stamp: the session contract is id + role (+ seller).
+    const { iat: _iat, ...claims } = c.get("auth")
+    void _iat
+    return c.json(claims)
+  })
   app.route("/vendor", vendor)
 
   const admin = new Hono<AppEnv>()
   admin.use("*", bindAuth)
   admin.use("*", noStoreHeaders)
   admin.route("/auth", adminAuth)
-  admin.get("/me", requireAdmin, (c) => c.json(c.get("auth")))
+  admin.get("/me", requireAdmin, (c) => {
+    // Claims minus the issued-at stamp: the session contract is id + role (+ seller).
+    const { iat: _iat, ...claims } = c.get("auth")
+    void _iat
+    return c.json(claims)
+  })
   admin.route("/sellers", withBind(bindCatalog, withBind(bindCheckout, adminSellers)))
   admin.route("/stats", withBind(bindCatalog, withBind(bindCheckout, adminStats)))
   admin.route("/stats/traffic", withBind(bindCatalog, adminTrafficStats))
@@ -406,6 +520,11 @@ export function createApp(
   admin.route("/aliases", withBind(bindCatalog, adminAliases))
   admin.route("/search", withBind(bindCatalog, adminSearch))
   admin.route("/orders", withBind(bindCheckout, adminOrders))
+  admin.route("/settings", withBind(bindCheckout, adminSettings))
+  admin.route("/returns", withBind(bindAuth, withBind(bindCheckout, adminReturns)))
+  // Phase 6 (paused for the MVP, not yet proven): admin.route("/videos", withBind(bindAuth, withBind(bindCatalog, withBind(bindCheckout, adminVideos))))
+  admin.route("/messages", withBind(bindAuth, withBind(bindCatalog, withBind(bindCheckout, adminMessages))))
+  admin.route("/business", withBind(bindCheckout, adminBusiness))
   admin.route("/migrate", adminMigrate)
   admin.route("/actions", adminActions)
   admin.route("/uploads", adminUploads)
@@ -416,17 +535,18 @@ export function createApp(
   admin.route("/appeals", withBind(bindCatalog, adminAppeals))
   admin.route("/reviews", withBind(bindAuth, withBind(bindCheckout, adminReviews)))
   admin.route("/feed", withBind(bindAuth, withBind(bindCatalog, adminFeed)))
-  admin.route(
-    "/payouts",
-    withBind(bindAuth, withBind(bindCheckout, adminPayouts)),
-  )
+  // Holds first: "/payouts/:id" would otherwise swallow "/payouts/holds".
   admin.route(
     "/payouts/holds",
     withBind(bindAuth, withBind(bindCheckout, adminPayoutHolds)),
   )
+  admin.route(
+    "/payouts",
+    withBind(bindAuth, withBind(bindCheckout, adminPayouts)),
+  )
   app.route("/admin", admin)
 
-  app.route("/hooks/paystack", withBind(bindCheckout, withBind(noStoreHeaders, paystackHooks)))
+  app.route("/hooks/paystack", withBind(bindAuth, withBind(bindCheckout, withBind(noStoreHeaders, paystackHooks))))
 
   app.get("/media/*", (c) => serveMedia(c))
 
@@ -440,6 +560,7 @@ export default {
   async scheduled(event: ScheduledController, env: unknown, ctx: ExecutionContext) {
     await runPaymentIntentExpiry(event, env, ctx)
     await runNotificationDispatch(event, env, ctx)
+    await runReturnDeadlines(env)
   },
   /**
    * Queue consumer (agnostic plan Phase 2). Per-message ack after idempotent
@@ -457,10 +578,33 @@ export default {
       AT_API_KEY: parsed.AT_API_KEY,
       AT_SENDER_ID: parsed.AT_SENDER_ID,
     })
+    const email = emailProviderFromEnv({
+      RESEND_API_KEY: parsed.RESEND_API_KEY,
+      EMAIL_FROM: parsed.EMAIL_FROM,
+      EMAIL_REPLY_TO: parsed.EMAIL_REPLY_TO,
+    })
+    const raw = (env ?? {}) as Record<string, unknown>
+    const expiryQ = raw[JOB_QUEUE_BINDINGS.expiry] as QueueLike | undefined
+    const notificationsQ = raw[JOB_QUEUE_BINDINGS.notifications] as QueueLike | undefined
+    const jobs = expiryQ && notificationsQ ? cfJobProducer({ expiry: expiryQ, notifications: notificationsQ }) : undefined
+    const secretKey = parsed.PAYSTACK_SECRET_KEY
+    const authRepo = new PostgresAuthRepository(primaryDb(parsed))
+    const autoPay = secretKey ? (sellerId: string) => autoPaySeller({ checkout, secretKey, authRepo }, sellerId) : undefined
     for (const msg of batch.messages) {
       try {
         await consumeJobMessage(
-          { checkout, sms },
+          {
+            checkout,
+            sms,
+            email,
+            jobs,
+            autoPay,
+            paystackSecretKey: parsed.PAYSTACK_SECRET_KEY,
+            emailLinks: {
+              storefrontUrl: parsed.STOREFRONT_URL ?? null,
+              vendorUrl: parsed.VENDOR_URL ?? null,
+            },
+          },
           msg.body,
           { attempts: msg.attempts, ack: () => msg.ack(), retry: (opts) => msg.retry(opts) },
         )

@@ -1,5 +1,13 @@
+import { allowancePeriod } from "@alkemart/domain"
+import { resolveMarket } from "@alkemart/shared/markets"
+import { imageFromDataUrl, readPhotoSpecs } from "../../lib/photo-specs"
+import { listingPolicy } from "../../lib/listing-policy"
+
+const PHOTO_READING_ENABLED = false
 import { Hono } from "hono"
 import { HTTPException } from "hono/http-exception"
+import { reviewSubmittedListing } from "../../lib/listing-review"
+import type { ListingReviewRow } from "../../listing-reviews"
 import { suggestAttributes } from "../../lib/attribute-suggest"
 import { proposalsFor } from "../../lib/match-fingerprint"
 import type { WorkersAiLike } from "../../env"
@@ -74,6 +82,8 @@ const CreateBody = z.object({
   identity: IdentityBody.optional(),
   variant_options: z.array(VariantOptionBody).max(2).optional(),
   variant_entries: z.array(VariantEntryBody).max(30).optional(),
+  /** Create as draft; finish, then POST /:id/propose (which checks required specs). */
+  draft: z.boolean().optional(),
 })
 
 const VariantPatchBody = z
@@ -222,12 +232,37 @@ function mapCatalogWriteError(err: unknown): never {
   throw err
 }
 
+
+/** What a seller sees of a review: the decision and its reasons — never AI internals. */
+function sellerReview(r: ListingReviewRow | undefined) {
+  if (!r) return null
+  return {
+    decision: r.decision,
+    by: r.reviewer === "admin" ? "team" : r.reviewer === "seller" ? "you" : "automatic check",
+    reasons: r.reasons,
+    note: r.reviewer === "admin" ? r.note : null,
+    at: r.createdAt.toISOString(),
+  }
+}
+
 export const vendorProducts = new Hono<AppEnv>()
   .use("*", requireSeller)
   .get("/", async (c) => {
     const sellerId = sellerIdOrThrow(c)
     const items = await c.get("repo").listVendorProducts(sellerId)
-    return c.json({ items })
+    // Latest review per product: what the seller must fix, in their words.
+    const latest = await c
+      .get("reviews")
+      .latest([...new Set(items.map((i) => i.product.id))])
+      .catch(() => new Map())
+    return c.json({ items: items.map((i) => ({ ...i, review: sellerReview(latest.get(i.product.id)) })) })
+  })
+  .get("/:id/reviews", async (c) => {
+    const sellerId = sellerIdOrThrow(c)
+    const owned = (await c.get("repo").listVendorProducts(sellerId)).some((p) => p.product.id === c.req.param("id"))
+    if (!owned) throw new HTTPException(404, { message: "product not found" })
+    const history = await c.get("reviews").history(c.req.param("id"))
+    return c.json({ reviews: history.map((r) => sellerReview(r)) })
   })
   .post("/", async (c) => {
     const parsed = CreateBody.safeParse(await readJsonBody(c))
@@ -260,6 +295,7 @@ export const vendorProducts = new Hono<AppEnv>()
         imageUrl: parsed.data.imageUrl ?? null,
         attributes: normalizeAttributes(parsed.data.attributes),
         identity: parsed.data.identity ?? undefined,
+        asDraft: parsed.data.draft === true,
         variantOptions: parsed.data.variant_options?.map((o) => ({ name: o.name, values: o.values })),
         variantEntries: parsed.data.variant_entries?.map((e) => ({
           options: e.options,
@@ -358,6 +394,10 @@ export const vendorProducts = new Hono<AppEnv>()
 
     const updated = await repo.proposeVendorProduct(sellerId, productId)
     if (!updated) throw new HTTPException(404, { message: "product not found" })
+    await c
+      .get("reviews")
+      .record({ productId, decision: "submitted", reviewer: "seller", reviewerId: c.get("auth").userId })
+      .catch(() => undefined)
 
     // Propose identity matches so this product can join a comparison cluster.
     // Evidence only — an admin confirms; nothing merges here. Failures are
@@ -383,7 +423,23 @@ export const vendorProducts = new Hono<AppEnv>()
       )
     }
 
-    return c.json(updated)
+    // Automated review (rules → AI → policy). Never throws; on any hiccup
+    // the listing simply waits for a human.
+    const fresh = (await repo.listVendorProducts(sellerId)).find((p) => p.product.id === productId) ?? updated
+    const nodes: Awaited<ReturnType<typeof repo.listTaxonomyNodes>> = await repo.listTaxonomyNodes().catch(() => [])
+    const node = nodes.find((n) => n.id === fresh.product.primaryCategoryId)
+    const outcome = await reviewSubmittedListing({
+      repo,
+      reviews: c.get("reviews"),
+      ai: (c.env as { AI?: WorkersAiLike } | undefined)?.AI,
+      product: fresh,
+      categoryName: node?.displayName ?? node?.canonicalName ?? fresh.product.primaryCategoryId,
+    })
+    const final = (await repo.listVendorProducts(sellerId)).find((p) => p.product.id === productId) ?? fresh
+    return c.json({
+      ...final,
+      review: outcome ? { decision: outcome.decision, reviewer: outcome.reviewer, reasons: outcome.reasons } : null,
+    })
   })
   .post("/:id/appeal", async (c) => {
     const parsed = z.object({ message: z.string().trim().min(1).max(1000) }).safeParse(await readJsonBody(c))
@@ -624,6 +680,38 @@ export const vendorProducts = new Hono<AppEnv>()
         }),
       )
       throw new HTTPException(503, { message: "suggestion unavailable" })
+    }
+  })
+  /**
+   * Read specs off a photo (label, box, settings screen) into draft values.
+   * Confirm-before-save: nothing is stored here. A small free allowance per
+   * month; the count only moves when a read succeeds.
+   */
+  .post("/:id/attributes/from-photo", async (c) => {
+    const sellerId = sellerIdOrThrow(c)
+    const repo = c.get("repo")
+    const owned = (await repo.listVendorProducts(sellerId)).find((p) => p.product.id === c.req.param("id"))
+    if (!owned) throw new HTTPException(404, { message: "product not found" })
+    const body = (await readJsonBody(c).catch(() => ({}))) as { image?: unknown }
+    const image = typeof body.image === "string" ? imageFromDataUrl(body.image) : null
+    if (!image) throw new HTTPException(400, { message: "Take a clear photo (JPEG, PNG or WebP under 3 MB)." })
+    // Phase 6 is paused for the MVP: off until it's proven in the sandbox.
+    const ai = PHOTO_READING_ENABLED ? (c.env as { AI?: WorkersAiLike } | undefined)?.AI : undefined
+    if (!ai) throw new HTTPException(501, { message: "Photo reading isn't switched on yet. Type the details instead." })
+    const limit = (await listingPolicy(c)).photoReadsPerMonth
+    const period = allowancePeriod(new Date(), resolveMarket().utcOffsetMinutes)
+    const videos = c.get("videos")
+    if ((await videos.photoReadsUsed(sellerId, period)) >= limit) {
+      throw new HTTPException(429, { message: `You've used this month's ${limit} photo reads. Type the details, or try again next month.` })
+    }
+    const defs = await repo.listAttributeDefinitions()
+    try {
+      const r = await readPhotoSpecs(ai, image, defs, { title: owned.product.title })
+      const used = (await videos.takePhotoRead(sellerId, period, limit)) ?? limit
+      return c.json({ ...r, readsLeft: Math.max(0, limit - used), readsPerMonth: limit })
+    } catch (err) {
+      console.error(JSON.stringify({ route: "photo-specs", error: err instanceof Error ? err.message : String(err) }))
+      throw new HTTPException(503, { message: "Couldn't read that photo right now. Try again, or type the details." })
     }
   })
   .get("/:id/attributes", async (c) => {

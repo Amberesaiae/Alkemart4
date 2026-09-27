@@ -3,6 +3,7 @@ import { primaryDb } from "./db"
 import { parseEnv } from "./env"
 import { PostgresCheckoutRepository } from "./postgres-checkout-repository"
 import { smsProviderFromEnv, type SmsProvider } from "./sms"
+import { decodeEmail, emailProviderFromEnv, LogEmailProvider, type EmailProvider } from "./email"
 
 export const NOTIFICATION_MAX_ATTEMPTS = 5
 
@@ -16,6 +17,7 @@ export async function dispatchPendingNotifications(
   checkout: CheckoutRepository,
   sms: SmsProvider,
   opts: { limit?: number; maxAttempts?: number } = {},
+  email: EmailProvider = new LogEmailProvider(),
 ) {
   const maxAttempts = opts.maxAttempts ?? NOTIFICATION_MAX_ATTEMPTS
   const claimed = await checkout.claimPendingNotifications(opts.limit ?? 50, maxAttempts)
@@ -23,7 +25,9 @@ export async function dispatchPendingNotifications(
   let failed = 0
   for (const n of claimed) {
     try {
-      await sms.send({ to: n.recipient, body: n.body })
+      // Route by channel: the outbox carries SMS and email alike.
+      if (n.channel === "email") await email.send({ to: n.recipient, ...decodeEmail(n.body) })
+      else await sms.send({ to: n.recipient, body: n.body })
       await checkout.markNotificationSent(n.id)
       sent += 1
     } catch (err) {
@@ -44,7 +48,12 @@ export async function runNotificationDispatch(event: unknown, env: unknown, ctx:
     AT_API_KEY: parsed.AT_API_KEY,
     AT_SENDER_ID: parsed.AT_SENDER_ID,
   })
-  const result = await dispatchPendingNotifications(checkout, sms)
+  const email = emailProviderFromEnv({
+    RESEND_API_KEY: parsed.RESEND_API_KEY,
+    EMAIL_FROM: parsed.EMAIL_FROM,
+    EMAIL_REPLY_TO: parsed.EMAIL_REPLY_TO,
+  })
+  const result = await dispatchPendingNotifications(checkout, sms, {}, email)
   void event
   void ctx
   return result

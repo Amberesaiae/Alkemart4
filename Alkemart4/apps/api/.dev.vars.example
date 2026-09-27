@@ -9,3 +9,9 @@ ENVIRONMENT=development
 
 # Extra CORS origins (comma-separated). Localhost defaults are already in code.
 # ALLOWED_ORIGINS=http://localhost:5175,http://localhost:3001,http://localhost:3002
+
+# Street search for the location picker (Nominatim-compatible). Leave unset
+# in dev to use the public OpenStreetMap server (light use only).
+# GEOCODER_URL=https://us1.locationiq.com/v1/
+# GEOCODER_KEY=
+# GEOCODER_EMAIL=ops@alkemart.app

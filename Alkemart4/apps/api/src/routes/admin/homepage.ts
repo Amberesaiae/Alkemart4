@@ -3,6 +3,7 @@ import { HTTPException } from "hono/http-exception"
 import { z } from "zod"
 import type { AppEnv } from "../../context"
 import { ContentRevisionConflict } from "../../homepage-content"
+import { PREVIEW_TTL_MS, mintPreviewToken } from "../../lib/preview-token"
 import { readJsonBody } from "../../lib/session"
 import { requireAdmin } from "../../middleware/auth"
 
@@ -78,7 +79,7 @@ const section = z.discriminatedUnion("type", [
     type: z.literal("product_shelf"),
     title: z.string().trim().min(1).max(100),
     subtitle,
-    source: z.enum(["featured", "latest", "category", "manual", "most_ordered", "trending", "daypart", "near_me"]),
+    source: z.enum(["featured", "latest", "category", "manual", "most_ordered", "trending", "daypart", "near_me", "top_rated"]),
     categoryId: z.string().trim().max(100).optional(),
     productIds: z.array(z.string().trim().min(1).max(100)).max(12).optional(),
     daypartCategoryIds: z
@@ -138,7 +139,7 @@ const section = z.discriminatedUnion("type", [
     subtitle,
     eyebrow: z.string().trim().max(40).optional(),
     badge: z.string().trim().max(20).optional(),
-    source: z.enum(["featured", "latest", "category", "manual", "most_ordered", "trending", "daypart", "near_me"]),
+    source: z.enum(["featured", "latest", "category", "manual", "most_ordered", "trending", "daypart", "near_me", "top_rated"]),
     categoryId: z.string().trim().max(100).optional(),
     productIds: z.array(z.string().trim().min(1).max(100)).max(12).optional(),
     limit: z.union([z.literal(4), z.literal(8), z.literal(12)]),
@@ -184,9 +185,8 @@ const saveBody = z.object({ revision: z.number().int().positive(), sections: z.a
     if (item.type === "store_rail" && item.source === "manual" && !(item.sellerHandles ?? []).length) {
       context.addIssue({ code: z.ZodIssueCode.custom, message: "add at least one shop for a manual store rail", path: ["sections", index, "sellerHandles"] })
     }
-    if (item.type === "category_grid" && !(item.tiles ?? []).length && !(item.categoryIds ?? []).length) {
-      context.addIssue({ code: z.ZodIssueCode.custom, message: "pick at least one category", path: ["sections", index, "tiles"] })
-    }
+    // An empty category section is valid: the storefront shows every
+    // top-level department automatically (the default homepage relies on it).
     if (item.startsAt && item.endsAt && item.startsAt >= item.endsAt) {
       context.addIssue({ code: z.ZodIssueCode.custom, message: "section end must be after section start", path: ["sections", index, "endsAt"] })
     }
@@ -203,9 +203,16 @@ function conflict(error: unknown): never {
 export const adminHomepage = new Hono<AppEnv>()
   .use("*", requireAdmin)
   .get("/", async (c) => c.json(await c.get("homepage").getEditor()))
+  /** A 30-minute link that shows the draft on the real storefront. */
+  .post("/preview-token", async (c) => c.json({ token: await mintPreviewToken(c.get("jwtSecret"), "homepage-draft"), expiresInSeconds: PREVIEW_TTL_MS / 1000 }))
   .put("/draft", async (c) => {
     const parsed = saveBody.safeParse(await readJsonBody(c))
-    if (!parsed.success) throw new HTTPException(400, { message: parsed.error.issues[0]?.message ?? "invalid homepage" })
+    if (!parsed.success) {
+      const issue = parsed.error.issues[0]
+      const idx = issue?.path[0] === "sections" && typeof issue.path[1] === "number" ? issue.path[1] : null
+      const field = issue?.path.slice(2).join(".")
+      throw new HTTPException(400, { message: `${idx != null ? `Section ${idx + 1}${field ? ` (${field})` : ""}: ` : ""}${issue?.message ?? "invalid homepage"}` })
+    }
     try {
       const page = await c.get("homepage").saveDraft({ expectedRevision: parsed.data.revision, sections: parsed.data.sections })
       await c.get("auditLog").log({

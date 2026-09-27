@@ -7,10 +7,27 @@ import {
   type CartQuote,
   type OrderFulfillmentStatus,
   type PaymentIntentStatus,
+  freezePromise,
+  canMovePayout,
+  type DeliveryConfirmedBy,
+  type DeliveryPromise,
+  type DeliveryZone,
+  type OrderFact,
+  type PayoutFact,
+  type FulfillmentMethod,
+  type PayoutStatus,
+  type ReturnActor,
+  type ReturnOutcome,
+  type ReturnReason,
+  type ReturnStatus,
+  type ReturnWish,
+  applyRecoveries,
+  newHandoverCode,
+  payableSubtotal,
 } from "@alkemart/domain"
 import type { CatalogOffer, CatalogSnapshot } from "./demo-seed"
 import { marketCurrency } from "@alkemart/shared/markets"
-import { InMemoryLedgerStore, payoutEntry, saleEntries, type LedgerStore } from "./ledger"
+import { InMemoryLedgerStore, payoutEntry, payoutReversalEntry, refundEntries, saleEntries, type LedgerStore } from "./ledger"
 
 export type CartItemRow = {
   id: string
@@ -36,6 +53,9 @@ export type ShippingAddress = {
   province?: string
   country_code: string
   postal_code?: string
+  /** Buyer's pinned delivery spot, when they dropped one. */
+  latitude?: number
+  longitude?: number
 }
 
 export type PaymentIntentRow = {
@@ -50,7 +70,53 @@ export type PaymentIntentRow = {
   momoProvider: string | null
   momoPhone: string | null
   shippingAddress: ShippingAddress | null
+  /** Per seller: delivery or pickup and the fee quoted at checkout (0042). */
+  fulfillment?: IntentFulfillment | null
+  /** Per offer: accepted deal price used at checkout (0046). */
+  deals?: IntentDeals | null
   createdAt?: Date
+}
+
+export type OrderFactFilter = {
+  sellerId?: string
+  placedFrom?: Date
+  placedTo?: Date
+  deliveredFrom?: Date
+  deliveredTo?: Date
+}
+
+export type FulfillmentChoice = { method: FulfillmentMethod; zone: DeliveryZone | null; feePesewas: string }
+export type IntentFulfillment = Record<string, FulfillmentChoice>
+/** offerId → the accepted deal price (per unit) and the exact quantity it covers. */
+export type IntentDeals = Record<string, { dealId: string; unitPricePesewas: string; qty: number }>
+
+/** Deal prices from the intent, for lines whose quantity matches the deal exactly. */
+export function withDeals<T extends { offerId: string; qty: number; unitPricePesewas: bigint }>(lines: T[], deals?: IntentDeals | null): T[] {
+  if (!deals) return lines
+  return lines.map((l) => {
+    const d = deals[l.offerId]
+    return d && d.qty === l.qty ? { ...l, unitPricePesewas: BigInt(d.unitPricePesewas) } : l
+  })
+}
+
+/** Delivery fee per seller as frozen on the intent; undefined = seller defaults. */
+/** Order columns from the buyer's choice; every order gets a handover code. */
+export function orderFulfillment(choice: FulfillmentChoice | undefined) {
+  return {
+    fulfillmentMethod: choice?.method ?? ("delivery" as const),
+    deliveryZone: choice?.method === "pickup" ? null : (choice?.zone ?? null),
+    handoverCode: newHandoverCode(),
+    handoverFailures: 0,
+  }
+}
+
+export function feesFromFulfillment(f: IntentFulfillment | null | undefined): Map<string, bigint> | undefined {
+  if (!f) return undefined
+  return new Map(Object.entries(f).map(([sellerId, c]) => [sellerId, BigInt(c.feePesewas)]))
+}
+
+export function withFees<T extends { sellerId: string; deliveryFeePesewas: bigint }>(lines: T[], fees?: Map<string, bigint>): T[] {
+  return fees ? lines.map((l) => (fees.has(l.sellerId) ? { ...l, deliveryFeePesewas: fees.get(l.sellerId)! } : l)) : lines
 }
 
 export type StockReservationRow = {
@@ -81,18 +147,97 @@ export type OrderRow = {
   deliveryFeePesewas: bigint
   status: OrderFulfillmentStatus
   payoutId: string | null
+  /** Frozen at checkout (0036); null on legacy orders. */
+  dispatchBy?: Date | null
+  deliverEarliest?: Date | null
+  deliverLatest?: Date | null
+  /** Delivery or pickup (0042); legacy orders are delivery. */
+  fulfillmentMethod?: FulfillmentMethod
+  deliveryZone?: DeliveryZone | null
+  /** Buyer's handover code. Never send to the seller. */
+  handoverCode?: string | null
+  handoverFailures?: number
+  deliveryConfirmedBy?: DeliveryConfirmedBy | null
+  /** Online payout released from here (report window); null/absent = payable. */
+  payoutReleaseAt?: Date | null
+  /** Items refunded to the buyer so far (0044); payouts pay only what's left. */
+  refundedPesewas?: bigint
+}
+
+export type OrderActor = "buyer" | "seller" | "admin" | "system"
+
+/** One step of an order's timeline (0036, append-only). */
+export type OrderEventRow = {
+  orderId: string
+  status: OrderFulfillmentStatus
+  actor: OrderActor
+  at: Date
+  note: string | null
+}
+
+/**
+ * One seller order with what the seller's order list needs: when it was
+ * placed, what's in it, where it goes (area only — no street or phone on a
+ * list) and how the buyer paid. Newest first.
+ */
+export type SellerOrderSummary = OrderRow & {
+  placedAt: Date | null
+  items: { productId: string; title: string; qty: number }[]
+  shipTo: { city: string | null; region: string | null } | null
+  paymentMethod: string | null
 }
 
 export type PayoutRow = {
   id: string
   sellerId: string
-  status: "pending" | "processing" | "paid" | "failed"
+  status: PayoutStatus
   grossPesewas: bigint
   commissionPesewas: bigint
   netPesewas: bigint
   commissionBps: number
   paystackTransferCode: string | null
   paystackReference: string | null
+  failureReason?: string | null
+  paidAt?: Date | null
+  createdBy?: string | null
+  /** Refunds on already-paid orders taken back from this payout (0044). */
+  recoveredPesewas?: bigint
+}
+
+/** One step in a payout's life, shown to the seller and admins. */
+export type PayoutEventRow = {
+  id: string
+  payoutId: string
+  status: "created" | "sent" | "paid" | "failed" | "reversed" | "checked" | "retried" | string
+  actor: string
+  detail: string | null
+  createdAt: Date
+}
+
+export type PayoutLineRow = { orderId: string; grossPesewas: bigint; commissionPesewas: bigint; netPesewas: bigint }
+
+/** A signed Paystack webhook we received, and what we did with it. */
+export type PaystackEventRow = {
+  id: string
+  event: string
+  reference: string | null
+  amountMinor: bigint | null
+  currency: string | null
+  status: string | null
+  outcome: string
+  detail: string | null
+  receivedAt: Date
+}
+
+/** Why a payout can't be reserved right now — shown to the admin as-is. */
+export class PayoutBlockedError extends Error {
+  constructor(
+    readonly code: "seller_hold" | "nothing_payable" | "mixed_currency",
+    message: string,
+  ) {
+    super(message)
+    this.name = "PayoutBlockedError"
+  }
 }
 
 export type PayoutHoldRow = {
@@ -106,6 +251,77 @@ export type PayoutHoldRow = {
   releasedBy: string | null
   releasedAt: Date | null
   createdAt: Date
+}
+
+export type ReturnTimelineEntry = { at: string; by: ReturnActor; status: ReturnStatus; note: string }
+
+/** A return or dispute on one seller order (0044). */
+export type ReturnCaseRow = {
+  id: string
+  orderId: string
+  sellerId: string
+  buyerEmail: string
+  reason: ReturnReason
+  wish: ReturnWish
+  note: string
+  status: ReturnStatus
+  /** Who must act by when (see returnWaitingOn); null when nobody is on a clock. */
+  respondBy: Date | null
+  declineReason: string | null
+  outcome: ReturnOutcome | null
+  refundPesewas: bigint
+  refundVia: "provider" | "seller" | null
+  /** provider: pending → paid | failed; seller (pay on delivery): owed → paid. */
+  refundStatus: "pending" | "paid" | "failed" | "owed" | null
+  refundRef: string | null
+  /** Seller's share of a refund on an order that was already paid out. */
+  sellerRecoveryPesewas: bigint
+  recoveredPayoutId: string | null
+  adminNote: string | null
+  timeline: ReturnTimelineEntry[]
+  createdAt: Date
+  updatedAt: Date
+  closedAt: Date | null
+}
+
+export type ReturnCaseFilter = {
+  sellerId?: string
+  orderIds?: string[]
+  buyerEmail?: string
+  statuses?: ReturnStatus[]
+  /** Open cases whose deadline has passed at this moment. */
+  dueAt?: Date
+  /** Provider refunds still waiting on the provider's answer. */
+  refundPending?: boolean
+}
+
+/** One step applied to a case (see nextReturnStep). Money only when closing with a refund. */
+export type ReturnCaseChange = {
+  status: ReturnStatus
+  respondBy: Date | null
+  declineReason?: string | null
+  outcome?: ReturnOutcome | null
+  adminNote?: string | null
+  entry: { by: ReturnActor; note: string }
+  refund?: {
+    minor: bigint
+    via: "provider" | "seller"
+    status: "pending" | "owed" | "failed" | "paid"
+    ref?: string | null
+    /** Non-zero when the order was already paid out: taken from the next payout. */
+    sellerRecoveryMinor: bigint
+    platformMinor: bigint
+    currency: string
+    intentId: string | null
+  }
+}
+
+/** A case is already open on this order. */
+export class ReturnCaseOpenError extends Error {
+  constructor(readonly existingId: string) {
+    super("There's already an open return on this order.")
+    this.name = "ReturnCaseOpenError"
+  }
 }
 
 export type OrderItemRow = {
@@ -137,7 +353,8 @@ export interface CheckoutRepository {
   listCartItems(cartId: string): Promise<CartItemRow[]>
   getOfferView(offerId: string): Promise<CheckoutOfferView | null>
   getOfferViews(offerIds: string[]): Promise<Map<string, CheckoutOfferView>>
-  quote(cartId: string): Promise<CartQuote>
+  /** `fees` overrides the seller's default delivery fee (zone/pickup choice). */
+  quote(cartId: string, fees?: Map<string, bigint>, deals?: IntentDeals | null): Promise<CartQuote>
   createPaymentIntent(input: Omit<PaymentIntentRow, "status"> & { status: PaymentIntentStatus }): Promise<PaymentIntentRow>
   getPaymentIntent(id: string): Promise<PaymentIntentRow | null>
   getPaymentIntentByReference(ref: string): Promise<PaymentIntentRow | null>
@@ -157,6 +374,7 @@ export interface CheckoutRepository {
   /** Non-terminal momo/card intents created before `cutoff` — inputs for the expiry job. */
   listStalePendingIntents(cutoff: Date): Promise<PaymentIntentRow[]>
   listOrdersForSeller(sellerId: string): Promise<OrderRow[]>
+  listSellerOrderSummaries(sellerId: string): Promise<SellerOrderSummary[]>
   listRecentOrderGroups(limit?: number): Promise<Array<OrderGroupRow & { createdAt?: Date }>>
   platformOrderStats(): Promise<PlatformOrderStats>
   /** Per-seller order counts + subtotal GMV (admin lists). */
@@ -168,12 +386,61 @@ export interface CheckoutRepository {
    * Alert sends resolve contacts here, never from request bodies.
    */
   latestBuyerPhone(buyerEmail: string): Promise<string | null>
+  /**
+   * Transition + timeline event in one unit of work. Conditional on the
+   * status read, so two concurrent taps can't both apply (the loser throws
+   * InvalidFulfillmentTransitionError → 409).
+   */
   updateOrderStatus(
     orderId: string,
     sellerId: string,
     status: OrderFulfillmentStatus,
+    actor?: { kind: OrderActor; id?: string | null; note?: string | null },
   ): Promise<OrderRow | null>
+  /** Timeline events for these orders, oldest first. */
+  listOrderEvents(orderIds: string[]): Promise<OrderEventRow[]>
+  /**
+   * Flattened orders for reports. `placed*` filters by when the order was
+   * placed; `delivered*` by when it was delivered (statements).
+   */
+  listOrderFacts(filter: OrderFactFilter): Promise<OrderFact[]>
+  /** Payouts for reports; `paid*` filters by when Paystack paid them. */
+  listPayoutFacts(filter: { sellerId?: string; paidFrom?: Date; paidTo?: Date }): Promise<PayoutFact[]>
+  /** Count a wrong handover code; returns the new total. */
+  recordHandoverFailure(orderId: string): Promise<number>
+  /** Who confirmed the delivery, and when its online payout may be released. */
+  recordDeliveryConfirmation(orderId: string, by: DeliveryConfirmedBy, releaseAt: Date): Promise<void>
+  /**
+   * Delivered, not yet paid out, and paid ONLINE. Pay-on-delivery orders are
+   * never payable: the seller's rider already holds the buyer's cash, and the
+   * seller owes the commission instead (COD settlement rule, 2026-09-25).
+   */
   listDeliveredUnpaidOrders(sellerId: string): Promise<OrderRow[]>
+  /**
+   * Step 1 of a payout: lock the exact payable orders (delivered, online,
+   * not held, not already in a payout) into a `pending` payout with its
+   * Paystack reference — before any money moves. Throws PayoutBlockedError.
+   */
+  reservePayout(input: { sellerId: string; commissionBps: number; reference: string; createdBy: string }): Promise<PayoutRow>
+  /** Step 2: Paystack accepted the transfer request (pending → processing). */
+  markPayoutSent(payoutId: string, transferCode: string | null, actor: string): Promise<PayoutRow | null>
+  /**
+   * Step 3: Paystack's final answer. Idempotent; illegal moves are no-ops.
+   * paid → ledger payout row; failed/reversed → orders become payable again
+   * (reversed also writes a ledger adjustment).
+   */
+  settlePayout(
+    payoutId: string,
+    to: "paid" | "failed" | "reversed",
+    opts: { actor: string; reason?: string | null; transferCode?: string | null },
+  ): Promise<{ payout: PayoutRow | null; changed: boolean }>
+  getPayoutByReference(reference: string): Promise<PayoutRow | null>
+  listPayoutLines(payoutId: string): Promise<PayoutLineRow[]>
+  listPayoutEvents(payoutIds: string[]): Promise<PayoutEventRow[]>
+  addPayoutEvent(payoutId: string, status: PayoutEventRow["status"], actor: string, detail?: string | null): Promise<void>
+  recordPaystackEvent(row: Omit<PaystackEventRow, "receivedAt">): Promise<void>
+  listPaystackEvents(limit?: number): Promise<PaystackEventRow[]>
+  /** Legacy/test helper: reserve + settle paid in one go. */
   createPayout(input: {
     sellerId: string
     commissionBps: number
@@ -209,6 +476,32 @@ export interface CheckoutRepository {
     createdBy: string
   }): Promise<PayoutHoldRow>
   releasePayoutHold(id: string, releasedBy: string): Promise<PayoutHoldRow | null>
+  // ── Returns and disputes (0044) ──
+  /**
+   * Open a case. Holds the order's payout (if not paid out yet) until it
+   * closes. Throws ReturnCaseOpenError when one is already open.
+   */
+  createReturnCase(input: {
+    orderId: string
+    sellerId: string
+    buyerEmail: string
+    reason: ReturnReason
+    wish: ReturnWish
+    note: string
+    respondBy: Date
+  }): Promise<ReturnCaseRow>
+  getReturnCase(id: string): Promise<ReturnCaseRow | null>
+  /** Newest first. */
+  listReturnCases(filter: ReturnCaseFilter): Promise<ReturnCaseRow[]>
+  /**
+   * Compare-and-swap one step: applies only if the case is still `from`
+   * (null = someone moved it first). Closing releases the order's buyer
+   * holds; a refund adds to orders.refunded_pesewas and the ledger, in the
+   * same transaction.
+   */
+  advanceReturnCase(id: string, from: ReturnStatus, change: ReturnCaseChange): Promise<ReturnCaseRow | null>
+  /** Record what happened to the money after the case closed (provider result, seller paid back). */
+  setReturnRefund(id: string, patch: { status: "pending" | "paid" | "failed" | "owed"; ref?: string | null; entry?: { by: ReturnActor; note: string } }): Promise<ReturnCaseRow | null>
   /**
    * SMS outbox. Idempotency key (`${orderId}:${status}`) is unique:
    * double-enqueues are no-ops so retries never text twice.
@@ -405,6 +698,7 @@ export class InMemoryCheckoutRepository implements CheckoutRepository {
   private orderGroups = new Map<string, OrderGroupRow & { createdAt: Date }>()
   private orders = new Map<string, OrderRow[]>()
   private orderItems = new Map<string, OrderItemRow[]>()
+  private events: OrderEventRow[] = []
   private orderIndex = new Map<string, OrderRow>()
   private payouts = new Map<string, PayoutRow>()
   private holds = new Map<string, PayoutHoldRow>()
@@ -412,6 +706,13 @@ export class InMemoryCheckoutRepository implements CheckoutRepository {
   private subscriptions = new Map<string, StockSubscriptionDto>()
   private experiments = new Map<string, ExperimentDto>()
   private exposures = new Map<string, { experimentId: string; unitId: string; bucket: "control" | "exposed" }>()
+
+  /**
+   * Where a seller's delivery promise lives. Postgres reads sellers.metadata
+   * (what the seller edits in Shop); set this to do the same in memory.
+   * Unset, the catalogue snapshot's `delivery` is used (unit tests).
+   */
+  promiseFor?: (sellerId: string) => Promise<DeliveryPromise | null>
 
   constructor(
     private readonly catalog: CatalogSnapshot,
@@ -507,7 +808,7 @@ export class InMemoryCheckoutRepository implements CheckoutRepository {
     return [...(this.items.get(cartId) ?? [])]
   }
 
-  async quote(cartId: string): Promise<CartQuote> {
+  async quote(cartId: string, fees?: Map<string, bigint>, deals?: IntentDeals | null): Promise<CartQuote> {
     const items = await this.listCartItems(cartId)
     const lines = []
     for (const item of items) {
@@ -521,7 +822,7 @@ export class InMemoryCheckoutRepository implements CheckoutRepository {
         deliveryFeePesewas: view.deliveryFeePesewas,
       })
     }
-    return quoteCart(lines, this.carts.get(cartId)?.currency ?? marketCurrency())
+    return quoteCart(withDeals(withFees(lines, fees), deals), this.carts.get(cartId)?.currency ?? marketCurrency())
   }
 
   async createPaymentIntent(
@@ -644,7 +945,7 @@ export class InMemoryCheckoutRepository implements CheckoutRepository {
     const intent = this.intents.get(paymentIntentId)
     if (!intent) throw new Error("payment intent not found")
 
-    const quote = await this.quote(intent.cartId)
+    const quote = await this.quote(intent.cartId, feesFromFulfillment(intent.fulfillment), intent.deals)
     if (quote.totalPesewas !== intent.amountPesewas) {
       throw new Error("quote total mismatch")
     }
@@ -655,12 +956,18 @@ export class InMemoryCheckoutRepository implements CheckoutRepository {
       buyerEmail: intent.buyerEmail,
       totalPesewas: intent.amountPesewas,
       currency: intent.currency,
-      createdAt: new Date(),
+      createdAt: this.now(),
     }
     this.orderGroups.set(orderGroup.id, orderGroup)
 
     const createdOrders: OrderRow[] = []
     for (const seller of quote.sellers) {
+      const promise = freezePromise(
+        orderGroup.createdAt,
+        this.promiseFor
+          ? await this.promiseFor(seller.sellerId)
+          : (this.catalog.sellers.find((s) => s.id === seller.sellerId)?.delivery ?? null),
+      )
       const order: OrderRow = {
         id: crypto.randomUUID(),
         orderGroupId: orderGroup.id,
@@ -669,7 +976,12 @@ export class InMemoryCheckoutRepository implements CheckoutRepository {
         deliveryFeePesewas: seller.deliveryFeePesewas,
         status: "placed",
         payoutId: null,
+        dispatchBy: promise.dispatchBy,
+        deliverEarliest: promise.deliverEarliest,
+        deliverLatest: promise.deliverLatest,
+        ...orderFulfillment(intent.fulfillment?.[seller.sellerId]),
       }
+      this.events.push({ orderId: order.id, status: "placed", actor: "buyer", at: orderGroup.createdAt, note: null })
       createdOrders.push(order)
       this.orderIndex.set(order.id, order)
       const items: OrderItemRow[] = []
@@ -733,6 +1045,24 @@ export class InMemoryCheckoutRepository implements CheckoutRepository {
     return [...this.orderIndex.values()]
       .filter((o) => o.sellerId === sellerId)
       .map((o) => ({ ...o }))
+  }
+
+  async listSellerOrderSummaries(sellerId: string): Promise<SellerOrderSummary[]> {
+    const rows = await this.listOrdersForSeller(sellerId)
+    return rows
+      .map((o) => {
+        const group = this.orderGroups.get(o.orderGroupId)
+        const intent = group ? this.intents.get(group.paymentIntentId) : undefined
+        const addr = intent?.shippingAddress ?? null
+        return {
+          ...o,
+          placedAt: group?.createdAt ?? null,
+          items: (this.orderItems.get(o.id) ?? []).map((i) => ({ productId: i.productId, title: i.title, qty: i.qty })),
+          shipTo: addr ? { city: addr.city || null, region: addr.province ?? null } : null,
+          paymentMethod: intent?.method ?? null,
+        }
+      })
+      .sort((a, b) => (b.placedAt?.getTime() ?? 0) - (a.placedAt?.getTime() ?? 0))
   }
 
   async listRecentOrderGroups(limit = 50) {
@@ -812,18 +1142,253 @@ export class InMemoryCheckoutRepository implements CheckoutRepository {
     orderId: string,
     sellerId: string,
     status: OrderFulfillmentStatus,
+    actor?: { kind: OrderActor; id?: string | null; note?: string | null },
   ) {
     const row = this.orderIndex.get(orderId)
     if (!row || row.sellerId !== sellerId) return null
     assertFulfillmentTransition(row.status, status)
+    if (row.status === status) return { ...row }
     row.status = status
+    this.events.push({ orderId, status, actor: actor?.kind ?? "seller", at: this.now(), note: actor?.note ?? null })
     return { ...row }
+  }
+
+  async listOrderEvents(orderIds: string[]) {
+    const ids = new Set(orderIds)
+    return this.events.filter((e) => ids.has(e.orderId)).map((e) => ({ ...e }))
+  }
+
+  async listOrderFacts(filter: OrderFactFilter): Promise<OrderFact[]> {
+    const out: OrderFact[] = []
+    for (const o of this.orderIndex.values()) {
+      if (filter.sellerId && o.sellerId !== filter.sellerId) continue
+      const group = this.orderGroups.get(o.orderGroupId)
+      if (!group) continue
+      const placedAt = group.createdAt
+      if (filter.placedFrom && placedAt < filter.placedFrom) continue
+      if (filter.placedTo && placedAt >= filter.placedTo) continue
+      const deliveredAt = this.events.filter((e) => e.orderId === o.id && e.status === "delivered").map((e) => e.at).sort((a, b) => +a - +b)[0] ?? null
+      if (filter.deliveredFrom && (!deliveredAt || deliveredAt < filter.deliveredFrom)) continue
+      if (filter.deliveredTo && (!deliveredAt || deliveredAt >= filter.deliveredTo)) continue
+      const intent = this.intents.get(group.paymentIntentId)
+      const addr = intent?.shippingAddress
+      out.push({
+        orderId: o.id,
+        orderGroupId: o.orderGroupId,
+        sellerId: o.sellerId,
+        placedAt,
+        status: o.status as OrderFact["status"],
+        deliveredAt: o.status === "delivered" ? deliveredAt : null,
+        subtotalPesewas: o.subtotalPesewas,
+        deliveryFeePesewas: o.deliveryFeePesewas,
+        paymentMethod: intent?.method ?? null,
+        fulfillmentMethod: o.fulfillmentMethod ?? "delivery",
+        buyerKey: group.buyerEmail?.trim().toLowerCase() || null,
+        region: addr?.province ?? null,
+        city: addr?.city ?? null,
+        items: (this.orderItems.get(o.id) ?? []).map((i) => ({ productId: i.productId, title: i.title, qty: i.qty, amountPesewas: i.unitPricePesewas * BigInt(i.qty) })),
+      })
+    }
+    return out
+  }
+
+  async listPayoutFacts(filter: { sellerId?: string; paidFrom?: Date; paidTo?: Date }): Promise<PayoutFact[]> {
+    return [...this.payouts.values()]
+      .filter((p) => !filter.sellerId || p.sellerId === filter.sellerId)
+      .filter((p) => !filter.paidFrom || (p.paidAt != null && p.paidAt >= filter.paidFrom))
+      .filter((p) => !filter.paidTo || (p.paidAt != null && p.paidAt < filter.paidTo))
+      .map((p) => ({
+        payoutId: p.id,
+        sellerId: p.sellerId,
+        status: p.status,
+        grossPesewas: p.grossPesewas,
+        commissionPesewas: p.commissionPesewas,
+        netPesewas: p.netPesewas,
+        paidAt: p.paidAt ?? null,
+        reference: p.paystackReference,
+      }))
+  }
+
+  async recordDeliveryConfirmation(orderId: string, by: DeliveryConfirmedBy, releaseAt: Date) {
+    const row = this.orderIndex.get(orderId)
+    if (!row) return
+    row.deliveryConfirmedBy = by
+    row.payoutReleaseAt = releaseAt
+  }
+
+  /** Test/sandbox clock for the report window. */
+  now: () => Date = () => new Date()
+
+  async recordHandoverFailure(orderId: string) {
+    const row = this.orderIndex.get(orderId)
+    if (!row) return 0
+    row.handoverFailures = (row.handoverFailures ?? 0) + 1
+    return row.handoverFailures
   }
 
   async listDeliveredUnpaidOrders(sellerId: string) {
     return [...this.orderIndex.values()]
       .filter((o) => o.sellerId === sellerId && o.status === "delivered" && !o.payoutId)
+      .filter((o) => this.paymentMethodForOrder(o) !== "cod")
+      // A held order is not payable until an admin releases the hold.
+      .filter((o) => ![...this.holds.values()].some((h) => h.status === "held" && h.orderId === o.id))
+      // Seller-only confirmations wait out the buyer's report window.
+      .filter((o) => !o.payoutReleaseAt || o.payoutReleaseAt.getTime() <= this.now().getTime())
+      // Fully refunded: nothing left to pay the seller.
+      .filter((o) => payableSubtotal(o) > 0n)
       .map((o) => ({ ...o }))
+  }
+
+  private payoutEvents: PayoutEventRow[] = []
+  private payoutLineGross = new Map<string, bigint>()
+  private returnCases = new Map<string, ReturnCaseRow>()
+  private payoutCreatedAt = new Map<string, Date>()
+  private paystackEvents = new Map<string, PaystackEventRow>()
+
+  async reservePayout(input: { sellerId: string; commissionBps: number; reference: string; createdBy: string }) {
+    const accountHold = [...this.holds.values()].find((h) => h.sellerId === input.sellerId && h.status === "held" && !h.orderId)
+    if (accountHold) throw new PayoutBlockedError("seller_hold", `Payouts are on hold for this seller: ${accountHold.reason}`)
+    const unpaid = await this.listDeliveredUnpaidOrders(input.sellerId)
+    if (unpaid.length === 0) throw new PayoutBlockedError("nothing_payable", "No delivered, paid-online orders are waiting for a payout.")
+    const batch = computePayoutBatch(
+      input.sellerId,
+      input.commissionBps,
+      unpaid.map((o) => ({ orderId: o.id, sellerId: o.sellerId, subtotalPesewas: payableSubtotal(o) })),
+    )
+    // Refunds on orders already paid out come off this payout, oldest first.
+    const owed = [...this.returnCases.values()]
+      .filter((r) => r.sellerId === input.sellerId && r.sellerRecoveryPesewas > 0n && !r.recoveredPayoutId && r.refundStatus !== "failed")
+      .sort((a, b) => +a.createdAt - +b.createdAt)
+      .map((r) => ({ id: r.id, amountMinor: r.sellerRecoveryPesewas }))
+    const recovered = applyRecoveries(batch.netPesewas, owed)
+    const payout: PayoutRow = {
+      id: crypto.randomUUID(),
+      sellerId: input.sellerId,
+      status: "pending",
+      grossPesewas: batch.grossPesewas,
+      commissionPesewas: batch.commissionPesewas,
+      netPesewas: batch.netPesewas - recovered.totalMinor,
+      recoveredPesewas: recovered.totalMinor,
+      commissionBps: input.commissionBps,
+      paystackTransferCode: null,
+      paystackReference: input.reference,
+      failureReason: null,
+      paidAt: null,
+      createdBy: input.createdBy,
+    }
+    this.payouts.set(payout.id, payout)
+    this.payoutCreatedAt.set(payout.id, new Date())
+    for (const line of batch.lines) {
+      const live = this.orderIndex.get(line.orderId)
+      if (live) live.payoutId = payout.id
+      this.payoutLineGross.set(line.orderId, line.grossPesewas)
+    }
+    for (const r of recovered.applied) {
+      const c = this.returnCases.get(r.id)
+      if (c) c.recoveredPayoutId = payout.id
+    }
+    await this.addPayoutEvent(
+      payout.id,
+      "created",
+      input.createdBy,
+      `${unpaid.length} order${unpaid.length === 1 ? "" : "s"}${recovered.totalMinor > 0n ? ` · ${recovered.applied.length} refund${recovered.applied.length === 1 ? "" : "s"} taken back` : ""}`,
+    )
+    return { ...payout }
+  }
+
+  async markPayoutSent(payoutId: string, transferCode: string | null, actor: string) {
+    const p = this.payouts.get(payoutId)
+    if (!p) return null
+    if (p.status === "pending") {
+      p.status = "processing"
+      p.paystackTransferCode = transferCode ?? p.paystackTransferCode
+      await this.addPayoutEvent(payoutId, "sent", actor, transferCode)
+    }
+    return { ...p }
+  }
+
+  async settlePayout(payoutId: string, to: "paid" | "failed" | "reversed", opts: { actor: string; reason?: string | null; transferCode?: string | null }) {
+    const p = this.payouts.get(payoutId)
+    if (!p) return { payout: null, changed: false }
+    if (p.status === to || !canMovePayout(p.status, to)) return { payout: { ...p }, changed: false }
+    const currency = this.payoutCurrency(p.id)
+    p.status = to
+    if (opts.transferCode) p.paystackTransferCode = opts.transferCode
+    if (to === "paid") {
+      p.paidAt = this.now()
+      if (!currency) throw new Error("payment intent missing for payout ledger")
+      await this.ledger.append(payoutEntry({ payoutId: p.id, sellerId: p.sellerId, netMinor: p.netPesewas, currency }))
+    } else {
+      p.failureReason = opts.reason ?? null
+      if (to === "reversed" && currency) {
+        await this.ledger.append(payoutReversalEntry({ payoutId: p.id, sellerId: p.sellerId, netMinor: p.netPesewas, currency }))
+      }
+      // The money never arrived: those orders go back into the next payout,
+      // and any refunds it took back are owed again.
+      const back = new Set<string>()
+      for (const o of this.orderIndex.values()) {
+        if (o.payoutId === p.id) {
+          o.payoutId = null
+          this.payoutLineGross.delete(o.id)
+          back.add(o.id)
+        }
+      }
+      for (const c of this.returnCases.values()) {
+        if (c.recoveredPayoutId === p.id) c.recoveredPayoutId = null
+        // Refunded while in this payout: the order now pays only what's left,
+        // so there's nothing to take back any more.
+        else if (back.has(c.orderId) && !c.recoveredPayoutId) c.sellerRecoveryPesewas = 0n
+      }
+    }
+    await this.addPayoutEvent(p.id, to, opts.actor, opts.reason ?? null)
+    return { payout: { ...p }, changed: true }
+  }
+
+  private payoutCurrency(payoutId: string): string | null {
+    const order = [...this.orderIndex.values()].find((o) => o.payoutId === payoutId)
+    const group = order ? this.orderGroups.get(order.orderGroupId) : undefined
+    return group ? (this.intents.get(group.paymentIntentId)?.currency ?? null) : null
+  }
+
+  async getPayoutByReference(reference: string) {
+    const p = [...this.payouts.values()].find((x) => x.paystackReference === reference)
+    return p ? { ...p } : null
+  }
+
+  async listPayoutLines(payoutId: string) {
+    const p = this.payouts.get(payoutId)
+    if (!p) return []
+    return [...this.orderIndex.values()]
+      .filter((o) => o.payoutId === payoutId)
+      .map((o) => {
+        // Frozen at reserve time: a later refund never rewrites a payout line.
+        const gross = this.payoutLineGross.get(o.id) ?? o.subtotalPesewas
+        const commission = (gross * BigInt(p.commissionBps)) / 10_000n
+        return { orderId: o.id, grossPesewas: gross, commissionPesewas: commission, netPesewas: gross - commission }
+      })
+  }
+
+  async listPayoutEvents(payoutIds: string[]) {
+    const ids = new Set(payoutIds)
+    return this.payoutEvents.filter((e) => ids.has(e.payoutId)).map((e) => ({ ...e }))
+  }
+
+  async addPayoutEvent(payoutId: string, status: PayoutEventRow["status"], actor: string, detail: string | null = null) {
+    this.payoutEvents.push({ id: crypto.randomUUID(), payoutId, status, actor, detail, createdAt: new Date(Date.now() + this.payoutEvents.length) })
+  }
+
+  async recordPaystackEvent(row: Omit<PaystackEventRow, "receivedAt">) {
+    const prev = this.paystackEvents.get(row.id)
+    this.paystackEvents.set(row.id, { ...row, receivedAt: prev?.receivedAt ?? new Date() })
+  }
+
+  async listPaystackEvents(limit = 100) {
+    return [...this.paystackEvents.values()].sort((a, b) => +b.receivedAt - +a.receivedAt).slice(0, limit)
+  }
+
+  private paymentMethodForOrder(o: OrderRow): string | null {
+    const group = this.orderGroups.get(o.orderGroupId)
+    return group ? (this.intents.get(group.paymentIntentId)?.method ?? null) : null
   }
 
   async createPayout(input: {
@@ -832,47 +1397,10 @@ export class InMemoryCheckoutRepository implements CheckoutRepository {
     paystackTransferCode: string
     paystackReference: string
   }) {
-    const unpaid = await this.listDeliveredUnpaidOrders(input.sellerId)
-    if (unpaid.length === 0) throw new Error("no delivered unpaid orders")
-    const batch = computePayoutBatch(
-      input.sellerId,
-      input.commissionBps,
-      unpaid.map((o) => ({
-        orderId: o.id,
-        sellerId: o.sellerId,
-        subtotalPesewas: o.subtotalPesewas,
-      })),
-    )
-    const payout: PayoutRow = {
-      id: crypto.randomUUID(),
-      sellerId: input.sellerId,
-      status: "paid",
-      grossPesewas: batch.grossPesewas,
-      commissionPesewas: batch.commissionPesewas,
-      netPesewas: batch.netPesewas,
-      commissionBps: input.commissionBps,
-      paystackTransferCode: input.paystackTransferCode,
-      paystackReference: input.paystackReference,
-    }
-    this.payouts.set(payout.id, payout)
-    for (const order of unpaid) {
-      const live = this.orderIndex.get(order.id)
-      if (live) live.payoutId = payout.id
-    }
-    const group = this.orderGroups.get(unpaid[0]?.orderGroupId ?? "")
-    const groupIntent = group ? this.intents.get(group.paymentIntentId) : undefined
-    // Currency resolves from the paid intent — never a literal, never a guess.
-    // A missing intent row is a data-integrity fault: fail loudly, not silently.
-    if (!groupIntent) throw new Error("payment intent missing for payout ledger")
-    await this.ledger.append(
-      payoutEntry({
-        payoutId: payout.id,
-        sellerId: input.sellerId,
-        netMinor: payout.netPesewas,
-        currency: groupIntent.currency,
-      }),
-    )
-    return { ...payout }
+    const reserved = await this.reservePayout({ ...input, reference: input.paystackReference, createdBy: "system" })
+    await this.markPayoutSent(reserved.id, input.paystackTransferCode, "system")
+    const { payout } = await this.settlePayout(reserved.id, "paid", { actor: "system" })
+    return payout!
   }
 
   async getPayout(id: string) {
@@ -884,14 +1412,14 @@ export class InMemoryCheckoutRepository implements CheckoutRepository {
     return [...this.payouts.values()]
       .reverse()
       .slice(0, Math.max(1, Math.min(limit, 200)))
-      .map((row) => ({ ...row, createdAt: null as Date | null }))
+      .map((row) => ({ ...row, createdAt: this.payoutCreatedAt.get(row.id) ?? null }))
   }
 
   async listPayoutsForSeller(sellerId: string) {
     return [...this.payouts.values()]
       .filter((p) => p.sellerId === sellerId)
       .reverse()
-      .map((row) => ({ ...row, createdAt: null as Date | null }))
+      .map((row) => ({ ...row, createdAt: this.payoutCreatedAt.get(row.id) ?? null }))
   }
 
   async listPaidLinesForSeller(sellerId: string) {
@@ -908,15 +1436,16 @@ export class InMemoryCheckoutRepository implements CheckoutRepository {
       if (payout.sellerId !== sellerId) continue
       for (const order of this.orderIndex.values()) {
         if (order.sellerId !== sellerId || order.payoutId !== payout.id) continue
-        const commission = (order.subtotalPesewas * BigInt(payout.commissionBps)) / 10_000n
+        const gross = this.payoutLineGross.get(order.id) ?? order.subtotalPesewas
+        const commission = (gross * BigInt(payout.commissionBps)) / 10_000n
         out.push({
           payoutId: payout.id,
           orderId: order.id,
-          grossPesewas: order.subtotalPesewas,
+          grossPesewas: gross,
           commissionPesewas: commission,
-          netPesewas: order.subtotalPesewas - commission,
+          netPesewas: gross - commission,
           payoutStatus: payout.status,
-          paidAt: null,
+          paidAt: payout.paidAt ?? null,
         })
       }
     }
@@ -968,6 +1497,106 @@ export class InMemoryCheckoutRepository implements CheckoutRepository {
     hold.releasedBy = releasedBy
     hold.releasedAt = new Date()
     return { ...hold }
+  }
+
+  async createReturnCase(input: {
+    orderId: string
+    sellerId: string
+    buyerEmail: string
+    reason: ReturnReason
+    wish: ReturnWish
+    note: string
+    respondBy: Date
+  }): Promise<ReturnCaseRow> {
+    const open = [...this.returnCases.values()].find((r) => r.orderId === input.orderId && r.status !== "closed")
+    if (open) throw new ReturnCaseOpenError(open.id)
+    const order = this.orderIndex.get(input.orderId)
+    if (!order || order.sellerId !== input.sellerId) throw new Error("order not in this seller's orders")
+    const now = this.now()
+    const row: ReturnCaseRow = {
+      id: crypto.randomUUID(),
+      ...input,
+      status: "requested",
+      declineReason: null,
+      outcome: null,
+      refundPesewas: 0n,
+      refundVia: null,
+      refundStatus: null,
+      refundRef: null,
+      sellerRecoveryPesewas: 0n,
+      recoveredPayoutId: null,
+      adminNote: null,
+      timeline: [{ at: now.toISOString(), by: "buyer", status: "requested", note: "Buyer asked for a return" }],
+      createdAt: now,
+      updatedAt: now,
+      closedAt: null,
+    }
+    this.returnCases.set(row.id, row)
+    // The order's payout waits while the case is open (if it hasn't gone out yet).
+    if (!order.payoutId && ![...this.holds.values()].some((h) => h.orderId === order.id && h.status === "held" && h.createdBy === "buyer")) {
+      await this.createPayoutHold({ sellerId: order.sellerId, orderId: order.id, reason: `Return requested: ${input.note}`, createdBy: "buyer" })
+    }
+    return structuredClone(row)
+  }
+
+  async getReturnCase(id: string) {
+    const r = this.returnCases.get(id)
+    return r ? structuredClone(r) : null
+  }
+
+  async listReturnCases(f: ReturnCaseFilter) {
+    const ids = f.orderIds ? new Set(f.orderIds) : null
+    return [...this.returnCases.values()]
+      .filter((r) => (!f.sellerId || r.sellerId === f.sellerId) && (!ids || ids.has(r.orderId)))
+      .filter((r) => !f.buyerEmail || r.buyerEmail.toLowerCase() === f.buyerEmail.toLowerCase())
+      .filter((r) => !f.statuses || f.statuses.includes(r.status))
+      .filter((r) => !f.dueAt || (r.status !== "closed" && !!r.respondBy && r.respondBy.getTime() <= f.dueAt.getTime()))
+      .filter((r) => !f.refundPending || (r.refundVia === "provider" && r.refundStatus === "pending"))
+      .sort((a, b) => +b.createdAt - +a.createdAt)
+      .map((r) => structuredClone(r))
+  }
+
+  async advanceReturnCase(id: string, from: ReturnStatus, change: ReturnCaseChange) {
+    const r = this.returnCases.get(id)
+    if (!r || r.status !== from) return null
+    const now = this.now()
+    r.status = change.status
+    r.respondBy = change.respondBy
+    if (change.declineReason !== undefined) r.declineReason = change.declineReason
+    if (change.outcome !== undefined) r.outcome = change.outcome
+    if (change.adminNote !== undefined) r.adminNote = change.adminNote
+    r.timeline.push({ at: now.toISOString(), by: change.entry.by, status: change.status, note: change.entry.note })
+    r.updatedAt = now
+    const money = change.refund
+    if (money && money.minor > 0n) {
+      const order = this.orderIndex.get(r.orderId)
+      if (order) order.refundedPesewas = (order.refundedPesewas ?? 0n) + money.minor
+      r.refundPesewas = money.minor
+      r.refundVia = money.via
+      r.refundStatus = money.status
+      r.refundRef = money.ref ?? null
+      r.sellerRecoveryPesewas = money.sellerRecoveryMinor
+      for (const e of refundEntries({ caseId: r.id, orderId: r.orderId, intentId: money.intentId, sellerId: r.sellerId, refundMinor: money.minor, platformMinor: money.platformMinor, currency: money.currency })) {
+        await this.ledger.append(e)
+      }
+    }
+    if (change.status === "closed") {
+      r.closedAt = now
+      for (const h of this.holds.values()) {
+        if (h.orderId === r.orderId && h.status === "held" && h.createdBy === "buyer") await this.releasePayoutHold(h.id, "return closed")
+      }
+    }
+    return structuredClone(r)
+  }
+
+  async setReturnRefund(id: string, patch: { status: "pending" | "paid" | "failed" | "owed"; ref?: string | null; entry?: { by: ReturnActor; note: string } }) {
+    const r = this.returnCases.get(id)
+    if (!r || r.refundPesewas <= 0n) return null
+    r.refundStatus = patch.status
+    if (patch.ref !== undefined) r.refundRef = patch.ref
+    r.updatedAt = this.now()
+    if (patch.entry) r.timeline.push({ at: r.updatedAt.toISOString(), by: patch.entry.by, status: r.status, note: patch.entry.note })
+    return structuredClone(r)
   }
 
   private notifications = new Map<string, NotificationRow>()

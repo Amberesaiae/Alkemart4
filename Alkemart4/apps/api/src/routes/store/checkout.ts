@@ -1,3 +1,4 @@
+import { enqueueOrderPlacedEmails, orderEmailLinks } from "../../lib/order-emails"
 import {
   chargePaystackMobileMoney,
   initializePaystackTransaction,
@@ -7,6 +8,10 @@ import { HTTPException } from "hono/http-exception"
 import { z } from "zod"
 import type { AppEnv } from "../../context"
 import { confirmCheckoutFromPaystack } from "../../lib/checkout-confirm"
+import { FulfillmentUnavailableError, chooseFulfillment, optionsForSellers, whereaboutsOf } from "../../lib/fulfillment"
+import { feesFromFulfillment } from "../../checkout-repository"
+import { deliveryPolicy } from "../../lib/delivery-policy"
+import { dealsForCart, markDealsUsed } from "../../lib/deals"
 import {
   expiryDelaySeconds,
   intentExpiryMessage,
@@ -24,13 +29,26 @@ const ShippingAddress = z.object({
   province: z.string().trim().max(80).optional(),
   country_code: z.string().trim().min(2).max(2),
   postal_code: z.string().trim().max(40).optional(),
-})
+  /** Exact delivery spot the buyer pinned on the map (optional). Ghana only. */
+  latitude: z.number().min(4).max(11.8).optional(),
+  longitude: z.number().min(-3.8).max(1.8).optional(),
+}).refine((a) => (a.latitude == null) === (a.longitude == null), { message: "pin needs both coordinates" })
 
 const CheckoutBase = {
   cartId: z.string().min(1),
   buyerEmail: z.string().email(),
   shippingAddress: ShippingAddress,
+  /** Per seller: delivery or pickup. Omitted sellers default to delivery. */
+  fulfillment: z.record(z.string(), z.enum(["delivery", "pickup"])).optional(),
 }
+
+const OptionsQuery = z.object({
+  cartId: z.string().min(1),
+  city: z.string().trim().max(80).optional(),
+  region: z.string().trim().max(80).optional(),
+  lat: z.coerce.number().min(4).max(11.8).optional(),
+  lng: z.coerce.number().min(-3.8).max(1.8).optional(),
+})
 
 const CheckoutBody = z.discriminatedUnion("method", [
   z.object({
@@ -52,6 +70,25 @@ const CheckoutBody = z.discriminatedUnion("method", [
   }),
 ])
 
+/**
+ * What the buyer reads when Paystack refuses to start a payment. Paystack's
+ * own wording ("Invalid Email Address Passed") goes to the log for support;
+ * the buyer gets a sentence they can act on. Stock is already released.
+ */
+function buyerPaymentError(err: unknown, method: "momo" | "card"): string {
+  const raw = err instanceof Error ? err.message : String(err)
+  console.error(JSON.stringify({ job: "checkout-payment-start", method, paystack: raw }))
+  const m = raw.toLowerCase()
+  if (m.includes("email")) return "Paystack didn't accept that email address. Check it and try again."
+  if (method === "momo" && (m.includes("phone") || m.includes("mobile") || m.includes("provider"))) {
+    return "That MoMo number or network wasn't accepted. Check the number and network, then try again."
+  }
+  if (m.includes("unreachable") || m.includes("timeout")) return "We couldn't reach the payment service. Nothing was charged — please try again."
+  return method === "momo"
+    ? "We couldn't start the MoMo payment. Nothing was charged — try again, or choose pay on delivery."
+    : "We couldn't open the card payment. Nothing was charged — try again, or choose another way to pay."
+}
+
 async function readBody(c: { req: { json: () => Promise<unknown> } }) {
   try {
     return await c.req.json()
@@ -61,6 +98,20 @@ async function readBody(c: { req: { json: () => Promise<unknown> } }) {
 }
 
 export const storeCheckout = new Hono<AppEnv>()
+  /**
+   * Delivery / pickup options and fees per seller for where the buyer is.
+   * Checkout recomputes these server-side; this is for showing the choice.
+   */
+  .get("/options", async (c) => {
+    const parsed = OptionsQuery.safeParse(c.req.query())
+    if (!parsed.success) throw new HTTPException(400, { message: "invalid query" })
+    const checkout = c.get("checkoutRepo")
+    const items = await checkout.listCartItems(parsed.data.cartId)
+    const sellerIds = [...new Set(items.map((i) => i.sellerId))]
+    const { city, region, lat, lng } = parsed.data
+    const sellers = await optionsForSellers(sellerIds, (id) => c.get("authRepo").findSellerById(id), { city, region, lat, lng }, await deliveryPolicy(c))
+    return c.json({ sellers })
+  })
   .get("/status", async (c) => {
     const cartId = c.req.query("cartId")?.trim() || c.req.query("cart_id")?.trim()
     if (!cartId) throw new HTTPException(400, { message: "cartId required" })
@@ -107,6 +158,7 @@ export const storeCheckout = new Hono<AppEnv>()
             paystackSecretKey: secretKey,
             verify: c.get("verifyPaystackTransaction"),
             jobs: c.get("jobs"),
+            emailLinks: orderEmailLinks(c),
           })
           return c.json({
             status: "completed",
@@ -158,7 +210,24 @@ export const storeCheckout = new Hono<AppEnv>()
       }
     }
 
-    const quote = await checkout.quote(cart.id)
+    // Delivery or pickup per seller, priced for where the buyer is and frozen
+    // on the intent. Fees are computed here, never taken from the client.
+    let fulfillment
+    try {
+      fulfillment = await chooseFulfillment(
+        sellerIds,
+        (id) => c.get("authRepo").findSellerById(id),
+        whereaboutsOf(parsed.data.shippingAddress),
+        parsed.data.fulfillment,
+        await deliveryPolicy(c),
+      )
+    } catch (err) {
+      if (err instanceof FulfillmentUnavailableError) throw new HTTPException(409, { message: err.message })
+      throw err
+    }
+    // Accepted "make an offer" prices for this signed-in buyer, frozen on the intent.
+    const { deals, used: dealsUsed } = await dealsForCart(c, items)
+    const quote = await checkout.quote(cart.id, feesFromFulfillment(fulfillment), deals)
 
     // Idempotent replay: a retry/double-submit within 10 minutes for the same
     // cart + method + buyer + address reuses the live intent or its order
@@ -175,6 +244,8 @@ export const storeCheckout = new Hono<AppEnv>()
       priorMethod === wantedMethod &&
       prior.buyerEmail.toLowerCase() === parsed.data.buyerEmail.toLowerCase() &&
       sameAddress(prior.shippingAddress, parsed.data.shippingAddress) &&
+      sameAddress(prior.fulfillment, fulfillment) &&
+      sameAddress(prior.deals, deals) &&
       prior.createdAt &&
       Date.now() - new Date(prior.createdAt).getTime() < 10 * 60 * 1000
     ) {
@@ -222,8 +293,12 @@ export const storeCheckout = new Hono<AppEnv>()
         momoProvider: null,
         momoPhone: null,
         shippingAddress,
+        fulfillment,
+        deals,
       })
+      await markDealsUsed(c.get("deals"), dealsUsed, intentId)
       const { orderGroup, orders } = await checkout.confirmPaidOrder(intentId)
+      await enqueueOrderPlacedEmails(checkout, { group: orderGroup, orders, method: "cod", links: orderEmailLinks(c) })
       await publishJob(c.get("jobs"), "notifications", notificationSweepMessage())
       return c.json({
         paymentIntentId: intentId,
@@ -256,7 +331,10 @@ export const storeCheckout = new Hono<AppEnv>()
       momoProvider: momo?.provider ?? null,
       momoPhone: momo?.phone ?? null,
       shippingAddress,
+      fulfillment,
+      deals,
     })
+    await markDealsUsed(c.get("deals"), dealsUsed, intentId)
     // Delayed per-intent expiry replaces the hourly sweep: when this fires the
     // intent is either terminal (noop) or stale (CAS-expire + release). Early
     // redeliveries re-schedule themselves for the remaining time.
@@ -314,10 +392,7 @@ export const storeCheckout = new Hono<AppEnv>()
         )
       } catch (err) {
         await checkout.releaseReservations(intentId)
-        throw await failIntent(
-          err instanceof Error ? err.message : "Paystack charge failed",
-          502,
-        )
+        throw await failIntent(buyerPaymentError(err, "momo"), 502)
       }
 
       return c.json({
@@ -347,10 +422,7 @@ export const storeCheckout = new Hono<AppEnv>()
       )
     } catch (err) {
       await checkout.releaseReservations(intentId)
-      throw await failIntent(
-        err instanceof Error ? err.message : "Paystack initialize failed",
-        502,
-      )
+      throw await failIntent(buyerPaymentError(err, "card"), 502)
     }
 
     return c.json({

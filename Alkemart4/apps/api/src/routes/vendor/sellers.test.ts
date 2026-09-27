@@ -500,6 +500,30 @@ describe("PATCH /vendor/sellers/me/display + /contact + /featured", () => {
     }
   })
 
+  it("accepts social handles and numbers, stores canonical links, and removes on empty", async () => {
+    const { app } = await displayApp()
+    const token = await sellerToken(app)
+    type Social = { seller: { contact: { social: Record<string, string> } } }
+    const set = await app.request(
+      "/vendor/sellers/me/contact",
+      json("PATCH", { social: { tiktok: "@accra.mart", whatsapp: "024 412 3456", instagram: "accramart" } }, token),
+      testEnv(),
+    )
+    expect(set.status).toBe(200)
+    expect(((await set.json()) as Social).seller.contact.social).toEqual({
+      tiktok: "https://www.tiktok.com/@accra.mart",
+      whatsapp: "https://wa.me/233244123456",
+      instagram: "https://www.instagram.com/accramart",
+    })
+    const removed = await app.request(
+      "/vendor/sellers/me/contact",
+      json("PATCH", { social: { instagram: "", tiktok: null } }, token),
+      testEnv(),
+    )
+    expect(removed.status).toBe(200)
+    expect(((await removed.json()) as Social).seller.contact.social).toEqual({ whatsapp: "https://wa.me/233244123456" })
+  })
+
   it("featured shelf allows own products only, max 8", async () => {
     const { InMemoryCatalogRepository } = await import("../../catalog-repository")
     const { GHANA_CATEGORY_SEED } = await import("@alkemart/db")

@@ -57,7 +57,7 @@ describe("admin Paystack payouts", () => {
     await checkoutRepo.createPaymentIntent({
       id: intentId,
       cartId: cart.id,
-      method: "cod",
+      method: "momo",
       status: "initiated",
       amountPesewas: quote.totalPesewas,
       currency: "GHS",
@@ -116,5 +116,33 @@ describe("admin Paystack payouts", () => {
     expect(body.payout.commissionBps).toBe(700)
     // subtotal 1500 @ 7% = 105 commission → net 1395
     expect(body.payout.netPesewas).toBe("1395")
+
+    // "Pay everyone ready": pays the next released order once, never twice.
+    const cart2 = await checkoutRepo.createCart()
+    await checkoutRepo.addCartItem(cart2.id, "offer-a", 1)
+    const intent2 = crypto.randomUUID()
+    await checkoutRepo.createPaymentIntent({
+      id: intent2,
+      cartId: cart2.id,
+      method: "momo",
+      status: "initiated",
+      amountPesewas: (await checkoutRepo.quote(cart2.id)).totalPesewas,
+      currency: "GHS",
+      paystackReference: null,
+      buyerEmail: "buyer@t.test",
+      momoProvider: null,
+      momoPhone: null,
+      shippingAddress: null,
+    })
+    const order2 = (await checkoutRepo.confirmPaidOrder(intent2)).orders[0]!.id
+    await checkoutRepo.updateOrderStatus(order2, "seller-a", "shipped")
+    await checkoutRepo.updateOrderStatus(order2, "seller-a", "delivered")
+    const run = async () => {
+      const res = await app.request("/admin/payouts/run", { method: "POST", headers: { Authorization: `Bearer ${adminToken}` } })
+      expect(res.status).toBe(200)
+      return ((await res.json()) as { results: { sellerId: string; outcome: string; netPesewas: string | null }[] }).results
+    }
+    expect(await run()).toMatchObject([{ sellerId: "seller-a", outcome: "paid", netPesewas: "1395" }])
+    expect(await run()).toEqual([])
   })
 })

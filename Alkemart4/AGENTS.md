@@ -5,7 +5,9 @@
 - **API:** `apps/api` (Cloudflare Workers / Hono)  
 - **DB:** Supabase Postgres via Hyperdrive  
 - **Payments:** Paystack only  
-- **UIs:** `apps/storefront` · `apps/backend/apps/ghana-vendor` · `apps/backend/apps/admin`  
+- **UIs:** `apps/storefront-v2` · `apps/vendor-v2` · `apps/admin-v2` (shared kit `packages/console-ui`)  
+- **Retired UIs — do not edit, build or deploy:** `apps/storefront`, `apps/backend/**`  
+- **Current state and next steps:** `docs/architecture/workers/HANDOFF.md`  
 - **Brand:** gold `#FEBF31`  
 
 **Medusa / Mercur / Railway / Neon are not production writers.** Ignore `archive/**`.

@@ -1,0 +1,56 @@
+{
+  "name": "alkemart",
+  "short_name": "alkemart",
+  "description": "Many sellers. More choices. Better prices.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "theme_color": "#febf31",
+  "background_color": "#ffffff",
+  "categories": [
+    "shopping"
+  ],
+  "icons": [
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "1254x1254",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshots/home-mobile.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Alkemart home on mobile"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Search products",
+      "short_name": "Search",
+      "url": "/search",
+      "icons": [
+        {
+          "src": "/icons/icon-512.png",
+          "sizes": "1254x1254"
+        }
+      ]
+    },
+    {
+      "name": "My orders",
+      "short_name": "Orders",
+      "url": "/account/orders",
+      "icons": [
+        {
+          "src": "/icons/icon-512.png",
+          "sizes": "1254x1254"
+        }
+      ]
+    }
+  ],
+  "prefer_related_applications": false
+}

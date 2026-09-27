@@ -1,0 +1,66 @@
+import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react"
+import {
+  DeliveryTruck01Icon,
+  SecurityValidationIcon,
+  Store04Icon,
+  Wallet01Icon,
+} from "@hugeicons/core-free-icons"
+import { getActiveMarket } from "@/lib/market"
+import { cn } from "@/lib/utils"
+
+type Item = { icon: IconSvgElement; title: string; body: string }
+
+/** Marketplace promises — each maps to a real platform behaviour. */
+function items(): Item[] {
+  const m = getActiveMarket()
+  const pays = [
+    m.paymentMethods.includes("cod") ? "on delivery" : null,
+    m.paymentMethods.includes("momo") ? "mobile money" : null,
+    m.paymentMethods.includes("card") ? "card" : null,
+  ].filter(Boolean)
+  return [
+    { icon: Store04Icon, title: "Many sellers", body: "Independent shops, one place" },
+    { icon: Wallet01Icon, title: "Pay your way", body: `Pay ${pays.join(", ")}` },
+    { icon: DeliveryTruck01Icon, title: "Delivery shown upfront", body: "Every seller quotes before you pay" },
+    { icon: SecurityValidationIcon, title: "Verified shops", body: "Badges name exactly what was checked" },
+  ]
+}
+
+/** Home: one white panel that overlaps the bottom of the gold hero. */
+export function TrustPanel() {
+  return (
+    <div className="relative z-10 -mt-10 rounded-t-[2rem] bg-background pt-5 sm:-mt-12">
+      <ul className="container-page grid grid-cols-2 gap-y-4 lg:grid-cols-4 lg:divide-x lg:divide-border">
+        {items().map((it) => (
+          <li key={it.title} className="flex items-center gap-3 lg:px-6 lg:first:pl-0">
+            <span className="grid size-11 shrink-0 place-items-center rounded-full bg-brand text-brand-foreground">
+              <HugeiconsIcon icon={it.icon} className="size-5" />
+            </span>
+            <span className="min-w-0">
+              <span className="block text-sm leading-tight font-semibold">{it.title}</span>
+              <span className="mt-0.5 hidden text-[13px] text-muted-foreground sm:block">{it.body}</span>
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
+export function TrustStrip({ className }: { className?: string }) {
+  return (
+    <ul className={cn("grid grid-cols-2 gap-3 lg:grid-cols-4", className)}>
+      {items().map((it) => (
+        <li key={it.title} className="flex items-center gap-3 rounded-2xl bg-surface p-3 sm:p-4">
+          <span className="grid size-10 shrink-0 place-items-center rounded-full bg-brand text-brand-foreground">
+            <HugeiconsIcon icon={it.icon} className="size-5" />
+          </span>
+          <span className="min-w-0">
+            <span className="block text-sm leading-tight font-semibold">{it.title}</span>
+            <span className="mt-0.5 hidden text-[13px] text-muted-foreground sm:block">{it.body}</span>
+          </span>
+        </li>
+      ))}
+    </ul>
+  )
+}

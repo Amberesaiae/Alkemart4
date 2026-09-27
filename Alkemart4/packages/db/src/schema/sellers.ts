@@ -27,7 +27,7 @@ export const sellers = pgTable("sellers", {
   logo: text("logo"),
   banner: text("banner"),
   status: sellerStatusEnum("status").notNull().default("pending_approval"),
-  commissionBps: integer("commission_bps").notNull().default(700),
+  commissionBps: integer("commission_bps").notNull().default(0),
   deliveryFeePesewas: bigint("delivery_fee_pesewas", { mode: "bigint" }).notNull().default(sql`0`),
   recipientCode: text("recipient_code"),
   momoProvider: text("momo_provider"),

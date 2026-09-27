@@ -67,5 +67,44 @@ Workers-visible (`workers: true` in sidebar):
 
 ## Gaps
 
-- No Workers returns/disputes/promotions CRUD  
+- No Workers promotions CRUD  
 - Payout list endpoint soft-empty in UI  
+
+## Rules (platform settings)
+
+Admin → Rules edits the delivery policy (`GET/PUT /admin/settings/delivery-policy`):
+report windows (same-day / other), same-town distance, handover code tries.
+Defaults and validation live in `packages/domain` (`DEFAULT_DELIVERY_POLICY`,
+`parseDeliveryPolicy`); values are stored in `platform_settings` and every
+change is audit-logged. Admin does not confirm deliveries — buyers and sellers
+do; admin only resolves reports they can't settle.
+
+## Business (overview, exports, statements)
+
+Admin → Insights → Business: the platform's overview for any period, or one
+shop's (the seller's exact view) via the shop selector; orders CSV; platform
+or shop statements. API `GET /admin/business/overview|orders.csv|statements`
+with optional `?sellerId=`. Numbers come only from `packages/domain`
+(`summarize`, `buildStatement`); statements freeze on first view after the
+month ends, so no one has to "close the month".
+
+## Returns & disputes (0044)
+
+Admin → Operations → **Returns & disputes** (nav badge = cases to decide).
+Views: needs a decision (escalated by the buyer or a missed seller deadline),
+open, refunds to check (failed at Paystack, or owed by a pay-on-delivery
+seller), closed. Each case expands inline: order facts, whether the seller
+was already paid out, the timeline, and a
+decision (refund the buyer in full, or side with the seller) with a reason
+both sides see. Decisions and refund retries are audit-logged.
+Return windows are fixed defaults in the domain (`DEFAULT_RETURN_POLICY`),
+not admin settings.
+
+## Reports (0045) and offer rules (0046)
+
+Operations → **Reports**: conversations a buyer or seller reported — the only
+messages admin can read (each opening audit-logged). Close the conversation
+for both sides or dismiss. Product questions can be hidden. Rules → **Make an
+offer**: accepted-price hours, reply hours, lowest offer %, open offers per
+buyer (`/admin/settings/deal-policy`).
+

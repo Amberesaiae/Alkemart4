@@ -220,3 +220,32 @@ describe("POST /vendor/products/:id/propose", () => {
     expect(cross.status).toBe(404)
   })
 })
+
+describe("draft-first product creation", () => {
+  it("creates a draft, then send-for-review moves it to proposed", async () => {
+    const authRepo = new InMemoryAuthRepository()
+    const repo = new InMemoryCatalogRepository(emptyCatalog())
+    const app = createApp({ authRepo, repo, jwtSecret: JWT_SECRET })
+    const seller = await registerVendor(app, { email: "d@alkemart.test", sellerName: "Draft Shop", sellerHandle: "draft-shop" })
+
+    const created = await app.request("/vendor/products", authJson("POST", seller.token, { ...createBody, draft: true }), testEnv())
+    expect(created.status).toBe(201)
+    const body = (await created.json()) as { product: { id: string; status: string } }
+    expect(body.product.status).toBe("draft")
+
+    const proposed = await app.request(`/vendor/products/${body.product.id}/propose`, authJson("POST", seller.token), testEnv())
+    expect(proposed.status).toBe(200)
+    const after = (await proposed.json()) as { product: { status: string } }
+    expect(after.product.status).toBe("proposed")
+  })
+
+  it("without the flag, creation still proposes (old seller app unchanged)", async () => {
+    const authRepo = new InMemoryAuthRepository()
+    const repo = new InMemoryCatalogRepository(emptyCatalog())
+    const app = createApp({ authRepo, repo, jwtSecret: JWT_SECRET })
+    const seller = await registerVendor(app, { email: "e@alkemart.test", sellerName: "Old Shop", sellerHandle: "old-shop" })
+    const created = await app.request("/vendor/products", authJson("POST", seller.token, createBody), testEnv())
+    const body = (await created.json()) as { product: { status: string } }
+    expect(body.product.status).toBe("proposed")
+  })
+})

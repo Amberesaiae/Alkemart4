@@ -8,6 +8,14 @@ import type { AppEnv } from "../../context"
 import { readJsonBody } from "../../lib/session"
 import { requireSeller } from "../../middleware/auth"
 import { DELIVERY_MINUTE_BANDS, isDeliveryBand } from "@alkemart/shared/storefront-badges"
+import {
+  fulfillmentSettingsFrom,
+  fulfillmentSettingsToStored,
+  normalizeSocial,
+  validateDeliveryPromise,
+  type SocialKind,
+} from "@alkemart/domain"
+import { deliveryPromiseFromMetadata } from "../../lib/delivery-promise"
 
 const HANDLE_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 
@@ -57,6 +65,17 @@ const PolicyBody = z.object({
   warranty: z.string().trim().max(2000).optional(),
 }).refine((v) => Object.keys(v).length > 0, { message: "empty patch" })
 
+const Fee = z.union([z.literal(null), z.string().regex(/^\d{1,9}$/)])
+const FulfillmentBody = z
+  .object({
+    /** Pesewas per zone; null = doesn't deliver there. */
+    delivery: z.object({ town: Fee, region: Fee, country: Fee }),
+    pickup: z.boolean(),
+  })
+  .refine((v) => v.pickup || v.delivery.town != null || v.delivery.region != null || v.delivery.country != null, {
+    message: "Offer delivery somewhere or pickup — buyers need at least one way to get their order.",
+  })
+
 const PauseBody = z.object({
   note: z.string().trim().max(500).optional().nullable(),
   until: z.string().trim().min(1).optional().nullable(),
@@ -70,14 +89,21 @@ const DisplayBody = z
   })
   .refine((v) => Object.keys(v).length > 0, { message: "empty patch" })
 
-const DeliveryBody = z.object({
-  /** Null clears the declaration; a shop may honestly stop promising a band. */
-  minutes: z
-    .union([z.literal(null), z.number().int()])
-    .refine((v) => v === null || isDeliveryBand(v), {
-      message: `minutes must be one of ${DELIVERY_MINUTE_BANDS.join(", ")}`,
-    }),
-})
+const DeliveryBody = z
+  .object({
+    /** Same-day band. Null clears it; a shop may honestly stop promising one. */
+    minutes: z
+      .union([z.literal(null), z.number().int()])
+      .refine((v) => v === null || isDeliveryBand(v), {
+        message: `minutes must be one of ${DELIVERY_MINUTE_BANDS.join(", ")}`,
+      })
+      .optional(),
+    /** Door-to-door range in days, e.g. { min: 1, max: 3 }. Null clears it. */
+    days: z.union([z.literal(null), z.object({ min: z.number().int(), max: z.number().int() })]).optional(),
+    /** Hours from order to hand-over. */
+    dispatchHours: z.union([z.literal(null), z.number().int()]).optional(),
+  })
+  .refine((v) => Object.keys(v).length > 0, { message: "empty patch" })
 
 const ContactBody = z
   .object({
@@ -194,6 +220,10 @@ export function displayFromMetadata(meta: Record<string, unknown> | null): Displ
 export type DeliveryBlock = {
   /** One of the published bands, or null when the shop has not declared one. */
   minutes: number | null
+  /** Door-to-door range in days (0036 promise), or null. */
+  days: { min: number; max: number } | null
+  /** Hours to dispatch; null means the platform default (24h). */
+  dispatchHours: number | null
 }
 
 /**
@@ -204,7 +234,12 @@ export type DeliveryBlock = {
  */
 export function deliveryFromMetadata(meta: Record<string, unknown> | null): DeliveryBlock {
   const raw = (meta?.delivery ?? null) as { minutes?: unknown } | null
-  return { minutes: isDeliveryBand(raw?.minutes) ? raw.minutes : null }
+  const p = deliveryPromiseFromMetadata(meta)
+  return {
+    minutes: isDeliveryBand(raw?.minutes) && !p?.days ? raw.minutes : null,
+    days: p?.days ?? null,
+    dispatchHours: p?.dispatchHours ?? null,
+  }
 }
 
 export type ContactBlock = {
@@ -241,25 +276,6 @@ const E164_RE = /^\+[1-9]\d{6,14}$/
 const HOURS_DAYS_RE =
   /^(Daily|Mon|Tue|Wed|Thu|Fri|Sat|Sun)(-(Mon|Tue|Wed|Thu|Fri|Sat|Sun))?(,(Mon|Tue|Wed|Thu|Fri|Sat|Sun)(-(Mon|Tue|Wed|Thu|Fri|Sat|Sun))?)*$/
 const HHMM_RE = /^([01]\d|2[0-3]):[0-5]\d$/
-const SOCIAL_ALLOWLIST: Record<string, string[]> = {
-  instagram: ["instagram.com"],
-  facebook: ["facebook.com"],
-  tiktok: ["tiktok.com"],
-  whatsapp: ["wa.me", "whatsapp.com"],
-}
-
-function socialUrlOk(kind: string, value: string): boolean {
-  let host = ""
-  try {
-    const u = new URL(value)
-    if (u.protocol !== "https:") return false
-    host = u.hostname.toLowerCase()
-  } catch {
-    return false
-  }
-  return (SOCIAL_ALLOWLIST[kind] ?? []).some((d) => host === d || host.endsWith(`.${d}`))
-}
-
 function sellerIdOrThrow(c: { get: (k: "auth") => { sellerId?: string } }) {
   const sellerId = c.get("auth").sellerId
   if (!sellerId) throw new HTTPException(403, { message: "forbidden" })
@@ -298,6 +314,7 @@ async function sellerView(c: Context<AppEnv>, sellerId: string) {
       storefront: storefrontFromMetadata(meta),
       display: displayFromMetadata(meta),
       delivery: deliveryFromMetadata(meta),
+      fulfillment: fulfillmentSettingsToStored(fulfillmentSettingsFrom(meta.fulfillment, seller.deliveryFeePesewas ?? 0n)),
       contact: contactFromMetadata(meta),
       address: hasAddress
         ? {
@@ -369,6 +386,8 @@ export const vendorSellers = new Hono<AppEnv>()
     // where nothing can query or index them. Promote them to real columns
     // (0035) so distance is computable; the metadata copy stays for readers
     // that still expect it.
+    const current = await c.get("authRepo").findSellerById(sellerId)
+    if (!current) throw new HTTPException(404, { message: "seller not found" })
     const pinned = latitude != null && longitude != null
     if (pinned && (latitude < 4.0 || latitude > 11.8 || longitude < -3.8 || longitude > 1.8)) {
       throw new HTTPException(400, { message: "coordinates are outside Ghana" })
@@ -385,14 +404,14 @@ export const vendorSellers = new Hono<AppEnv>()
         digitalAddress: digital_address ?? undefined,
         deliveryFeePesewas:
           delivery_fee_pesewas !== undefined ? BigInt(delivery_fee_pesewas) : undefined,
+        // Merge, never replace: metadata also holds the delivery promise,
+        // contact, storefront and fulfillment settings. Only fields present in
+        // this request change (a fee-only save must not wipe the address).
         metadata: {
-          address_1: address_1 ?? null,
-          address_2: address_2 ?? null,
-          city: city ?? null,
-          district: district ?? null,
-          latitude: latitude ?? null,
-          longitude: longitude ?? null,
-          country_code: country_code ?? "gh",
+          ...(current.metadata ?? {}),
+          ...Object.fromEntries(
+            Object.entries({ address_1, address_2, city, district, latitude, longitude, country_code }).filter(([, v]) => v !== undefined),
+          ),
         },
       })
     } catch (err) {
@@ -608,9 +627,27 @@ export const vendorSellers = new Hono<AppEnv>()
     const sellerId = sellerIdOrThrow(c)
     const seller = await c.get("authRepo").findSellerById(sellerId)
     if (!seller) throw new HTTPException(404, { message: "seller not found" })
-    await c
-      .get("authRepo")
-      .patchSellerMetadata(sellerId, { delivery: { minutes: parsed.data.minutes } })
+    // Merge onto what's stored; choosing days clears minutes and vice versa.
+    const current = deliveryFromMetadata(seller.metadata ?? null)
+    const next = { ...current, ...parsed.data }
+    if (parsed.data.days) next.minutes = null
+    if (parsed.data.minutes) next.days = null
+    const problem = validateDeliveryPromise(next)
+    if (problem) throw new HTTPException(400, { message: problem })
+    await c.get("authRepo").patchSellerMetadata(sellerId, { delivery: next })
+    return c.json(await sellerView(c, sellerId))
+  })
+  /** Delivery zones and pickup (0042). The same-town fee also stays the legacy flat fee. */
+  .patch("/me/fulfillment", async (c) => {
+    const parsed = FulfillmentBody.safeParse(await readJsonBody(c))
+    if (!parsed.success) throw new HTTPException(400, { message: parsed.error.issues[0]?.message ?? "invalid body" })
+    const sellerId = sellerIdOrThrow(c)
+    const { delivery, pickup } = parsed.data
+    const big = (v: string | null) => (v == null ? null : BigInt(v))
+    const settings = { delivery: { town: big(delivery.town), region: big(delivery.region), country: big(delivery.country) }, pickup }
+    await c.get("authRepo").patchSellerMetadata(sellerId, { fulfillment: fulfillmentSettingsToStored(settings) })
+    const headline = settings.delivery.town ?? settings.delivery.region ?? settings.delivery.country
+    if (headline != null) await c.get("authRepo").updateSellerAddress(sellerId, { deliveryFeePesewas: headline })
     return c.json(await sellerView(c, sellerId))
   })
   .patch("/me/contact", async (c) => {
@@ -627,14 +664,17 @@ export const vendorSellers = new Hono<AppEnv>()
         throw new HTTPException(400, { message: "open/close must be HH:MM" })
       }
     }
-    const socialClean: Record<string, string> = {}
+    // Sellers may type a handle, a number or a link; we store one canonical
+    // https URL on the platform's own host. Empty/null removes that link.
+    const socialSet: Record<string, string> = {}
+    const socialRemove: string[] = []
     if (social != null) {
       for (const [kind, value] of Object.entries(social)) {
-        if (value == null || value === "") continue
-        if (!socialUrlOk(kind, value)) {
-          throw new HTTPException(400, { message: `invalid ${kind} URL` })
-        }
-        socialClean[kind] = value
+        if (value === undefined) continue
+        const r = normalizeSocial(kind as SocialKind, value)
+        if (!r.ok) throw new HTTPException(400, { message: r.message })
+        if (r.url) socialSet[kind] = r.url
+        else socialRemove.push(kind)
       }
     }
     const seller = await c.get("authRepo").findSellerById(sellerId)
@@ -646,7 +686,11 @@ export const vendorSellers = new Hono<AppEnv>()
       ...(phone !== undefined ? { phone: phone === "" ? null : phone } : {}),
       ...(hours !== undefined ? { hours } : {}),
       ...(social !== undefined
-        ? { social: { ...((prev ?? {}) as Record<string, unknown>), ...socialClean } }
+        ? {
+            social: Object.fromEntries(
+              Object.entries({ ...((prev ?? {}) as Record<string, unknown>), ...socialSet }).filter(([k]) => !socialRemove.includes(k)),
+            ),
+          }
         : {}),
     }
     await c.get("authRepo").patchSellerMetadata(sellerId, { contact: merged })

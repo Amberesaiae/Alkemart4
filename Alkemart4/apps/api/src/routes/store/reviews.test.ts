@@ -106,7 +106,7 @@ describe("buyer → vendor → moderation review loop", () => {
     const orderId = mine.items[0]!.id
 
     for (const next of ["ship", "deliver"]) {
-      const flip = await app.request(`/vendor/orders/${orderId}/${next}`, json("POST", {}, sellerToken), testEnv())
+      const flip = await app.request(`/vendor/orders/${orderId}/${next}`, json("POST", next === "deliver" ? { code: await buyerCode(app, orderId) } : {}, sellerToken), testEnv())
       expect(flip.status).toBe(200)
     }
 
@@ -218,3 +218,14 @@ describe("buyer → vendor → moderation review loop", () => {
     expect(write.status).toBe(400)
   })
 })
+
+/** The buyer's handover code, read the way the buyer reads it (order lookup). */
+async function buyerCode(app: { request: (...a: never[]) => Response | Promise<Response> }, orderId: string, email = "buyer@alkemart.test") {
+  const res = await (app.request as unknown as (p: string, i: RequestInit, e?: unknown) => Promise<Response>)(
+    "/store/orders/lookup",
+    { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ orderId, email }) },
+    testEnv(),
+  )
+  const body = (await res.json()) as { orderGroup: { orders: { id: string; handoverCode: string | null }[] } }
+  return body.orderGroup.orders.find((o) => o.id === orderId)?.handoverCode ?? ""
+}

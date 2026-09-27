@@ -7,6 +7,7 @@ export const payoutStatusEnum = pgEnum("payout_status", [
   "processing",
   "paid",
   "failed",
+  "reversed",
 ])
 
 export const payouts = pgTable("payouts", {
@@ -21,7 +22,38 @@ export const payouts = pgTable("payouts", {
   commissionBps: integer("commission_bps").notNull(),
   paystackTransferCode: text("paystack_transfer_code"),
   paystackReference: text("paystack_reference").unique(),
+  failureReason: text("failure_reason"),
+  paidAt: timestamp("paid_at", { withTimezone: true }),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  createdBy: text("created_by"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  /** Refunds on already-paid orders taken back from this payout (0044). */
+  recoveredPesewas: bigint("recovered_pesewas", { mode: "bigint" }).notNull().default(0n),
+})
+
+/** 0039: every step of a payout, readable by the seller and admins. */
+export const payoutEvents = pgTable("payout_events", {
+  id: text("id").primaryKey(),
+  payoutId: text("payout_id")
+    .notNull()
+    .references(() => payouts.id, { onDelete: "cascade" }),
+  status: text("status").notNull(),
+  actor: text("actor").notNull(),
+  detail: text("detail"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+})
+
+/** 0039: signed Paystack webhooks received and what we did with them. */
+export const paystackEvents = pgTable("paystack_events", {
+  id: text("id").primaryKey(),
+  event: text("event").notNull(),
+  reference: text("reference"),
+  amountMinor: bigint("amount_minor", { mode: "bigint" }),
+  currency: text("currency"),
+  status: text("status"),
+  outcome: text("outcome").notNull(),
+  detail: text("detail"),
+  receivedAt: timestamp("received_at", { withTimezone: true }).notNull().defaultNow(),
 })
 
 export const payoutLines = pgTable("payout_lines", {

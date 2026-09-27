@@ -46,6 +46,18 @@ export const adminAppeals = new Hono<AppEnv>()
       const updated = await c.get("repo").proposeVendorProduct(appeal.sellerId, appeal.productId)
       if (!updated) throw new HTTPException(404, { message: "product not found" })
     }
+    // The listing's review history shows the appeal outcome, so the queue and
+    // the seller both see why it's back in review (or still rejected).
+    await c
+      .get("reviews")
+      .record({
+        productId: appeal.productId,
+        decision: parsed.data.decision === "reopen" ? "submitted" : "reject",
+        reviewer: "admin",
+        reviewerId: c.get("auth").userId,
+        note: parsed.data.decision === "reopen" ? `Reopened after appeal${parsed.data.note ? `: ${parsed.data.note}` : ""}` : (parsed.data.note ?? "Appeal reviewed — decision stands"),
+      })
+      .catch(() => undefined)
     const closed = await c.get("appeals").resolve(
       appeal.id,
       parsed.data.decision === "reopen" ? "reopened" : "upheld",

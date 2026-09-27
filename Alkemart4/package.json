@@ -8,15 +8,16 @@
     "restart": "bash scripts/restart-local.sh",
     "dev:api": "bun run --filter @alkemart/api dev",
     "dev:storefront": "bun run --filter @workspace/storefront dev",
+    "dev:storefront-v2": "bun run --filter @workspace/storefront-v2 dev",
     "dev:vendor": "bun run --filter @alkemart/ghana-vendor dev",
     "dev:admin": "bun run --filter @acme/admin dev",
     "smoke": "bash scripts/e2e-workers-smoke.sh",
     "smoke:acid": "bash scripts/e2e-workers-acid.sh",
     "smoke:local": "ALKEMART_API_URL=http://127.0.0.1:8787 SKIP_PAGES=1 bash scripts/e2e-workers-smoke.sh",
     "smoke:acid:local": "ALKEMART_API_URL=http://127.0.0.1:8787 SKIP_PAGES=1 bash scripts/e2e-workers-acid.sh",
-    "test:api": "bunx vitest run apps/api/src --maxWorkers=2",
-    "test:rls": "bunx vitest run apps/api/src/rls.test.ts --maxWorkers=1",
-    "test:domain": "bunx vitest run packages/domain/src --maxWorkers=2",
+    "test:api": "bun run --cwd apps/api test --maxWorkers=2",
+    "test:rls": "bun run --cwd apps/api test src/rls.test.ts --maxWorkers=1",
+    "test:domain": "bun run --cwd packages/domain test --maxWorkers=2",
     "db:migrate": "bun scripts/apply-migrations.ts",
     "deploy:api": "bash -lc 'export NODE_OPTIONS=\"--dns-result-order=ipv4first${NODE_OPTIONS:+ $NODE_OPTIONS}\"; cd apps/api && wrangler deploy'",
     "deploy:pages": "bash scripts/deploy-pages.sh",
@@ -24,10 +25,12 @@
     "check:migrations": "bun scripts/check-migrations.ts",
     "check:api-client": "bash scripts/check-api-client.sh",
     "setup": "bun install",
-    "build": "bun run --filter '@workspace/storefront' --filter '@alkemart/ghana-vendor' --filter '@acme/admin' build",
+    "build": "bun run --filter '@workspace/storefront-v2' --filter '@workspace/vendor-v2' --filter '@workspace/admin-v2' build",
     "test": "bun run test:api && bun run test:domain && bun run test:storefront",
     "test:storefront": "bun run --filter '@workspace/storefront' test",
-    "check": "bun run typecheck && bun run check:migrations && bun run check:api-client"
+    "check": "bun run typecheck && bun run check:migrations && bun run check:api-client",
+    "dev:vendor-v2": "bun run --filter @workspace/vendor-v2 dev",
+    "dev:admin-v2": "bun run --filter @workspace/admin-v2 dev"
   },
   "private": true,
   "devDependencies": {
@@ -46,6 +49,7 @@
     "apps/backend/apps/admin",
     "apps/backend/apps/ghana-vendor",
     "apps/storefront",
+    "apps/storefront-v2",
     "packages/api-client",
     "packages/api-spec",
     "packages/db",
@@ -53,7 +57,11 @@
     "packages/paystack",
     "packages/shared",
     "packages/ui",
-    "scripts"
+    "scripts",
+    "apps/vendor-v2",
+    "apps/admin-v2",
+    "packages/console-ui",
+    "packages/maps"
   ],
   "packageManager": "bun@1.3.14"
 }

@@ -84,15 +84,37 @@ export VITE_ALKEMART_STOREFRONT_URL=https://alkemart4-storefront.pages.dev
 
 | App | Build from | Pages project |
 |-----|------------|---------------|
-| Storefront | `apps/storefront` | `alkemart4-storefront` |
-| Vendor | `apps/backend/apps/ghana-vendor` | `alkemart4-vendor` |
-| Admin | `apps/backend/apps/admin` | `alkemart4-admin` |
+| Storefront | `apps/storefront-v2` | `alkemart4-storefront` |
+| Vendor | `apps/vendor-v2` | `alkemart4-vendor` |
+| Admin | `apps/admin-v2` | `alkemart4-admin` |
+
+The v2 apps are the live UIs (pilot build, 2026-09-27). `apps/storefront` and
+`apps/backend/apps/*` are **retired**: never build or deploy them. Each v2 app
+ships `public/_redirects` (`/* /index.html 200`) so deep links work on Pages.
+Before deploying the pilot, read `docs/architecture/workers/HANDOFF.md`
+(migrations 0036–0049, Paystack live setup).
 
 Do **not** set `VITE_MEDUSA_*` for production Pages builds.
 
 ## Schema / migrate
 
-Prefer `packages/db` Drizzle migrate when `DATABASE_URL` is reachable from your machine.
+Use the repository runner, `DATABASE_URL="<connection URL>" bun run db:migrate`.
+Do not use `supabase db push` or Drizzle's journal: these hand-written SQL files
+are tracked by their full filename (without `.sql`) in `schema_migrations`.
+
+Before running it, read **all** rows with
+`SELECT version FROM public.schema_migrations ORDER BY version;` and compare
+them with every SQL filename in `packages/db/src/migrations`. The runner
+applies each missing filename; the latest recorded version alone does not
+prove that earlier migrations are recorded. If an existing schema has missing
+history, verify its tables and columns before recording any baseline.
+
+Take a database backup containing both schema and data first. A default
+`supabase db dump` is schema-only; dump data separately or use `pg_dump -Fc`
+and verify the archive with `pg_restore --list`. Keep backups outside Git.
+Use the direct database endpoint on port 5432, or the **session** pooler on
+port 5432 when IPv6 is unavailable. Do not migrate through the transaction
+pooler on port 6543. Each migration and its ledger insert run in one transaction.
 
 When the laptop cannot reach Supabase (IPv6/pooler issues), use admin one-shots (admin JWT required):
 

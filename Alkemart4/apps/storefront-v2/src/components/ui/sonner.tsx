@@ -1,0 +1,44 @@
+import { Toaster as Sonner, type ToasterProps } from "sonner"
+import { HugeiconsIcon } from "@hugeicons/react"
+import { CheckmarkCircle02Icon, InformationCircleIcon, Alert02Icon, MultiplicationSignCircleIcon } from "@hugeicons/core-free-icons"
+import { BrandSpinner } from "@/components/brand/brand-logo"
+
+const Toaster = ({ ...props }: ToasterProps) => {
+  return (
+    <Sonner
+      theme="light"
+      className="toaster group"
+      icons={{
+        success: (
+          <HugeiconsIcon icon={CheckmarkCircle02Icon} strokeWidth={2} className="size-4" />
+        ),
+        info: (
+          <HugeiconsIcon icon={InformationCircleIcon} strokeWidth={2} className="size-4" />
+        ),
+        warning: (
+          <HugeiconsIcon icon={Alert02Icon} strokeWidth={2} className="size-4" />
+        ),
+        error: (
+          <HugeiconsIcon icon={MultiplicationSignCircleIcon} strokeWidth={2} className="size-4" />
+        ),
+        loading: <BrandSpinner className="size-4" />,
+      }}
+      style={
+        {
+          "--normal-bg": "var(--popover)",
+          "--normal-text": "var(--popover-foreground)",
+          "--normal-border": "var(--border)",
+          "--border-radius": "var(--radius)",
+        } as React.CSSProperties
+      }
+      toastOptions={{
+        classNames: {
+          toast: "cn-toast",
+        },
+      }}
+      {...props}
+    />
+  )
+}
+
+export { Toaster }

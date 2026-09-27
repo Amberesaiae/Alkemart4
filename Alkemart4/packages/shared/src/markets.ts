@@ -12,6 +12,8 @@ export type MarketConfig = {
   minorUnitsPerMajor: number
   defaultCommissionBps: number
   defaultLocale: string
+  /** Market's clock offset from UTC, for calendar days and months in reports. */
+  utcOffsetMinutes: number
 }
 
 export const MARKETS: Record<string, MarketConfig> = {
@@ -19,8 +21,12 @@ export const MARKETS: Record<string, MarketConfig> = {
     code: "GH",
     currencyCode: "GHS",
     minorUnitsPerMajor: 100,
-    defaultCommissionBps: 700,
+    // No commission for the pilot (owner, 2026-09-27): sellers keep the full
+    // price; the business model is seller plans. Admin can still set a rate.
+    defaultCommissionBps: 0,
     defaultLocale: "en-GH",
+    // Ghana is on GMT all year (no daylight saving).
+    utcOffsetMinutes: 0,
   },
 }
 

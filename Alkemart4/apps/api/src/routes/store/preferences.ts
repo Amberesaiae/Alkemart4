@@ -3,7 +3,7 @@ import { HTTPException } from "hono/http-exception"
 import { z } from "zod"
 import type { AppEnv } from "../../context"
 import { readJsonBody } from "../../lib/session"
-import { requireAuth } from "../../middleware/auth"
+import { requireFreshSession } from "../../middleware/auth"
 
 const PutBody = z.object({
   category: z.enum(["promotional", "operational"]),
@@ -29,7 +29,7 @@ async function buyerEmail(c: {
  * unless refused (default on). Only sms exists as a sender today.
  */
 export const storePreferences = new Hono<AppEnv>()
-  .use("*", requireAuth)
+  .use("*", requireFreshSession)
   .get("/", async (c) => {
     const email = await buyerEmail(c)
     const items = await c.get("checkoutRepo").listNotificationPreferences("buyer", email)

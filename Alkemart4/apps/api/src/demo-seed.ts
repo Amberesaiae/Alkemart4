@@ -1,3 +1,4 @@
+import type { DeliveryPromise } from "@alkemart/domain"
 import { GHANA_CATEGORY_SEED, type CategorySeedRow } from "@alkemart/db"
 import type { ProductStatus, SellerStatus } from "@alkemart/domain"
 import { marketCurrency } from "@alkemart/shared/markets"
@@ -34,6 +35,8 @@ export type CatalogSeller = {
   lat?: number | null
   lng?: number | null
   district?: string | null
+  /** Seller's delivery promise (sellers.metadata.delivery); frozen per order. */
+  delivery?: DeliveryPromise | null
 }
 
 export type CatalogProduct = {
@@ -280,7 +283,7 @@ export function demoCatalog(): CatalogSnapshot {
         handle: "seller-a",
         name: "Accra Mart",
         status: "open",
-        commissionBps: 700,
+        commissionBps: 0,
         deliveryFeePesewas: 500n,
         availability: "open",
         pausedUntil: null,
@@ -291,7 +294,7 @@ export function demoCatalog(): CatalogSnapshot {
         handle: "seller-b",
         name: "Kumasi Tech",
         status: "open",
-        commissionBps: 700,
+        commissionBps: 0,
         deliveryFeePesewas: 800n,
         availability: "open",
         pausedUntil: null,

@@ -3,6 +3,10 @@ import type { CheckoutRepository } from "./checkout-repository"
 import { dispatchPendingNotifications } from "./notifications-dispatch"
 import { PAYMENT_INTENT_STALE_AFTER_MS } from "./payment-intent-expiry"
 import type { SmsProvider } from "./sms"
+import type { EmailProvider } from "./email"
+import type { VerifyPaystackTransaction } from "./lib/checkout-confirm"
+import { reconcileStaleIntent } from "./lib/intent-reconcile"
+import type { OrderEmailLinks } from "./lib/order-emails"
 
 /**
  * Async job contracts (agnostic plan Phase 2). Domain owns the message shapes
@@ -35,9 +39,23 @@ const NotificationSweepMessageSchema = z.object({
   idempotencyKey: z.string().min(1),
 })
 
+/**
+ * Automatic payout once a seller-only delivery's report window ends. Early
+ * deliveries re-queue themselves (queue delays cap at 12h); paying twice is
+ * impossible because a payout reserves its orders first.
+ */
+const AutoPayoutMessageSchema = z.object({
+  kind: z.literal("auto-payout"),
+  sellerId: z.string().min(1),
+  notBeforeMs: z.number(),
+  /** `auto-payout:{orderId}` */
+  idempotencyKey: z.string().min(1),
+})
+
 export const JobMessageSchema = z.discriminatedUnion("kind", [
   IntentExpiryMessageSchema,
   NotificationSweepMessageSchema,
+  AutoPayoutMessageSchema,
 ])
 
 export type JobMessage = z.infer<typeof JobMessageSchema>
@@ -52,6 +70,13 @@ export function notificationSweepMessage(nowMs = Date.now()): JobMessage {
     idempotencyKey: `notification-sweep:${Math.floor(nowMs / 60_000)}`,
   }
 }
+
+export function autoPayoutMessage(orderId: string, sellerId: string, releaseAt: Date): JobMessage {
+  return { kind: "auto-payout", sellerId, notBeforeMs: releaseAt.getTime(), idempotencyKey: `auto-payout:${orderId}` }
+}
+
+/** Cloudflare Queues caps a message delay at 12 hours. */
+export const MAX_QUEUE_DELAY_SECONDS = 12 * 3600
 
 /** Delay for the per-intent expiry message, derived from the stale threshold. */
 export function expiryDelaySeconds(): number {
@@ -107,13 +132,16 @@ export function cfJobProducer(queues: { expiry: QueueLike; notifications: QueueL
  * silently dropped — the mode is logged loudly at bind time.
  */
 export function inlineJobProducer(
-  deps: () => Promise<{ checkout: CheckoutRepository; sms: SmsProvider }>,
+  deps: () => Promise<{ checkout: CheckoutRepository; sms: SmsProvider; email?: EmailProvider }>,
 ): JobProducer {
   return {
-    publish: async (_queue, msg) => {
-      const { checkout, sms } = await deps()
+    publish: async (_queue, msg, opts) => {
+      // A delayed payout can't wait inline; the seller's next visit to their
+      // money page (or admin's "Pay everyone ready") pays it instead.
+      if (msg.kind === "auto-payout" && (opts?.delaySeconds ?? 0) > 0) return
+      const { checkout, sms, email } = await deps()
       await consumeJobMessage(
-        { checkout, sms },
+        { checkout, sms, email },
         msg,
         {
           attempts: 1,
@@ -137,7 +165,16 @@ export type AckableJobMessage = {
 export type ConsumeDeps = {
   checkout: CheckoutRepository
   sms: SmsProvider
+  /** Optional: absent → log stub (email outbox rows still drain). */
+  email?: EmailProvider
   nowMs?: number
+  /** Used to ask Paystack before expiring a checkout (absent → expire by clock). */
+  paystackSecretKey?: string
+  verifyPaystackTransaction?: VerifyPaystackTransaction
+  emailLinks?: OrderEmailLinks
+  jobs?: JobProducer
+  /** Pays a seller's released money (automatic payouts); absent → ack and skip. */
+  autoPay?: (sellerId: string) => Promise<unknown>
 }
 
 /** Mirrors the legacy sweep scope exactly: only non-terminal async (momo/card)
@@ -171,11 +208,17 @@ async function consumeIntentExpiry(
   // Rows predating createdAt are treated as stale (they can only be old).
   const ageMs = intent.createdAt ? now - intent.createdAt.getTime() : Number.POSITIVE_INFINITY
   if (ageMs >= PAYMENT_INTENT_STALE_AFTER_MS) {
-    try {
-      await deps.checkout.updatePaymentIntentStatus(intent.id, "expired")
-      await deps.checkout.releaseReservations(intent.id)
-    } catch {
-      // CAS/state-machine lost the race (webhook confirmed first) — converge.
+    // Ask Paystack before expiring: a paid buyer must get their order.
+    const result = await reconcileStaleIntent(deps.checkout, intent, {
+      paystackSecretKey: deps.paystackSecretKey,
+      verify: deps.verifyPaystackTransaction,
+      emailLinks: deps.emailLinks,
+      jobs: deps.jobs,
+      nowMs: now,
+    })
+    if (result === "waiting") {
+      msg.retry({ delaySeconds: 10 * 60 })
+      return
     }
     msg.ack()
     return
@@ -187,7 +230,7 @@ async function consumeIntentExpiry(
 
 /** Notification sweep: the outbox claim is the idempotency mechanism. */
 async function consumeNotificationSweep(deps: ConsumeDeps, msg: AckableJobMessage): Promise<void> {
-  await dispatchPendingNotifications(deps.checkout, deps.sms, { limit: 50 })
+  await dispatchPendingNotifications(deps.checkout, deps.sms, { limit: 50 }, deps.email)
   msg.ack()
 }
 
@@ -200,6 +243,23 @@ export async function consumeJobMessage(
   if (!parsed.success) throw new Error("unparseable job message — rides retries to the DLQ")
   if (parsed.data.kind === "intent-expiry") {
     await consumeIntentExpiry(deps, parsed.data.intentId, msg)
+    return
+  }
+  if (parsed.data.kind === "auto-payout") {
+    const now = deps.nowMs ?? Date.now()
+    const waitSec = Math.ceil((parsed.data.notBeforeMs - now) / 1000)
+    if (waitSec > 0) {
+      const delaySeconds = Math.min(MAX_QUEUE_DELAY_SECONDS, Math.max(60, waitSec))
+      // A fresh message, not a retry: retries are capped (max_retries) and a
+      // 48h report window needs several 12h hops.
+      if (deps.jobs) {
+        await publishJob(deps.jobs, "expiry", parsed.data, { delaySeconds })
+        msg.ack()
+      } else msg.retry({ delaySeconds })
+      return
+    }
+    await deps.autoPay?.(parsed.data.sellerId)
+    msg.ack()
     return
   }
   await consumeNotificationSweep(deps, msg)

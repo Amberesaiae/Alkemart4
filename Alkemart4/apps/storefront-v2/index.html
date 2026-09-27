@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>alkemart — many sellers, one marketplace</title>
+    <meta
+      name="description"
+      content="Compare prices from trusted local sellers, shop independent stores, and pay on delivery, by mobile money or card."
+    />
+    <meta name="theme-color" content="#ffffff" />
+    <meta property="og:site_name" content="alkemart" />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta property="og:image" content="/brand/og.png" />
+    <link rel="icon" href="/icons/icon-512.png" type="image/png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <style>
+      /* Boot frame: header height + brand loading mark, so first paint is not a white flash. */
+      html, body { margin: 0; background: #fff; }
+      .boot { display: grid; min-height: 100dvh; place-items: center; }
+      .boot-mark { position: relative; width: 44px; height: 44px; overflow: hidden; animation: alkemart-spin 1.1s linear infinite; }
+      .boot-mark img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+      @keyframes alkemart-spin { to { transform: rotate(360deg); } }
+      @media (prefers-reduced-motion: reduce) { .boot-mark { animation: none; } }
+    </style>
+  </head>
+  <body>
+    <div id="root">
+      <div class="boot" role="status" aria-label="Loading alkemart">
+        <span class="boot-mark" aria-hidden="true"><img src="/brand/alkemart-mark.png" alt="" /></span>
+      </div>
+    </div>
+    <noscript>
+      <p style="font-family: system-ui; max-width: 36rem; margin: 2rem auto; padding: 0 1rem">
+        alkemart needs JavaScript to shop. Enable it and reload.
+      </p>
+    </noscript>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

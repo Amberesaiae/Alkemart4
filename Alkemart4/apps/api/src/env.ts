@@ -8,6 +8,19 @@ const EnvSchema = z.object({
   AT_USERNAME: z.string().min(1).optional(),
   AT_API_KEY: z.string().min(1).optional(),
   AT_SENDER_ID: z.string().min(1).optional(),
+  /** Resend transactional email. Absent → log-only stub (outbox still fills). */
+  RESEND_API_KEY: z.string().min(1).optional(),
+  /** Verified sender, e.g. "alkemart <orders@alkemart.app>". */
+  EMAIL_FROM: z.string().min(3).optional(),
+  EMAIL_REPLY_TO: z.string().email().optional(),
+  /** Public app origins used in email links. */
+  STOREFRONT_URL: z.string().url().optional(),
+  VENDOR_URL: z.string().url().optional(),
+  /** Nominatim-compatible street search (LocationIQ or self-hosted). Absent →
+   * the public OpenStreetMap server, which is for light/dev use only. */
+  GEOCODER_URL: z.string().url().optional(),
+  GEOCODER_KEY: z.string().min(1).optional(),
+  GEOCODER_EMAIL: z.string().email().optional(),
 })
 
 export type ApiEnv = z.infer<typeof EnvSchema> & {
