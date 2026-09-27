@@ -4,7 +4,10 @@
 A full schema-and-data backup was verified and migrations 0036–0049 were
 applied with the repository runner. Live history now contains all 50 files,
 with none pending. See `RELEASE-2026-09-27.md` for evidence and remaining
-payment verification. Statements below describing these migrations as
+payment verification. API and all three v2 Pages apps are deployed, with
+production origins and the old storefront cache retired. Live reporting
+timestamp failures found during verification were fixed and redeployed.
+Statements below describing these migrations as
 unapplied refer to the earlier handoff state.
 
 For whoever continues (Codex or a person). Read with `PILOT-PLAN.md`,

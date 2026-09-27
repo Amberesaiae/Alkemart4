@@ -74,8 +74,8 @@ export VITE_ALKEMART_API_URL=https://alkemart-api.glean-circular-passport.worker
 ```
 
 Vendor/admin preview iframes point at the storefront via
-`VITE_STOREFRONT_URL` (the v2 apps' build variable) for local
-dev). Set it to the production storefront origin for Pages builds, or live
+`VITE_STOREFRONT_URL` (the v2 apps' build variable). Set it to the production
+storefront origin for Pages builds, or live
 previews will point at localhost:
 
 ```bash
