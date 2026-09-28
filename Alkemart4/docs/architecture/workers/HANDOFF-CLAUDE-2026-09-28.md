@@ -46,7 +46,14 @@ new storefront needs verification mail to let anyone buy.
    rather than adding a second one); Turnstile widget for alkemart.com +
    sell.alkemart.com (site key → `VITE_TURNSTILE_SITE_KEY`, secret →
    `TURNSTILE_SECRET_KEY`, `TURNSTILE_HOSTNAMES`).
-2. `wrangler secret put` RESEND_API_KEY (stdin). Turnstile is done.
+2. Email (parked until later this week). Done: alkemart.com added in Resend
+   (domain id 33238fea-40d8-4f2f-aa88-fb4f716820c4, eu-west-1, receiving off),
+   and its DKIM/MX/SPF/CNAME records created in Cloudflare on
+   resend._domainkey, send and rsend only (root MX/SPF forwarding untouched).
+   Left: `resend domains verify <id>`; a sending-only key scoped to that domain
+   piped straight into `wrangler secret put RESEND_API_KEY`; EMAIL_FROM
+   ("Alkemart <no-reply@alkemart.com>") and optional EMAIL_REPLY_TO in [vars];
+   test send; optionally a DMARC record. Turnstile is done.
 3. Fresh full backup (needs pg_dump 17 or Supabase CLI), restore-test it,
    then `bun run db:migrate` over session port 5432 for 0050 + 0051.
 4. `cd apps/api && bunx wrangler deploy` (WORKOS_ENABLED stays 0; creates the
