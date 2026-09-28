@@ -4,9 +4,10 @@ import { imageFromDataUrl, readPhotoSpecs } from "../../lib/photo-specs"
 import { listingPolicy } from "../../lib/listing-policy"
 
 const PHOTO_READING_ENABLED = false
-import { Hono } from "hono"
+import { Hono, type Context } from "hono"
 import { HTTPException } from "hono/http-exception"
 import { reviewSubmittedListing } from "../../lib/listing-review"
+import { deleteUnusedPhotos, photosOf } from "../../lib/media-cleanup"
 import type { ListingReviewRow } from "../../listing-reviews"
 import { suggestAttributes } from "../../lib/attribute-suggest"
 import { proposalsFor } from "../../lib/match-fingerprint"
@@ -142,6 +143,58 @@ function sellerIdOrThrow(c: { get: (k: "auth") => { sellerId?: string } }) {
   const sellerId = c.get("auth").sellerId
   if (!sellerId) throw new HTTPException(403, { message: "forbidden" })
   return sellerId
+}
+
+type Owned = Awaited<ReturnType<AppEnv["Variables"]["repo"]["listVendorProducts"]>>[number]
+
+/**
+ * Automated review (rules → AI → policy) of a listing waiting in "proposed".
+ * Never throws; on any hiccup the listing simply waits for a person.
+ * Returns the listing as it now stands, plus the outcome.
+ */
+async function autoReview(c: Context<AppEnv>, sellerId: string, productId: string, fallback: Owned) {
+  const repo = c.get("repo")
+  const fresh = (await repo.listVendorProducts(sellerId)).find((p) => p.product.id === productId) ?? fallback
+  const nodes: Awaited<ReturnType<typeof repo.listTaxonomyNodes>> = await repo.listTaxonomyNodes().catch(() => [])
+  const node = nodes.find((n) => n.id === fresh.product.primaryCategoryId)
+  const outcome = await reviewSubmittedListing({
+    repo,
+    reviews: c.get("reviews"),
+    ai: (c.env as { AI?: WorkersAiLike } | undefined)?.AI,
+    product: fresh,
+    categoryName: node?.displayName ?? node?.canonicalName ?? fresh.product.primaryCategoryId,
+  })
+  const final = (await repo.listVendorProducts(sellerId)).find((p) => p.product.id === productId) ?? fresh
+  return { final, outcome }
+}
+
+/**
+ * Editing a live listing's content sends it back to "proposed" (the repo
+ * does that). Re-run the automatic review at once, so a clean edit is back
+ * on sale immediately instead of waiting for a person.
+ */
+async function reviewIfSentBack(c: Context<AppEnv>, sellerId: string, wasPublished: boolean, updated: Owned) {
+  if (!wasPublished || updated.product.status !== "proposed") return updated
+  return (await autoReview(c, sellerId, updated.product.id, updated)).final
+}
+
+/** The listing as it stood before an edit (null if not this seller's). */
+const before = async (c: Context<AppEnv>, sellerId: string, productId: string) =>
+  (await c.get("repo").listVendorProducts(sellerId).catch((): Owned[] => [])).find((p) => p.product.id === productId) ?? null
+
+/** Photos the edit dropped get deleted once nothing uses them (after the response when possible). */
+function cleanUpPhotos(c: Context<AppEnv>, sellerId: string, prior: Owned | null, next: Owned | null) {
+  if (!prior) return
+  const kept = new Set(next ? photosOf(next) : [])
+  const dropped = photosOf(prior).filter((u) => !kept.has(u))
+  if (!dropped.length) return
+  const job = deleteUnusedPhotos(c, sellerId, dropped)
+  try {
+    c.executionCtx.waitUntil(job)
+  } catch {
+    // No execution context outside Workers (tests, sandbox): the job still runs.
+    void job
+  }
 }
 
 /**
@@ -313,6 +366,7 @@ export const vendorProducts = new Hono<AppEnv>()
     const parsed = PatchBody.safeParse(await readJsonBody(c))
     if (!parsed.success) throw new HTTPException(400, { message: "invalid body" })
     const sellerId = sellerIdOrThrow(c)
+    const prior = await before(c, sellerId, c.req.param("id"))
     try {
       const updated = await c.get("repo").updateVendorProduct(sellerId, c.req.param("id"), {
         ...parsed.data,
@@ -326,7 +380,8 @@ export const vendorProducts = new Hono<AppEnv>()
             : undefined,
       })
       if (!updated) throw new HTTPException(404, { message: "product not found" })
-      return c.json(updated)
+      cleanUpPhotos(c, sellerId, prior, updated)
+      return c.json(await reviewIfSentBack(c, sellerId, prior?.product.status === "published", updated))
     } catch (err) {
       if (err instanceof HTTPException) throw err
       mapCatalogWriteError(err)
@@ -425,17 +480,7 @@ export const vendorProducts = new Hono<AppEnv>()
 
     // Automated review (rules → AI → policy). Never throws; on any hiccup
     // the listing simply waits for a human.
-    const fresh = (await repo.listVendorProducts(sellerId)).find((p) => p.product.id === productId) ?? updated
-    const nodes: Awaited<ReturnType<typeof repo.listTaxonomyNodes>> = await repo.listTaxonomyNodes().catch(() => [])
-    const node = nodes.find((n) => n.id === fresh.product.primaryCategoryId)
-    const outcome = await reviewSubmittedListing({
-      repo,
-      reviews: c.get("reviews"),
-      ai: (c.env as { AI?: WorkersAiLike } | undefined)?.AI,
-      product: fresh,
-      categoryName: node?.displayName ?? node?.canonicalName ?? fresh.product.primaryCategoryId,
-    })
-    const final = (await repo.listVendorProducts(sellerId)).find((p) => p.product.id === productId) ?? fresh
+    const { final, outcome } = await autoReview(c, sellerId, productId, updated)
     return c.json({
       ...final,
       review: outcome ? { decision: outcome.decision, reviewer: outcome.reviewer, reasons: outcome.reasons } : null,
@@ -468,13 +513,14 @@ export const vendorProducts = new Hono<AppEnv>()
   .delete("/:id", async (c) => {
     const sellerId = sellerIdOrThrow(c)
     const productId = c.req.param("id")
-    const owned = (await c.get("repo").listVendorProducts(sellerId)).some((p) => p.product.id === productId)
-    if (!owned) throw new HTTPException(404, { message: "product not found" })
+    const prior = await before(c, sellerId, productId)
+    if (!prior) throw new HTTPException(404, { message: "product not found" })
     if (await c.get("checkoutRepo").productHasOrders(productId)) {
       throw new HTTPException(409, { message: "order history exists - archive combinations instead of deleting" })
     }
     const deleted = await c.get("repo").deleteVendorProduct(sellerId, productId)
     if (!deleted) throw new HTTPException(404, { message: "product not found" })
+    cleanUpPhotos(c, sellerId, prior, null)
     return c.json({ deleted: true })
   })
   .patch("/:id/variants/:variantId", async (c) => {
@@ -588,16 +634,19 @@ export const vendorProducts = new Hono<AppEnv>()
       seen.add(img.url)
     }
     const sellerId = sellerIdOrThrow(c)
+    const prior = await before(c, sellerId, c.req.param("id"))
     const updated = await c
       .get("repo")
       .setProductImages(sellerId, c.req.param("id"), parsed.data.images)
     if (!updated) throw new HTTPException(404, { message: "product not found" })
-    return c.json(updated)
+    cleanUpPhotos(c, sellerId, prior, updated)
+    return c.json(await reviewIfSentBack(c, sellerId, prior?.product.status === "published", updated))
   })
   .patch("/:id/values/:valueId", async (c) => {
     const parsed = z.object({ imageUrl: ImageUrl.nullable() }).safeParse(await readJsonBody(c))
     if (!parsed.success) throw new HTTPException(400, { message: "invalid body" })
     const sellerId = sellerIdOrThrow(c)
+    const prior = await before(c, sellerId, c.req.param("id"))
     const updated = await c.get("repo").setOptionValueImage(
       sellerId,
       c.req.param("id"),
@@ -605,7 +654,8 @@ export const vendorProducts = new Hono<AppEnv>()
       parsed.data.imageUrl,
     )
     if (!updated) throw new HTTPException(404, { message: "product or value not found" })
-    return c.json(updated)
+    cleanUpPhotos(c, sellerId, prior, updated)
+    return c.json(await reviewIfSentBack(c, sellerId, prior?.product.status === "published", updated))
   })
   /**
    * Phase 1B — seller enrichment of product identity (brand/model/…).

@@ -9,12 +9,14 @@ const ModerateBody = z.object({
   action: z.enum(["publish", "hide"]),
 })
 
-/** GET /admin/reviews — pending-first moderation inbox. */
+/** GET /admin/reviews — reviews held for a look (default) or `?view=live`. */
 export const adminReviews = new Hono<AppEnv>()
   .use("*", requireAdmin)
   .get("/", async (c) => {
+    // ?view=live: newest published reviews, to take down abuse that got through.
+    const live = c.req.query("view") === "live"
     const [pending, sellers] = await Promise.all([
-      c.get("checkoutRepo").listPendingReviews(),
+      live ? c.get("checkoutRepo").listRecentPublishedReviews(100) : c.get("checkoutRepo").listPendingReviews(),
       c.get("authRepo").listSellers().catch(() => []),
     ])
     const sellerById = new Map(sellers.map((s) => [s.id, s]))

@@ -49,6 +49,16 @@ export function passwordChangedEmail(): Rendered {
   return { subject: heading, html: layout({ preheader: heading, heading, paragraphs }), text: textOf(heading, paragraphs) }
 }
 
+export function emailVerificationEmail(p: { url: string; minutes: number }): Rendered {
+  const heading = "Verify your email address"
+  const paragraphs = [
+    "Confirm this email address to use it for your alkemart account and orders.",
+    `This link works once and expires in ${p.minutes} minutes. If you didn't create this account, ignore it.`,
+  ]
+  const cta = { label: "Verify email", url: p.url }
+  return { subject: heading, html: layout({ preheader: heading, heading, paragraphs, cta }), text: textOf(heading, paragraphs, cta) }
+}
+
 export function orderPlacedEmail(p: {
   reference: string
   total: string

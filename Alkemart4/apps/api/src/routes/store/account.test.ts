@@ -9,7 +9,7 @@ import { resetRateLimits } from "../../middleware/security"
 
 resetRateLimits()
 const JWT = "test-jwt-secret-that-is-at-least-32-chars-long"
-const env = { ENVIRONMENT: "development", STOREFRONT_URL: "https://shop.example" }
+const env = { ENVIRONMENT: "development", STOREFRONT_URL: "https://shop.example", VENDOR_URL: "https://sell.example" }
 
 function setup() {
   const snapshot = demoCatalog()
@@ -119,13 +119,30 @@ describe("buyer account", () => {
     expect(login.status).toBe(200)
   })
 
+  it("seller reset: the link opens the seller app, works once, and a cut-off link says so", async () => {
+    const { call, outbox } = setup()
+    await call("/vendor/auth/register", { json: { email: "shop@example.com", password: "Password1", sellerName: "Shop", sellerHandle: "shop" } })
+    expect((await call("/vendor/auth/password-reset/request", { json: { email: "shop@example.com" } })).status).toBe(202)
+    const { text } = decodeEmail((await outbox()).find((m) => decodeEmail(m.body).subject === "Reset your password")!.body)
+    const token = /https:\/\/sell\.example\/reset-password\?token=([0-9a-f]{64})/.exec(text)![1]!
+
+    const cut = await call("/vendor/auth/password-reset/confirm", { json: { token: token.slice(0, 20), password: "Brandnew123" } })
+    expect(cut.status).toBe(400)
+    expect(((await cut.json()) as { error: string }).error).toMatch(/link has expired/)
+
+    expect((await call("/vendor/auth/password-reset/confirm", { json: { token, password: "Brandnew123" } })).status).toBe(200)
+    expect((await call("/vendor/auth/password-reset/confirm", { json: { token, password: "Another123" } })).status).toBe(400)
+    expect((await call("/vendor/auth/login", { json: { email: "shop@example.com", password: "Brandnew123" } })).status).toBe(200)
+    expect((await call("/vendor/auth/login", { json: { email: "shop@example.com", password: "Password1" } })).status).toBe(401)
+  })
+
   it("sellers can't use the buyer reset door (and vice versa)", async () => {
     const { call, outbox } = setup()
     await call("/vendor/auth/register", { json: { email: "shop@example.com", password: "Password1", sellerName: "Shop", sellerHandle: "shop" } })
     await call("/store/auth/password-reset/request", { json: { email: "shop@example.com" } })
-    expect(await outbox()).toHaveLength(0)
+    expect((await outbox()).filter((m) => decodeEmail(m.body).subject === "Reset your password")).toHaveLength(0)
     await call("/vendor/auth/password-reset/request", { json: { email: "shop@example.com" } })
-    const mail = (await outbox())[0]!
+    const mail = (await outbox()).find((m) => decodeEmail(m.body).subject === "Reset your password")!
     expect(decodeEmail(mail.body).text).toContain("/reset-password?token=")
   })
 })

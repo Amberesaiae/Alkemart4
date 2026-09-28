@@ -218,6 +218,7 @@ describe("Phase 3A offer terms + 3D verification loop", () => {
       testEnv(),
     )
     expect(registered.status).toBe(201)
+    await authRepo.markEmailVerified((await authRepo.findUserByEmail("phase3@alkemart.test"))!.id)
     const sellerId = ((await registered.json()) as { user: { sellerId: string } }).user.sellerId
     // The vendor owns catalog rows; mirror the seller profile into the catalog
     // snapshot so verification evidence has a seller to attach to.

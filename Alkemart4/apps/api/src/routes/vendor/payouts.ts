@@ -5,7 +5,6 @@ import { HTTPException } from "hono/http-exception"
 import type { PayoutEventRow, ReturnCaseRow } from "../../checkout-repository"
 import type { AppEnv } from "../../context"
 import { requireSeller } from "../../middleware/auth"
-import { autoPaySeller, payoutDeps } from "../../lib/payouts"
 
 function sellerIdOrThrow(c: { get(k: "auth"): AppEnv["Variables"]["auth"] }): string {
   const sellerId = c.get("auth").sellerId
@@ -26,10 +25,8 @@ export const vendorPayouts = new Hono<AppEnv>()
     const sellerId = sellerIdOrThrow(c)
     const seller = await c.get("authRepo").findSellerById(sellerId)
     if (!seller) throw new HTTPException(404, { message: "seller not found" })
-    // Backstop for automatic payouts: anything released (e.g. a report window
-    // that just ended) is sent now, so the page shows it on its way.
-    const deps = payoutDeps(c)
-    if (deps) await autoPaySeller(deps, sellerId).catch(() => null)
+    // This is a read-only statement. Payment execution belongs to the
+    // release workflow, never a page view controlled by a seller session.
     const checkout = c.get("checkoutRepo")
     const [orders, paidLines, holds, payoutRows] = await Promise.all([
       checkout.listSellerOrderSummaries(sellerId),
@@ -75,6 +72,8 @@ export const vendorPayouts = new Hono<AppEnv>()
       const hold = holdByOrder.get(o.id)
       const sellerHold = sellerLevelHolds[0] ?? null
       const cash = isCash(o) && !paid
+      // Refunded in full before it was paid out: nothing is coming for it.
+      const refunded = !paid && !cash && (o.refundedPesewas ?? 0n) > 0n && (o.refundedPesewas ?? 0n) >= o.subtotalPesewas
       // In a payout Paystack hasn't confirmed yet → "sending", not "paid".
       const state = paid
         ? paid.payoutStatus === "paid"
@@ -82,9 +81,11 @@ export const vendorPayouts = new Hono<AppEnv>()
           : "sending"
         : cash
           ? "cash"
-          : hold || sellerHold
-            ? "held"
-            : "pending"
+          : refunded
+            ? "refunded"
+            : hold || sellerHold
+              ? "held"
+              : "pending"
       return {
         orderId: o.id,
         orderGroupId: o.orderGroupId,
@@ -97,7 +98,7 @@ export const vendorPayouts = new Hono<AppEnv>()
         // Refunded to the buyer on a return (0044): not paid out, no commission.
         refundedPesewas: (o.refundedPesewas ?? 0n).toString(),
         // What alkemart pays the seller for this order: nothing for cash orders.
-        netPesewas: (cash ? 0n : (paid?.netPesewas ?? computed?.netPesewas ?? o.subtotalPesewas)).toString(),
+        netPesewas: (cash || refunded ? 0n : (paid?.netPesewas ?? computed?.netPesewas ?? o.subtotalPesewas)).toString(),
         cashCollectedPesewas: cash ? (o.subtotalPesewas + o.deliveryFeePesewas).toString() : null,
         holdReason: hold?.reason ?? sellerHold?.reason ?? null,
         payoutId: paid?.payoutId ?? null,
@@ -117,7 +118,8 @@ export const vendorPayouts = new Hono<AppEnv>()
       // Display currency for single-market today; ledger rows resolve per order.
       currency: marketCurrency(),
       totals: {
-        pendingGrossPesewas: sum(pending.map((l) => BigInt(l.subtotalPesewas))).toString(),
+        // Gross less anything refunded, so it lines up with pendingNet.
+        pendingGrossPesewas: sum(pending.map((l) => BigInt(l.subtotalPesewas) - BigInt(l.refundedPesewas))).toString(),
         pendingNetPesewas: sum(pending.map((l) => BigInt(l.netPesewas))).toString(),
         heldNetPesewas: sum(held.map((l) => BigInt(l.netPesewas))).toString(),
         paidNetPesewas: sum(paidSt.map((l) => BigInt(l.netPesewas))).toString(),

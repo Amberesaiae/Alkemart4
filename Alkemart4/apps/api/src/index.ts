@@ -1,5 +1,7 @@
 import { createPaystackTransferRecipient } from "@alkemart/paystack"
 import { Hono, type MiddlewareHandler } from "hono"
+import { bodyLimit } from "hono/body-limit"
+export { AuthRateLimiter } from "./lib/auth-rate-limit"
 import { InMemoryAdminAuditLog, PostgresAdminAuditLog, type AdminAuditLog } from "./admin-audit"
 import { InMemoryAppealStore, PostgresAppealStore, type AppealStore } from "./appeals"
 import {
@@ -27,6 +29,7 @@ import { InMemoryHomepageContentStore, PostgresHomepageContentStore, type Homepa
 import { InMemoryShopPolicyStore, PostgresShopPolicyStore, type ShopPolicyStore } from "./shop-policies"
 import { InMemoryTrafficStore, PostgresTrafficStore, type TrafficStore } from "./traffic"
 import { PostgresAuthRepository, type AuthRepository } from "./auth-repository"
+import { InMemoryWorkosStore, PostgresWorkosStore, type WorkosStore } from "./workos-store"
 import { autoPaySeller } from "./lib/payouts"
 import {
   InMemoryCatalogRepository,
@@ -38,6 +41,7 @@ import {
   type CheckoutRepository,
 } from "./checkout-repository"
 import { PostgresCheckoutRepository } from "./postgres-checkout-repository"
+import { demoCatalog } from "./demo-seed"
 import type {
   AppEnv,
   ChargePaystackMobileMoney,
@@ -54,6 +58,7 @@ import { parseEnv } from "./env"
 import { catalogOf, envOf, lazy, primaryOf } from "./lib/request-scope"
 import { noStoreHeaders } from "./lib/edge-cache"
 import { requireAdmin, requireSeller } from "./middleware/auth"
+import { requireAdminAccess } from "./middleware/admin-access"
 import { corsMiddleware } from "./middleware/cors"
 import { errorHandler } from "./middleware/error"
 import { securityMiddleware } from "./middleware/security"
@@ -163,6 +168,8 @@ export function createApp(
   options: {
     repo?: CatalogRepository
     authRepo?: AuthRepository
+    workosStore?: WorkosStore
+    workosFetch?: typeof fetch
     checkoutRepo?: CheckoutRepository
     auditLog?: AdminAuditLog
     trafficStore?: TrafficStore
@@ -201,6 +208,15 @@ export function createApp(
   app.onError(errorHandler)
   app.use("*", corsMiddleware)
   app.use("*", securityMiddleware)
+  const workosFallback = options.workosStore ?? (options.authRepo ? new InMemoryWorkosStore(options.authRepo) : undefined)
+  app.use("*", async (c, next) => {
+    c.set("workos", workosFallback ?? lazy(() => new PostgresWorkosStore(primaryOf(c))))
+    c.set("workosFetch", options.workosFetch ?? fetch)
+    await next()
+  })
+  for (const prefix of ["store", "vendor", "admin"]) {
+    app.use(`/${prefix}/auth/*`, bodyLimit({ maxSize: 16 * 1024 }))
+  }
   app.route("/health", health)
 
   // Test-path stores are memoized per app so state survives across requests
@@ -222,6 +238,9 @@ export function createApp(
   const fallbackVideos = options.videosStore ?? (options.repo || options.checkoutRepo ? new InMemoryVideosStore() : undefined)
   const fallbackDeals = options.dealsStore ?? (options.repo || options.checkoutRepo ? new InMemoryDealsStore() : undefined)
   const fallbackAccounts = options.accountStore ?? (options.authRepo ? new InMemoryAccountStore() : undefined)
+  const fallbackCheckout = options.authRepo && !options.checkoutRepo && !inMemoryRepo
+    ? new InMemoryCheckoutRepository(demoCatalog())
+    : undefined
   const fallbackNewsletter = options.authRepo ? new InMemoryNewsletterStore() : undefined
   const fallbackCampaigns =
     options.campaignStore ??
@@ -305,6 +324,8 @@ export function createApp(
       c.set("checkoutRepo", options.checkoutRepo)
     } else if (options.repo instanceof InMemoryCatalogRepository) {
       c.set("checkoutRepo", new InMemoryCheckoutRepository(options.repo.snapshot()))
+    } else if (fallbackCheckout) {
+      c.set("checkoutRepo", fallbackCheckout)
     } else {
       c.set("checkoutRepo", lazy(() => new PostgresCheckoutRepository(primaryOf(c))))
     }
@@ -442,7 +463,7 @@ export function createApp(
   store.route("/homepage", withBind(bindAuth, withBind(bindCatalog, storeHomepage)))
   store.route("/cart", withBind(bindSessionSecret, withBind(bindCheckout, withBind(noStoreHeaders, storeCart))))
   store.route("/checkout", withBind(bindAuth, withBind(bindCheckout, withBind(noStoreHeaders, storeCheckout))))
-  store.route("/reviews", withBind(bindCheckout, storeReviews))
+  store.route("/reviews", withBind(bindAuth, withBind(bindCheckout, withBind(noStoreHeaders, storeReviews))))
   store.route("/collections", withBind(bindCatalog, storeCollections))
   store.route("/course", withBind(bindCatalog, withBind(bindCheckout, storeCourse)))
   store.route("/feed", withBind(bindCatalog, storeFeed))
@@ -494,20 +515,23 @@ export function createApp(
   vendor.route("/stats/shop", withBind(bindCatalog, withBind(bindCheckout, vendorShopStats)))
   vendor.get("/me", requireSeller, (c) => {
     // Claims minus the issued-at stamp: the session contract is id + role (+ seller).
-    const { iat: _iat, ...claims } = c.get("auth")
+    const { iat: _iat, pwd: _pwd, ...claims } = c.get("auth")
     void _iat
+    void _pwd
     return c.json(claims)
   })
   app.route("/vendor", vendor)
 
   const admin = new Hono<AppEnv>()
+  admin.use("*", requireAdminAccess)
   admin.use("*", bindAuth)
   admin.use("*", noStoreHeaders)
   admin.route("/auth", adminAuth)
   admin.get("/me", requireAdmin, (c) => {
     // Claims minus the issued-at stamp: the session contract is id + role (+ seller).
-    const { iat: _iat, ...claims } = c.get("auth")
+    const { iat: _iat, pwd: _pwd, ...claims } = c.get("auth")
     void _iat
+    void _pwd
     return c.json(claims)
   })
   admin.route("/sellers", withBind(bindCatalog, withBind(bindCheckout, adminSellers)))

@@ -152,20 +152,23 @@ export const vendorTasks = new Hono<AppEnv>().use("*", requireSeller).get("/", a
     const now = Date.now()
     // Published listings whose price was never verified (or not for 72h)
     // mislead buyers; drafts are still being written, so they stay quiet.
+    // A new listing counts as checked when it was listed, so sellers aren't
+    // nagged about prices they set minutes ago.
     const stale = products
       .filter((p) => p.product.status === "published")
-      .flatMap((p) => p.variants)
-      .filter((v) => {
+      .flatMap((p) => p.variants.map((v) => ({ v, listedAt: p.product.createdAt ?? null })))
+      .filter(({ v, listedAt }) => {
         if (!v.offer.active) return false
-        if (!v.offer.freshnessAt) return true
-        const at = Date.parse(v.offer.freshnessAt)
+        const checked = v.offer.freshnessAt ?? (listedAt ? new Date(listedAt).toISOString() : null)
+        if (!checked) return true
+        const at = Date.parse(checked)
         return !Number.isFinite(at) || now - at > STALE_PRICE_MS
       }).length
     if (stale > 0) {
       tasks.push({
         kind: "price",
-        title: `${stale} price${stale === 1 ? "" : "s"} need${stale === 1 ? "s" : ""} a freshness check`,
-        detail: "Confirm price and stock so stale offers suppress honestly.",
+        title: `${stale} price${stale === 1 ? "" : "s"} to check`,
+        detail: "Not updated in 3 days. Make sure the price and stock are still right.",
         href: "/products",
         count: stale,
       })

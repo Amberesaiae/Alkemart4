@@ -1,7 +1,8 @@
 import { Hono, type MiddlewareHandler } from "hono"
 import { HTTPException } from "hono/http-exception"
 import { z } from "zod"
-import { hashPassword, verifyPassword } from "@alkemart/domain"
+import { verifyPassword } from "@alkemart/domain"
+import { hashPasswordForRequest } from "../../lib/password-policy"
 import { AddressLimitError, type Address } from "../../account-store"
 import type { AppEnv } from "../../context"
 import { encodeEmail } from "../../email"
@@ -99,13 +100,14 @@ export const storeAccount = new Hono<AppEnv>()
     return c.json({ account: { email: u.email, firstName: u.firstName ?? null, lastName: u.lastName ?? null, phone: u.phone ?? null } })
   })
   .post("/password", async (c) => {
+    if (c.env?.WORKOS_ENABLED === "1") throw new HTTPException(409, { message: "use_workos_password_recovery" })
     const body = parse(PasswordBody, await readJsonBody(c))
     const repo = c.get("authRepo")
     const user = (await repo.findUserById(c.get("auth").userId))!
     if (!(await verifyPassword(body.currentPassword, user.passwordHash))) {
       throw new HTTPException(400, { message: "Your current password isn't right." })
     }
-    const updated = await repo.updateUserPassword(user.id, await hashPassword(body.newPassword))
+    const updated = await repo.updateUserPassword(user.id, await hashPasswordForRequest(c, body.newPassword))
     await c
       .get("checkoutRepo")
       .enqueueNotification({

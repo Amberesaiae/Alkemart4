@@ -7,6 +7,7 @@ import { Hono } from "hono"
 import { HTTPException } from "hono/http-exception"
 import { z } from "zod"
 import type { AppEnv } from "../../context"
+import { requireVerifiedBuyer } from "../../middleware/auth"
 import { confirmCheckoutFromPaystack } from "../../lib/checkout-confirm"
 import { FulfillmentUnavailableError, chooseFulfillment, optionsForSellers, whereaboutsOf } from "../../lib/fulfillment"
 import { feesFromFulfillment } from "../../checkout-repository"
@@ -112,13 +113,17 @@ export const storeCheckout = new Hono<AppEnv>()
     const sellers = await optionsForSellers(sellerIds, (id) => c.get("authRepo").findSellerById(id), { city, region, lat, lng }, await deliveryPolicy(c))
     return c.json({ sellers })
   })
-  .get("/status", async (c) => {
+  .get("/status", requireVerifiedBuyer, async (c) => {
     const cartId = c.req.query("cartId")?.trim() || c.req.query("cart_id")?.trim()
     if (!cartId) throw new HTTPException(400, { message: "cartId required" })
 
     const checkout = c.get("checkoutRepo")
     const intent = await checkout.getLatestPaymentIntentByCartId(cartId)
     if (!intent) throw new HTTPException(404, { message: "payment not found" })
+    const buyer = await c.get("authRepo").findUserById(c.get("auth").userId)
+    if (!buyer || buyer.email.toLowerCase() !== intent.buyerEmail.toLowerCase()) {
+      throw new HTTPException(404, { message: "payment not found" })
+    }
 
     if (intent.status === "completed") {
       const group = await checkout.getOrderGroupByPaymentIntent(intent.id)
@@ -187,9 +192,13 @@ export const storeCheckout = new Hono<AppEnv>()
       provider_status: intent.status,
     })
   })
-  .post("/", async (c) => {
+  .post("/", requireVerifiedBuyer, async (c) => {
     const parsed = CheckoutBody.safeParse(await readBody(c))
     if (!parsed.success) throw new HTTPException(400, { message: "invalid body" })
+    const buyer = await c.get("authRepo").findUserById(c.get("auth").userId)
+    if (!buyer || parsed.data.buyerEmail.trim().toLowerCase() !== buyer.email.toLowerCase()) {
+      throw new HTTPException(403, { message: "checkout_email_must_match_account" })
+    }
 
     const checkout = c.get("checkoutRepo")
     const cart = await checkout.getCart(parsed.data.cartId)

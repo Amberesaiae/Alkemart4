@@ -45,12 +45,41 @@ describe("GET /store/products/:id", () => {
     const missing = await appFromDemo().request("/store/products/does-not-exist", {}, testEnv())
     expect(missing.status).toBe(404)
 
-    const unpublished = await appFromDemo((data) => {
-      data.products[0]!.status = "draft"
+    // Sold out at an open shop: the page stays (catalogue shelf rule).
+    const soldOut = await appFromDemo((data) => {
+      for (const o of data.offers) if (o.productId === "prod-tecno-spark") o.active = false
     }).request("/store/products/prod-tecno-spark", {}, testEnv())
-    expect(unpublished.status).toBe(200)
-    const body = (await unpublished.json()) as { offers: unknown[] }
+    expect(soldOut.status).toBe(200)
+    const body = (await soldOut.json()) as { offers: unknown[] }
     expect(body.offers).toEqual([])
+  })
+
+  it("never shows buyers a listing that isn't published", async () => {
+    for (const status of ["draft", "proposed", "rejected"] as const) {
+      const res = await appFromDemo((data) => {
+        data.products[0]!.status = status
+      }).request("/store/products/prod-tecno-spark", {}, testEnv())
+      expect(res.status).toBe(404)
+    }
+  })
+
+  it("hides a suspended shop's product unless another open shop sells it", async () => {
+    const app = appFromDemo((data) => {
+      const own = data.products.find((p) => p.id === "prod-tecno-spark")!
+      for (const sl of data.sellers) if (sl.id === own.sellerId) sl.status = "suspended"
+      // Only the suspended owner's offers remain.
+      data.offers = data.offers.filter((o) => o.productId !== own.id || o.sellerId === own.sellerId)
+    })
+    expect((await app.request("/store/products/prod-tecno-spark", {}, testEnv())).status).toBe(404)
+
+    // Seller B still sells the same phone: the page stays, with only B's offer.
+    const shared = appFromDemo((data) => {
+      for (const sl of data.sellers) if (sl.id === "seller-a") sl.status = "suspended"
+    })
+    const res = await shared.request("/store/products/prod-tecno-spark", {}, testEnv())
+    expect(res.status).toBe(200)
+    const offers = ((await res.json()) as { offers: { sellerId: string }[] }).offers
+    expect(offers.map((o) => o.sellerId)).toEqual(["seller-b"])
   })
 
   it("resolves slug-id compounds, bare slugs, and bare ids", async () => {

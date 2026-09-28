@@ -16,6 +16,7 @@ export const users = pgTable("users", {
   lastName: text("last_name"),
   phone: text("phone"),
   passwordChangedAt: timestamp("password_changed_at", { withTimezone: true }),
+  emailVerifiedAt: timestamp("email_verified_at", { withTimezone: true }),
 })
 
 export const sellerMembers = pgTable(

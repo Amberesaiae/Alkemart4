@@ -6,6 +6,7 @@ import { InMemoryCheckoutRepository } from "../../checkout-repository"
 import type { CatalogSnapshot } from "../../demo-seed"
 import type { ApiEnv } from "../../env"
 import { createApp } from "../../index"
+import { verifiedBuyerFixture } from "../../lib/verified-buyer-fixture"
 import { resetRateLimits } from "../../middleware/security"
 // Rate-limit counters are per-process: reset so files stay isolated.
 resetRateLimits()
@@ -22,7 +23,8 @@ function testEnv(): ApiEnv {
   }
 }
 
-function json(method: string, body: unknown, token?: string) {
+let buyerToken: string
+function json(method: string, body: unknown, token: string = buyerToken) {
   const headers: Record<string, string> = { "Content-Type": "application/json" }
   if (token) headers.Authorization = `Bearer ${token}`
   return { method, headers, body: JSON.stringify(body) }
@@ -61,6 +63,7 @@ describe("GET /store/products/:id with variants", () => {
     priceHistory: [],
     }
     const authRepo = new InMemoryAuthRepository()
+    buyerToken = await verifiedBuyerFixture(authRepo, JWT_SECRET)
     const { hashPassword } = await import("@alkemart/domain")
     await authRepo.createUser({
       id: "admin-1",
@@ -73,6 +76,7 @@ describe("GET /store/products/:id with variants", () => {
       seller: { id: "seller-1", handle: "pdp-shop", name: "PDP Shop" },
     })
     await authRepo.updateSellerStatus("seller-1", "open")
+    await authRepo.markEmailVerified("u1")
     const app = createApp({
       authRepo,
       repo: new InMemoryCatalogRepository(snapshot),
@@ -196,14 +200,7 @@ describe("GET /store/products/:id with variants", () => {
       json("POST", { orderId, buyerEmail: "buyer@alkemart.test", rating: 5, title: "Fits well", body: "True to size." }),
       testEnv(),
     )
-    const pending = await app.request(
-      "/admin/reviews",
-      { headers: { Authorization: `Bearer ${adminToken}` } },
-      testEnv(),
-    )
-    const reviewId = ((await pending.json()) as { reviews: { id: string }[] }).reviews[0]!.id
-    await app.request(`/admin/reviews/${reviewId}/moderate`, json("POST", { action: "publish" }, adminToken), testEnv())
-
+    // A clean verified-purchase review is live at once (no moderation step).
     const again = await app.request(`/store/products/${productId}`, {}, testEnv())
     const detail = (await again.json()) as {
       ratingAvg: number
@@ -220,7 +217,7 @@ describe("GET /store/products/:id with variants", () => {
 async function buyerCode(app: { request: (...a: never[]) => Response | Promise<Response> }, orderId: string, email = "buyer@alkemart.test") {
   const res = await (app.request as unknown as (p: string, i: RequestInit, e?: unknown) => Promise<Response>)(
     "/store/orders/lookup",
-    { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ orderId, email }) },
+    { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${buyerToken}` }, body: JSON.stringify({ orderId, email }) },
     testEnv(),
   )
   const body = (await res.json()) as { orderGroup: { orders: { id: string; handoverCode: string | null }[] } }

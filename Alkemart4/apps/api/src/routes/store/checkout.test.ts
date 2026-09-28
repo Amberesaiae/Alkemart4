@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest"
+import { beforeEach, describe, expect, it } from "vitest"
+import { verifiedBuyerFixture } from "../../lib/verified-buyer-fixture"
 import { hashPassword } from "@alkemart/domain"
 import { InMemoryAuthRepository } from "../../auth-repository"
 import { InMemoryCatalogRepository } from "../../catalog-repository"
@@ -9,13 +10,20 @@ import { resetRateLimits } from "../../middleware/security"
 // Rate-limit counters are per-process: reset so files stay isolated.
 resetRateLimits()
 
+let authRepo: InMemoryAuthRepository
+let buyerToken: string
+beforeEach(async () => {
+  authRepo = new InMemoryAuthRepository()
+  buyerToken = await verifiedBuyerFixture(authRepo, "x".repeat(32))
+})
+
 describe("checkout COD + MoMo", () => {
   it("two-seller COD creates OrderGroup with 2 orders", async () => {
     const snapshot = demoCatalog()
     const catalog = new InMemoryCatalogRepository(snapshot)
     const checkoutRepo = new InMemoryCheckoutRepository(snapshot)
     const app = createApp({
-      authRepo: new InMemoryAuthRepository(),
+      authRepo,
       repo: catalog,
       checkoutRepo,
       jwtSecret: "x".repeat(32),
@@ -28,7 +36,7 @@ describe("checkout COD + MoMo", () => {
     for (const offerId of ["offer-a", "offer-b"]) {
       const add = await app.request(`/store/cart/${cartId}/items`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${buyerToken}` },
         body: JSON.stringify({ offerId, qty: 1 }),
       })
       expect(add.status).toBe(201)
@@ -36,7 +44,7 @@ describe("checkout COD + MoMo", () => {
 
     const checkout = await app.request("/store/checkout", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${buyerToken}` },
       body: JSON.stringify({
         cartId,
         method: "cod",
@@ -62,7 +70,7 @@ describe("checkout COD + MoMo", () => {
     const catalog = new InMemoryCatalogRepository(snapshot)
     const checkoutRepo = new InMemoryCheckoutRepository(snapshot)
     const app = createApp({
-      authRepo: new InMemoryAuthRepository(),
+      authRepo,
       repo: catalog,
       checkoutRepo,
       jwtSecret: "x".repeat(32),
@@ -72,7 +80,7 @@ describe("checkout COD + MoMo", () => {
     const { cartId } = (await cartRes.json()) as { cartId: string }
     const add = await app.request(`/store/cart/${cartId}/items`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${buyerToken}` },
       body: JSON.stringify({ offerId: "offer-a", qty: 1 }),
     })
     expect(add.status).toBe(201)
@@ -85,7 +93,7 @@ describe("checkout COD + MoMo", () => {
     }
     const first = await app.request("/store/checkout", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${buyerToken}` },
       body: JSON.stringify(payload),
     })
     expect(first.status).toBe(200)
@@ -94,7 +102,7 @@ describe("checkout COD + MoMo", () => {
 
     const second = await app.request("/store/checkout", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${buyerToken}` },
       body: JSON.stringify(payload),
     })
     expect(second.status).toBe(200)
@@ -109,7 +117,7 @@ describe("checkout COD + MoMo", () => {
     const checkoutRepo = new InMemoryCheckoutRepository(snapshot)
 
     const noKey = createApp({
-      authRepo: new InMemoryAuthRepository(),
+      authRepo,
       repo: catalog,
       checkoutRepo,
       jwtSecret: "x".repeat(32),
@@ -119,12 +127,12 @@ describe("checkout COD + MoMo", () => {
     const { cartId } = (await cartRes.json()) as { cartId: string }
     await noKey.request(`/store/cart/${cartId}/items`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${buyerToken}` },
       body: JSON.stringify({ offerId: "offer-a", qty: 2 }),
     })
     const denied = await noKey.request("/store/checkout", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${buyerToken}` },
       body: JSON.stringify({
         cartId,
         method: "momo",
@@ -136,7 +144,7 @@ describe("checkout COD + MoMo", () => {
     expect(denied.status).toBe(503)
 
     const withKey = createApp({
-      authRepo: new InMemoryAuthRepository(),
+      authRepo,
       repo: catalog,
       checkoutRepo,
       jwtSecret: "x".repeat(32),
@@ -152,7 +160,7 @@ describe("checkout COD + MoMo", () => {
 
     const pending = await withKey.request("/store/checkout", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${buyerToken}` },
       body: JSON.stringify({
         cartId,
         method: "momo",
@@ -174,7 +182,7 @@ describe("checkout COD + MoMo", () => {
     let chargeCalls = 0
 
     const app = createApp({
-      authRepo: new InMemoryAuthRepository(),
+      authRepo,
       repo: catalog,
       checkoutRepo,
       jwtSecret: "x".repeat(32),
@@ -189,14 +197,14 @@ describe("checkout COD + MoMo", () => {
     const { cartId } = (await cartRes.json()) as { cartId: string }
     await app.request(`/store/cart/${cartId}/items`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${buyerToken}` },
       body: JSON.stringify({ offerId: "offer-a", qty: 1 }),
     })
 
     const offer = snapshot.offers.find((o) => o.id === "offer-a")!
     const failed = await app.request("/store/checkout", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${buyerToken}` },
       body: JSON.stringify({
         cartId,
         method: "momo",
@@ -221,7 +229,8 @@ describe("checkout COD + MoMo", () => {
 
 describe("paused seller guard", () => {
   it("409s order creation when a cart seller is paused", async () => {
-    const authRepo = new InMemoryAuthRepository()
+    authRepo = new InMemoryAuthRepository()
+    buyerToken = await verifiedBuyerFixture(authRepo, "x".repeat(32))
     await authRepo.registerVendor({
       user: { id: "u-paused", email: "paused@alkemart.test", passwordHash: await hashPassword("VendorPass1") },
       seller: { id: "seller-a", handle: "seller-a", name: "Seller A" },
@@ -252,14 +261,14 @@ describe("paused seller guard", () => {
     const { cartId } = (await cartRes.json()) as { cartId: string }
     const add = await app.request(`/store/cart/${cartId}/items`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${buyerToken}` },
       body: JSON.stringify({ offerId: "offer-a", qty: 1 }),
     }, env)
     expect(add.status).toBe(201)
 
     const checkout = await app.request("/store/checkout", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${buyerToken}` },
       body: JSON.stringify({
         cartId,
         method: "cod",

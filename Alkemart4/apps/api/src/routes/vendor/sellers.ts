@@ -16,6 +16,7 @@ import {
   type SocialKind,
 } from "@alkemart/domain"
 import { deliveryPromiseFromMetadata } from "../../lib/delivery-promise"
+import { deleteReplacedShopArt } from "../../lib/media-cleanup"
 
 const HANDLE_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 
@@ -364,11 +365,18 @@ export const vendorSellers = new Hono<AppEnv>()
     if (handle && !HANDLE_RE.test(handle)) {
       throw new HTTPException(400, { message: "invalid handle" })
     }
+    const prior = await c.get("authRepo").findSellerById(sellerId).catch(() => null)
     try {
       await c.get("authRepo").updateSellerProfile(sellerId, { ...parsed.data, ...(handle ? { handle } : {}) })
     } catch (err) {
       mapSellerWriteError(err)
     }
+    // A replaced logo/banner stops costing storage.
+    const replaced = [
+      parsed.data.logo !== undefined && parsed.data.logo !== prior?.logo ? prior?.logo : null,
+      parsed.data.banner !== undefined && parsed.data.banner !== prior?.banner ? prior?.banner : null,
+    ]
+    if (replaced.some(Boolean)) await deleteReplacedShopArt(c, sellerId, replaced)
     return c.json(await sellerView(c, sellerId))
   })
   .post("/me/address", async (c) => {
@@ -428,8 +436,17 @@ export const vendorSellers = new Hono<AppEnv>()
     }
     const sellerId = sellerIdOrThrow(c)
     const repo = c.get("authRepo")
+    const member = await repo.findSellerMemberByUserId(c.get("auth").userId)
+    if (!member || member.sellerId !== sellerId || member.role !== "owner") {
+      throw new HTTPException(403, { message: "owner_only" })
+    }
+    const owner = await repo.findUserById(member.userId)
+    if (!owner?.emailVerifiedAt) throw new HTTPException(403, { message: "email_verification_required" })
     const seller = await repo.findSellerById(sellerId)
     if (!seller) throw new HTTPException(404, { message: "seller not found" })
+    // Once payouts have a destination, replacement needs a verified support workflow.
+    // A stolen vendor session must not be enough to redirect accrued funds.
+    if (seller.recipientCode) throw new HTTPException(409, { message: "payment_details_change_requires_review" })
     // Paystack mobile_money only accepts 0-prefixed local MSISDN — never E.164.
     const localPhone = toLocalMsisdn(parsed.data.phone)
     if (!localPhone) throw new HTTPException(400, { message: "invalid MoMo number" })

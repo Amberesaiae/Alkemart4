@@ -14,13 +14,15 @@
     "@alkemart/domain": "workspace:*",
     "@alkemart/paystack": "workspace:*",
     "@alkemart/shared": "workspace:*",
-    "hono": "^4.7.0",
     "drizzle-orm": "^0.44.0",
+    "hono": "^4.7.0",
+    "jose": "^6.2.12",
     "postgres": "^3.4.5",
     "zod": "^3.25.0"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20250801.0",
+    "@electric-sql/pglite": "^0.5.8",
     "typescript": "~5.9.3",
     "vitest": "^4.1.10",
     "wrangler": "^4.129.0"

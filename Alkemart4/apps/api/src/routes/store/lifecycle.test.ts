@@ -61,6 +61,7 @@ async function setup() {
     passwordHash: await hashPassword("BuyerPass1"),
     role: "buyer",
   })
+  await authRepo.markEmailVerified("buyer-1")
   const app = createApp({ authRepo, repo, checkoutRepo, jwtSecret: JWT })
   const json = (method: string, body: unknown, token?: string) => {
     const headers: Record<string, string> = { "Content-Type": "application/json" }
@@ -76,6 +77,7 @@ async function setup() {
       testEnv(),
     )
     expect(res.status).toBe(201)
+    await authRepo.markEmailVerified((await authRepo.findUserByEmail(email))!.id)
     const login = await app.request(
       "/vendor/auth/login",
       json("POST", { email, password: "VendorPass1" }),
@@ -139,6 +141,12 @@ describe("subscriptions (Phase 7B)", () => {
       product: { id: string }
       variants: { variant: { id: string }; offer: { id: string } }[]
     }
+    // Buyers only see approved shops' published listings: the shop joins the
+    // catalogue (one sellers table in Postgres) and admin approves both.
+    s.repo.snapshot().sellers.push({ id: v.sellerId, handle: "v-shop", name: "v-shop Shop", status: "pending_approval", commissionBps: 0, deliveryFeePesewas: 0n, availability: "open", pausedUntil: null, pauseNote: null })
+    expect((await s.app.request(`/admin/sellers/${v.sellerId}/approve`, s.json("POST", {}, s.adminToken), testEnv())).status).toBe(200)
+    s.repo.snapshot().sellers.find((x) => x.id === v.sellerId)!.status = "open"
+    expect((await s.app.request(`/admin/products/${body.product.id}/approve`, s.json("POST", {}, s.adminToken), testEnv())).status).toBe(200)
     // Buyer phone resolves from their own order history (verified contact).
     return { ...s, vendor: v, productId: body.product.id, variantId: body.variants[0]!.variant.id, offerId: body.variants[0]!.offer.id }
   }
@@ -337,6 +345,8 @@ describe("vendor tasks journeys (Phase 7C)", () => {
     )!.id
     expect(prodId).toBe(productId)
     await s.app.request(`/admin/products/${prodId}/approve`, s.json("POST", {}, s.adminToken), testEnv())
+    // Listed 4 days ago and never re-checked: now it's worth a price check.
+    s.repo.snapshot().products.find((p) => p.id === prodId)!.createdAt = new Date(Date.now() - 4 * 86_400_000).toISOString()
 
     const tasks = (await (
       await s.app.request("/vendor/tasks", { headers: { Authorization: `Bearer ${v.token}` } }, testEnv())

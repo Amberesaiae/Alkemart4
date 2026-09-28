@@ -161,6 +161,8 @@ describe("Phase 1B/1D — identity and matching", () => {
   it("promotes identity only through review; match confirm auto-promotes", async () => {
     const { admin, repo } = await phase1App()
     const data = (repo as unknown as { snapshot(): CatalogSnapshot }).snapshot()
+    const shop = (id: string) => ({ id, handle: id, name: id, status: "open" as const, commissionBps: 0, deliveryFeePesewas: 0n, availability: "open" as const, pausedUntil: null, pauseNote: null })
+    data.sellers.push(shop("seller-a"), shop("seller-b"))
     data.products.push(
       {
         id: "p1",

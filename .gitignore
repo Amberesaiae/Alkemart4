@@ -58,3 +58,11 @@ Alkemart4/supabase/.temp/
 
 # Agent session transcripts (may contain live-testing credentials)
 session-ses_*.md
+
+# Database backups hold live customer data — never commit them.
+*.dump
+alkemart-backup-*
+*.sql.gz
+
+# Stock backups from scripts/pilot-stock-out-demo.ts
+.stock-backup-*.json

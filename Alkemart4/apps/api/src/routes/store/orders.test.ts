@@ -18,9 +18,20 @@ async function seedBuyer(authRepo: InMemoryAuthRepository) {
     passwordHash: await hashPassword("BuyerPass1"),
     role: "buyer",
   })
+  await authRepo.markEmailVerified("buyer-1")
 }
 
-async function placeCod(app: ReturnType<typeof createApp>, email: string) {
+async function buyerToken(app: ReturnType<typeof createApp>) {
+  const login = await app.request("/store/auth/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email: "buyer@alkemart.test", password: "BuyerPass1" }),
+  })
+  expect(login.status).toBe(200)
+  return ((await login.json()) as { token: string }).token
+}
+
+async function placeCod(app: ReturnType<typeof createApp>, email: string, token: string) {
   const cartRes = await app.request("/store/cart", { method: "POST" })
   const { cartId } = (await cartRes.json()) as { cartId: string }
   await app.request(`/store/cart/${cartId}/items`, {
@@ -30,7 +41,7 @@ async function placeCod(app: ReturnType<typeof createApp>, email: string) {
   })
   const checkout = await app.request("/store/checkout", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
     body: JSON.stringify({ cartId, method: "cod", buyerEmail: email, shippingAddress: { first_name: "Ama", last_name: "Mensah", phone: "0244123456", address_1: "12 High St", city: "Accra", country_code: "gh" } }),
   })
   expect(checkout.status).toBe(200)
@@ -41,7 +52,7 @@ async function placeCod(app: ReturnType<typeof createApp>, email: string) {
 }
 
 describe("store buyer orders", () => {
-  it("lists and retrieves orders for signed-in buyer; lookup by email for guests", async () => {
+  it("lists and retrieves orders only for the verified, signed-in buyer", async () => {
     const snapshot = demoCatalog()
     const catalog = new InMemoryCatalogRepository(snapshot)
     const checkoutRepo = new InMemoryCheckoutRepository(snapshot)
@@ -54,18 +65,8 @@ describe("store buyer orders", () => {
       jwtSecret: JWT,
     })
 
-    const placed = await placeCod(app, "buyer@alkemart.test")
-
-    const login = await app.request("/store/auth/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        email: "buyer@alkemart.test",
-        password: "BuyerPass1",
-      }),
-    })
-    expect(login.status).toBe(200)
-    const { token } = (await login.json()) as { token: string }
+    const token = await buyerToken(app)
+    const placed = await placeCod(app, "buyer@alkemart.test", token)
 
     const list = await app.request("/store/orders", {
       headers: { Authorization: `Bearer ${token}` },
@@ -89,8 +90,22 @@ describe("store buyer orders", () => {
     )
     expect(bySellerOrder.status).toBe(200)
 
+    // A password change revokes the old session for individual order detail
+    // and for order actions, not only for the order-list endpoint.
+    await authRepo.updateUserPassword("buyer-1", await hashPassword("NewBuyerPass2"))
+    const staleDetail = await app.request(`/store/orders/${placed.orderGroupId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    expect(staleDetail.status).toBe(401)
+    const staleAction = await app.request(`/store/orders/${placed.orders[0]!.id}/problem`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ note: "Missing item from this order" }),
+    })
+    expect(staleAction.status).toBe(401)
+
     const denied = await app.request(`/store/orders/${placed.orderGroupId}`)
-    expect(denied.status).toBe(404)
+    expect(denied.status).toBe(401)
 
     const lookup = await app.request("/store/orders/lookup", {
       method: "POST",
@@ -100,7 +115,7 @@ describe("store buyer orders", () => {
         email: "buyer@alkemart.test",
       }),
     })
-    expect(lookup.status).toBe(200)
+    expect(lookup.status).toBe(401)
 
     const badLookup = await app.request("/store/orders/lookup", {
       method: "POST",
@@ -110,20 +125,23 @@ describe("store buyer orders", () => {
         email: "other@alkemart.test",
       }),
     })
-    expect(badLookup.status).toBe(404)
+    expect(badLookup.status).toBe(401)
   })
 
   it("checkout status returns completed after COD", async () => {
     const snapshot = demoCatalog()
     const catalog = new InMemoryCatalogRepository(snapshot)
     const checkoutRepo = new InMemoryCheckoutRepository(snapshot)
+    const authRepo = new InMemoryAuthRepository()
+    await seedBuyer(authRepo)
     const app = createApp({
-      authRepo: new InMemoryAuthRepository(),
+      authRepo,
       repo: catalog,
       checkoutRepo,
       jwtSecret: JWT,
     })
 
+    const token = await buyerToken(app)
     const cartRes = await app.request("/store/cart", { method: "POST" })
     const { cartId } = (await cartRes.json()) as { cartId: string }
     await app.request(`/store/cart/${cartId}/items`, {
@@ -133,17 +151,18 @@ describe("store buyer orders", () => {
     })
     await app.request("/store/checkout", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify({
         cartId,
         method: "cod",
-        buyerEmail: "guest@alkemart.test",
+        buyerEmail: "buyer@alkemart.test",
         shippingAddress: { first_name: "Ama", last_name: "Mensah", phone: "0244123456", address_1: "12 High St", city: "Accra", country_code: "gh" },
       }),
     })
 
     const status = await app.request(
       `/store/checkout/status?cartId=${encodeURIComponent(cartId)}`,
+      { headers: { Authorization: `Bearer ${token}` } },
     )
     expect(status.status).toBe(200)
     const body = (await status.json()) as {

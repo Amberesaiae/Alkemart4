@@ -2278,7 +2278,9 @@ export function getProductFrom(
     : undefined)
     ?? (slug ? data.products.find((p) => p.slug === slug) : undefined)
     ?? data.products.find((p) => p.id === key)
-  if (!product) return null
+  // Buyers only ever see what the catalogue lists: drafts, listings in review
+  // and rejected ones stay private to their seller and admin.
+  if (!product || product.status !== "published") return null
   const cat = categoryById(data).get(product.primaryCategoryId)
   const extras = assembleExtras(data, product.id)
   const optionMap = new Map<string, Record<string, string>>()
@@ -2292,6 +2294,14 @@ export function getProductFrom(
     ...o,
     options: optionMap.get(o.offerId) ?? {},
   }))
+  // A suspended or closed shop's product disappears with the shop — unless
+  // another open shop still sells the same item. An open shop's sold-out or
+  // paused product keeps its page, and so does a shared catalogue product
+  // with no owning shop (same rule as the catalogue shelf).
+  if (offersForProduct.length === 0 && product.sellerId) {
+    const owner = data.sellers.find((s) => s.id === product.sellerId)
+    if (owner?.status !== "open") return null
+  }
   return toProductDetail(
     {
       productId: product.id,
@@ -2471,6 +2481,8 @@ export class InMemoryCatalogRepository implements CatalogRepository {
       manufacturer: cleanText(input.identity?.manufacturer),
       productType: cleanText(input.identity?.productType),
       identityConfidence: "seller_specific",
+      // Postgres stamps created_at on insert; the double must too.
+      createdAt: new Date().toISOString(),
     }
     this.data.products.push(product)
     await this.recordOutboxEvent("product", productId, "upsert", { title: input.title })

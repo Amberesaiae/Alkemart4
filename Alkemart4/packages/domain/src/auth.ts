@@ -1,4 +1,7 @@
+// Workers production currently caps a single PBKDF2 derivation at 100k.
+// 600k is an explicit rollout setting, not a blind default (see SECURITY-HARDENING.md).
 const PBKDF2_ITERATIONS = 100_000
+export type PasswordHashIterations = 100_000 | 600_000
 const SALT_BYTES = 16
 const KEY_BITS = 256
 const HASH_PREFIX = "pbkdf2-sha256"
@@ -50,10 +53,11 @@ async function deriveKey(plain: string, salt: Uint8Array, iterations: number): P
   return new Uint8Array(bits)
 }
 
-export async function hashPassword(plain: string): Promise<string> {
+export async function hashPassword(plain: string, iterations: PasswordHashIterations = PBKDF2_ITERATIONS): Promise<string> {
+  if (iterations !== 100_000 && iterations !== 600_000) throw new Error("unsupported password work factor")
   const salt = crypto.getRandomValues(new Uint8Array(SALT_BYTES))
-  const key = await deriveKey(plain, salt, PBKDF2_ITERATIONS)
-  return `${HASH_PREFIX}$${PBKDF2_ITERATIONS}$${bytesToHex(salt)}$${bytesToHex(key)}`
+  const key = await deriveKey(plain, salt, iterations)
+  return `${HASH_PREFIX}$${iterations}$${bytesToHex(salt)}$${bytesToHex(key)}`
 }
 
 export async function verifyPassword(plain: string, hash: string): Promise<boolean> {
@@ -62,14 +66,19 @@ export async function verifyPassword(plain: string, hash: string): Promise<boole
     return false
   }
   const iterations = Number(parts[1])
-  if (!Number.isInteger(iterations) || iterations < 1) {
+  if (!Number.isInteger(iterations) || iterations < 1 || iterations > 600_000) {
     return false
   }
   const salt = hexToBytes(parts[2] ?? "")
   const expected = hexToBytes(parts[3] ?? "")
-  if (!salt || !expected) {
+  if (!salt || salt.length !== SALT_BYTES || !expected || expected.length !== KEY_BITS / 8) {
     return false
   }
   const actual = await deriveKey(plain, salt, iterations)
   return timingSafeEqual(actual, expected)
+}
+
+export function passwordHashNeedsUpgrade(hash: string, target: PasswordHashIterations): boolean {
+  const parts = hash.split("$")
+  return parts[0] === HASH_PREFIX && Number(parts[1]) < target
 }

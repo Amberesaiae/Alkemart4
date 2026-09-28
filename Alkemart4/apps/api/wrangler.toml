@@ -3,6 +3,17 @@ main = "src/index.ts"
 compatibility_date = "2026-08-28"
 compatibility_flags = ["nodejs_compat"]
 
+# Hosted sign-in is served by this Worker on the app hosts themselves, so
+# host-only cookies stay first-party and rate limits see the real client IP
+# (a Pages Function proxy would arrive from one shared Cloudflare address).
+# api.alkemart.com is listed so a deploy never detaches the existing domain.
+workers_dev = true
+routes = [
+  { pattern = "api.alkemart.com", custom_domain = true },
+  { pattern = "alkemart.com/store/auth/workos/*", zone_name = "alkemart.com" },
+  { pattern = "sell.alkemart.com/vendor/auth/workos/*", zone_name = "alkemart.com" },
+]
+
 # Async jobs ride Cloudflare Queues (agnostic plan Phase 2), not cron: per-intent
 # delayed expiry messages replace the hourly sweep, and confirm-path producers
 # trigger notification dispatch. Zero cron slots consumed, so deploys stay green
@@ -52,6 +63,26 @@ dead_letter_queue = "alkemart-jobs-notifications-dlq"
 # `wrangler secret`.
 [vars]
 ENVIRONMENT = "production"
+STOREFRONT_URL = "https://alkemart.com"
+VENDOR_URL = "https://sell.alkemart.com"
+WORKOS_STOREFRONT_API_ORIGIN = "https://alkemart.com"
+WORKOS_VENDOR_API_ORIGIN = "https://sell.alkemart.com"
+# Keep cutover off until production provider, migrations and E2E gates pass.
+WORKOS_ENABLED = "0"
+# Admin API trusts only Cloudflare Access assertions for this team/audience,
+# and only for these identities (keep in step with the Access policy).
+ADMIN_ACCESS_TEAM = "https://proud-block-b3f8.cloudflareaccess.com"
+ADMIN_ACCESS_AUD = "e841b78f33d66a76e22cf6e82159e78a8f087534e87545af6090110184478982"
+ADMIN_ACCESS_EMAILS = "isaiahamber5@gmail.com,akpey.mawuena@gmail.com"
+
+
+[[durable_objects.bindings]]
+name = "AUTH_RATE_LIMITER"
+class_name = "AuthRateLimiter"
+
+[[migrations]]
+tag = "v1-auth-rate-limiter"
+new_sqlite_classes = ["AuthRateLimiter"]
 
 [dev]
 port = 8787

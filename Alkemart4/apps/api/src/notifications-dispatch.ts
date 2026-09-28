@@ -26,7 +26,7 @@ export async function dispatchPendingNotifications(
   for (const n of claimed) {
     try {
       // Route by channel: the outbox carries SMS and email alike.
-      if (n.channel === "email") await email.send({ to: n.recipient, ...decodeEmail(n.body) })
+      if (n.channel === "email") await email.send({ to: n.recipient, ...decodeEmail(n.body), idempotencyKey: `alkemart-notification-${n.id}` })
       else await sms.send({ to: n.recipient, body: n.body })
       await checkout.markNotificationSent(n.id)
       sent += 1

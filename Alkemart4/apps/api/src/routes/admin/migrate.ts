@@ -1,5 +1,5 @@
 import { attributeDefinitions, attributeProfiles, profileAttributes, users } from "@alkemart/db"
-import { hashPassword } from "@alkemart/domain"
+import { hashPasswordForRequest } from "../../lib/password-policy"
 import { eq, sql } from "drizzle-orm"
 import { Hono } from "hono"
 import { HTTPException } from "hono/http-exception"
@@ -12,9 +12,9 @@ import { runPaymentIntentExpiry } from "../../payment-intent-expiry"
 import { runNotificationDispatch } from "../../notifications-dispatch"
 
 const RotateDemoPasswordsSchema = z.object({
-  adminPassword: z.string().min(10).optional(),
-  vendorPassword: z.string().min(10).optional(),
-  buyerPassword: z.string().min(10).optional(),
+  adminPassword: z.string().min(14).max(200).optional(),
+  vendorPassword: z.string().min(14).max(200).optional(),
+  buyerPassword: z.string().min(14).max(200).optional(),
 })
 
 /** One-shot schema patches applied via Hyperdrive (local machine may lack DB reachability). */
@@ -147,26 +147,29 @@ export const adminMigrate = new Hono<AppEnv>()
     }
     if (updates.length === 0) {
       throw new HTTPException(400, {
-        message: "Provide at least one of adminPassword, vendorPassword, buyerPassword (min 10 chars)",
+        message: "Provide at least one of adminPassword, vendorPassword, buyerPassword (14–200 chars)",
       })
     }
 
     const env = parseEnv(c.env as unknown as Record<string, unknown>)
     const db = primaryDb(env)
     const applied: string[] = []
-    for (const u of updates) {
-      const passwordHash = await hashPassword(u.password)
-      const result = await db
-        .update(users)
-        .set({ passwordHash })
-        .where(eq(users.email, u.email))
-        .returning({ email: users.email })
-      if (result[0]) applied.push(result[0].email)
-    }
+    const hashes = await Promise.all(updates.map(async (u) => ({ email: u.email, passwordHash: await hashPasswordForRequest(c, u.password) })))
+    await db.transaction(async (tx) => {
+      for (const u of hashes) {
+        const result = await tx
+          .update(users)
+          .set({ passwordHash: u.passwordHash, passwordChangedAt: new Date() })
+          .where(eq(users.email, u.email))
+          .returning({ email: users.email })
+        if (result[0]) applied.push(result[0].email)
+      }
+    })
+    await c.get("auditLog").log({ adminUserId: c.get("auth").userId, action: "rotate_demo_passwords", targetType: "users", targetId: "demo", detail: { emails: applied } })
     return c.json({
       ok: true,
       applied,
-      note: "Update docs/DEMO-ACCOUNTS.md and any CI secrets. Old sessions remain until JWT expiry.",
+      note: "Keep replacement credentials in a private secret store. Older sessions are revoked by the password-change stamp.",
     })
   })
   /**

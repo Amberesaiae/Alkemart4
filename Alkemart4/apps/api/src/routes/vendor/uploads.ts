@@ -134,20 +134,26 @@ async function storeUploadedImage(
   if (bytes.length <= 0 || bytes.length > MAX_UPLOAD_BYTES) {
     throw new HTTPException(413, { message: "image must be smaller than 5 MB" })
   }
+  // Unsupported formats (e.g. an iPhone's HEIC original) get a plain answer
+  // first; only then is a declared-vs-actual mismatch treated as a spoof.
+  const spec = ALLOWED[file.type]
+  const sniffed = sniffImageType(bytes)
+  if (!spec || !sniffed) {
+    throw new HTTPException(415, { message: "Use a JPG, PNG or WebP photo." })
+  }
   // Bind sniffed content to the declared type: runtimes may normalize
   // file.type at parse time, so a mismatch here is the spoof signal.
-  const sniffed = sniffImageType(bytes)
-  if (!sniffed || sniffed !== file.type) {
+  if (sniffed !== file.type) {
     throw new HTTPException(415, { message: "file content does not match its type" })
   }
-  const spec = ALLOWED[file.type]
-  if (!spec) throw new HTTPException(415, { message: "only PNG, JPG, WebP, or GIF images are accepted" })
 
-  const origin = new URL(c.req.url).origin
+  // Public media domain when configured (CDN → R2, no Worker); else /media here.
+  const publicBase = (c.env as { MEDIA_PUBLIC_URL?: string } | undefined)?.MEDIA_PUBLIC_URL?.replace(/\/$/, "")
+  const urlOf = (key: string) => (publicBase ? `${publicBase}/${key}` : `${new URL(c.req.url).origin}/media/${key}`)
   const base = `${kind}/${ownerId}/${crypto.randomUUID()}`
   const originalKey = `${base}.${spec.ext}`
   await bucket.put(originalKey, bytes, { httpMetadata: { contentType: file.type } })
-  const original: Variant = { url: `${origin}/media/${originalKey}`, key: originalKey }
+  const original: Variant = { url: urlOf(originalKey), key: originalKey }
 
   const [webBytes, thumbBytes] = await Promise.all([
     convert(c.env.IMAGES, bytes, 1600, 82),
@@ -158,12 +164,12 @@ async function storeUploadedImage(
   if (webBytes) {
     const key = `${base}.webp`
     await bucket.put(key, webBytes, { httpMetadata: { contentType: "image/webp" } })
-    web = { url: `${origin}/media/${key}`, key }
+    web = { url: urlOf(key), key }
   }
   if (thumbBytes) {
     const key = `${base}.thumb.webp`
     await bucket.put(key, thumbBytes, { httpMetadata: { contentType: "image/webp" } })
-    thumb = { url: `${origin}/media/${key}`, key }
+    thumb = { url: urlOf(key), key }
   }
 
   const primary = web ?? original
@@ -198,20 +204,40 @@ export const adminUploads = new Hono<AppEnv>().use("*", requireAdmin).post("/", 
 const KEY_PATTERN =
   /^(products|logos|banners|merch)\/[A-Za-z0-9_-]+\/[A-Za-z0-9_-]+(?:\.thumb)?\.(jpg|png|webp|gif)$/
 
-/** GET /media/* — serve R2 images with immutable caching. Public, no auth. */
+/**
+ * GET /media/* — serve R2 images with immutable caching. Public, no auth.
+ * Keys never change content, so a copy in this data centre's edge cache is
+ * served without touching R2 again. (Production should point
+ * MEDIA_PUBLIC_URL at an R2 custom domain so the CDN serves photos without
+ * running the Worker at all; this route keeps older URLs working.)
+ */
 export async function serveMedia(c: {
-  req: { path: string }
+  req: { path: string; url: string }
   env: AppEnv["Bindings"]
   notFound: () => Response | Promise<Response>
+  executionCtx?: { waitUntil(p: Promise<unknown>): void }
 }): Promise<Response> {
   const bucket = c.env.MEDIA_BUCKET
   const key = c.req.path.replace(/^\/media\//, "")
   if (!bucket || !KEY_PATTERN.test(key)) return c.notFound()
+  const cache = (globalThis as { caches?: { default?: Cache } }).caches?.default
+  const cacheKey = new Request(c.req.url, { method: "GET" })
+  const hit = cache ? await cache.match(cacheKey).catch(() => undefined) : undefined
+  if (hit) return hit
   const object = await bucket.get(key)
   if (!object) return c.notFound()
   const headers = new Headers()
   headers.set("Content-Type", object.httpMetadata?.contentType ?? "application/octet-stream")
   headers.set("Cache-Control", "public, max-age=31536000, immutable")
   if (object.etag) headers.set("ETag", object.etag)
-  return new Response(object.body, { status: 200, headers })
+  const res = new Response(object.body, { status: 200, headers })
+  if (cache) {
+    const put = cache.put(cacheKey, res.clone()).catch(() => undefined)
+    try {
+      c.executionCtx?.waitUntil(put)
+    } catch {
+      /* no execution context outside Workers */
+    }
+  }
+  return res
 }

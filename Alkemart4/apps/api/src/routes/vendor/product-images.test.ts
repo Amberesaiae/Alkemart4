@@ -47,8 +47,12 @@ function emptySnapshot(): CatalogSnapshot {
   }
 }
 
+/** The current test's catalogue, so a created listing can be approved. */
+let catalogue: ReturnType<typeof emptySnapshot>
+
 async function setup() {
   const snapshot = emptySnapshot()
+  catalogue = snapshot
   const authRepo = new InMemoryAuthRepository()
   const { hashPassword } = await import("@alkemart/domain")
   for (const [i, email] of ["a@alkemart.test", "b@alkemart.test"].entries()) {
@@ -83,7 +87,10 @@ async function createProduct(app: ReturnType<typeof createApp>, token: string, i
     testEnv(),
   )
   expect(res.status).toBe(201)
-  return ((await res.json()) as { product: { id: string } }).product.id
+  const id = ((await res.json()) as { product: { id: string } }).product.id
+  // Approved, so the buyer-facing detail shows it (unpublished listings 404).
+  catalogue.products.find((p) => p.id === id)!.status = "published"
+  return id
 }
 
 const put = (app: ReturnType<typeof createApp>, id: string, token: string, images: unknown[]) =>

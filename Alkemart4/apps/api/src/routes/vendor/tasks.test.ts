@@ -106,3 +106,34 @@ describe("GET /vendor/tasks", () => {
     expect(anon.status).toBe(401)
   })
 })
+
+describe("price check task", () => {
+  it("doesn't nag about a listing made just now, only one left unchecked for 3 days", async () => {
+    const snapshot = emptyCatalog()
+    const app = createApp({
+      authRepo: new InMemoryAuthRepository(),
+      repo: new InMemoryCatalogRepository(snapshot),
+      checkoutRepo: new InMemoryCheckoutRepository(snapshot),
+      jwtSecret: JWT_SECRET,
+    })
+    const token = await sellerToken(app)
+    const auth = { Authorization: `Bearer ${token}` }
+    const created = await app.request(
+      "/vendor/products",
+      { method: "POST", headers: { ...auth, "Content-Type": "application/json" }, body: JSON.stringify({ title: "Kente", primaryCategoryId: "phones", pricePesewas: "10000", onHand: 20 }) },
+      testEnv(),
+    )
+    expect(created.status).toBe(201)
+    const product = snapshot.products.at(-1)!
+    product.status = "published"
+    const kinds = async () =>
+      (((await (await app.request("/vendor/tasks", { headers: auth }, testEnv())).json()) as { tasks: { kind: string; title: string; detail: string }[] }).tasks)
+    expect((await kinds()).some((t) => t.kind === "price")).toBe(false)
+
+    product.createdAt = new Date(Date.now() - 4 * 86_400_000).toISOString()
+    const price = (await kinds()).find((t) => t.kind === "price")
+    expect(price).toMatchObject({ title: "1 price to check" })
+    // No promise the platform doesn't keep (nothing hides stale offers).
+    expect(price!.detail).not.toMatch(/suppress|hid/i)
+  })
+})

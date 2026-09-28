@@ -327,7 +327,8 @@ export const vendorOrders = new Hono<AppEnv>()
       const shop = await c.get("authRepo").findSellerById(sellerId).catch(() => null)
       await enqueueOrderStatusEmail(c.get("checkoutRepo"), { order, status: "delivered", sellerName: shop?.name ?? "The seller", links: orderEmailLinks(c) })
       void enqueueReviewRequestSms(c, order)
-      return c.json({ order: publicOrder(order) })
+      // Answer with what was just stored (who confirmed, when money releases).
+      return c.json({ order: publicOrder({ ...order, deliveryConfirmedBy: confirmedBy, payoutReleaseAt: releaseAt }) })
     } catch (err) {
       if (err instanceof InvalidFulfillmentTransitionError) {
         // 409: the order is in a state that doesn't allow this step (already

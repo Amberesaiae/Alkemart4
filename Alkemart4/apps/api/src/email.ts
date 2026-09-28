@@ -1,11 +1,11 @@
 /**
  * Transactional email. Production sends via Resend (https://resend.com) once
- * RESEND_API_KEY and EMAIL_FROM are set; until then the log stub prints what
- * would have been sent. Like SMS, routes only ENQUEUE into the notifications
+ * RESEND_API_KEY and EMAIL_FROM are set; staging/production fail closed if
+ * missing. The development stub never logs message content. Routes ENQUEUE into the notifications
  * outbox (channel "email"); the dispatch job sends, so a provider outage
  * never blocks a checkout or a password reset request.
  */
-export type EmailInput = { to: string; subject: string; html: string; text: string }
+export type EmailInput = { to: string; subject: string; html: string; text: string; idempotencyKey?: string }
 
 export interface EmailProvider {
   send(input: EmailInput): Promise<{ messageId: string }>
@@ -20,7 +20,9 @@ export class ResendEmailProvider implements EmailProvider {
   async send(input: EmailInput) {
     const res = await this.fetchFn("https://api.resend.com/emails", {
       method: "POST",
-      headers: { Authorization: `Bearer ${this.cfg.apiKey}`, "Content-Type": "application/json" },
+      headers: { Authorization: `Bearer ${this.cfg.apiKey}`, "Content-Type": "application/json", ...(input.idempotencyKey ? { "Idempotency-Key": input.idempotencyKey } : {}) },
+      redirect: "error",
+      signal: AbortSignal.timeout(10_000),
       body: JSON.stringify({
         from: this.cfg.from,
         to: [input.to],
@@ -31,14 +33,15 @@ export class ResendEmailProvider implements EmailProvider {
       }),
     })
     const data = (await res.json().catch(() => ({}))) as { id?: string; message?: string }
-    if (!res.ok || !data.id) throw new Error(`Resend rejected email (${res.status}${data.message ? `: ${data.message}` : ""})`)
+    if (!res.ok || !data.id) throw new Error(`Resend rejected email (${res.status})`)
     return { messageId: data.id }
   }
 }
 
 export class LogEmailProvider implements EmailProvider {
   async send(input: EmailInput) {
-    console.log(JSON.stringify({ job: "email-stub", to: input.to, subject: input.subject, text: input.text }))
+    // Verification/reset links and private order details must never enter logs.
+    console.log(JSON.stringify({ job: "email-stub", outcome: "not-delivered" }))
     return { messageId: `log-${Date.now()}` }
   }
 }
@@ -57,9 +60,12 @@ export class InMemoryEmailProvider implements EmailProvider {
   }
 }
 
-export function emailProviderFromEnv(env: { RESEND_API_KEY?: string; EMAIL_FROM?: string; EMAIL_REPLY_TO?: string }): EmailProvider {
+export function emailProviderFromEnv(env: { ENVIRONMENT?: string; RESEND_API_KEY?: string; EMAIL_FROM?: string; EMAIL_REPLY_TO?: string }): EmailProvider {
   if (env.RESEND_API_KEY && env.EMAIL_FROM) {
     return new ResendEmailProvider({ apiKey: env.RESEND_API_KEY, from: env.EMAIL_FROM, replyTo: env.EMAIL_REPLY_TO })
+  }
+  if (env.ENVIRONMENT === "production" || env.ENVIRONMENT === "staging") {
+    return { send: async () => { throw new Error("Transactional email is not configured") } }
   }
   return new LogEmailProvider()
 }

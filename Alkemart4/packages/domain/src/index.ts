@@ -48,7 +48,7 @@ export type {
   ProductDetailInput,
 } from "./catalog"
 export { toProductCard, toProductDetail } from "./catalog"
-export { hashPassword, verifyPassword } from "./auth"
+export { hashPassword, verifyPassword, passwordHashNeedsUpgrade, type PasswordHashIterations } from "./auth"
 export type { SellerReadiness, SellerReadinessInput } from "./seller-readiness"
 export { evaluateSellerReadiness } from "./seller-readiness"
 export type { ModerationAction } from "./moderation"
@@ -202,6 +202,7 @@ export {
   medianReplyMinutes,
   needsPaymentWarning,
   replyTimeLabel,
+  reviewNeedsCheck,
 } from "./messaging"
 export type { DealAction, DealPolicy, DealState, DealStatus, DealStep } from "./deals"
 export {

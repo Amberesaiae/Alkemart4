@@ -1,9 +1,9 @@
-import { hashPassword } from "@alkemart/domain"
+import { hashPassword, type OrderFact } from "@alkemart/domain"
 import { describe, expect, it } from "vitest"
 import { InMemoryAdminAuditLog } from "../../admin-audit"
 import { InMemoryAuthRepository } from "../../auth-repository"
 import { InMemoryCatalogRepository } from "../../catalog-repository"
-import { InMemoryCheckoutRepository } from "../../checkout-repository"
+import { InMemoryCheckoutRepository, type CheckoutRepository } from "../../checkout-repository"
 import type { CatalogSnapshot } from "../../demo-seed"
 import { GHANA_CATEGORY_SEED } from "@alkemart/db"
 import { createApp } from "../../index"
@@ -13,7 +13,7 @@ resetRateLimits()
 
 const JWT_SECRET = "test-jwt-secret-that-is-at-least-32-chars-long"
 
-async function adminApp() {
+async function adminApp(verified = true) {
   const authRepo = new InMemoryAuthRepository()
   await authRepo.createUser({
     id: "admin-1",
@@ -68,6 +68,10 @@ async function adminApp() {
   })
   expect(vendor.status).toBe(201)
   const vendorBody = (await vendor.json()) as { user: { sellerId: string } }
+  if (verified) {
+    const owner = await authRepo.findUserByEmail("seller@alkemart.test")
+    await authRepo.markEmailVerified(owner!.id)
+  }
   return { app, authRepo, auditLog, token, sellerId: vendorBody.user.sellerId }
 }
 
@@ -97,7 +101,37 @@ describe("GET /admin/sellers", () => {
   })
 })
 
+describe("GET /admin/sellers totals", () => {
+  it("match Insights → Business: cancelled orders and delivery fees don't count", async () => {
+    const authRepo = new InMemoryAuthRepository()
+    await authRepo.createUser({ id: "admin-1", email: "admin@alkemart.test", passwordHash: await hashPassword("AdminPass1"), role: "admin" })
+    await authRepo.registerVendor({ user: { id: "u1", email: "s@alkemart.test", passwordHash: "x" }, seller: { id: "s1", handle: "s1", name: "S1" } })
+    const fact = (status: OrderFact["status"], subtotal: bigint): OrderFact => ({
+      orderId: crypto.randomUUID(), orderGroupId: crypto.randomUUID(), sellerId: "s1", placedAt: new Date(Date.now() - 86_400_000),
+      status, deliveredAt: null, subtotalPesewas: subtotal, deliveryFeePesewas: 1000n, paymentMethod: "cod", fulfillmentMethod: "delivery",
+      buyerKey: "b@x.test", region: null, city: null, items: [{ productId: "p", title: "P", qty: 1, amountPesewas: subtotal }],
+    })
+    const facts = [fact("delivered", 5000n), fact("placed", 2000n), fact("cancelled", 90000n)]
+    const checkoutRepo = { listOrderFacts: async () => facts } as unknown as CheckoutRepository
+    const app = createApp({ authRepo, checkoutRepo, jwtSecret: JWT_SECRET })
+    const login = await app.request("/admin/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: "admin@alkemart.test", password: "AdminPass1" }),
+    })
+    const token = ((await login.json()) as { token: string }).token
+    const res = await app.request("/admin/sellers", { headers: { Authorization: `Bearer ${token}` } })
+    const row = ((await res.json()) as { items: { id: string; orderCount: number; gmvPesewas: string }[] }).items.find((i) => i.id === "s1")
+    expect(row).toMatchObject({ orderCount: 2, gmvPesewas: "7000" })
+  })
+})
+
 describe("POST /admin/sellers/:id/approve", () => {
+  it("blocks approval until the shop owner verifies their email", async () => {
+    const { app, token, sellerId } = await adminApp(false)
+    const res = await app.request(`/admin/sellers/${sellerId}/approve`, authPost(token))
+    expect(res.status).toBe(409)
+  })
   it("sets seller status to open", async () => {
     const { app, authRepo, token, sellerId } = await adminApp()
     const before = await authRepo.findSellerById(sellerId)

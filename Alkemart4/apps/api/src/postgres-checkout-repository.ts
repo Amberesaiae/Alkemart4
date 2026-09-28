@@ -827,35 +827,6 @@ export class PostgresCheckoutRepository implements CheckoutRepository {
     return momo || null
   }
 
-  async platformOrderStats() {
-    const toBig = (v: bigint | string | number): bigint =>
-      typeof v === "bigint" ? v : BigInt(v)
-    const groupRows = await this.db
-      .select({ totalPesewas: orderGroups.totalPesewas, createdAt: orderGroups.createdAt })
-      .from(orderGroups)
-      .orderBy(desc(orderGroups.createdAt))
-    const itemRows = await this.db
-      .select({
-        productId: orderItems.productId,
-        title: orderItems.title,
-        units: sql<number>`sum(${orderItems.qty})`,
-        gmv: sql<string | number | bigint>`sum(${orderItems.qty} * ${orderItems.unitPricePesewas})`,
-      })
-      .from(orderItems)
-      .groupBy(orderItems.productId, orderItems.title)
-      .orderBy(sql`sum(${orderItems.qty} * ${orderItems.unitPricePesewas}) desc`)
-      .limit(10)
-    return {
-      groups: groupRows.map((g) => ({ totalPesewas: toBig(g.totalPesewas), createdAt: g.createdAt })),
-      topItems: itemRows.map((r) => ({
-        productId: r.productId,
-        title: r.title,
-        units: Number(r.units),
-        gmvPesewas: toBig(r.gmv),
-      })),
-    }
-  }
-
   async listOrderFacts(filter: OrderFactFilter): Promise<OrderFact[]> {
     const deliveredAt = sql<Date | null>`(SELECT min(e.at) FROM order_events e WHERE e.order_id = ${orders.id} AND e.status = 'delivered')`
     const conds = [
@@ -1662,6 +1633,7 @@ export class PostgresCheckoutRepository implements CheckoutRepository {
     rating: number
     title: string | null
     body: string
+    status?: "pending" | "published"
   }) {
     try {
       const [row] = await this.db
@@ -2114,6 +2086,16 @@ export class PostgresCheckoutRepository implements CheckoutRepository {
       .from(reviews)
       .where(eq(reviews.status, "pending"))
       .orderBy(reviews.createdAt)
+    return rows.map((r) => this.toReviewRow(r))
+  }
+
+  async listRecentPublishedReviews(limit: number) {
+    const rows = await this.db
+      .select()
+      .from(reviews)
+      .where(eq(reviews.status, "published"))
+      .orderBy(desc(reviews.createdAt))
+      .limit(limit)
     return rows.map((r) => this.toReviewRow(r))
   }
 

@@ -17,7 +17,7 @@ const JWT = "test-jwt-secret-that-is-at-least-32-chars-long"
 const SK = "sk_test_trust"
 
 /** A seller with two delivered, paid-online orders and an admin token. */
-async function world(opts: { transfer?: CreatePaystackTransfer; verifyTransfer?: VerifyPaystackTransfer } = {}) {
+async function world(opts: { transfer?: CreatePaystackTransfer; verifyTransfer?: VerifyPaystackTransfer; verifiedOwner?: boolean } = {}) {
   const snapshot = demoCatalog()
   const catalog = new InMemoryCatalogRepository(snapshot)
   const checkoutRepo = new InMemoryCheckoutRepository(snapshot)
@@ -27,6 +27,7 @@ async function world(opts: { transfer?: CreatePaystackTransfer; verifyTransfer?:
     seller: { id: "seller-a", handle: "seller-a-trust", name: "Accra Mart" },
   })
   await authRepo.updateSellerStatus("seller-a", "open")
+  if (opts.verifiedOwner !== false) await authRepo.markEmailVerified("u-seller-a")
   await authRepo.updateSellerGhanaSetup("seller-a", {
     name: "Accra Mart",
     packRegion: "greater_accra",
@@ -88,6 +89,12 @@ async function world(opts: { transfer?: CreatePaystackTransfer; verifyTransfer?:
 type PayoutBody = { payout: { id: string; status: string; netPesewas: string; paystackReference: string; failureReason: string | null }; outcome?: string }
 
 describe("payouts you can trust", () => {
+  it("blocks legacy payout recipients whose owner has not verified their email", async () => {
+    const w = await world({ verifiedOwner: false })
+    const res = await w.call("POST", "/admin/payouts", { sellerId: "seller-a" })
+    expect(res.status).toBe(409)
+    expect(w.references).toHaveLength(0)
+  })
   it("never pays a held order, and an account hold blocks the payout", async () => {
     const w = await world()
     await w.checkoutRepo.createPayoutHold({ sellerId: "seller-a", orderId: w.orderIds[0], reason: "buyer dispute", createdBy: "admin-1" })

@@ -119,6 +119,21 @@ describe("POST /vendor/uploads", () => {
     expect(new Uint8Array(await served.arrayBuffer())).toEqual(PNG)
   })
 
+  it("with MEDIA_PUBLIC_URL set, photos get CDN URLs on the media domain (no Worker per view)", async () => {
+    const { bucket, store } = fakeBucket()
+    const app = createApp({ authRepo: new InMemoryAuthRepository(), jwtSecret: JWT_SECRET })
+    const token = await sellerToken(app)
+    const res = await app.request(
+      "/vendor/uploads",
+      uploadInit(token, new File([PNG], "photo.png", { type: "image/png" })),
+      { ...testEnv(bucket), MEDIA_PUBLIC_URL: "https://media.example/" },
+    )
+    expect(res.status).toBe(201)
+    const [{ url, key }] = ((await res.json()) as { files: { url: string; key: string }[] }).files
+    expect(url).toBe(`https://media.example/${key}`)
+    expect(store.has(key)).toBe(true)
+  })
+
   it("accepts WebP and GIF bytes and serves every stored variant", async () => {
     const { bucket } = fakeBucket()
     const app = createApp({ authRepo: new InMemoryAuthRepository(), jwtSecret: JWT_SECRET })
@@ -236,6 +251,13 @@ describe("POST /vendor/uploads", () => {
       testEnv(bucket),
     )
     expect(text.status).toBe(415)
+    expect(((await text.json()) as { error: string }).error).toBe("Use a JPG, PNG or WebP photo.")
+
+    // An iPhone HEIC original gets the same plain answer, not "doesn't match its type".
+    const heicBytes = new Uint8Array([0, 0, 0, 0x18, 0x66, 0x74, 0x79, 0x70, 0x68, 0x65, 0x69, 0x63])
+    const heic = await app.request("/vendor/uploads", uploadInit(token, new File([heicBytes], "IMG_0001.HEIC", { type: "image/heic" })), testEnv(bucket))
+    expect(heic.status).toBe(415)
+    expect(((await heic.json()) as { error: string }).error).toBe("Use a JPG, PNG or WebP photo.")
 
     // No file field at all.
     const empty = await app.request("/vendor/uploads", uploadInit(token, null), testEnv(bucket))

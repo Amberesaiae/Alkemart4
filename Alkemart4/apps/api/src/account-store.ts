@@ -1,4 +1,4 @@
-import { buyerAddresses, passwordResetTokens } from "@alkemart/db"
+import { buyerAddresses, emailVerificationTokens, passwordResetTokens } from "@alkemart/db"
 import { and, asc, desc, eq, gt, isNull } from "drizzle-orm"
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js"
 
@@ -47,6 +47,8 @@ export interface AccountStore {
   createResetToken(input: { userId: string; tokenHash: string; expiresAt: Date }): Promise<void>
   /** Marks the token used and returns its user — or null if unknown/used/expired. */
   consumeResetToken(tokenHash: string, now?: Date): Promise<string | null>
+  createEmailVerificationToken(input: { userId: string; tokenHash: string; expiresAt: Date }): Promise<void>
+  consumeEmailVerificationToken(tokenHash: string, now?: Date): Promise<string | null>
 }
 
 export class AddressLimitError extends Error {
@@ -60,6 +62,7 @@ export class AddressLimitError extends Error {
 export class InMemoryAccountStore implements AccountStore {
   private addresses: (Address & { userId: string })[] = []
   private tokens: { userId: string; tokenHash: string; expiresAt: Date; usedAt: Date | null }[] = []
+  private verificationTokens: { userId: string; tokenHash: string; expiresAt: Date; usedAt: Date | null }[] = []
 
   private strip(a: Address & { userId: string }): Address {
     const { userId, ...rest } = a
@@ -117,6 +120,18 @@ export class InMemoryAccountStore implements AccountStore {
 
   async consumeResetToken(tokenHash: string, now = new Date()) {
     const t = this.tokens.find((x) => x.tokenHash === tokenHash && !x.usedAt && x.expiresAt > now)
+    if (!t) return null
+    t.usedAt = now
+    return t.userId
+  }
+
+  async createEmailVerificationToken(input: { userId: string; tokenHash: string; expiresAt: Date }) {
+    this.verificationTokens.filter((t) => t.userId === input.userId && !t.usedAt).forEach((t) => (t.usedAt = new Date()))
+    this.verificationTokens.push({ ...input, usedAt: null })
+  }
+
+  async consumeEmailVerificationToken(tokenHash: string, now = new Date()) {
+    const t = this.verificationTokens.find((x) => x.tokenHash === tokenHash && !x.usedAt && x.expiresAt > now)
     if (!t) return null
     t.usedAt = now
     return t.userId
@@ -238,6 +253,21 @@ export class PostgresAccountStore implements AccountStore {
         and(eq(passwordResetTokens.tokenHash, tokenHash), isNull(passwordResetTokens.usedAt), gt(passwordResetTokens.expiresAt, now)),
       )
       .returning({ userId: passwordResetTokens.userId })
+    return row?.userId ?? null
+  }
+
+  async createEmailVerificationToken(input: { userId: string; tokenHash: string; expiresAt: Date }) {
+    await this.db.transaction(async (tx) => {
+      await tx.update(emailVerificationTokens).set({ usedAt: new Date() })
+        .where(and(eq(emailVerificationTokens.userId, input.userId), isNull(emailVerificationTokens.usedAt)))
+      await tx.insert(emailVerificationTokens).values({ id: crypto.randomUUID(), ...input })
+    })
+  }
+
+  async consumeEmailVerificationToken(tokenHash: string, now = new Date()) {
+    const [row] = await this.db.update(emailVerificationTokens).set({ usedAt: now })
+      .where(and(eq(emailVerificationTokens.tokenHash, tokenHash), isNull(emailVerificationTokens.usedAt), gt(emailVerificationTokens.expiresAt, now)))
+      .returning({ userId: emailVerificationTokens.userId })
     return row?.userId ?? null
   }
 }

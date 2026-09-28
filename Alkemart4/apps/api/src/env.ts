@@ -1,8 +1,20 @@
 import { z } from "zod"
+import type { RateLimitNamespace } from "./lib/auth-rate-limit"
 
 const EnvSchema = z.object({
   ENVIRONMENT: z.enum(["development", "staging", "production"]).default("development"),
   JWT_SECRET: z.string().min(1),
+  WORKOS_ENABLED: z.enum(["0", "1"]).optional(),
+  WORKOS_API_KEY: z.string().min(1).optional(),
+  WORKOS_CLIENT_ID: z.string().startsWith("client_").optional(),
+  WORKOS_COOKIE_SECRET: z.string().min(32).optional(),
+  WORKOS_API_ORIGIN: z.string().url().optional(),
+  WORKOS_STOREFRONT_API_ORIGIN: z.string().url().optional(),
+  WORKOS_VENDOR_API_ORIGIN: z.string().url().optional(),
+  /** Cloudflare Access boundary for /admin (production only). */
+  ADMIN_ACCESS_TEAM: z.string().url().optional(),
+  ADMIN_ACCESS_AUD: z.string().min(1).optional(),
+  ADMIN_ACCESS_EMAILS: z.string().min(1).optional(),
   PAYSTACK_SECRET_KEY: z.string().min(1).optional(),
   /** Africa's Talking SMS (fulfillment notifications). Absent → log-only stub. */
   AT_USERNAME: z.string().min(1).optional(),
@@ -15,18 +27,27 @@ const EnvSchema = z.object({
   EMAIL_REPLY_TO: z.string().email().optional(),
   /** Public app origins used in email links. */
   STOREFRONT_URL: z.string().url().optional(),
+  /** Public R2 custom domain for photos (e.g. https://media.alkemart.app).
+   * When set, new uploads are served by Cloudflare's CDN straight from R2,
+   * without running this Worker. Unset: served from `/media/*` here. */
+  MEDIA_PUBLIC_URL: z.string().url().optional(),
   VENDOR_URL: z.string().url().optional(),
   /** Nominatim-compatible street search (LocationIQ or self-hosted). Absent →
    * the public OpenStreetMap server, which is for light/dev use only. */
   GEOCODER_URL: z.string().url().optional(),
   GEOCODER_KEY: z.string().min(1).optional(),
   GEOCODER_EMAIL: z.string().email().optional(),
+  TURNSTILE_SECRET_KEY: z.string().min(1).optional(),
+  TURNSTILE_HOSTNAMES: z.string().min(1).optional(),
+  /** Enable 600000 only after production-runtime/CPU verification. */
+  PASSWORD_HASH_ITERATIONS: z.enum(["100000", "600000"]).optional(),
 })
 
 export type ApiEnv = z.infer<typeof EnvSchema> & {
   HYPERDRIVE: { connectionString: string }
   HYPERDRIVE_PRIMARY: { connectionString: string }
   CATALOG_KV: KVNamespace
+  AUTH_RATE_LIMITER?: RateLimitNamespace
   /** R2 media bucket. Optional so unit tests and KV-only flows keep working;
    * upload/media routes answer 501 when it is absent. */
   MEDIA_BUCKET?: R2Bucket

@@ -18,7 +18,8 @@ import { sellerProblemReportedEmail } from "../../lib/email-templates"
 import { orderEmailLinks } from "../../lib/order-emails"
 import { readJsonBody } from "../../lib/session"
 import { verifySessionJwt } from "../../lib/jwt"
-import { requireFreshSession } from "../../middleware/auth"
+import { validateWorkosClaims } from "../../lib/workos-session"
+import { requireVerifiedBuyer } from "../../middleware/auth"
 import { RETURN_REASONS, assertCanAskForReturn, ReturnRuleError, type ReturnPolicy } from "@alkemart/domain"
 import { ReturnCaseOpenError, type ReturnCaseRow } from "../../checkout-repository"
 import type { ShopPolicyStore } from "../../shop-policies"
@@ -47,6 +48,26 @@ type SellerCard = {
 
 function emailsMatch(a: string, b: string): boolean {
   return a.trim().toLowerCase() === b.trim().toLowerCase()
+}
+
+/** A signed-in order owner must still have an active buyer account/session. */
+async function activeBuyerOwnsOrder(c: Context<AppEnv>, buyerEmail: string): Promise<boolean> {
+  const token = bearerToken(c.req.header("Authorization"))
+  const secret = c.get("jwtSecret")
+  if (!token || !secret) return false
+  try {
+    const auth = await verifySessionJwt(token, secret)
+    await validateWorkosClaims(c, auth)
+    if (auth.role !== "buyer") return false
+    const user = await c.get("authRepo").findUserById(auth.userId)
+    if (!user || (user.role !== "buyer" && !(auth.sid && user.role === "seller_member")) || !emailsMatch(user.email, buyerEmail)) return false
+    const changed = user.passwordChangedAt?.getTime()
+    if (auth.pwd !== undefined && auth.pwd !== (changed ?? 0)) return false
+    if (changed && auth.pwd === undefined && (auth.iat === undefined || auth.iat <= Math.floor(changed / 1000))) return false
+    return true
+  } catch {
+    return false
+  }
 }
 
 function publicItem(item: OrderItemRow) {
@@ -209,23 +230,12 @@ const ProblemBody = BuyerProof.extend({ note: z.string().trim().min(5).max(500) 
  * The buyer of this order: signed in as the buyer, or (guests) the order id
  * plus the checkout email — the same proof the order lookup uses.
  */
-async function buyerOrder(c: Context<AppEnv>, orderId: string, email: string | undefined) {
+async function buyerOrder(c: Context<AppEnv>, orderId: string) {
   const checkout = c.get("checkoutRepo")
   const order = await checkout.getOrder(orderId)
   const group = order ? await checkout.getOrderGroup(order.orderGroupId) : null
   if (!order || !group) throw new HTTPException(404, { message: "order not found" })
-  if (email && emailsMatch(email, group.buyerEmail)) return { order, group }
-  const token = bearerToken(c.req.header("Authorization"))
-  const secret = c.get("jwtSecret")
-  if (token && secret) {
-    try {
-      const auth = await verifySessionJwt(token, secret)
-      const user = await c.get("authRepo").findUserById(auth.userId)
-      if (user && emailsMatch(user.email, group.buyerEmail)) return { order, group }
-    } catch {
-      /* fall through */
-    }
-  }
+  if (await activeBuyerOwnsOrder(c, group.buyerEmail)) return { order, group }
   throw new HTTPException(404, { message: "order not found" })
 }
 
@@ -255,7 +265,8 @@ const LookupBody = z.object({
 })
 
 export const storeOrders = new Hono<AppEnv>()
-  .get("/", requireFreshSession, async (c) => {
+  .use("*", requireVerifiedBuyer)
+  .get("/", async (c) => {
     const auth = c.get("auth")
     const user = await c.get("authRepo").findUserById(auth.userId)
     if (!user) throw new HTTPException(401, { message: "unauthorized" })
@@ -277,18 +288,8 @@ export const storeOrders = new Hono<AppEnv>()
     const group = await resolveGroupByIdOrOrderId(checkout, id)
     if (!group) throw new HTTPException(404, { message: "order not found" })
 
-    const token = bearerToken(c.req.header("Authorization"))
-    const secret = c.get("jwtSecret")
-    if (token && secret) {
-      try {
-        const auth = await verifySessionJwt(token, secret)
-        const user = await c.get("authRepo").findUserById(auth.userId)
-        if (user && emailsMatch(user.email, group.buyerEmail)) {
-          return c.json({ orderGroup: await serializeGroup(checkout, group, await sellerDirectory(c), await returnsView(c)) })
-        }
-      } catch {
-        /* guests use POST /lookup */
-      }
+    if (await activeBuyerOwnsOrder(c, group.buyerEmail)) {
+      return c.json({ orderGroup: await serializeGroup(checkout, group, await sellerDirectory(c), await returnsView(c)) })
     }
 
     throw new HTTPException(404, { message: "order not found" })
@@ -306,7 +307,7 @@ export const storeOrders = new Hono<AppEnv>()
     const checkout = c.get("checkoutRepo")
     const group = await resolveGroupByIdOrOrderId(checkout, parsed.data.orderId)
     // Anti-enumeration: same 404 whether missing or email mismatch.
-    if (!group || !emailsMatch(group.buyerEmail, parsed.data.email)) {
+    if (!group || !(await activeBuyerOwnsOrder(c, group.buyerEmail))) {
       throw new HTTPException(404, { message: "order not found" })
     }
     return c.json({ orderGroup: await serializeGroup(checkout, group, await sellerDirectory(c), await returnsView(c)) })
@@ -318,9 +319,14 @@ export const storeOrders = new Hono<AppEnv>()
   .post("/:orderId/received", async (c) => {
     const parsed = BuyerProof.safeParse(await readJsonBody(c).catch(() => ({})))
     if (!parsed.success) throw new HTTPException(400, { message: "invalid body" })
-    const { order } = await buyerOrder(c, c.req.param("orderId"), parsed.data.email)
+    const { order } = await buyerOrder(c, c.req.param("orderId"))
     const checkout = c.get("checkoutRepo")
     if (order.status === "cancelled") throw new HTTPException(409, { message: "This order was cancelled." })
+    // Confirming releases the seller's payout, so a delivery can't be confirmed
+    // before the seller has sent it. Pickup is handed over in person, any time.
+    if (order.status === "placed" && order.fulfillmentMethod !== "pickup") {
+      throw new HTTPException(409, { message: "The seller hasn't sent this order yet. Confirm once it's in your hands." })
+    }
     const actor = { kind: "buyer" as const, note: "Buyer confirmed they received it" }
     if (order.status === "placed") await checkout.updateOrderStatus(order.id, order.sellerId, "shipped", actor)
     if (order.status !== "delivered") await checkout.updateOrderStatus(order.id, order.sellerId, "delivered", actor)
@@ -336,7 +342,7 @@ export const storeOrders = new Hono<AppEnv>()
   .post("/:orderId/problem", async (c) => {
     const parsed = ProblemBody.safeParse(await readJsonBody(c).catch(() => ({})))
     if (!parsed.success) throw new HTTPException(400, { message: "Tell the seller what's wrong in a few words." })
-    const { order, group } = await buyerOrder(c, c.req.param("orderId"), parsed.data.email)
+    const { order, group } = await buyerOrder(c, c.req.param("orderId"))
     const checkout = c.get("checkoutRepo")
     const open = (await checkout.listPayoutHolds(order.sellerId, true)).find((h) => h.orderId === order.id)
     if (open) return c.json({ ok: true, alreadyReported: true })
@@ -360,7 +366,7 @@ export const storeOrders = new Hono<AppEnv>()
   .post("/:orderId/problem/resolved", async (c) => {
     const parsed = BuyerProof.safeParse(await readJsonBody(c).catch(() => ({})))
     if (!parsed.success) throw new HTTPException(400, { message: "invalid body" })
-    const { order } = await buyerOrder(c, c.req.param("orderId"), parsed.data.email)
+    const { order } = await buyerOrder(c, c.req.param("orderId"))
     const checkout = c.get("checkoutRepo")
     const openCase = (await checkout.listReturnCases({ orderIds: [order.id] })).find((r) => r.status !== "closed")
     if (openCase) {
@@ -382,7 +388,7 @@ export const storeOrders = new Hono<AppEnv>()
   .post("/:orderId/return", async (c) => {
     const parsed = ReturnBody.safeParse(await readJsonBody(c).catch(() => ({})))
     if (!parsed.success) throw new HTTPException(400, { message: "Pick what's wrong and tell the seller about it in a few words." })
-    const { order, group } = await buyerOrder(c, c.req.param("orderId"), parsed.data.email)
+    const { order, group } = await buyerOrder(c, c.req.param("orderId"))
     const checkout = c.get("checkoutRepo")
     const policy = await returnPolicy(c)
     const ctx = await loadOrderContext(checkout, order.id)
@@ -422,7 +428,7 @@ export const storeOrders = new Hono<AppEnv>()
   .post("/:orderId/return/respond", async (c) => {
     const parsed = RespondBody.safeParse(await readJsonBody(c).catch(() => ({})))
     if (!parsed.success) throw new HTTPException(400, { message: "invalid body" })
-    const { order } = await buyerOrder(c, c.req.param("orderId"), parsed.data.email)
+    const { order } = await buyerOrder(c, c.req.param("orderId"))
     const checkout = c.get("checkoutRepo")
     const policy = await returnPolicy(c)
     await sweepDueReturns({ checkout, policy, links: orderEmailLinks(c) }).catch(() => 0)

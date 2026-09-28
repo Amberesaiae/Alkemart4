@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { checkText, contactFlags, medianReplyMinutes, needsPaymentWarning, replyTimeLabel } from "../messaging"
+import { checkText, contactFlags, medianReplyMinutes, needsPaymentWarning, replyTimeLabel, reviewNeedsCheck } from "../messaging"
 
 describe("contactFlags", () => {
   it("catches Ghana numbers written many ways", () => {
@@ -36,5 +36,14 @@ describe("reply time", () => {
     expect(replyTimeLabel(180)).toBe("Usually replies within a few hours")
     expect(replyTimeLabel(2000)).toBe("Usually replies in more than a day")
     expect(replyTimeLabel(null)).toBeNull()
+  })
+})
+
+describe("reviewNeedsCheck", () => {
+  it("lets ordinary reviews through, including ones that mention paying with MoMo", () => {
+    for (const t of ["Great phone, fast delivery", "Paid with MoMo, came the same day", "Battery lasts 2 days. 5 stars", "Arrived in 3 days for GH₵1,850"]) expect(reviewNeedsCheck(t), t).toBe(false)
+  })
+  it("holds contact details, links and off-platform asks", () => {
+    for (const t of ["call 0244123456", "ama@gmail.com for more", "see www.cheapphones.com", "https://x.co/deal", "WhatsApp me for cheaper", "send money first, it's cheaper"]) expect(reviewNeedsCheck(t), t).toBe(true)
   })
 })

@@ -25,11 +25,11 @@ const aiSaying = (verdict: string, confidence: number, reasons: unknown[] = []) 
   run: async () => ({ response: JSON.stringify({ verdict, confidence, reasons }) }),
 })
 
-async function setup(mode: "manual" | "assist" | "auto", ai?: ReturnType<typeof aiSaying>) {
+async function setup(mode?: "trust" | "manual" | "assist" | "auto", ai?: ReturnType<typeof aiSaying>) {
   const authRepo = new InMemoryAuthRepository()
   const repo = new InMemoryCatalogRepository(empty())
   const reviews = new InMemoryListingReviewStore()
-  await reviews.setReviewMode(mode)
+  if (mode) await reviews.setReviewMode(mode)
   const app = createApp({ authRepo, repo, jwtSecret: JWT, reviewStore: reviews })
   const env = { ENVIRONMENT: "development", ...(ai ? { AI: ai } : {}) }
   await authRepo.registerVendor({
@@ -65,6 +65,36 @@ async function setup(mode: "manual" | "assist" | "auto", ai?: ReturnType<typeof 
     }
   return { call, create, submit, seller, admin }
 }
+
+describe("trust by default", () => {
+  it("with no setting, a clean listing goes live the moment it's published — no AI needed", async () => {
+    const t = await setup()
+    expect(((await (await t.call("/admin/products/review-settings", t.admin)).json()) as { mode: string }).mode).toBe("trust")
+    const out = await t.submit(await t.create("Tecno Spark 20 Pro 256GB Black"))
+    expect(out.review).toMatchObject({ decision: "approve", reviewer: "system" })
+    expect(out.product.status).toBe("published")
+  })
+
+  it("a flagged listing still waits for a person", async () => {
+    const t = await setup()
+    const out = await t.submit(await t.create("Rolex Submariner replica watch"))
+    expect(out.review?.decision).toBe("escalate")
+    expect(out.product.status).toBe("proposed")
+  })
+
+  it("editing a live listing doesn't take it off sale: a clean edit is back live at once", async () => {
+    const t = await setup()
+    const id = await t.create("Tecno Spark 20 Pro 256GB Black")
+    await t.submit(id)
+    const edited = await t.call(`/vendor/products/${id}`, t.seller, "PATCH", { title: "Tecno Spark 20 Pro 256GB Black (sealed)" })
+    expect(edited.status).toBe(200)
+    expect(((await edited.json()) as { product: { status: string } }).product.status).toBe("published")
+
+    // An edit that trips a flag goes to the queue, like a new listing would.
+    const risky = await t.call(`/vendor/products/${id}`, t.seller, "PATCH", { title: "Tecno Spark replica" })
+    expect(((await risky.json()) as { product: { status: string } }).product.status).toBe("proposed")
+  })
+})
 
 describe("listing review on submit", () => {
   it("contact details go straight back to the seller with the reason (any mode)", async () => {

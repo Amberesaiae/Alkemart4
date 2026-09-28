@@ -1,0 +1,6 @@
+name = "alkemart-www-redirect"
+main = "worker.js"
+compatibility_date = "2026-09-28"
+account_id = "c057131d18c6e024ec4370e6292686d1"
+workers_dev = false
+routes = [{ pattern = "www.alkemart.com", custom_domain = true }]

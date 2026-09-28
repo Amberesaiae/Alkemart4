@@ -6,12 +6,17 @@ export type SessionClaims = {
   sellerId?: string
   /** Issued-at (unix seconds) — lets sensitive routes reject sessions older than a password change. */
   iat?: number
+  /** Password-change timestamp at issuance; zero means never changed. */
+  pwd?: number
+  /** Server-side WorkOS session; local logout/revocation is checked on every request. */
+  sid?: string
 }
 
 const encoder = new TextEncoder()
 const decoder = new TextDecoder()
 const ROLES = new Set<string>(["buyer", "seller_member", "admin"])
 const DEFAULT_TTL_SECONDS = 60 * 60 * 24 * 7
+export const ADMIN_TTL_SECONDS = 60 * 60
 
 function bytesToB64Url(bytes: Uint8Array): string {
   let bin = ""
@@ -53,11 +58,16 @@ async function hmacSha256(secret: string, data: string): Promise<Uint8Array> {
 function parseClaims(payload: unknown): SessionClaims {
   if (!payload || typeof payload !== "object") throw new Error("invalid token")
   const p = payload as Record<string, unknown>
-  if (typeof p.exp === "number" && p.exp <= Math.floor(Date.now() / 1000)) {
+  const now = Math.floor(Date.now() / 1000)
+  if (!Number.isSafeInteger(p.exp) || !Number.isSafeInteger(p.iat) || (p.iat as number) > now + 30) throw new Error("invalid token")
+  if ((p.exp as number) <= now) {
     throw new Error("expired token")
   }
   if (typeof p.userId !== "string" || !p.userId) throw new Error("invalid token")
   if (typeof p.role !== "string" || !ROLES.has(p.role)) throw new Error("invalid token")
+  if (p.role === "admin" && (now - (p.iat as number) >= ADMIN_TTL_SECONDS || (p.exp as number) - (p.iat as number) > ADMIN_TTL_SECONDS)) throw new Error("expired token")
+  if (p.pwd !== undefined && (!Number.isSafeInteger(p.pwd) || (p.pwd as number) < 0)) throw new Error("invalid token")
+  if (p.sid !== undefined && (typeof p.sid !== "string" || !p.sid || p.role === "admin" || (p.exp as number) - (p.iat as number) > 300)) throw new Error("invalid token")
   const sellerId = p.sellerId
   if (sellerId !== undefined && (typeof sellerId !== "string" || !sellerId)) {
     throw new Error("invalid token")
@@ -67,13 +77,15 @@ function parseClaims(payload: unknown): SessionClaims {
     role: p.role as SessionRole,
     ...(sellerId ? { sellerId } : {}),
     ...(typeof p.iat === "number" ? { iat: p.iat } : {}),
+    ...(typeof p.pwd === "number" ? { pwd: p.pwd } : {}),
+    ...(typeof p.sid === "string" ? { sid: p.sid } : {}),
   }
 }
 
 export async function signSessionJwt(
   claims: SessionClaims,
   secret: string,
-  ttlSeconds = DEFAULT_TTL_SECONDS,
+  ttlSeconds = claims.role === "admin" ? ADMIN_TTL_SECONDS : DEFAULT_TTL_SECONDS,
 ): Promise<string> {
   const now = Math.floor(Date.now() / 1000)
   const payload: Record<string, unknown> = {
@@ -84,6 +96,8 @@ export async function signSessionJwt(
     exp: now + ttlSeconds,
   }
   if (claims.sellerId) payload.sellerId = claims.sellerId
+  if (claims.pwd !== undefined) payload.pwd = claims.pwd
+  if (claims.sid) payload.sid = claims.sid
   const body = `${jsonToB64Url({ alg: "HS256", typ: "JWT" })}.${jsonToB64Url(payload)}`
   const sig = await hmacSha256(secret, body)
   return `${body}.${bytesToB64Url(sig)}`
@@ -93,6 +107,8 @@ export async function verifySessionJwt(token: string, secret: string): Promise<S
   const parts = token.split(".")
   if (parts.length !== 3 || !parts[0] || !parts[1] || !parts[2]) throw new Error("invalid token")
   const body = `${parts[0]}.${parts[1]}`
+  const header = JSON.parse(decoder.decode(b64UrlToBytes(parts[0]))) as { alg?: string; typ?: string }
+  if (header.alg !== "HS256" || header.typ !== "JWT") throw new Error("invalid token")
   const actual = await hmacSha256(secret, body)
   const expected = b64UrlToBytes(parts[2])
   if (!timingSafeEqual(actual, expected)) throw new Error("invalid token")

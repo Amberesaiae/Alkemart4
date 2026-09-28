@@ -1,7 +1,7 @@
 import type { Context } from "hono"
 import { HTTPException } from "hono/http-exception"
 import { z } from "zod"
-import { hashPassword } from "@alkemart/domain"
+import { hashPasswordForRequest } from "./password-policy"
 import type { UserRole } from "../auth-repository"
 import type { AppEnv } from "../context"
 import { encodeEmail } from "../email"
@@ -46,6 +46,7 @@ export function appOrigin(c: Context<AppEnv>, app: "storefront" | "vendor"): str
  * or not the email has an account of this role (no account enumeration).
  */
 export async function requestPasswordReset(c: Context<AppEnv>, role: UserRole, app: "storefront" | "vendor") {
+  if (c.env?.WORKOS_ENABLED === "1" && role !== "admin") throw new HTTPException(409, { message: "use_workos_password_recovery" })
   const parsed = RequestBody.safeParse(await readJsonBody(c))
   if (!parsed.success) throw new HTTPException(400, { message: "invalid body" })
   const email = normalizeEmail(parsed.data.email)
@@ -76,13 +77,20 @@ export async function requestPasswordReset(c: Context<AppEnv>, role: UserRole, a
 
 /** POST …/auth/password-reset/confirm — consumes the token once, sets the password. */
 export async function confirmPasswordReset(c: Context<AppEnv>, role: UserRole) {
+  if (c.env?.WORKOS_ENABLED === "1" && role !== "admin") throw new HTTPException(409, { message: "use_workos_password_recovery" })
   const parsed = ConfirmBody.safeParse(await readJsonBody(c))
-  if (!parsed.success) throw new HTTPException(400, { message: "Use at least 8 characters for your new password." })
+  if (!parsed.success) {
+    // A cut-off link (email apps wrap long URLs) is a link problem, not a password one.
+    const badToken = parsed.error.issues.some((i) => i.path[0] === "token")
+    throw new HTTPException(400, {
+      message: badToken ? "This reset link has expired or was already used. Ask for a new one." : "Use at least 8 characters for your new password.",
+    })
+  }
   const userId = await c.get("accounts").consumeResetToken(await sha256Hex(parsed.data.token))
   if (!userId) throw new HTTPException(400, { message: "This reset link has expired or was already used. Ask for a new one." })
   const user = await c.get("authRepo").findUserById(userId)
   if (!user || user.role !== role) throw new HTTPException(400, { message: "This reset link has expired or was already used. Ask for a new one." })
-  await c.get("authRepo").updateUserPassword(user.id, await hashPassword(parsed.data.password))
+  await c.get("authRepo").updateUserPassword(user.id, await hashPasswordForRequest(c, parsed.data.password))
   await c
     .get("checkoutRepo")
     .enqueueNotification({

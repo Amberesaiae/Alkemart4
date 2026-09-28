@@ -23,8 +23,8 @@ export const adminProducts = new Hono<AppEnv>()
   /** Listing review mode: manual (humans only) · assist (AI advises) · auto (AI may approve clear passes). */
   .get("/review-settings", async (c) => c.json({ mode: await c.get("reviews").getReviewMode() }))
   .put("/review-settings", async (c) => {
-    const parsed = z.object({ mode: z.enum(["manual", "assist", "auto"]) }).safeParse(await readJsonBody(c))
-    if (!parsed.success) throw new HTTPException(400, { message: "mode must be manual, assist or auto" })
+    const parsed = z.object({ mode: z.enum(["trust", "manual", "assist", "auto"]) }).safeParse(await readJsonBody(c))
+    if (!parsed.success) throw new HTTPException(400, { message: "mode must be trust, manual, assist or auto" })
     await c.get("reviews").setReviewMode(parsed.data.mode, c.get("auth").userId)
     await c.get("auditLog").log({
       adminUserId: c.get("auth").userId,

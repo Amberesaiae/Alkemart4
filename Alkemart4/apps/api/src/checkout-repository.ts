@@ -134,11 +134,6 @@ export type OrderGroupRow = {
   currency: string
 }
 
-export type PlatformOrderStats = {
-  groups: { totalPesewas: bigint; createdAt: Date }[]
-  topItems: { productId: string; title: string; units: number; gmvPesewas: bigint }[]
-}
-
 export type OrderRow = {
   id: string
   orderGroupId: string
@@ -376,7 +371,6 @@ export interface CheckoutRepository {
   listOrdersForSeller(sellerId: string): Promise<OrderRow[]>
   listSellerOrderSummaries(sellerId: string): Promise<SellerOrderSummary[]>
   listRecentOrderGroups(limit?: number): Promise<Array<OrderGroupRow & { createdAt?: Date }>>
-  platformOrderStats(): Promise<PlatformOrderStats>
   /** Per-seller order counts + subtotal GMV (admin lists). */
   orderTotalsBySeller(): Promise<Map<string, { orders: number; gmvPesewas: bigint }>>
   /** Delivered units per product since a cutoff (trending shelf). */
@@ -589,6 +583,8 @@ export interface CheckoutRepository {
     rating: number
     title: string | null
     body: string
+    /** Published at once unless the text needs a look (default pending). */
+    status?: "pending" | "published"
   }): Promise<ReviewRow | null>
   getReview(id: string): Promise<ReviewRow | null>
   listReviewsBySeller(sellerId: string): Promise<ReviewRow[]>
@@ -617,6 +613,8 @@ export interface CheckoutRepository {
   productOrderCounts(since?: Date): Promise<Map<string, number>>
   listPublishedReviewsByProduct(productId: string): Promise<ReviewRow[]>
   listPendingReviews(): Promise<ReviewRow[]>
+  /** Newest published reviews first, so admin can take one down. */
+  listRecentPublishedReviews(limit: number): Promise<ReviewRow[]>
   updateReviewStatus(id: string, status: "published" | "hidden"): Promise<ReviewRow | null>
   respondToReview(id: string, sellerId: string, message: string): Promise<ReviewRow | null>
 }
@@ -1114,28 +1112,6 @@ export class InMemoryCheckoutRepository implements CheckoutRepository {
       }
     }
     return null
-  }
-
-  async platformOrderStats(): Promise<PlatformOrderStats> {
-    const groups = [...this.orderGroups.values()].map((g) => ({
-      totalPesewas: g.totalPesewas,
-      createdAt: g.createdAt,
-    }))
-    const byProduct = new Map<string, { title: string; units: number; gmvPesewas: bigint }>()
-    for (const items of this.orderItems.values()) {
-      for (const item of items) {
-        const slot = byProduct.get(item.productId) ?? { title: item.title, units: 0, gmvPesewas: 0n }
-        slot.units += item.qty
-        const unit = typeof item.unitPricePesewas === "bigint" ? item.unitPricePesewas : BigInt(item.unitPricePesewas)
-        slot.gmvPesewas += BigInt(item.qty) * unit
-        byProduct.set(item.productId, slot)
-      }
-    }
-    const topItems = [...byProduct]
-      .map(([productId, v]) => ({ productId, ...v }))
-      .sort((a, b) => (b.gmvPesewas > a.gmvPesewas ? 1 : b.gmvPesewas < a.gmvPesewas ? -1 : 0))
-      .slice(0, 10)
-    return { groups, topItems }
   }
 
   async updateOrderStatus(
@@ -1687,12 +1663,13 @@ export class InMemoryCheckoutRepository implements CheckoutRepository {
     rating: number
     title: string | null
     body: string
+    status?: "pending" | "published"
   }) {
     if (this.reviewIdByOrder.has(input.orderId)) return null
     const row: ReviewRow = {
       id: crypto.randomUUID(),
       ...input,
-      status: "pending",
+      status: input.status ?? "pending",
       vendorResponse: null,
       respondedAt: null,
       createdAt: new Date(),
@@ -1773,6 +1750,13 @@ export class InMemoryCheckoutRepository implements CheckoutRepository {
     return [...this.reviewsById.values()]
       .filter((r) => r.status === "pending")
       .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())
+  }
+
+  async listRecentPublishedReviews(limit: number) {
+    return [...this.reviewsById.values()]
+      .filter((r) => r.status === "published")
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+      .slice(0, limit)
   }
 
   async updateReviewStatus(id: string, status: "published" | "hidden") {

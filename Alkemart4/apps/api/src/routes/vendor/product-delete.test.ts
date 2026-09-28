@@ -6,6 +6,7 @@ import { InMemoryCheckoutRepository } from "../../checkout-repository"
 import type { CatalogSnapshot } from "../../demo-seed"
 import type { ApiEnv } from "../../env"
 import { createApp } from "../../index"
+import { verifiedBuyerFixture } from "../../lib/verified-buyer-fixture"
 import { resetRateLimits } from "../../middleware/security"
 // Rate-limit counters are per-process: reset so files stay isolated.
 resetRateLimits()
@@ -26,7 +27,8 @@ function testEnv(): ApiEnv {
   }
 }
 
-function json(method: string, body: unknown, token?: string) {
+let buyerToken: string
+function json(method: string, body: unknown, token: string = buyerToken) {
   const headers: Record<string, string> = { "Content-Type": "application/json" }
   if (token) headers.Authorization = `Bearer ${token}`
   return { method, headers, body: JSON.stringify(body) }
@@ -64,6 +66,7 @@ async function setup() {
     priceHistory: [],
   }
   const authRepo = new InMemoryAuthRepository()
+  buyerToken = await verifiedBuyerFixture(authRepo, JWT_SECRET)
   const { hashPassword } = await import("@alkemart/domain")
   await authRepo.createUser({
     id: "admin-1",
@@ -76,6 +79,7 @@ async function setup() {
     seller: { id: "seller-1", handle: "delete-shop", name: "Delete Shop" },
   })
   await authRepo.updateSellerStatus("seller-1", "open")
+  await authRepo.markEmailVerified("u1")
   const app = createApp({
     authRepo,
     repo: new InMemoryCatalogRepository(snapshot),

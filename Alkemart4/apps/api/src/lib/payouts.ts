@@ -4,6 +4,7 @@ import type { Context } from "hono"
 import type { AuthRepository } from "../auth-repository"
 import { PayoutBlockedError, type CheckoutRepository, type PayoutRow } from "../checkout-repository"
 import type { AppEnv, CreatePaystackTransfer } from "../context"
+import { hasVerifiedOwner } from "./verified-owner"
 
 /**
  * Paying sellers: reserve the exact orders and a reference, send one
@@ -19,7 +20,7 @@ export type PayoutDeps = {
   transfer?: CreatePaystackTransfer
 }
 
-export type SellerForPayout = { id: string; handle: string; commissionBps: number; recipientCode?: string | null }
+export type SellerForPayout = { id: string; handle: string; commissionBps: number; recipientCode?: string | null; status?: string }
 
 export type PayOneResult =
   | { kind: "replayed"; payout: PayoutRow }
@@ -66,6 +67,7 @@ export async function sendPayout(deps: PayoutDeps, payout: PayoutRow, recipientC
 /** Reserve and send one seller's released money. Never sends twice: a payout on its way is returned instead. */
 export async function payOne(deps: PayoutDeps, seller: SellerForPayout, actor: string): Promise<PayOneResult> {
   const { checkout, secretKey } = deps
+  if (seller.status && seller.status !== "open") return { kind: "blocked", status: 409, message: "seller is not approved for payouts" }
   if (!seller.recipientCode) return { kind: "blocked", status: 400, message: "seller missing Paystack recipient_code" }
 
   const recent = await checkout.listPayoutsForSeller(seller.id).catch((): PayoutRow[] => [])
@@ -112,6 +114,7 @@ export async function autoPaySeller(deps: PayoutDeps & { authRepo: AuthRepositor
   if (!DEFAULT_PAYOUT_POLICY.autoPayout) return null
   const seller = await deps.authRepo.findSellerById(sellerId).catch(() => null)
   if (!seller?.recipientCode) return null
+  if (!(await hasVerifiedOwner(deps.authRepo, sellerId))) return null
   const released = await deps.checkout.listDeliveredUnpaidOrders(sellerId).catch(() => [])
   if (released.length === 0) return null
   const r = await payOne(deps, seller, AUTO_PAYOUT_ACTOR)

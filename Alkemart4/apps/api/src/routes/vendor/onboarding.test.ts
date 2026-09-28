@@ -57,6 +57,7 @@ async function vendorApp(
     }),
   })
   const body = (await res.json()) as { token: string; user: { sellerId: string } }
+  await authRepo.markEmailVerified((await authRepo.findUserByEmail("ama@alkemart.test"))!.id)
   return { app, authRepo, token: body.token, sellerId: body.user.sellerId, createPaystackTransferRecipient }
 }
 

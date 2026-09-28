@@ -12,6 +12,7 @@ import type { PayoutHoldRow, PayoutRow } from "../../checkout-repository"
 import { autoPayAfter, payOne as payOneShared, sendPayout, type PayOneResult, type PayoutOutcome, type SellerForPayout } from "../../lib/payouts"
 import { readJsonBody } from "../../lib/session"
 import { requireAdmin } from "../../middleware/auth"
+import { hasVerifiedOwner } from "../../lib/verified-owner"
 
 const CreatePayoutBody = z.object({
   sellerId: z.string().min(1),
@@ -46,6 +47,9 @@ const OUTCOME_TEXT: Record<PayoutOutcome, string> = {
 
 /** Admin press: pay one seller through the shared path, audit-logged. */
 async function payOne(c: Context<AppEnv>, seller: SellerForPayout, secretKey: string, actor: string): Promise<PayOneResult> {
+  if (!(await hasVerifiedOwner(c.get("authRepo"), seller.id))) {
+    return { kind: "blocked", status: 409, message: "seller owner must verify their email before payout" }
+  }
   const r = await payOneShared({ checkout: c.get("checkoutRepo"), secretKey, transfer: c.get("createPaystackTransfer") }, seller, actor)
   if (r.kind === "sent") {
     await c.get("auditLog").log({
@@ -98,7 +102,12 @@ export const adminPayouts = new Hono<AppEnv>()
         )
         const accountHold = holds.find((h) => !h.orderId)
         const inFlight = recent.find((p) => p.status === "pending" || p.status === "processing")
-        const blocker = accountHold
+        const verifiedOwner = await hasVerifiedOwner(c.get("authRepo"), s.id)
+        const blocker = s.status !== "open"
+          ? "Shop is not approved for payouts"
+          : !verifiedOwner
+            ? "Shop owner has not verified their email"
+            : accountHold
           ? `On hold: ${accountHold.reason}`
           : !s.recipientCode
             ? "No MoMo payout account yet"
@@ -276,6 +285,9 @@ export const adminPayouts = new Hono<AppEnv>()
     }
     const seller = await c.get("authRepo").findSellerById(payout.sellerId)
     if (!seller?.recipientCode) throw new HTTPException(400, { message: "seller missing Paystack recipient_code" })
+    if (seller.status !== "open" || !(await hasVerifiedOwner(c.get("authRepo"), seller.id))) {
+      throw new HTTPException(409, { message: "seller must be open with a verified owner before retrying a payout" })
+    }
     const secretKey = c.get("paystackSecretKey")
     if (!secretKey) throw new HTTPException(503, { message: "PAYSTACK_SECRET_KEY is not configured" })
     const actor = `admin:${c.get("auth").userId}`

@@ -33,9 +33,10 @@ export interface ListingReviewStore {
   setReviewMode(mode: ReviewMode, by: string): Promise<void>
 }
 
-export const DEFAULT_REVIEW_MODE: ReviewMode = "assist"
+/** Trust by default: clean listings go live, flagged ones wait for a person. */
+export const DEFAULT_REVIEW_MODE: ReviewMode = "trust"
 const MODE_KEY = "listing_review_mode"
-const isMode = (v: unknown): v is ReviewMode => v === "manual" || v === "assist" || v === "auto"
+const isMode = (v: unknown): v is ReviewMode => v === "trust" || v === "manual" || v === "assist" || v === "auto"
 
 export class InMemoryListingReviewStore implements ListingReviewStore {
   private rows: ListingReviewRow[] = []

@@ -31,6 +31,20 @@ export function contactFlags(text: string): ContactFlags {
   return { phone: PHONE.test(text), email: EMAIL.test(text), payOutside: PAY_OUTSIDE.test(text) }
 }
 
+// Links: scheme, www., or a bare domain on a common TLD.
+const LINK = /\b(?:https?:\/\/|www\.)\S+|\b[a-z0-9-]+\.(?:com|net|org|gh|shop|store|app|io|me)\b/i
+// Asking to deal off the platform. Plain "MoMo" isn't one — buyers pay with it.
+const OFF_PLATFORM = /\b(whats\s?app|send (?:the )?money|pay (?:me )?direct(?:ly)?|outside (?:the )?app|call me|my number)\b/i
+
+/**
+ * Buyer reviews publish at once (they're verified purchases). Only one with
+ * contact details, a link or an off-platform ask waits for a person.
+ */
+export function reviewNeedsCheck(text: string): boolean {
+  const f = contactFlags(text)
+  return f.phone || f.email || LINK.test(text) || OFF_PLATFORM.test(text)
+}
+
 export function needsPaymentWarning(f: ContactFlags): boolean {
   return f.phone || f.email || f.payOutside
 }

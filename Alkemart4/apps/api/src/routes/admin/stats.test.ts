@@ -4,6 +4,7 @@ import { InMemoryAuthRepository } from "../../auth-repository"
 import { InMemoryTrafficStore } from "../../traffic"
 import type { CatalogRepository } from "../../catalog-repository"
 import type { CheckoutRepository } from "../../checkout-repository"
+import type { OrderFact } from "@alkemart/domain"
 import type { ApiEnv } from "../../env"
 import { createApp } from "../../index"
 import { resetRateLimits } from "../../middleware/security"
@@ -43,19 +44,38 @@ describe("GET /admin/stats", () => {
     })
     const now = Date.now()
     const day = 86_400_000
+    const fact = (over: Partial<OrderFact>): OrderFact => ({
+      orderId: crypto.randomUUID(),
+      orderGroupId: crypto.randomUUID(),
+      sellerId: "s1",
+      placedAt: new Date(now - 2 * day),
+      status: "delivered",
+      deliveredAt: null,
+      subtotalPesewas: 9000n,
+      deliveryFeePesewas: 1000n,
+      paymentMethod: "momo",
+      fulfillmentMethod: "delivery",
+      buyerKey: "b@x.test",
+      region: null,
+      city: null,
+      items: [{ productId: "p1", title: "Kente", qty: 3, amountPesewas: 9000n }],
+      ...over,
+    })
+    const facts = [
+      fact({}),
+      // Older than 30 days: counts all-time, not in the series.
+      fact({ placedAt: new Date(now - 40 * day), subtotalPesewas: 2500n, items: [{ productId: "p2", title: "Shea", qty: 1, amountPesewas: 2500n }] }),
+      // Cancelled orders never count as sales or orders (same rule as Business).
+      fact({ status: "cancelled", subtotalPesewas: 50000n, items: [{ productId: "p1", title: "Kente", qty: 5, amountPesewas: 50000n }] }),
+    ]
     const checkoutRepo = {
-      platformOrderStats: async () => ({
-        groups: [
-          { totalPesewas: 10000n, createdAt: new Date(now - 2 * day) },
-          { totalPesewas: 2500n, createdAt: new Date(now - 40 * day) },
-        ],
-        topItems: [{ productId: "p1", title: "Kente", units: 3, gmvPesewas: 9000n }],
-      }),
+      listOrderFacts: async (f: { placedFrom?: Date; placedTo?: Date }) =>
+        facts.filter((x) => (!f.placedFrom || x.placedAt >= f.placedFrom) && (!f.placedTo || x.placedAt < f.placedTo)),
     } as unknown as CheckoutRepository
     const catalogRepo = {
       listAdminProducts: async () => [
-        { id: "p1", title: "Kente", imageUrl: "http://x/kente.webp" },
-        { id: "p2", title: "Shea", imageUrl: null },
+        { id: "p1", title: "Kente", imageUrl: "http://x/kente.webp", status: "published" },
+        { id: "p2", title: "Shea", imageUrl: null, status: "draft" },
       ],
     } as unknown as CatalogRepository
     const app = createApp({ authRepo, jwtSecret: JWT_SECRET, checkoutRepo, repo: catalogRepo })
@@ -76,14 +96,15 @@ describe("GET /admin/stats", () => {
       top_products: { title: string; thumbnail: string | null; units: number; gmv: number }[]
     }
     expect(body.total_orders).toBe(2)
-    expect(body.total_gmv_ghs).toBe(125)
+    expect(body.total_gmv_ghs).toBe(115)
     expect(body.active_sellers).toBe(0)
-    expect(body.catalog_size).toBe(2)
+    expect(body.catalog_size).toBe(1)
     expect(body.gmv_last_30_days).toHaveLength(30)
     const seriesTotal = body.gmv_last_30_days.reduce((s, d) => s + d.amount, 0)
-    expect(seriesTotal).toBe(100)
+    expect(seriesTotal).toBe(90)
     expect(body.top_products).toEqual([
       { title: "Kente", thumbnail: "http://x/kente.webp", units: 3, gmv: 90 },
+      { title: "Shea", thumbnail: null, units: 1, gmv: 25 },
     ])
   })
 

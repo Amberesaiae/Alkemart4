@@ -88,6 +88,20 @@ function serializeSummary(s: BusinessSummary, names?: Map<string, string>) {
 
 const iso = (r: ResolvedRange) => ({ from: r.from.toISOString(), to: r.to.toISOString(), label: r.label, bucket: r.bucket })
 
+/**
+ * The whole platform's summary for a preset, unserialised and uncapped
+ * (every shop, bigint money). Admin screens that show platform or per-shop
+ * totals read this, so they always agree with Insights → Business.
+ */
+export async function platformSummary(c: C, preset: "all" | "30d"): Promise<BusinessSummary> {
+  const checkout = c.get("checkoutRepo")
+  const all = preset === "all" ? await checkout.listOrderFacts({}) : null
+  const earliest = all?.reduce<Date | null>((m, f) => (!m || f.placedAt < m ? f.placedAt : m), null) ?? null
+  const range = resolve(c, { preset }, { earliest })
+  const [facts, bps] = await Promise.all([all ?? checkout.listOrderFacts({ placedFrom: range.from, placedTo: range.to }), commissionLookup(c)])
+  return summarize(facts, range, { commissionBps: bps, utcOffsetMinutes: market().utcOffsetMinutes, withSeries: preset !== "all" })
+}
+
 /** Overview for a range, with the previous period of the same length for comparison. */
 export async function overview(c: C, input: { sellerId: string | null; req: RangeRequest; joinedAt?: Date | null }) {
   const checkout = c.get("checkoutRepo")

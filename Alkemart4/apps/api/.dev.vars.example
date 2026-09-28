@@ -4,6 +4,22 @@
 JWT_SECRET=dev-local-jwt-secret-change-me-32chars
 ENVIRONMENT=development
 
+# WorkOS backend integration under construction; these do not enable login yet.
+# WORKOS_API_KEY=
+# WORKOS_CLIENT_ID=client_01M3JKT1PCRXSK57A2M9T7GJ1Y
+# Keep disabled until migrations, encryption secret, and exact origins are configured.
+# WORKOS_ENABLED=0
+# WORKOS_COOKIE_SECRET=generate-a-separate-high-entropy-secret-never-commit-it
+# WORKOS_API_ORIGIN=http://localhost:8787
+# WORKOS_STOREFRONT_API_ORIGIN=https://alkemart4-storefront.pages.dev
+# WORKOS_VENDOR_API_ORIGIN=https://alkemart4-vendor.pages.dev
+
+# Production signup requires both; never commit real secret values.
+# TURNSTILE_SECRET_KEY=
+# TURNSTILE_HOSTNAMES=alkemart4-storefront.pages.dev,alkemart4-vendor.pages.dev
+# PASSWORD_HASH_ITERATIONS=100000
+# Do not enable 600000 until actual production runtime/CPU verification passes.
+
 # Optional for COD-only local. Required for MoMo/card/payouts.
 # PAYSTACK_SECRET_KEY=sk_test_...
 

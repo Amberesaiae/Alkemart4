@@ -7,12 +7,14 @@ import { InMemoryCheckoutRepository } from "../../checkout-repository"
 import { demoCatalog } from "../../demo-seed"
 import { createApp } from "../../index"
 import { signSessionJwt } from "../../lib/jwt"
+import { verifiedBuyerFixture } from "../../lib/verified-buyer-fixture"
 import { resetRateLimits } from "../../middleware/security"
 
 resetRateLimits()
 const JWT = "test-jwt-secret-that-is-at-least-32-chars-long"
 
-const req = (method: string, body?: unknown, token?: string): RequestInit => ({
+let buyerToken: string
+const req = (method: string, body?: unknown, token: string = buyerToken): RequestInit => ({
   method,
   headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
   ...(body === undefined ? {} : { body: JSON.stringify(body) }),
@@ -23,6 +25,7 @@ async function setup() {
   resetRateLimits()
   const snapshot = demoCatalog()
   const authRepo = new InMemoryAuthRepository()
+  buyerToken = await verifiedBuyerFixture(authRepo, JWT)
   const checkoutRepo = new InMemoryCheckoutRepository(snapshot)
   await authRepo.createUser({ id: "admin-1", email: "ops@alkemart.test", passwordHash: await hashPassword("AdminPass1"), role: "admin" })
   await authRepo.registerVendor({
@@ -30,6 +33,7 @@ async function setup() {
     seller: { id: "seller-a", handle: "seller-a", name: "Accra Mart" },
   })
   await authRepo.updateSellerStatus("seller-a", "open")
+  await authRepo.markEmailVerified("u-a")
   const app = createApp({ repo: new InMemoryCatalogRepository(snapshot), checkoutRepo, authRepo, jwtSecret: JWT })
   const seller = await signSessionJwt({ userId: "u-a", role: "seller_member", sellerId: "seller-a" }, JWT)
   const admin = await signSessionJwt({ userId: "admin-1", role: "admin" }, JWT)
@@ -127,9 +131,10 @@ describe("delivery options at checkout", () => {
 })
 
 /** An online-paid (MoMo) order for seller A, confirmed as Paystack would. */
-async function paidOrder(checkoutRepo: InMemoryCheckoutRepository, cartId: string) {
+async function paidOrder(checkoutRepo: InMemoryCheckoutRepository, cartId: string, method: "delivery" | "pickup" = "delivery") {
   const intentId = crypto.randomUUID()
-  const quote = await checkoutRepo.quote(cartId)
+  // Pickup is free: the intent carries the fee the buyer actually pays.
+  const quote = await checkoutRepo.quote(cartId, method === "pickup" ? new Map([["seller-a", 0n]]) : undefined)
   await checkoutRepo.createPaymentIntent({
     id: intentId,
     cartId,
@@ -142,6 +147,7 @@ async function paidOrder(checkoutRepo: InMemoryCheckoutRepository, cartId: strin
     momoProvider: "mtn",
     momoPhone: "0244123456",
     shippingAddress: address("Accra", "Greater Accra"),
+    ...(method === "pickup" ? { fulfillment: { "seller-a": { method: "pickup" as const, zone: null, feePesewas: "0" } } } : {}),
   })
   await checkoutRepo.updatePaymentIntentStatus(intentId, "succeeded")
   const { orders } = await checkoutRepo.confirmPaidOrder(intentId)
@@ -157,6 +163,10 @@ describe("trust by default: sellers mark delivered, buyers can object", () => {
     const orderId = await paidOrder(checkoutRepo, cartId)
     const res = await app.request(`/vendor/orders/${orderId}/deliver`, req("POST", {}, seller))
     expect(res.status).toBe(200)
+    // The response already shows the wait, as stored.
+    const { order } = (await res.json()) as { order: { deliveryConfirmedBy: string; payoutReleaseAt: string | null } }
+    expect(order.deliveryConfirmedBy).toBe("seller")
+    expect(Date.parse(order.payoutReleaseAt!)).toBeGreaterThan(Date.now() + 47 * HOUR)
     expect((await checkoutRepo.getOrder(orderId))!.deliveryConfirmedBy).toBe("seller")
     expect(await payable(checkoutRepo)).toEqual([])
     checkoutRepo.now = () => new Date(Date.now() + 49 * HOUR)
@@ -167,7 +177,13 @@ describe("trust by default: sellers mark delivered, buyers can object", () => {
     const { app, checkoutRepo, seller, cartId } = await setup()
     const orderId = await paidOrder(checkoutRepo, cartId)
     const code = (await checkoutRepo.getOrder(orderId))!.handoverCode!
-    expect((await app.request(`/vendor/orders/${orderId}/deliver`, req("POST", { code }, seller))).status).toBe(200)
+    const res = await app.request(`/vendor/orders/${orderId}/deliver`, req("POST", { code }, seller))
+    expect(res.status).toBe(200)
+    // The answer says what was stored, so the seller sees "confirmed by code" at once.
+    const { order } = (await res.json()) as { order: { deliveryConfirmedBy: string | null; payoutReleaseAt: string | null } }
+    expect(order.deliveryConfirmedBy).toBe("buyer_code")
+    // Released now, so there's no waiting time to show.
+    expect(order.payoutReleaseAt).toBeNull()
     expect(await payable(checkoutRepo)).toEqual([orderId])
   })
 
@@ -180,18 +196,30 @@ describe("trust by default: sellers mark delivered, buyers can object", () => {
     expect(await payable(checkoutRepo)).toEqual([orderId])
   })
 
-  it("the buyer can confirm before the seller does anything", async () => {
-    const { app, checkoutRepo, cartId } = await setup()
+  it("a delivery can't be confirmed before the seller sends it — confirming pays the seller", async () => {
+    const { app, checkoutRepo, seller, cartId } = await setup()
     const orderId = await paidOrder(checkoutRepo, cartId)
+    expect((await app.request(`/store/orders/${orderId}/received`, req("POST", { email: "buyer@alkemart.test" }))).status).toBe(409)
+    expect((await checkoutRepo.getOrder(orderId))!.status).toBe("placed")
+    expect(await payable(checkoutRepo)).toEqual([])
+    expect((await app.request(`/vendor/orders/${orderId}/ship`, req("POST", {}, seller))).status).toBe(200)
     expect((await app.request(`/store/orders/${orderId}/received`, req("POST", { email: "buyer@alkemart.test" }))).status).toBe(200)
     expect((await checkoutRepo.getOrder(orderId))!.status).toBe("delivered")
     const events = await checkoutRepo.listOrderEvents([orderId])
     expect(events.at(-1)).toMatchObject({ status: "delivered", actor: "buyer" })
   })
 
+  it("a pickup can be confirmed the moment the buyer collects it", async () => {
+    const { app, checkoutRepo, cartId } = await setup()
+    const orderId = await paidOrder(checkoutRepo, cartId, "pickup")
+    expect((await checkoutRepo.getOrder(orderId))!.fulfillmentMethod).toBe("pickup")
+    expect((await app.request(`/store/orders/${orderId}/received`, req("POST", { email: "buyer@alkemart.test" }))).status).toBe(200)
+    expect((await checkoutRepo.getOrder(orderId))!.status).toBe("delivered")
+  })
+
   it("a reported problem holds only that order until the buyer says it's sorted", async () => {
     const { app, checkoutRepo, cartId } = await setup()
-    const orderId = await paidOrder(checkoutRepo, cartId)
+    const orderId = await paidOrder(checkoutRepo, cartId, "pickup")
     await app.request(`/store/orders/${orderId}/received`, req("POST", { email: "buyer@alkemart.test" }))
     expect((await app.request(`/store/orders/${orderId}/problem`, req("POST", { email: "buyer@alkemart.test", note: "Screen is cracked" }))).status).toBe(200)
     expect(await payable(checkoutRepo)).toEqual([])
@@ -200,10 +228,11 @@ describe("trust by default: sellers mark delivered, buyers can object", () => {
   })
 
   it("only the buyer can confirm or report", async () => {
-    const { app, checkoutRepo, cartId } = await setup()
+    const { app, checkoutRepo, cartId, authRepo } = await setup()
+    const stranger = await verifiedBuyerFixture(authRepo, JWT, "someone@else.test")
     const orderId = await paidOrder(checkoutRepo, cartId)
-    expect((await app.request(`/store/orders/${orderId}/received`, req("POST", { email: "someone@else.test" }))).status).toBe(404)
-    expect((await app.request(`/store/orders/${orderId}/problem`, req("POST", { note: "Not mine but angry" }))).status).toBe(404)
+    expect((await app.request(`/store/orders/${orderId}/received`, req("POST", { email: "buyer@alkemart.test" }, stranger))).status).toBe(404)
+    expect((await app.request(`/store/orders/${orderId}/problem`, req("POST", { note: "Not mine but angry" }, stranger))).status).toBe(404)
   })
 
   it("stops checking codes after five wrong tries, but never blocks the seller", async () => {

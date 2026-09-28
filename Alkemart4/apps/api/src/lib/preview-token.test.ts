@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest"
+import { hashPassword } from "@alkemart/domain"
 import { InMemoryAuthRepository } from "../auth-repository"
 import { InMemoryCatalogRepository } from "../catalog-repository"
 import { demoCatalog } from "../demo-seed"
@@ -29,6 +30,7 @@ describe("preview tokens", () => {
     const d2 = await homepage.getEditor()
     await homepage.saveDraft({ expectedRevision: d2.revision, sections: [{ id: "next-hero", type: "promo_hero", title: "Next week", theme: "black" }] })
     const authRepo = new InMemoryAuthRepository()
+    await authRepo.createUser({ id: "admin-1", email: "ops@example.test", role: "admin", passwordHash: await hashPassword("Local-only-test-pass") })
     const app = createApp({ repo: new InMemoryCatalogRepository(demoCatalog()), authRepo, homepageStore: homepage, jwtSecret: SECRET })
     const admin = await signSessionJwt({ userId: "admin-1", role: "admin" }, SECRET)
     const minted = await app.request("/admin/homepage/preview-token", { method: "POST", headers: { Authorization: `Bearer ${admin}` } })
@@ -49,7 +51,9 @@ describe("homepage editor contract", () => {
   it("accepts the default homepage as-is (every shared source is savable)", async () => {
     const { DEFAULT_HOMEPAGE_SECTIONS } = await import("@alkemart/shared/homepage")
     const homepage = new InMemoryHomepageContentStore()
-    const app = createApp({ repo: new InMemoryCatalogRepository(demoCatalog()), authRepo: new InMemoryAuthRepository(), homepageStore: homepage, jwtSecret: SECRET })
+    const authRepo = new InMemoryAuthRepository()
+    await authRepo.createUser({ id: "admin-1", email: "ops@example.test", role: "admin", passwordHash: await hashPassword("Local-only-test-pass") })
+    const app = createApp({ repo: new InMemoryCatalogRepository(demoCatalog()), authRepo, homepageStore: homepage, jwtSecret: SECRET })
     const admin = await signSessionJwt({ userId: "admin-1", role: "admin" }, SECRET)
     const { revision } = await homepage.getEditor()
     const res = await app.request("/admin/homepage/draft", {

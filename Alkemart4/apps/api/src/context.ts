@@ -24,6 +24,7 @@ import type { CheckoutRepository } from "./checkout-repository"
 import type { JobProducer } from "./jobs"
 import type { ApiEnv } from "./env"
 import type { SessionClaims } from "./lib/jwt"
+import type { WorkosStore } from "./workos-store"
 
 export type CreatePaystackTransferRecipient = (
   cfg: PaystackConfig,
@@ -89,6 +90,8 @@ export type WebhookDedup = {
 export type AppEnv = {
   Bindings: ApiEnv
   Variables: {
+    workos: WorkosStore
+    workosFetch: typeof fetch
     repo: CatalogRepository
     authRepo: AuthRepository
     checkoutRepo: CheckoutRepository

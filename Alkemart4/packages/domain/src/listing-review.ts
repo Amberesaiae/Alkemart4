@@ -13,11 +13,14 @@
  *  - AI may auto-APPROVE only in "auto" mode, only a rule-clean, unflagged
  *    listing, and only at or above the confidence bar. Anything else goes to
  *    the admin queue with the AI's opinion attached as advice.
+ *  - "trust" (the default — trust by default, exceptions to a person): a
+ *    rule-clean, unflagged listing goes live at once without waiting for AI
+ *    or a person. Any flag, or an AI that doubts it, sends it to the queue.
  *  - Every outcome is overridable by an admin and logged.
  */
 import type { ListingFinding } from "./listing-checks"
 
-export type ReviewMode = "manual" | "assist" | "auto"
+export type ReviewMode = "trust" | "manual" | "assist" | "auto"
 export type ReviewDecision = "approve" | "request_changes" | "reject" | "escalate"
 export type ReviewReason = { code: string; message: string; field?: string }
 
@@ -64,6 +67,15 @@ export function decideListing(input: {
       reviewer: "system",
       reasons: humanFlags.map((f) => ({ code: f.rule, message: f.message })),
       advice: input.ai ?? null,
+    }
+  }
+  if (input.mode === "trust") {
+    const ai = input.ai
+    if (ai?.verdict === "changes" && ai.confidence >= AUTO_APPROVE_CONFIDENCE && ai.reasons.length) {
+      return { decision: "request_changes", reviewer: "ai", reasons: ai.reasons, advice: ai }
+    }
+    if (input.flags.length === 0 && (!ai || ai.verdict === "approve")) {
+      return { decision: "approve", reviewer: "system", reasons: [], advice: ai ?? null }
     }
   }
   if (input.mode === "auto" && input.ai) {

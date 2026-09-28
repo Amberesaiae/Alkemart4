@@ -36,6 +36,7 @@ export {
   offerPriceHistory,
 } from "./trust"
 export { userRoleEnum, users, sellerMemberRoleEnum, sellerMembers } from "./users"
+export { workosIdentities, workosAttempts, workosSessions } from "./workos"
 export { carts, cartItems } from "./carts"
 export {
   paymentIntentStatusEnum,
@@ -90,7 +91,7 @@ export { reviewStatusEnum, reviews } from "./reviews"
 export { productOptions, productOptionValues, variantOptionValues } from "./product-options"
 export { productImages } from "./product-images"
 export { contentPages } from "./content-pages"
-export { buyerAddresses, passwordResetTokens } from "./accounts"
+export { buyerAddresses, passwordResetTokens, emailVerificationTokens } from "./accounts"
 export { listingReviews, platformSettings } from "./listing-reviews"
 export { newsletterSubscribers } from "./newsletter"
 export { statements } from "./statements"

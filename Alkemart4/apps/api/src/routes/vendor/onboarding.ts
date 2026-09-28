@@ -52,9 +52,18 @@ export const vendorOnboarding = new Hono<AppEnv>()
 
     const sellerId = c.get("auth").sellerId
     if (!sellerId) throw new HTTPException(403, { message: "forbidden" })
-    if (!(await c.get("authRepo").findSellerById(sellerId))) {
+    const repo = c.get("authRepo")
+    const member = await repo.findSellerMemberByUserId(c.get("auth").userId)
+    if (!member || member.sellerId !== sellerId || member.role !== "owner") {
+      throw new HTTPException(403, { message: "owner_only" })
+    }
+    const owner = await repo.findUserById(member.userId)
+    if (!owner?.emailVerifiedAt) throw new HTTPException(403, { message: "email_verification_required" })
+    const seller = await repo.findSellerById(sellerId)
+    if (!seller) {
       throw new HTTPException(404, { message: "seller not found" })
     }
+    if (seller.recipientCode) throw new HTTPException(409, { message: "payment_details_change_requires_review" })
 
     const createRecipient =
       c.get("createPaystackTransferRecipient") ?? createPaystackTransferRecipient

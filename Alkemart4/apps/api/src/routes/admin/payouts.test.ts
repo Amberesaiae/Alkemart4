@@ -28,6 +28,7 @@ describe("admin Paystack payouts", () => {
       seller: { id: "seller-a", handle: "seller-a-payout", name: "Accra Mart" },
     })
     await authRepo.updateSellerStatus("seller-a", "open")
+    await authRepo.markEmailVerified("u-seller-a")
     await authRepo.updateSellerGhanaSetup("seller-a", {
       name: "Accra Mart",
       packRegion: "greater_accra",

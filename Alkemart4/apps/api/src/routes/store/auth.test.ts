@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 import { hashPassword } from "@alkemart/domain"
 import { InMemoryAuthRepository } from "../../auth-repository"
+import { InMemoryAccountStore } from "../../account-store"
 import { parseEnv } from "../../env"
 import { createApp } from "../../index"
 import { resetRateLimits } from "../../middleware/security"
@@ -34,6 +35,42 @@ function jsonPost(path: string, body: unknown, token?: string) {
   if (token) headers.Authorization = `Bearer ${token}`
   return { method: "POST" as const, headers, body: JSON.stringify(body) }
 }
+
+describe("buyer email verification", () => {
+  it("rejects anonymous and unverified purchase requests before touching a cart", async () => {
+    const { app } = await authApp()
+    const anonymous = await app.request("/store/checkout", jsonPost("", {}))
+    expect(anonymous.status).toBe(401)
+    const registration = await app.request("/store/auth/register", jsonPost("", {
+      email: "unverified@alkemart.test", password: "BuyerPass123",
+    }))
+    expect(registration.status).toBe(201)
+    const { token } = (await registration.json()) as { token: string }
+    const checkout = await app.request("/store/checkout", jsonPost("", {}, token))
+    expect(checkout.status).toBe(403)
+    const orders = await app.request("/store/orders", { headers: { Authorization: `Bearer ${token}` } })
+    expect(orders.status).toBe(403)
+  })
+
+  it("requires a valid one-use token and then enables the buyer account", async () => {
+    const authRepo = new InMemoryAuthRepository()
+    const accounts = new InMemoryAccountStore()
+    const user = await authRepo.createUser({
+      id: crypto.randomUUID(), email: "verify@alkemart.test", role: "buyer",
+      passwordHash: await hashPassword("BuyerPass123"),
+    })
+    const rawToken = "a".repeat(64)
+    const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(rawToken))
+    const tokenHash = [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("")
+    await accounts.createEmailVerificationToken({ userId: user.id, tokenHash, expiresAt: new Date(Date.now() + 60_000) })
+    const app = createApp({ authRepo, accountStore: accounts, jwtSecret: JWT_SECRET })
+    const first = await app.request("/store/auth/verify-email/confirm", jsonPost("", { token: rawToken }))
+    expect(first.status).toBe(200)
+    expect((await authRepo.findUserById(user.id))?.emailVerifiedAt).toBeInstanceOf(Date)
+    const replay = await app.request("/store/auth/verify-email/confirm", jsonPost("", { token: rawToken }))
+    expect(replay.status).toBe(400)
+  })
+})
 
 describe("parseEnv auth secrets", () => {
   const bindings = {

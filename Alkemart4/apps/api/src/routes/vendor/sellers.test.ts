@@ -20,8 +20,9 @@ function testEnv(): ApiEnv {
 }
 
 function testApp() {
-  return createApp({
-    authRepo: new InMemoryAuthRepository(),
+  const authRepo = new InMemoryAuthRepository()
+  return Object.assign(createApp({
+    authRepo,
     jwtSecret: JWT_SECRET,
     paystackSecretKey: "sk_test_x",
     // Mirrors Paystack: only MTN/VOD/ATL are valid Ghana MoMo bank codes.
@@ -31,7 +32,7 @@ function testApp() {
       }
       return { recipientCode: "RC_test_123" }
     },
-  })
+  }), { testAuthRepo: authRepo })
 }
 
 function json(method: string, body: unknown, token?: string) {
@@ -52,6 +53,11 @@ async function sellerToken(
   )
   expect(res.status).toBe(201)
   const body = (await res.json()) as { token: string }
+  const repo = (app as ReturnType<typeof testApp>).testAuthRepo
+  if (repo) {
+    const user = await repo.findUserByEmail(email)
+    if (user) await repo.markEmailVerified(user.id)
+  }
   return body.token
 }
 
@@ -143,6 +149,44 @@ describe("POST /vendor/sellers/me/address", () => {
 })
 
 describe("POST /vendor/sellers/me/payment-details", () => {
+  it("blocks a suspended shop from updating payment details but leaves its profile readable", async () => {
+    const authRepo = new InMemoryAuthRepository()
+    const app = createApp({ authRepo, jwtSecret: JWT_SECRET, paystackSecretKey: "sk_test_x" })
+    const token = await sellerToken(app)
+    const user = await authRepo.findUserByEmail("vendor@alkemart.test")
+    const member = user ? await authRepo.findSellerMemberByUserId(user.id) : null
+    expect(member).not.toBeNull()
+    await authRepo.updateSellerStatus(member!.sellerId, "suspended")
+    const denied = await app.request(
+      "/vendor/sellers/me/payment-details",
+      json("POST", { provider: "mtn", phone: "0241234567" }, token),
+      testEnv(),
+    )
+    expect(denied.status).toBe(403)
+    const profile = await app.request("/vendor/sellers/me", { headers: { Authorization: `Bearer ${token}` } }, testEnv())
+    expect(profile.status).toBe(200)
+  })
+
+  it("does not let a vendor session replace an established payout destination", async () => {
+    const app = testApp()
+    const token = await sellerToken(app)
+    const first = await app.request(
+      "/vendor/sellers/me/payment-details",
+      json("POST", { provider: "mtn", phone: "0241234567" }, token),
+      testEnv(),
+    )
+    expect(first.status).toBe(200)
+    const replacement = await app.request(
+      "/vendor/sellers/me/payment-details",
+      json("POST", { provider: "vodafone", phone: "0201234567" }, token),
+      testEnv(),
+    )
+    expect(replacement.status).toBe(409)
+    const me = await app.request("/vendor/sellers/me", { headers: { Authorization: `Bearer ${token}` } }, testEnv())
+    const body = (await me.json()) as { seller: { payment_details: { phone: string } } }
+    expect(body.seller.payment_details.phone).toBe("0241234567")
+  })
+
   it("creates a Paystack recipient and stores MoMo details", async () => {
     const app = testApp()
     const token = await sellerToken(app)

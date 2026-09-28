@@ -181,6 +181,47 @@ for (let i = 0; i < 2; i++) {
   }
 }
 
+// Postgres keeps one `sellers` table; in memory the auth store and the
+// catalogue snapshot are separate. Mirror every seller write into the
+// snapshot so a shop registered, approved, paused or suspended through the
+// API behaves here exactly as it would live (buyable, hidden, and so on).
+{
+  type Writer = (...args: unknown[]) => Promise<unknown>
+  const repo = authRepo as unknown as Record<string, Writer>
+  const mirror = async (id: string, patch?: { lat?: number | null; lng?: number | null; district?: string | null }) => {
+    const s = await authRepo.findSellerById(id)
+    if (!s) return
+    const next = {
+      handle: s.handle,
+      name: s.name,
+      status: s.status,
+      commissionBps: s.commissionBps,
+      deliveryFeePesewas: s.deliveryFeePesewas,
+      availability: s.availability === "paused" ? ("paused" as const) : ("open" as const),
+      pausedUntil: s.pausedUntil ? s.pausedUntil.toISOString() : null,
+      pauseNote: s.pauseNote ?? null,
+      ...(patch?.lat !== undefined ? { lat: patch.lat, lng: patch.lng ?? null, district: patch.district ?? null } : {}),
+    }
+    const row = snapshot.sellers.find((x) => x.id === id)
+    if (row) Object.assign(row, next)
+    else snapshot.sellers.push({ id, lat: null, lng: null, district: null, ...next })
+  }
+  // Seeded shops start with the catalogue's delivery fees in both stores.
+  for (const sl of snapshot.sellers) {
+    if (await authRepo.findSellerById(sl.id)) await authRepo.updateSellerAddress(sl.id, { deliveryFeePesewas: sl.deliveryFeePesewas })
+  }
+  for (const name of ["registerVendor", "updateSellerGhanaSetup", "updateSellerProfile", "updateSellerAddress", "updateSellerStatus", "updateSellerCommission", "updateSellerAvailability"]) {
+    const original = repo[name]!.bind(authRepo)
+    repo[name] = async (...args: unknown[]) => {
+      const out = await original(...args)
+      const first = args[0] as string | { seller?: { id?: string } }
+      const id = typeof first === "string" ? first : first?.seller?.id
+      if (id) await mirror(id, name === "updateSellerAddress" ? (args[1] as { lat?: number | null; lng?: number | null; district?: string | null }) : undefined)
+      return out
+    }
+  }
+}
+
 // SANDBOX_REAL_PAYSTACK=1 → talk to Paystack's real TEST API with the key in
 // apps/api/.dev.vars (never printed; anything but sk_test_ is refused, so no
 // real money can move). Otherwise a local fake Paystack is used.
@@ -227,7 +268,7 @@ const app = createApp(
       },
 )
 
-/** In-memory stand-in for the R2 media bucket (put/get only) so photo uploads work. */
+/** In-memory stand-in for the R2 media bucket (put/get/delete) so photo uploads and cleanup work. */
 const media = new Map<string, { bytes: Uint8Array; contentType: string }>()
 const MEDIA_BUCKET = {
   async put(key: string, value: Uint8Array | ArrayBuffer, opts?: { httpMetadata?: { contentType?: string } }) {
@@ -238,6 +279,10 @@ const MEDIA_BUCKET = {
   async get(key: string) {
     const hit = media.get(key)
     return hit ? { body: hit.bytes, httpMetadata: { contentType: hit.contentType }, etag: key } : null
+  },
+  async delete(keys: string | string[]) {
+    const gone = (Array.isArray(keys) ? keys : [keys]).filter((k) => media.delete(k))
+    if (gone.length) console.log(JSON.stringify({ sandbox: "media-deleted", keys: gone }))
   },
 }
 

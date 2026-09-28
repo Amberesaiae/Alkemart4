@@ -5,8 +5,10 @@ import type { AuthSeller } from "../../auth-repository"
 import { CatalogValidationError, type AdminProductDto } from "../../catalog-repository"
 import type { OrderRow } from "../../checkout-repository"
 import type { AppEnv } from "../../context"
+import { platformSummary } from "../../lib/business"
 import { readJsonBody } from "../../lib/session"
 import { requireAdmin } from "../../middleware/auth"
+import { hasVerifiedOwner } from "../../lib/verified-owner"
 
 const CommissionBody = z.object({
   commissionBps: z.number().int().min(0).max(10_000),
@@ -38,9 +40,13 @@ export const adminSellers = new Hono<AppEnv>()
   .use("*", requireAdmin)
   .get("/", async (c) => {
     const authRepo = c.get("authRepo")
+    // All-time orders and sales per shop come from the same summary as
+    // Insights → Business (cancelled orders excluded), so the numbers agree.
     const [sellers, totals] = await Promise.all([
       authRepo.listSellers(),
-      c.get("checkoutRepo").orderTotalsBySeller().catch(() => new Map()),
+      platformSummary(c, "all")
+        .then((o) => new Map(o.sellers.map((s) => [s.sellerId, s])))
+        .catch(() => new Map<string, { orders: number; salesPesewas: bigint }>()),
     ])
     // Owner contact per shop for the ops queue. One members read per shop —
     // admin-scale only, never on a shopper path.
@@ -57,12 +63,12 @@ export const adminSellers = new Hono<AppEnv>()
     )
     return c.json({
       items: sellers.map((s, i) => {
-        const t = (totals as Map<string, { orders: number; gmvPesewas: bigint }>).get(s.id)
+        const t = totals.get(s.id)
         return {
           ...publicSeller(s),
           ownerEmail: owners[i],
           orderCount: t?.orders ?? 0,
-          gmvPesewas: (t?.gmvPesewas ?? 0n).toString(),
+          gmvPesewas: (t?.salesPesewas ?? 0n).toString(),
         }
       }),
     })
@@ -134,6 +140,9 @@ export const adminSellers = new Hono<AppEnv>()
     })
   })
   .post("/:id/approve", async (c) => {
+    if (!(await hasVerifiedOwner(c.get("authRepo"), c.req.param("id")))) {
+      throw new HTTPException(409, { message: "seller owner must verify their email before approval" })
+    }
     const seller = await c.get("authRepo").updateSellerStatus(c.req.param("id"), "open")
     if (!seller) throw new HTTPException(404, { message: "seller not found" })
     await c.get("auditLog").log({
@@ -166,6 +175,9 @@ export const adminSellers = new Hono<AppEnv>()
     return c.json({ seller: publicSeller(seller) })
   })
   .post("/:id/unsuspend", async (c) => {
+    if (!(await hasVerifiedOwner(c.get("authRepo"), c.req.param("id")))) {
+      throw new HTTPException(409, { message: "seller owner must verify their email before reopening" })
+    }
     const seller = await c.get("authRepo").updateSellerStatus(c.req.param("id"), "open")
     if (!seller) throw new HTTPException(404, { message: "seller not found" })
     await c.get("auditLog").log({

@@ -1,7 +1,7 @@
 import type { MiddlewareHandler } from "hono"
 import type { AppEnv } from "../context"
 
-const DEFAULT_ORIGINS = [
+const DEVELOPMENT_ORIGINS = [
   "http://localhost:5175",
   "http://localhost:5176",
   "http://localhost:5177",
@@ -16,10 +16,13 @@ const DEFAULT_ORIGINS = [
   "http://127.0.0.1:3002",
   "http://127.0.0.1:3003",
   "http://127.0.0.1:3004",
-  // Production Vercel frontends (canonical)
-  "https://alkemart-storefront.vercel.app",
-  "https://alkemart.vercel.app",
-  // Optional Cloudflare Pages mirrors
+]
+
+const PRODUCTION_ORIGINS = [
+  "https://alkemart.com",
+  "https://sell.alkemart.com",
+  "https://console.alkemart.com",
+  // Retained exact migration aliases; never permit arbitrary Pages previews.
   "https://alkemart4-storefront.pages.dev",
   "https://alkemart4-vendor.pages.dev",
   "https://alkemart4-admin.pages.dev",
@@ -33,7 +36,8 @@ function allowedOrigins(env: unknown): Set<string> {
         .map((o) => o.trim())
         .filter(Boolean)
     : []
-  return new Set([...DEFAULT_ORIGINS, ...extras])
+  const development = (env as { ENVIRONMENT?: string } | undefined)?.ENVIRONMENT === "development"
+  return new Set([...PRODUCTION_ORIGINS, ...(development ? DEVELOPMENT_ORIGINS : []), ...extras])
 }
 
 export const corsMiddleware: MiddlewareHandler<AppEnv> = async (c, next) => {

@@ -7,6 +7,7 @@ import { InMemoryCheckoutRepository } from "../../checkout-repository"
 import { demoCatalog } from "../../demo-seed"
 import { createApp } from "../../index"
 import { signSessionJwt } from "../../lib/jwt"
+import { verifiedBuyerFixture } from "../../lib/verified-buyer-fixture"
 import { resetRateLimits } from "../../middleware/security"
 import { InMemoryShopPolicyStore } from "../../shop-policies"
 resetRateLimits()
@@ -32,12 +33,14 @@ async function world(opts: { method?: "momo" | "cod"; returnsDays?: number; sell
   const catalog = new InMemoryCatalogRepository(snapshot)
   const checkoutRepo = new InMemoryCheckoutRepository(snapshot)
   const authRepo = new InMemoryAuthRepository()
+  const buyerToken = await verifiedBuyerFixture(authRepo, JWT, BUYER)
   const policyStore = new InMemoryShopPolicyStore()
   await authRepo.registerVendor({
     user: { id: "u-seller-a", email: "seller-a@alkemart.test", passwordHash: await hashPassword("VendorPass1") },
     seller: { id: "seller-a", handle: "seller-a-ret", name: "Accra Mart" },
   })
   await authRepo.updateSellerStatus("seller-a", "open")
+  await authRepo.markEmailVerified("u-seller-a")
   await authRepo.updateSellerGhanaSetup("seller-a", {
     name: "Accra Mart", packRegion: "greater_accra", digitalAddress: null, deliveryFeePesewas: 500n, momoProvider: "mtn", momoPhone: "0244123456", recipientCode: "RCP_test",
   })
@@ -92,7 +95,8 @@ async function world(opts: { method?: "momo" | "cod"; returnsDays?: number; sell
     })
     return { status: res.status, body: (await res.json()) as Record<string, unknown> }
   }
-  const buyer = req(null)
+  const buyer = req(buyerToken)
+  const stranger = req(await verifiedBuyerFixture(authRepo, JWT, "someone@else.test"))
   const seller = req(sellerToken)
   const admin = req(adminToken)
   const ask = (body: Record<string, unknown>) => buyer("POST", `/store/orders/${orderId}/return`, { email: BUYER, ...body })
@@ -104,7 +108,7 @@ async function world(opts: { method?: "momo" | "cod"; returnsDays?: number; sell
       body: raw,
     })
   }
-  return { app, checkoutRepo, orderId, groupId: orders[0]!.orderGroupId, refunds, buyer, seller, admin, ask, later, hook }
+  return { app, authRepo, checkoutRepo, orderId, groupId: orders[0]!.orderGroupId, refunds, buyer, stranger, seller, admin, ask, later, hook }
 }
 
 const caseOf = (r: { body: Record<string, unknown> }) => r.body.returnCase as Case
@@ -139,6 +143,11 @@ describe("returns: buyer asks, seller answers", () => {
     expect(w.refunds).toEqual([{ reference: "ref_charge_1", amountMinor: 1500n }])
     // Nothing left to pay out.
     expect((await w.admin("POST", "/admin/payouts", { sellerId: "seller-a" })).status).toBe(400)
+    // The seller's statement says it was refunded, not "next payout".
+    const money = await w.seller("GET", "/vendor/payouts/statement")
+    const line = (money.body.lines as { state: string; netPesewas: string }[])[0]!
+    expect(line).toMatchObject({ state: "refunded", netPesewas: "0" })
+    expect((money.body.totals as { pendingNetPesewas: string; pendingGrossPesewas: string })).toMatchObject({ pendingNetPesewas: "0", pendingGrossPesewas: "0" })
 
     // Paystack confirms → paid.
     await w.hook({ event: "refund.processed", data: { id: "RF_1", status: "processed", transaction_reference: "ref_charge_1", amount: 1500 } })
@@ -229,11 +238,15 @@ describe("returns: buyer asks, seller answers", () => {
 
   it("another seller can't touch the case; strangers can't open one", async () => {
     const w = await world()
+    await w.authRepo.registerVendor({
+      user: { id: "u-x", email: "other-seller@example.test", passwordHash: await hashPassword("Local-only-test-pass") },
+      seller: { id: "seller-b", handle: "other-shop", name: "Other shop" },
+    })
     const id = caseOf(await w.ask({ reason: "damaged", wish: "refund", note: "Cracked screen" })).id
     const other = await signSessionJwt({ userId: "u-x", role: "seller_member", sellerId: "seller-b" }, JWT)
     const res = await w.app.request(`/vendor/returns/${id}/refund`, { method: "POST", headers: { Authorization: `Bearer ${other}`, "Content-Type": "application/json" }, body: "{}" })
     expect(res.status).toBe(404)
-    const stranger = await w.buyer("POST", `/store/orders/${w.orderId}/return`, { email: "someone@else.test", reason: "damaged", wish: "refund", note: "Cracked screen" })
+    const stranger = await w.stranger("POST", `/store/orders/${w.orderId}/return`, { email: BUYER, reason: "damaged", wish: "refund", note: "Cracked screen" })
     expect(stranger.status).toBe(404)
   })
 })

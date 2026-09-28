@@ -1,4 +1,5 @@
 import { createHmac } from "node:crypto"
+import { verifiedBuyerFixture } from "../../lib/verified-buyer-fixture"
 import { describe, expect, it } from "vitest"
 import { InMemoryAuthRepository } from "../../auth-repository"
 import { InMemoryCatalogRepository } from "../../catalog-repository"
@@ -21,8 +22,10 @@ describe("POST /hooks/paystack", () => {
     const catalog = new InMemoryCatalogRepository(snapshot)
     const checkoutRepo = new InMemoryCheckoutRepository(snapshot)
     const dedupStore = new Map<string, string>()
+    const authRepo = new InMemoryAuthRepository()
+    const buyerToken = await verifiedBuyerFixture(authRepo, "x".repeat(32))
     const app = createApp({
-      authRepo: new InMemoryAuthRepository(),
+      authRepo,
       repo: catalog,
       checkoutRepo,
       jwtSecret: "x".repeat(32),
@@ -55,7 +58,7 @@ describe("POST /hooks/paystack", () => {
     })
     const checkout = await app.request("/store/checkout", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${buyerToken}` },
       body: JSON.stringify({
         cartId,
         method: "momo",

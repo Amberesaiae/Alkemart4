@@ -1,5 +1,9 @@
 # Alkemart4 — agent notes
 
+**Latest continuation:** Read [`docs/architecture/workers/HANDOFF-CLAUDE-2026-09-28.md`](docs/architecture/workers/HANDOFF-CLAUDE-2026-09-28.md)
+first for current live domains, production WorkOS configuration, local-only fixes,
+remaining blockers, and safe rollout order. It supersedes stale state in older handoffs.
+
 ## Canonical stack
 
 - **API:** `apps/api` (Cloudflare Workers / Hono)  
@@ -7,6 +11,7 @@
 - **Payments:** Paystack only  
 - **UIs:** `apps/storefront-v2` · `apps/vendor-v2` · `apps/admin-v2` (shared kit `packages/console-ui`)  
 - **Retired UIs — do not edit, build or deploy:** `apps/storefront`, `apps/backend/**`  
+- **Start here (2026-09-27 audit, uncommitted work, next steps):** `docs/architecture/workers/HANDOFF-AUDIT-2026-09-27.md`  
 - **Current state and next steps:** `docs/architecture/workers/HANDOFF.md`  
 - **Brand:** gold `#FEBF31`  
 

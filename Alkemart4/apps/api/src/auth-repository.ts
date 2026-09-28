@@ -2,7 +2,7 @@ import { sellerMembers, sellers, users } from "@alkemart/db"
 import type { SellerStatus } from "@alkemart/domain"
 import type { PaystackMomoProvider } from "@alkemart/shared/ghana"
 import { resolveMarket } from "@alkemart/shared/markets"
-import { eq } from "drizzle-orm"
+import { and, eq, isNull } from "drizzle-orm"
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js"
 
 export type UserRole = "buyer" | "seller_member" | "admin"
@@ -19,6 +19,7 @@ export type AuthUser = {
   lastName?: string | null
   phone?: string | null
   passwordChangedAt?: Date | null
+  emailVerifiedAt?: Date | null
 }
 
 export type UserProfilePatch = { firstName?: string | null; lastName?: string | null; phone?: string | null }
@@ -73,6 +74,7 @@ export class AuthConflictError extends Error {
 }
 
 export interface AuthRepository {
+  openShopForUser(userId: string, seller: { id: string; name: string; handle: string }): Promise<AuthUser>
   createUser(input: {
     id: string
     email: string
@@ -84,6 +86,9 @@ export interface AuthRepository {
   updateUserProfile(id: string, patch: UserProfilePatch): Promise<AuthUser>
   /** Sets the hash and stamps password_changed_at (older sessions go stale). */
   updateUserPassword(id: string, passwordHash: string): Promise<AuthUser>
+  markEmailVerified(id: string): Promise<AuthUser>
+  /** Compare-and-swap hash upgrade; do not revoke sessions or undo a concurrent reset. */
+  rehashUserPassword(id: string, previousHash: string, passwordHash: string): Promise<AuthUser | null>
   findSellerById(id: string): Promise<AuthSeller | null>
   findSellerByHandle(handle: string): Promise<AuthSeller | null>
   listSellers(): Promise<AuthSeller[]>
@@ -135,6 +140,7 @@ function toUser(row: {
   lastName?: string | null
   phone?: string | null
   passwordChangedAt?: Date | null
+  emailVerifiedAt?: Date | null
 }): AuthUser {
   return {
     id: row.id,
@@ -146,6 +152,7 @@ function toUser(row: {
     lastName: row.lastName ?? null,
     phone: row.phone ?? null,
     passwordChangedAt: row.passwordChangedAt ?? null,
+    emailVerifiedAt: row.emailVerifiedAt ?? null,
   }
 }
 
@@ -246,6 +253,18 @@ export class InMemoryAuthRepository implements AuthRepository {
   private readonly sellersByHandle = new Map<string, AuthSeller>()
   private readonly membersByUserId = new Map<string, AuthSellerMember>()
 
+  async openShopForUser(userId: string, input: { id: string; name: string; handle: string }) {
+    const user = this.usersById.get(userId)
+    if (!user || user.role === "admin" || this.membersByUserId.has(userId)) throw new Error("account cannot open shop")
+    if (this.sellersByHandle.has(input.handle)) throw new AuthConflictError("handle")
+    const seller: AuthSeller = { ...input, description: null, logo: null, banner: null, metadata: null, status: "pending_approval", commissionBps: resolveMarket().defaultCommissionBps, createdAt: new Date(), availability: "open", pausedUntil: null, pauseNote: null, ...unsetOnboarding() }
+    this.sellersById.set(seller.id, seller)
+    this.sellersByHandle.set(seller.handle, seller)
+    this.membersByUserId.set(userId, { userId, sellerId: seller.id, role: "owner" })
+    user.role = "seller_member"
+    return { ...user }
+  }
+
   async createUser(input: {
     id: string
     email: string
@@ -279,6 +298,20 @@ export class InMemoryAuthRepository implements AuthRepository {
     if (!u) throw new Error("user not found")
     u.passwordHash = passwordHash
     u.passwordChangedAt = new Date()
+    return { ...u }
+  }
+
+  async markEmailVerified(id: string) {
+    const u = this.usersById.get(id)
+    if (!u) throw new Error("user not found")
+    u.emailVerifiedAt ??= new Date()
+    return { ...u }
+  }
+
+  async rehashUserPassword(id: string, previousHash: string, passwordHash: string) {
+    const u = this.usersById.get(id)
+    if (!u || u.passwordHash !== previousHash) return null
+    u.passwordHash = passwordHash
     return { ...u }
   }
 
@@ -438,6 +471,24 @@ export class InMemoryAuthRepository implements AuthRepository {
 export class PostgresAuthRepository implements AuthRepository {
   constructor(private readonly db: PostgresJsDatabase) {}
 
+  async openShopForUser(userId: string, input: { id: string; name: string; handle: string }) {
+    try {
+      return await this.db.transaction(async (tx) => {
+        const [user] = await tx.select().from(users).where(eq(users.id, userId)).for("update")
+        const members = await tx.select().from(sellerMembers).where(eq(sellerMembers.userId, userId))
+        if (!user || user.role === "admin" || members.length) throw new Error("account cannot open shop")
+        await tx.insert(sellers).values({ ...input, status: "pending_approval", commissionBps: resolveMarket().defaultCommissionBps })
+        await tx.insert(sellerMembers).values({ userId, sellerId: input.id, role: "owner" })
+        const [updated] = await tx.update(users).set({ role: "seller_member" }).where(eq(users.id, userId)).returning()
+        return toUser(updated!)
+      })
+    } catch (error) {
+      const field = uniqueField(error)
+      if (field) throw new AuthConflictError(field)
+      throw error
+    }
+  }
+
   async createUser(input: {
     id: string
     email: string
@@ -487,6 +538,21 @@ export class PostgresAuthRepository implements AuthRepository {
       .returning()
     if (!row) throw new Error("user not found")
     return toUser(row)
+  }
+
+  async markEmailVerified(id: string) {
+    const [row] = await this.db.update(users).set({ emailVerifiedAt: new Date() })
+      .where(and(eq(users.id, id), isNull(users.emailVerifiedAt))).returning()
+    if (row) return toUser(row)
+    const existing = await this.findUserById(id)
+    if (!existing) throw new Error("user not found")
+    return existing
+  }
+
+  async rehashUserPassword(id: string, previousHash: string, passwordHash: string) {
+    const [row] = await this.db.update(users).set({ passwordHash })
+      .where(and(eq(users.id, id), eq(users.passwordHash, previousHash))).returning()
+    return row ? toUser(row) : null
   }
 
   async findSellerById(id: string) {

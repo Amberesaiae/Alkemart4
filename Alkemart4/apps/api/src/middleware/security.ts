@@ -1,5 +1,6 @@
 import type { MiddlewareHandler } from "hono"
 import type { AppEnv } from "../context"
+import { enforceGlobalLimit } from "../lib/auth-rate-limit"
 
 /** Best-effort per-isolate counters (Workers isolates are ephemeral). */
 const hits = new Map<string, { n: number; resetAt: number }>()
@@ -16,8 +17,6 @@ export function resetRateLimits(): void {
 function clientKey(c: { req: { header: (n: string) => string | undefined } }): string {
   return (
     c.req.header("cf-connecting-ip") ||
-    c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ||
-    c.req.header("x-real-ip") ||
     "unknown"
   )
 }
@@ -27,6 +26,10 @@ function clientKey(c: { req: { header: (n: string) => string | undefined } }): s
  * Not a substitute for Cloudflare WAF / Rate Limiting rules in production.
  */
 export const securityMiddleware: MiddlewareHandler<AppEnv> = async (c, next) => {
+  c.header("X-Content-Type-Options", "nosniff")
+  c.header("Referrer-Policy", "strict-origin-when-cross-origin")
+  c.header("X-Frame-Options", "DENY")
+  c.header("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
   const path = c.req.path
   const method = c.req.method.toUpperCase()
   const sensitive =
@@ -53,6 +56,12 @@ export const securityMiddleware: MiddlewareHandler<AppEnv> = async (c, next) => 
     path.startsWith("/store/places/")
 
   if (sensitive) {
+    const auth = /^\/(store|vendor|admin)\/auth(?:\/|$)/.test(path)
+    const checkout = path === "/store/checkout"
+    if (auth || checkout) {
+      const bucket = auth ? `${path.split("/")[1]}:auth` : "checkout"
+      await enforceGlobalLimit(c, bucket, clientKey(c), checkout ? 10 : 30, 60_000)
+    }
     const key = `${clientKey(c)}:${path}`
     const now = Date.now()
     const windowMs = 60_000
@@ -69,18 +78,11 @@ export const securityMiddleware: MiddlewareHandler<AppEnv> = async (c, next) => 
     }
     row.n += 1
     if (row.n > max) {
+      c.header("Retry-After", String(Math.max(1, Math.ceil((row.resetAt - now) / 1000))))
       return c.json({ error: "rate_limited" }, 429)
     }
   }
 
   await next()
-
-  c.header("X-Content-Type-Options", "nosniff")
-  c.header("Referrer-Policy", "strict-origin-when-cross-origin")
-  c.header("X-Frame-Options", "DENY")
-  c.header(
-    "Permissions-Policy",
-    "camera=(), microphone=(), geolocation=()",
-  )
   return c.res
 }
