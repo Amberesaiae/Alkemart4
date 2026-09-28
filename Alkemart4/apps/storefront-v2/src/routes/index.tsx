@@ -11,7 +11,7 @@ import {
 import { HomeHero } from "@/components/home/home-hero"
 import { DepartmentRow } from "@/components/home/department-row"
 import { StoreSpotlight } from "@/components/home/store-spotlight"
-import { DepartmentSpotlight, ExploreEverything, MadeInGhanaRow, PriceRows } from "@/components/home/discovery"
+import { HomeRows, SeeAllProducts, useHomeDiscovery } from "@/components/home/discovery"
 import { ShelfSection } from "@/components/home/shelf-section"
 import { CompareShowcase } from "@/components/home/compare-showcase"
 import { COMPARE_ENABLED } from "@/lib/features"
@@ -37,16 +37,6 @@ export const Route = createFileRoute("/")({
 })
 
 /** Top-level departments in buyer order: goods first, then the rest by rank. */
-/** Behaviour-backed shelf; resolves to nothing until orders exist. */
-const POPULAR: Extract<HomeSection, { type: "product_shelf" }> = {
-  id: "popular",
-  type: "product_shelf",
-  title: "Popular right now",
-  subtitle: "What buyers ordered most this week",
-  source: "trending",
-  limit: 12,
-  layout: "carousel",
-}
 
 // Keeps the first home screen useful during a catalog/API outage. These are
 // navigation labels only; product and shop content remains API-backed.
@@ -167,6 +157,10 @@ function HomePage() {
   // Our own ads: every other live studio promo runs further down the page.
   const houseAds = visibleSections(homepageQ.data ?? []).filter((s): s is Promo => isPromo(s) && s.id !== campaign?.id)
 
+  // Products "Fresh picks" already shows; later rows never repeat them.
+  const freshShown = decision?.source === "featured" ? featured.slice(0, decision.limit).map((p) => p.id) : []
+  const discovery = useHomeDiscovery(categoriesQ.data ?? [], freshShown)
+
   const shared = {
     categories: categoriesQ.data ?? [],
     featured,
@@ -202,16 +196,15 @@ function HomePage() {
       ) : null}
 
       {decision ? <ShelfSection section={decision} {...shared} /> : null}
-      <DepartmentSpotlight categories={categoriesQ.data ?? []} />
+      <HomeRows rows={discovery.top} />
       {COMPARE_ENABLED ? <CompareShowcase products={featured} /> : null}
       {campaign ? <PromoSection section={campaign} /> : null}
-      <ShelfSection section={POPULAR} {...shared} />
-      <StoreSpotlight />
-      <MadeInGhanaRow />
+      <StoreSpotlight spotlight={discovery.spotlight} />
+      <HomeRows rows={discovery.middle} />
       {course ? <CampaignPlacements course={course} /> : null}
       {proof ? <ShelfSection section={proof} {...shared} /> : null}
       {shops ? <StoreRailSection section={shops} /> : null}
-      <PriceRows categories={categoriesQ.data ?? []} />
+      <HomeRows rows={discovery.bottom} />
       {houseAds.map((s) => (
         <PromoSection key={s.id} section={s} />
       ))}
@@ -226,7 +219,7 @@ function HomePage() {
         ))}
 
       <RecentlyViewed />
-      <ExploreEverything />
+      <SeeAllProducts />
     </div>
   )
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { rotationPick } from "@alkemart/shared/homepage"
-import { departmentOf, departmentRows, priceRow } from "@/components/home/discovery"
+import { createClaims, departmentOf, departmentRows, priceRow } from "@/components/home/discovery"
 import type { StoreCategory, StoreProductCard } from "@/lib/products"
 
 const cats: StoreCategory[] = [
@@ -57,5 +57,27 @@ describe("departments and price rows", () => {
   it("filters by price and department, cheapest first", () => {
     expect(priceRow(products, cats, 1000).map((p) => p.id)).toEqual(["crossbody", "lamp", "satchel", "rack", "rug"])
     expect(priceRow(products, cats, 1000, "home-living").map((p) => p.id)).toEqual(["lamp", "rack", "rug"])
+  })
+})
+
+describe("no product twice on the homepage", () => {
+  const list = (...ids: string[]) => ids.map((id) => card(id, "furniture", 1))
+
+  it("skips products shown higher up the page", () => {
+    const claims = createClaims(["a"])
+    expect(claims.take(list("a", "b", "c", "d", "e")).map((p) => p.id)).toEqual(["b", "c", "d", "e"])
+    expect(claims.take(list("b", "f", "g", "h", "i")).map((p) => p.id)).toEqual(["f", "g", "h", "i"])
+  })
+
+  it("hides a row that falls below four rather than padding it", () => {
+    const claims = createClaims(["a", "b"])
+    expect(claims.take(list("a", "b", "c", "d", "e"))).toEqual([])
+    // A hidden row claims nothing, so a later row can still use those products.
+    expect(claims.take(list("c", "d", "e", "f")).map((p) => p.id)).toEqual(["c", "d", "e", "f"])
+  })
+
+  it("lets a shop card show fewer, with its own minimum", () => {
+    const claims = createClaims(["a", "b"])
+    expect(claims.take(list("a", "b", "c"), 3, 1).map((p) => p.id)).toEqual(["c"])
   })
 })
