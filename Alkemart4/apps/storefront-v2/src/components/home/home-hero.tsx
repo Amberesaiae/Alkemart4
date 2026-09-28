@@ -35,8 +35,12 @@ export function HomeHero({ departments, allCategories, stocked }: {
   /** Categories with listings; null while unknown (show everything). */
   stocked: Set<string> | null
 }) {
-  const shownDepartments = stocked ? departments.filter((c) => stocked.has(c.id)) : departments
-  const chips = shownDepartments.slice(0, 6).map((c) => ({ label: c.name.split(" & ")[0], slug: c.handle ?? c.id }))
+  // Chip row scrolls sideways: departments with listings first, then the other
+  // main departments in buyer order, up to eight, then "All".
+  const byStock = stocked
+    ? [...departments.filter((c) => stocked.has(c.id)), ...departments.filter((c) => !stocked.has(c.id))]
+    : departments
+  const chips = byStock.slice(0, 8).map((c) => ({ label: c.name.split(" & ")[0], slug: c.handle ?? c.id }))
   const navigate = useNavigate()
   const { trackSearch } = useSearchHistory()
   const [q, setQ] = useState("")
@@ -69,11 +73,11 @@ export function HomeHero({ departments, allCategories, stocked }: {
           <div className="flex items-center gap-2 md:block">
             <h1
               id="home-hero-title"
-              className="min-w-0 flex-1 text-[1.5rem] leading-[1.1] font-extrabold tracking-tight text-balance md:text-6xl md:leading-[0.95] md:tracking-[-0.045em] lg:text-[4.25rem]"
+              className="min-w-0 flex-1 text-[1.25rem] leading-[1.15] font-extrabold tracking-tight text-balance md:text-6xl md:leading-[0.95] md:tracking-[-0.045em] lg:text-[4.25rem]"
             >
               Whatever you’re looking for, someone’s selling it.
             </h1>
-            <HeroArt images={PHONE_HERO_ART} className="-mr-4 w-[54%] shrink-0 md:hidden" />
+            <HeroArt images={PHONE_HERO_ART} className="-mr-4 w-[60%] shrink-0 md:hidden" />
           </div>
           <p className="mt-4 hidden max-w-xl text-lg font-medium text-foreground/80 md:block">
             Discover products from trusted sellers, all in one place.

@@ -27,7 +27,7 @@
 
 /* Preserve the approved mobile home composition; the larger reading scale
    applies to desktop home and the other storefront routes.
-   Phone home scale — type: hero 24 → section titles 18 → prices 16 bold →
+   Phone home scale — type: hero 20 (beside art at 60% width) → section titles 18 → prices 16 bold →
    product names 15 → chips, tiles, details 13 → labels 12; fields always 16
    (no iOS focus zoom). Space: 4/8/12/16/32 — 12 under a section title, 32
    between sections, 16 page gutter. Sizes: chips 32 tall, tap targets ≥40,
