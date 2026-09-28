@@ -19,20 +19,6 @@ bun install
 echo ""
 echo "Setting up .env files..."
 
-if [ ! -f apps/backend/packages/api/.env ]; then
-  cp apps/backend/packages/api/.env.template apps/backend/packages/api/.env
-  echo "Created apps/backend/packages/api/.env from template"
-else
-  echo "apps/backend/packages/api/.env already exists, skipping"
-fi
-
-if [ ! -f apps/storefront/.env ]; then
-  cp apps/storefront/.env.template apps/storefront/.env
-  echo "Created apps/storefront/.env from template"
-else
-  echo "apps/storefront/.env already exists, skipping"
-fi
-
 echo ""
 echo "=== Setup Complete ==="
 echo "Run: bun run dev (from repo root)"

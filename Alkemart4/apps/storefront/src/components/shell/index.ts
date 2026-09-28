@@ -1,6 +1,0 @@
-export { HomeLastOffers } from "./HomeLastOffers"
-export { HomeHowItWorks } from "./HomeHowItWorks"
-export { HomeDeliveryBand } from "./HomeDeliveryBand"
-export { HomeAdvertiseBand } from "./HomeAdvertiseBand"
-export { LastOffersTabs, OFFER_TABS } from "../home/LastOffersTabs"
-export type { OfferTabId, OfferSort } from "../home/LastOffersTabs"

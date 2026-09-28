@@ -13,8 +13,8 @@
  *   seed:   DATABASE_URL=<pooler url> bun scripts/seed/demo-market.ts
  *   purge:  DATABASE_URL=<pooler url> bun scripts/seed/demo-market.ts --purge
  *
- * Images are the ones already vendored in apps/storefront/public/images —
- * nothing is fetched from the web.
+* Images are the ones already vendored in apps/storefront-v2/public/images/products/demo —
+* nothing is fetched from the web.
  */
 import postgres from "postgres"
 

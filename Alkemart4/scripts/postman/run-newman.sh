@@ -15,10 +15,10 @@ API="${API:-http://127.0.0.1:9000}"
 API="${API%/}"
 PK="${PK:-${VITE_MEDUSA_PUBLISHABLE_KEY:-}}"
 
-# Load PK from storefront .env if still empty
+# Load PK from .env if still empty
 if [[ -z "$PK" ]]; then
   for f in \
-    "$ROOT/apps/storefront/.env" \
+    "$ROOT/.env" \
     /home/amber/alkemart-storefront/.env
   do
     if [[ -f "$f" ]]; then

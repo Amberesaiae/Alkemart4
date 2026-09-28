@@ -46,20 +46,21 @@ cleanup() {
 trap cleanup EXIT INT TERM
 
 echo "API        → http://127.0.0.1:8787  (VITE_ALKEMART_API_URL=$VITE_ALKEMART_API_URL)"
-echo "Storefront → http://127.0.0.1:5175"
-echo "Vendor     → http://127.0.0.1:3002"
-echo "Admin      → http://127.0.0.1:3001"
+echo "Storefront → http://127.0.0.1:5176"
+echo "Vendor     → http://127.0.0.1:3004"
+echo "Admin      → http://127.0.0.1:3003"
 
 (cd apps/api && bun run dev) &
 pids+=($!)
 
-(cd apps/storefront && bun run dev) &
+# The v2 apps are the live UIs; apps/storefront and apps/backend/apps/* are retired.
+(cd apps/storefront-v2 && bun run dev) &
 pids+=($!)
 
-(cd apps/backend/apps/ghana-vendor && bun run dev) &
+(cd apps/vendor-v2 && bun run dev) &
 pids+=($!)
 
-(cd apps/backend/apps/admin && bun run dev) &
+(cd apps/admin-v2 && bun run dev) &
 pids+=($!)
 
 wait
