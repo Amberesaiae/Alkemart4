@@ -106,6 +106,8 @@ export type CatalogListQuery = {
   offset: number
   /** Default ordering stays title-asc (stable across pages). */
   sort?: CatalogSort
+  /** Country from the product's own "Made in" specification, e.g. "ghana". */
+  madeIn?: string
 }
 
 export type CatalogListDto = {
@@ -2251,6 +2253,13 @@ export function listCatalogFrom(data: CatalogSnapshot, query: CatalogListQuery):
       (p) =>
         p.title.toLowerCase().includes(q) ||
         (p.description?.toLowerCase().includes(q) ?? false),
+    )
+  }
+  const madeIn = query.madeIn?.trim().toLowerCase()
+  if (madeIn) {
+    // A seller-stated fact on the listing, never inferred from title or copy.
+    productRows = productRows.filter((p) =>
+      (p.attributes ?? []).some((a) => a.label.trim().toLowerCase() === "made in" && a.value.toLowerCase().includes(madeIn)),
     )
   }
   const cards = applySort(

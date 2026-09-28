@@ -286,6 +286,8 @@ export async function listStoreProducts(opts?: {
   /** Product category handle — server catalog filter. */
   categoryHandle?: string
   sort?: "newest" | "price_asc" | "price_desc"
+  /** Country from each listing's own "Made in" specification. */
+  madeIn?: string
 }): Promise<{ products: StoreProductCard[]; count: number }> {
   const limit = opts?.limit ?? 24
   const offset = opts?.offset ?? 0
@@ -312,6 +314,7 @@ export async function listStoreProducts(opts?: {
     ...(categoryHandle ? { category: categoryHandle } : {}),
     ...(q ? { q } : {}),
     ...(opts?.sort ? { sort: opts.sort } : {}),
+    ...(opts?.madeIn ? { made_in: opts.madeIn } : {}),
   })
   const mapped = (res.items ?? []).map(mapCfProductCard)
   return { products: mapped.slice(0, limit), count: res.total ?? mapped.length }

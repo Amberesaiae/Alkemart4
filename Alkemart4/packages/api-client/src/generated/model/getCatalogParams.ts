@@ -38,4 +38,10 @@ offset?: number;
 
  */
 sort?: GetCatalogSort;
+/**
+ * Country from the listing's own "Made in" specification
+(case-insensitive, letters and spaces), e.g. `ghana`.
+
+ */
+made_in?: string;
 };

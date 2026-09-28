@@ -123,7 +123,7 @@ export const PRODUCTS: ShowroomProduct[] = [
   {
     shop: "adwoa-prints", title: "Mudcloth-Print Palazzo Trousers", category: "women", ghs: 280, photos: ["mudcloth-palazzo"], productType: "Trousers",
     description: "Wide-leg palazzo trousers in 100% cotton with a bold mudcloth-inspired print. An elastic waist and a flowing cut keep them cool and comfortable in the heat.",
-    attributes: [["Material", "100% cotton"], ["Waist", "Elasticated"], ["Sizes", "S–XXL"], ["Care", "Hand wash cold"]],
+    attributes: [["Material", "100% cotton"], ["Waist", "Elasticated"], ["Sizes", "S–XXL"], ["Care", "Hand wash cold"], ["Made in", "Ghana"]],
   },
   {
     shop: "adwoa-prints", title: "Tribal-Print Linen Shirt", category: "men", ghs: 320, photos: ["tribal-linen-shirt"], productType: "Shirt",
@@ -133,12 +133,12 @@ export const PRODUCTS: ShowroomProduct[] = [
   {
     shop: "adwoa-prints", title: "Kente-Weave Baseball Cap", category: "caps-hats", ghs: 150, photos: ["kente-cap"], productType: "Cap",
     description: "A six-panel baseball cap made from strip-woven kente-style cloth, with an adjustable back strap. Each cap's stripes differ slightly because the cloth is woven by hand.",
-    attributes: [["Material", "Handwoven cotton strip cloth"], ["Fit", "Adjustable, one size"]],
+    attributes: [["Material", "Handwoven cotton strip cloth"], ["Fit", "Adjustable, one size"], ["Made in", "Ghana"]],
   },
   {
     shop: "adwoa-prints", title: "Ankara Fila Cap", category: "caps-hats", ghs: 120, photos: ["ankara-fila"], productType: "Cap",
     description: "A soft, structured fila cap in vivid Ankara print, lined for comfort. Pairs well with kaftans and agbada for weddings, church and naming ceremonies.",
-    attributes: [["Material", "Cotton wax print, lined"], ["Sizes", "56–60 cm"]],
+    attributes: [["Material", "Cotton wax print, lined"], ["Sizes", "56–60 cm"], ["Made in", "Ghana"]],
   },
   {
     shop: "adwoa-prints", title: "African Wax Print Fabric, 6 Yards", category: "fabrics", ghs: 450, photos: ["wax-print"], productType: "Fabric",

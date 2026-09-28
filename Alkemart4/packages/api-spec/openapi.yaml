@@ -139,6 +139,14 @@ paths:
           schema:
             type: string
             enum: [newest, price_asc, price_desc]
+        - name: made_in
+          in: query
+          required: false
+          description: |
+            Country from the listing's own "Made in" specification
+            (case-insensitive, letters and spaces), e.g. `ghana`.
+          schema:
+            type: string
       responses:
         "200":
           description: Paginated product cards

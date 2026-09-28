@@ -11,6 +11,7 @@ import {
 import { HomeHero } from "@/components/home/home-hero"
 import { DepartmentRow } from "@/components/home/department-row"
 import { StoreSpotlight } from "@/components/home/store-spotlight"
+import { DepartmentSpotlight, ExploreEverything, MadeInGhanaRow, PriceRows } from "@/components/home/discovery"
 import { ShelfSection } from "@/components/home/shelf-section"
 import { CompareShowcase } from "@/components/home/compare-showcase"
 import { COMPARE_ENABLED } from "@/lib/features"
@@ -201,13 +202,16 @@ function HomePage() {
       ) : null}
 
       {decision ? <ShelfSection section={decision} {...shared} /> : null}
+      <DepartmentSpotlight categories={categoriesQ.data ?? []} />
       {COMPARE_ENABLED ? <CompareShowcase products={featured} /> : null}
       {campaign ? <PromoSection section={campaign} /> : null}
       <ShelfSection section={POPULAR} {...shared} />
       <StoreSpotlight />
+      <MadeInGhanaRow />
       {course ? <CampaignPlacements course={course} /> : null}
       {proof ? <ShelfSection section={proof} {...shared} /> : null}
       {shops ? <StoreRailSection section={shops} /> : null}
+      <PriceRows categories={categoriesQ.data ?? []} />
       {houseAds.map((s) => (
         <PromoSection key={s.id} section={s} />
       ))}
@@ -222,6 +226,7 @@ function HomePage() {
         ))}
 
       <RecentlyViewed />
+      <ExploreEverything />
     </div>
   )
 }

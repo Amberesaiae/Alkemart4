@@ -299,6 +299,18 @@ export const DAYPART_LABEL: Record<Daypart, string> = {
   late: "Open late",
 }
 
+/**
+ * Deterministic rotation: `count` items for the current period, advancing by
+ * `count` each period so every item gets its turn. Everyone sees the same
+ * picks on the same local day; nothing is random or paid for.
+ */
+export function rotationPick<T>(items: readonly T[], count: number, now: Date, periodDays = 1): T[] {
+  if (items.length === 0 || count < 1) return []
+  const localDay = Math.floor((now.getTime() - now.getTimezoneOffset() * 60_000) / 86_400_000)
+  const start = (Math.floor(localDay / periodDays) * count) % items.length
+  return Array.from({ length: Math.min(count, items.length) }, (_, i) => items[(start + i) % items.length]!)
+}
+
 export const HOME_SECTION_TYPES = [
   "promo_hero",
   "promo_grid",

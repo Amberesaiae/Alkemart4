@@ -1,24 +1,42 @@
 import { Link } from "@tanstack/react-router"
 import { useQuery } from "@tanstack/react-query"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { ArrowRight01Icon } from "@hugeicons/core-free-icons"
+import { ArrowRight01Icon, Location01Icon } from "@hugeicons/core-free-icons"
+import { rotationPick } from "@alkemart/shared/homepage"
 import { Button } from "@/components/ui/button"
 import { SellerAvatar } from "@/components/commerce/seller-avatar"
 import { formatMoney } from "@/lib/market"
-import { listStoreVendors } from "@/lib/vendors"
+import { listStoreProducts } from "@/lib/products"
+import { getStoreVendorBySlug, listStoreVendors } from "@/lib/vendors"
 
 /**
- * House ad for one real shop: its name, line and three of its own products.
- * Picked by rule (featured products, then rating, then sales) — the label
- * says "Store spotlight", never "sponsored". Backdrop art is a generated
- * image slot (/images/promos/spotlight.webp); the shop banner wins if it has one.
+ * Shop story: one real shop a week, taking turns among open shops that have
+ * a cover photo. Its own description, region and first three listings — the
+ * label says "Store spotlight", never "sponsored". Rotation is by calendar
+ * week, so every eligible shop gets its turn and nobody pays for placement.
  */
 export function StoreSpotlight() {
-  const q = useQuery({ queryKey: ["store", "vendors"], queryFn: listStoreVendors, staleTime: 300_000 })
-  const shop = (q.data ?? [])
-    .filter((v) => v.availability !== "paused" && (v.featured?.length ?? 0) >= 2)
-    .sort((a, b) => (b.ratingAvg ?? 0) - (a.ratingAvg ?? 0) || (b.salesCount ?? 0) - (a.salesCount ?? 0))[0]
-  if (!shop) return null
+  const vendorsQ = useQuery({ queryKey: ["store", "vendors"], queryFn: listStoreVendors, staleTime: 300_000 })
+  const eligible = (vendorsQ.data ?? [])
+    .filter((v) => v.availability !== "paused" && Boolean(v.banner))
+    .sort((a, b) => a.slug.localeCompare(b.slug))
+  const pick = rotationPick(eligible, 1, new Date(), 7)[0]
+  const detailQ = useQuery({
+    queryKey: ["store", "vendor", pick?.slug],
+    queryFn: () => getStoreVendorBySlug(pick!.slug),
+    enabled: Boolean(pick),
+    staleTime: 300_000,
+  })
+  const productsQ = useQuery({
+    queryKey: ["store", "spotlight", "products", pick?.slug],
+    queryFn: () => listStoreProducts({ sellerHandle: pick!.slug, limit: 3 }),
+    enabled: Boolean(pick),
+    staleTime: 300_000,
+  })
+  const shop = pick
+  const products = productsQ.data?.products ?? []
+  if (!shop || products.length === 0) return null
+  const line = detailQ.data?.vendor.bio ?? shop.tagline ?? shop.bio
   return (
     <section className="container-page" aria-label={`Store spotlight: ${shop.name}`}>
       <div className="relative isolate grid gap-6 overflow-hidden rounded-[2rem] bg-ink on-ink p-6 text-white sm:p-10 lg:grid-cols-[1fr_1.2fr] lg:items-center">
@@ -36,7 +54,12 @@ export function StoreSpotlight() {
             <SellerAvatar name={shop.name} logo={shop.logo} size="lg" className="ring-white/20" />
             <h2 className="text-3xl font-extrabold sm:text-4xl">{shop.name}</h2>
           </div>
-          {shop.tagline || shop.bio ? <p className="max-w-md text-white/75">{shop.tagline ?? shop.bio}</p> : null}
+          {shop.location ? (
+            <p className="flex items-center gap-1.5 text-sm text-white/70">
+              <HugeiconsIcon icon={Location01Icon} className="size-4" aria-hidden /> {shop.location}
+            </p>
+          ) : null}
+          {line ? <p className="max-w-md text-white/80">{line}</p> : null}
           <Button asChild variant="brand" size="xl">
             <Link to="/shops/$slug" params={{ slug: shop.slug }}>
               Shop now <HugeiconsIcon icon={ArrowRight01Icon} data-icon="inline-end" />
@@ -44,15 +67,15 @@ export function StoreSpotlight() {
           </Button>
         </div>
         <ul className="grid grid-cols-3 gap-3">
-          {(shop.featured ?? []).slice(0, 3).map((f) => (
-            <li key={f.productId}>
-              <Link to="/product/$id" params={{ id: f.productId }} className="block overflow-hidden rounded-2xl bg-white text-foreground">
+          {products.map((p) => (
+            <li key={p.id}>
+              <Link to="/product/$id" params={{ id: p.id }} className="block overflow-hidden rounded-2xl bg-white text-foreground">
                 <span className="block aspect-square bg-surface">
-                  {f.imageUrl ? <img src={f.imageUrl} alt={f.title} loading="lazy" className="size-full object-contain p-3 mix-blend-multiply" /> : null}
+                  {p.thumbUrl ?? p.thumbnail ? <img src={p.thumbUrl ?? p.thumbnail ?? undefined} alt={p.title} loading="lazy" className="size-full object-cover" /> : null}
                 </span>
-                <span className="block truncate px-3 pt-2 text-xs font-medium">{f.title}</span>
+                <span className="block truncate px-3 pt-2 text-xs font-medium">{p.title}</span>
                 <span className="block px-3 pb-3 text-sm font-bold tabular">
-                  {formatMoney(Number(f.fromPricePesewas) / 100, null, { compact: true })}
+                  {formatMoney(p.amount, p.currencyCode, { compact: true })}
                 </span>
               </Link>
             </li>

@@ -37,6 +37,7 @@ function parseCatalogQuery(input: {
   limit?: string
   offset?: string
   sort?: string
+  madeIn?: string
 }): CatalogListQuery {
   const rawLimit = Number(input.limit ?? 20)
   const rawOffset = Number(input.offset ?? 0)
@@ -46,12 +47,14 @@ function parseCatalogQuery(input: {
   const q = input.q?.trim() || undefined
   const sort =
     input.sort && SORTS.has(input.sort) ? (input.sort as CatalogSort) : undefined
-  return { category, q, limit, offset, sort }
+  // Letters and spaces only: a country name, not a free-text search.
+  const madeIn = input.madeIn?.trim().toLowerCase().match(/^[a-z ]{2,40}$/)?.[0] || undefined
+  return { category, q, limit, offset, sort, madeIn }
 }
 
 function catalogCacheKey(query: CatalogListQuery): string {
   // v3: response shape gained per-card ratingAvg/ratingCount.
-  return `catalog:v3:${query.category ?? ""}:${query.q ?? ""}:${query.limit}:${query.offset}:${query.sort ?? ""}`
+  return `catalog:v3:${query.category ?? ""}:${query.q ?? ""}:${query.limit}:${query.offset}:${query.sort ?? ""}:${query.madeIn ?? ""}`
 }
 
 export const catalog = new Hono<AppEnv>().get("/", async (c) => {
@@ -61,6 +64,7 @@ export const catalog = new Hono<AppEnv>().get("/", async (c) => {
     limit: c.req.query("limit"),
     offset: c.req.query("offset"),
     sort: c.req.query("sort"),
+    madeIn: c.req.query("made_in"),
   })
   const kv = (c.env as ApiEnv | undefined)?.CATALOG_KV
   const key = catalogCacheKey(query)

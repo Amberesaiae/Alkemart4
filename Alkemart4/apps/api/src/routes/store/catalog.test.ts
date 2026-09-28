@@ -14,6 +14,22 @@ function appFromDemo() {
 }
 
 describe("GET /store/catalog", () => {
+  it("made_in filters on the listing's own 'Made in' specification", async () => {
+    const data = snapshotFromJson(fixture as JsonCatalogSnapshot)
+    const product = data.products.find((p) => p.id === "prod-tecno-spark")!
+    const app = () => createApp({ repo: new InMemoryCatalogRepository(data) })
+    const ids = async (q: string) => ((await (await app().request(`/store/catalog${q}`)).json()) as { items: { productId: string }[] }).items.map((i) => i.productId)
+
+    expect(await ids("?made_in=ghana")).toEqual([])
+    product.attributes = [{ label: "Made in", value: "Bolgatanga, Ghana" }]
+    expect(await ids("?made_in=Ghana")).toEqual(["prod-tecno-spark"])
+    // Mentions elsewhere never count; only the specification does.
+    product.attributes = [{ label: "Material", value: "Ghana cotton" }]
+    expect(await ids("?made_in=ghana")).toEqual([])
+    // Not a free-text channel.
+    expect((await app().request("/store/catalog?made_in=%25")).status).toBe(200)
+  })
+
   it("aggregates 2 sellable offers into one PLP card with cheaper fromPrice", async () => {
     const res = await appFromDemo().request("/store/catalog")
     expect(res.status).toBe(200)
