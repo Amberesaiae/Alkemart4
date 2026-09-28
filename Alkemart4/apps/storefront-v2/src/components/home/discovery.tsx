@@ -119,15 +119,15 @@ export function useHomeDiscovery(categories: StoreCategory[], alreadyShown: stri
     return products.length ? [{ ...r, products }] : []
   }
 
+  // Shop of the week picks first: four of its own listings, which later rows skip.
+  const spotlight: HomeSpotlight | null = pick
+    ? { shop: pick, line: shopQ.data?.vendor.bio ?? pick.tagline ?? pick.bio ?? null, products: claims.take(shopProductsQ.data?.products ?? [], 4, 4) }
+    : null
+
   const top = rotationPick(departmentRows(all, categories), 2, now, 1).flatMap(({ department, products }) =>
     row({ key: `dept-${department.id}`, eyebrow: "Department of the day", title: department.name, action: { label: "See all", to: "/categories/$slug", params: { slug: department.handle ?? department.id } } }, products),
   )
   top.push(...row({ key: "popular", title: "Popular right now", subtitle: "What buyers ordered most this week" }, popularQ.data?.products ?? []))
-
-  // The shop card shows up to three of its listings not already on the page.
-  const spotlight: HomeSpotlight | null = pick
-    ? { shop: pick, line: shopQ.data?.vendor.bio ?? pick.tagline ?? pick.bio ?? null, products: claims.take(shopProductsQ.data?.products ?? [], 3, 1) }
-    : null
 
   const middle = row({ key: "made-in-ghana", eyebrow: "Proudly local", title: "Made in Ghana", subtitle: "Handmade and locally made, as stated by each seller" }, madeQ.data?.products ?? [])
   const bottom = [

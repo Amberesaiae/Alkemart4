@@ -1,60 +1,40 @@
 import { Link } from "@tanstack/react-router"
-import { HugeiconsIcon } from "@hugeicons/react"
-import { ArrowRight01Icon, Location01Icon } from "@hugeicons/core-free-icons"
-import { Button } from "@/components/ui/button"
+import { SectionHeader } from "@/components/commerce/section-header"
+import { ProductCard } from "@/components/commerce/product-card"
 import type { HomeSpotlight } from "@/components/home/discovery"
-import { formatMoney } from "@/lib/market"
 
 /**
- * Shop story: one real shop a week, taking turns among open shops with a
- * cover (picked in useHomeDiscovery). Its name, region, own description and up
- * to three listings not already on the page. Labelled "Store spotlight",
- * never "sponsored"; nobody pays for the turn.
+ * Shop of the week: one real shop, taking turns weekly among open shops with a
+ * cover (picked in useHomeDiscovery). Laid out like every other row: a plain
+ * section header, the shop's own cover photo undimmed, its facts, and four of
+ * its listings as ordinary product cards. Nobody pays for the turn.
  */
 export function StoreSpotlight({ spotlight }: { spotlight: HomeSpotlight | null }) {
-  if (!spotlight) return null
+  if (!spotlight || spotlight.products.length === 0) return null
   const { shop, line, products } = spotlight
+  const facts = [shop.location, shop.salesCount ? `${shop.salesCount} order${shop.salesCount === 1 ? "" : "s"} fulfilled` : null].filter(Boolean)
   return (
-    <section className="container-page" aria-label={`Store spotlight: ${shop.name}`}>
-      <div className="relative isolate grid gap-6 overflow-hidden rounded-[2rem] bg-ink on-ink p-6 text-white sm:p-10 lg:grid-cols-[1fr_1.2fr] lg:items-center">
-        <img
-          src={shop.banner ?? "/images/promos/spotlight.webp"}
-          alt=""
-          aria-hidden
-          loading="lazy"
-          onError={(e) => e.currentTarget.remove()}
-          className="absolute inset-0 -z-10 size-full object-cover opacity-35"
-        />
-        <div className="space-y-4">
-          <p className="text-xs font-semibold tracking-[0.18em] text-brand uppercase">Store spotlight</p>
-          <h2 className="text-3xl font-extrabold sm:text-4xl">{shop.name}</h2>
-          {shop.location ? (
-            <p className="flex items-center gap-1.5 text-sm text-white/70">
-              <HugeiconsIcon icon={Location01Icon} className="size-4" aria-hidden /> {shop.location}
-            </p>
+    <section className="container-page" aria-label={`Shop of the week: ${shop.name}`}>
+      <SectionHeader title="Shop of the week" action={{ label: "Visit shop", to: "/shops/$slug", params: { slug: shop.slug } }} />
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] lg:gap-8">
+        <Link to="/shops/$slug" params={{ slug: shop.slug }} className="group block">
+          {shop.banner ? (
+            <img
+              src={shop.banner}
+              alt={`Inside ${shop.name}`}
+              loading="lazy"
+              className="aspect-[16/10] w-full rounded-2xl object-cover"
+            />
           ) : null}
-          {line ? <p className="max-w-md text-white/80">{line}</p> : null}
-          <Button asChild variant="brand" size="xl">
-            <Link to="/shops/$slug" params={{ slug: shop.slug }}>
-              Shop now <HugeiconsIcon icon={ArrowRight01Icon} data-icon="inline-end" />
-            </Link>
-          </Button>
+          <h3 className="mt-4 text-xl font-bold group-hover:underline">{shop.name}</h3>
+          {facts.length ? <p className="mt-1 text-sm text-muted-foreground">{facts.join(" · ")}</p> : null}
+          {line ? <p className="mt-2 line-clamp-3 text-sm text-foreground/80">{line}</p> : null}
+        </Link>
+        <div className="grid grid-cols-2 gap-x-3 gap-y-6 sm:gap-x-4 lg:grid-cols-4">
+          {products.map((p) => (
+            <ProductCard key={p.id} product={p} />
+          ))}
         </div>
-        {products.length ? (
-          <ul className="grid grid-cols-3 gap-3">
-            {products.map((p) => (
-              <li key={p.id}>
-                <Link to="/product/$id" params={{ id: p.id }} className="block overflow-hidden rounded-2xl bg-white text-foreground">
-                  <span className="block aspect-square bg-surface">
-                    {p.thumbUrl ?? p.thumbnail ? <img src={p.thumbUrl ?? p.thumbnail ?? undefined} alt={p.title} loading="lazy" className="size-full object-cover" /> : null}
-                  </span>
-                  <span className="block truncate px-3 pt-2 text-xs font-medium">{p.title}</span>
-                  <span className="block px-3 pb-3 text-sm font-bold tabular">{formatMoney(p.amount, p.currencyCode, { compact: true })}</span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        ) : null}
       </div>
     </section>
   )
