@@ -79,7 +79,7 @@ export function ProductRail({
   const item = "w-[44%] shrink-0 sm:w-[30%] lg:w-[22%] xl:w-[18.4%]"
   return (
     <div className="relative">
-      <div ref={ref} className="rail -mx-4 px-4 pb-1 sm:mx-0 sm:px-0" role="list" aria-label={label}>
+      <div ref={ref} className="rail -mx-4 scroll-px-4 px-4 pb-1 sm:mx-0 sm:scroll-px-0 sm:px-0" role="list" aria-label={label}>
         {loading && products.length === 0
           ? Array.from({ length: 6 }, (_, i) => (
               <div key={i} className={item} role="listitem">

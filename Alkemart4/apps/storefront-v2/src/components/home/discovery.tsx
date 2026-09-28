@@ -152,7 +152,7 @@ export function HomeRows({ rows }: { rows: HomeRow[] }) {
 export function SeeAllProducts() {
   return (
     <div className="container-page flex justify-center">
-      <Button asChild variant="outline" size="xl">
+      <Button asChild variant="outline" size="lg" className="md:h-12 md:px-6">
         <Link to="/categories/$slug" params={{ slug: "all" }}>See all products</Link>
       </Button>
     </div>

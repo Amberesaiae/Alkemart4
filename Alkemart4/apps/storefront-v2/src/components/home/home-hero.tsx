@@ -85,7 +85,7 @@ export function HomeHero({ departments, allCategories, stocked }: {
 
           <form
             role="search"
-            className="mt-3 flex max-w-2xl items-center gap-2 rounded-full bg-background p-1.5 shadow-lift md:mt-6"
+            className="mt-3 flex max-w-2xl items-center gap-2 rounded-full bg-background p-1 shadow-lift md:mt-6 md:p-1.5"
             onSubmit={(e) => {
               e.preventDefault()
               const term = q.trim()
@@ -94,16 +94,16 @@ export function HomeHero({ departments, allCategories, stocked }: {
               void navigate({ to: "/search", search: { q: term } })
             }}
           >
-            <HugeiconsIcon icon={Search01Icon} className="ml-3 size-5 shrink-0 text-muted-foreground" />
+            <HugeiconsIcon icon={Search01Icon} className="ml-3 size-[18px] shrink-0 text-muted-foreground md:size-5" />
             <input
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder="Search phones, sneakers, beauty, home…"
               aria-label="Search alkemart"
               enterKeyHint="search"
-              className="h-11 min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-muted-foreground"
+              className="h-10 min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-muted-foreground md:h-11"
             />
-            <Button type="submit" size="lg" className="h-11 px-6">
+            <Button type="submit" size="lg" className="h-10 px-5 md:h-11 md:px-6">
               Search
             </Button>
           </form>

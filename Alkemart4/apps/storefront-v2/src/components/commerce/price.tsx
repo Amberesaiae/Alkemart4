@@ -32,7 +32,7 @@ export function Price({
         className={cn(
           "font-bold whitespace-nowrap text-foreground",
           size === "sm" && "text-sm",
-          size === "md" && "text-base sm:text-lg",
+          size === "md" && "text-[0.9375rem] sm:text-lg",
           size === "lg" && "text-xl",
           size === "xl" && "text-3xl font-extrabold tracking-tight",
         )}

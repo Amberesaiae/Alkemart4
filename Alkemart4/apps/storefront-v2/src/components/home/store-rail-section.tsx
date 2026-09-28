@@ -20,7 +20,7 @@ export function StoreRailSection({ section }: { section: StoreRailSection }) {
         subtitle={ranked ? section.subtitle : "Independent sellers, all in one place."}
         action={{ label: "See all stores", to: "/shops" }}
       />
-      <div className="rail -mx-4 px-4 sm:mx-0 sm:px-0">
+      <div className="rail -mx-4 scroll-px-4 px-4 sm:mx-0 sm:scroll-px-0 sm:px-0">
         {(loading ? Array.from({ length: 4 }, () => null) : shops).map((s, i) => (
           <div key={s?.slug ?? i} className="w-[80%] shrink-0 sm:w-[46%] lg:w-[24%]">
             {s ? <StoreCard shop={s} distanceKm={distanceKm(pin, s)} className="h-full" /> : <StoreCardSkeleton />}

@@ -89,11 +89,11 @@ export function ProductCard({
       <Link
         to="/product/$id"
         params={{ id: productParam(p) }}
-        className="flex flex-1 flex-col rounded-3xl focus-visible:outline-offset-4"
+        className="flex flex-1 flex-col rounded-xl focus-visible:outline-offset-4 sm:rounded-3xl"
       >
         <div
           className={cn(
-            "relative aspect-square overflow-hidden rounded-3xl bg-surface",
+            "relative aspect-square overflow-hidden rounded-xl bg-surface sm:rounded-3xl",
             soldOut && "opacity-60",
           )}
         >
@@ -114,7 +114,7 @@ export function ProductCard({
           {badge ? (
             <span
               className={cn(
-                "absolute top-3 left-3 rounded-full px-2.5 py-1 text-xs font-bold",
+                "absolute top-2 left-2 rounded-full px-2 py-0.5 text-xs font-bold sm:top-3 sm:left-3 sm:px-2.5 sm:py-1",
                 badge.tone === "brand" && "bg-brand text-brand-foreground",
                 badge.tone === "dark" && "bg-foreground text-background",
                 badge.tone === "muted" && "bg-background text-muted-foreground",
@@ -125,17 +125,17 @@ export function ProductCard({
           ) : null}
         </div>
 
-        <div className="flex flex-1 flex-col gap-1 px-1 pt-3">
+        <div className="flex flex-1 flex-col gap-0.5 px-0.5 pt-2 sm:gap-1 sm:px-1 sm:pt-3">
           {p.categoryLabel ? (
             <p className="product-card-eyebrow truncate text-xs font-medium text-muted-foreground">
               {p.categoryLabel}
             </p>
           ) : null}
-          <h3 className="product-card-title line-clamp-2 text-sm leading-snug font-semibold text-foreground sm:text-base">{p.title}</h3>
+          <h3 className="product-card-title line-clamp-2 text-[0.875rem] leading-snug font-medium text-foreground sm:text-base sm:font-semibold">{p.title}</h3>
           <Rating avg={p.ratingAvg} count={p.ratingCount} />
-          <div className="mt-auto pt-1.5 pr-11">
+          <div className="mt-auto pt-1 pr-10 sm:pt-1.5 sm:pr-11">
             <Price amount={p.amount} currency={p.currencyCode} from={COMPARE_ENABLED && sellers > 1} />
-            <p className="mt-0.5 truncate text-[length:var(--text-legacy-13)] text-muted-foreground">
+            <p className="truncate text-[0.8125rem] text-muted-foreground sm:mt-0.5">
               {COMPARE_ENABLED && sellers > 1 ? (
                 <span className="font-semibold text-foreground">{sellers} sellers</span>
               ) : p.seller?.name ? (
@@ -146,7 +146,8 @@ export function ProductCard({
         </div>
       </Link>
 
-      <SaveButton product={p} className="absolute top-2.5 right-2.5" />
+      {/* Phones: 32px to see, 40px to tap (the ::after widens the target). */}
+      <SaveButton product={p} className="absolute top-2 right-2 size-8 after:absolute after:-inset-1 sm:top-2.5 sm:right-2.5 sm:size-10 [&_svg]:size-4 sm:[&_svg]:size-[18px]" />
 
       {!soldOut ? (
         <button
@@ -154,7 +155,7 @@ export function ProductCard({
           onClick={onQuickAdd}
           disabled={resolving || add.isPending}
           aria-label={sellers > 1 ? `Choose a seller for ${p.title}` : `Add ${p.title} to cart`}
-          className="absolute right-1 bottom-1 grid size-10 place-items-center rounded-full bg-brand text-brand-foreground shadow-sm disabled:opacity-70"
+          className="absolute right-0.5 bottom-0.5 grid size-9 place-items-center rounded-full bg-brand text-brand-foreground shadow-sm after:absolute after:-inset-0.5 disabled:opacity-70 sm:right-1 sm:bottom-1 sm:size-10"
         >
           {resolving || add.isPending ? (
             <Spinner className="size-4" />
