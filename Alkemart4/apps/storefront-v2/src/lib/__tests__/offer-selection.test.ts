@@ -22,6 +22,20 @@ const simple = (over: Partial<OfferSelectionInput> = {}): OfferSelectionInput =>
   ...over,
 })
 
+describe("offer selection — stock", () => {
+  it("blocks a listed offer whose product has no stock", () => {
+    const r = resolveOfferSelection(simple({ product: { ...simple().product, availableQty: 0 } }))
+    expect(r.canBuy).toBe(false)
+    expect(r.outOfStock).toBe(true)
+    expect(r.blockedReason).toBe("Out of stock")
+  })
+
+  it("still sells when stock is present or unknown", () => {
+    expect(resolveOfferSelection(simple({ product: { ...simple().product, availableQty: 3 } })).canBuy).toBe(true)
+    expect(resolveOfferSelection(simple({ product: { ...simple().product, availableQty: null } })).canBuy).toBe(true)
+  })
+})
+
 describe("offer selection — sellers", () => {
   it("selects the only offer implicitly", () => {
     const r = resolveOfferSelection(simple())

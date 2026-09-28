@@ -17,7 +17,8 @@ export type Combo = NonNullable<StoreProductCard["combos"]>[number]
 export type ComboSelection = Record<string, string>
 
 export type OfferSelectionInput = {
-  product: Pick<StoreProductCard, "offerId" | "offerCount" | "optionTypes" | "combos" | "amount" | "currencyCode" | "seller">
+  product: Pick<StoreProductCard, "offerId" | "offerCount" | "optionTypes" | "combos" | "amount" | "currencyCode" | "seller"> &
+    Partial<Pick<StoreProductCard, "availableQty">>
   peers: PeerOffer[]
   /** Peer list has resolved (success or error). */
   peersReady: boolean
@@ -169,7 +170,9 @@ export function resolveOfferSelection(input: OfferSelectionInput): OfferSelectio
   const displayCurrency = activeOffer?.currencyCode ?? product.currencyCode ?? null
   const displaySeller = activeOffer?.seller ?? (activeOfferId ? (product.seller ?? null) : null)
 
-  const noStockAnywhere = peersReady && !hasMatrix && (knownOfferCount ?? 0) === 0
+  // Out-of-stock offers stay listed (the shelf keeps them visible), so an
+  // offer existing is not the same as stock: the product's own count decides.
+  const noStockAnywhere = !hasMatrix && (product.availableQty === 0 || (peersReady && (knownOfferCount ?? 0) === 0))
   const outOfStock = hasMatrix ? comboComplete && matchingBuyableIds.size === 0 : noStockAnywhere
 
   let blockedReason: string | null = null
