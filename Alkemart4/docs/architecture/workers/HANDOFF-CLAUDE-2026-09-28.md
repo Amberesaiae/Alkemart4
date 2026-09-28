@@ -28,9 +28,11 @@ Only `main` exists locally and on origin. Superseded branches are kept as tags
 (raw image assets) and a stray root `pnpm-lock.yaml`.
 
 **Preflight (read-only):** live Worker version
-`8ba3e69e-bbbb-4973-a0a6-4a5a5c4f7ffe` is the rollback point
-(`bunx wrangler rollback 8ba3e69e-bbbb-4973-a0a6-4a5a5c4f7ffe`). Worker secrets:
-JWT_SECRET, PAYSTACK_SECRET_KEY, WORKOS_API_KEY only. check-migrations OK (52
+`ae278336-7caa-4699-970f-9e9664e946d2` is the rollback point
+(`bunx wrangler rollback ae278336-7caa-4699-970f-9e9664e946d2`). Worker secrets:
+JWT_SECRET, PAYSTACK_SECRET_KEY, WORKOS_API_KEY, TURNSTILE_SECRET_KEY
+(production widget "alkemart production sign-up", site key
+0x4AAAAAAFFxBFw6fPs_cRjN, hosts alkemart.com + sell.alkemart.com). check-migrations OK (52
 files); live ledger pending 0050/0051.
 
 ### Release runbook (backend + UIs ship together)
@@ -44,7 +46,7 @@ new storefront needs verification mail to let anyone buy.
    rather than adding a second one); Turnstile widget for alkemart.com +
    sell.alkemart.com (site key → `VITE_TURNSTILE_SITE_KEY`, secret →
    `TURNSTILE_SECRET_KEY`, `TURNSTILE_HOSTNAMES`).
-2. `wrangler secret put` RESEND_API_KEY, TURNSTILE_SECRET_KEY (stdin).
+2. `wrangler secret put` RESEND_API_KEY (stdin). Turnstile is done.
 3. Fresh full backup (needs pg_dump 17 or Supabase CLI), restore-test it,
    then `bun run db:migrate` over session port 5432 for 0050 + 0051.
 4. `cd apps/api && bunx wrangler deploy` (WORKOS_ENABLED stays 0; creates the
