@@ -23,7 +23,9 @@ deploy_one() {
   echo "===== BUILD $project ====="
   (cd "$ROOT/$dir" && bun run build)
   echo "===== DEPLOY $project ====="
-  (cd "$ROOT/$dir" && wrangler pages deploy dist --project-name "$project")
+  # Name the production branch explicitly: wrangler otherwise infers it from
+  # git, and a detached or feature checkout silently lands on a preview URL.
+  (cd "$ROOT/$dir" && wrangler pages deploy dist --project-name "$project" --branch "${PAGES_BRANCH:-main}")
 }
 
 # The v2 apps are the live UIs (pilot build). The old apps (apps/storefront,
