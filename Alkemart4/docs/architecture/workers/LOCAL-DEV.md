@@ -5,9 +5,9 @@
 | Process | Port | Command |
 |---------|------|---------|
 | API (Wrangler) | **8787** | `bun run dev:api` |
-| Storefront | **5175** | `bun run dev:storefront` |
-| Vendor | **3002** | `bun run dev:vendor` |
-| Admin | **3001** | `bun run dev:admin` |
+| Storefront | **5176** | `bun run dev:storefront` |
+| Vendor | **3004** | `bun run dev:vendor` |
+| Admin | **3003** | `bun run dev:admin` |
 
 One-shot (all four):
 
@@ -43,28 +43,26 @@ cp apps/api/.dev.vars.example apps/api/.dev.vars
 
 4. UI env files (gitignored) — Workers URL must point at local API:
 
-**Storefront** `apps/storefront/.env.local`:
+**Storefront** `apps/storefront-v2/.env.local`:
 
 ```bash
 VITE_ALKEMART_API_URL=http://127.0.0.1:8787
-VITE_VENDOR_APP_URL=http://127.0.0.1:3002
-VITE_ADMIN_APP_URL=http://127.0.0.1:3001
+VITE_VENDOR_APP_URL=http://127.0.0.1:3004
+VITE_ADMIN_APP_URL=http://127.0.0.1:3003
 VITE_HOME_DEMO=0
 ```
 
-**Vendor** `apps/backend/apps/ghana-vendor/.env.local`:
+**Vendor** `apps/vendor-v2/.env.local`:
 
 ```bash
 VITE_ALKEMART_API_URL=http://127.0.0.1:8787
 ```
 
-**Admin** `apps/backend/apps/admin/.env.local`:
+**Admin** `apps/admin-v2/.env.local`:
 
 ```bash
 VITE_ALKEMART_API_URL=http://127.0.0.1:8787
 ```
-
-Templates: `apps/storefront/.env.template`, `apps/backend/apps/{ghana-vendor,admin}/.env.template`.
 
 ## How requests flow locally
 

@@ -42,14 +42,14 @@ function RootLayout() {
       </a>
       <div id="route-announcer" aria-live="polite" className="sr-only" />
       <RouteEffects />
-      <div className="flex min-h-dvh flex-col">
+      <div className={`flex min-h-dvh flex-col ${pathname === "/" ? "mobile-home-preserved" : ""}`}>
         <SiteHeader />
         <main id="main" tabIndex={-1} className="flex-1 pb-24 outline-none md:pb-0">
           <Outlet />
         </main>
         {!focused ? <SiteFooter /> : null}
       </div>
-      {!focused ? <MobileTabBar /> : null}
+      {!focused ? <div className={pathname === "/" ? "mobile-home-preserved" : undefined}><MobileTabBar /></div> : null}
       <Toaster position="top-center" />
     </TooltipProvider>
   )

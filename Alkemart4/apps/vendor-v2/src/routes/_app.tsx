@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import { toast } from "sonner"
 import { Link, Outlet, createFileRoute, redirect, useNavigate, useRouterState } from "@tanstack/react-router"
 import { useQueryClient } from "@tanstack/react-query"
 import { HugeiconsIcon } from "@hugeicons/react"
@@ -198,7 +199,7 @@ function AppLayout() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Stay signed in</AlertDialogCancel>
-            <AlertDialogAction onClick={() => signOut()}>Sign out</AlertDialogAction>
+            <AlertDialogAction onClick={() => void signOut().catch(() => toast.error("Sign-out did not finish. Please try again."))}>Sign out</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

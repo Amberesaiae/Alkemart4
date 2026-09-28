@@ -4,7 +4,11 @@ import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react"
 import {
   ArrowRight01Icon,
   LegalDocument01Icon,
+  Message01Icon,
+  MoneyReceive02Icon,
+  MoneySend02Icon,
   PackageIcon,
+  PackageReceiveIcon,
   PackageSearchIcon,
   ShoppingCart01Icon,
   StarIcon,
@@ -22,7 +26,18 @@ import { EmptyState, ErrorState } from "@workspace/console-ui/components/console
 import { formatMajor } from "@workspace/console-ui/lib/money"
 import { cn } from "@workspace/console-ui/lib/utils"
 import type { AdminPath } from "@/lib/nav"
-import { useAppeals, useListingsToReview, usePendingReviews, useSellers, useStats, useTraffic } from "@/lib/queries"
+import {
+  useAppeals,
+  useListingsToReview,
+  usePayable,
+  usePendingReviews,
+  useReportedMessages,
+  useReturnsToDecide,
+  useSellers,
+  useStats,
+  useTraffic,
+} from "@/lib/queries"
+import { thumbFallback, thumbOf } from "@alkemart/shared/media"
 
 export const Route = createFileRoute("/_app/")({ component: OverviewPage })
 
@@ -47,19 +62,46 @@ function OverviewPage() {
 
 type Queue = {
   to: AdminPath
+  search?: Record<string, string>
   label: string
   noun: [string, string]
   icon: IconSvgElement
-  q: { data?: unknown[]; isPending: boolean; isError: boolean; refetch: () => unknown }
+  q: { isPending: boolean; isError: boolean }
   count: number
 }
 
+/**
+ * The pilot's daily jobs come first (PILOT-PLAN: decide escalated returns,
+ * read reports, pay released sellers once a day), then the review queues.
+ */
 function AttentionSection() {
+  const returns = useReturnsToDecide()
+  const reports = useReportedMessages()
+  const payable = usePayable()
   const sellers = useSellers()
   const listings = useListingsToReview()
   const appeals = useAppeals()
   const reviews = usePendingReviews()
   const queues: Queue[] = [
+    { to: "/returns", label: "Returns to decide", noun: ["case", "cases"], icon: PackageReceiveIcon, q: returns, count: returns.data?.counts.decide ?? 0 },
+    {
+      to: "/returns",
+      search: { view: "refunds" },
+      label: "Refunds to check",
+      noun: ["refund", "refunds"],
+      icon: MoneyReceive02Icon,
+      q: returns,
+      count: returns.data?.counts.refunds ?? 0,
+    },
+    {
+      to: "/payouts",
+      label: "Sellers ready to pay",
+      noun: ["seller", "sellers"],
+      icon: MoneySend02Icon,
+      q: payable,
+      count: payable.data?.filter((s) => s.orderCount > 0 && !s.blocker).length ?? 0,
+    },
+    { to: "/messages", label: "Reported chats", noun: ["chat", "chats"], icon: Message01Icon, q: reports, count: reports.data?.items.length ?? 0 },
     {
       to: "/sellers",
       label: "Seller applications",
@@ -87,9 +129,10 @@ function AttentionSection() {
       ) : (
         <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           {queues.map((q) => (
-            <li key={q.to}>
+            <li key={q.label}>
               <Link
                 to={q.to}
+                search={q.search}
                 className={cn(
                   "flex h-full items-center gap-4 rounded-2xl border bg-card p-4 transition-colors hover:border-foreground/25",
                   q.count > 0 && "border-brand-strong/60",
@@ -232,7 +275,7 @@ function TopProductsCard() {
         ) : stats.isError ? (
           <ErrorState error={stats.error} onRetry={() => void stats.refetch()} />
         ) : top.length === 0 ? (
-          <EmptyState icon={PackageIcon} title="No sales yet" />
+          <EmptyState illustration="empty-orders" illustrationSize="compact" icon={PackageIcon} title="No sales yet" description="Products will appear here once orders start coming in." />
         ) : (
           <table className="w-full text-[15px]">
             <caption className="sr-only">Top products by sales</caption>
@@ -249,7 +292,7 @@ function TopProductsCard() {
                   <td className="py-2.5 pr-3">
                     <span className="flex items-center gap-3">
                       <span className="size-10 shrink-0 overflow-hidden rounded-lg bg-surface">
-                        {p.thumbnail ? <img src={p.thumbnail} alt="" className="size-full object-cover" loading="lazy" /> : null}
+                        {p.thumbnail ? <img src={thumbOf(p.thumbnail) ?? p.thumbnail} alt="" className="size-full object-cover" loading="lazy" onError={thumbFallback(p.thumbnail)} /> : null}
                       </span>
                       <span className="line-clamp-1">{p.title}</span>
                     </span>
@@ -280,7 +323,7 @@ function TopShopsCard() {
         ) : q.isError ? (
           <ErrorState error={q.error} onRetry={() => void q.refetch()} />
         ) : top.length === 0 ? (
-          <EmptyState icon={StoreVerified01Icon} title="No shop views yet" />
+          <EmptyState illustration="first-listing" illustrationSize="compact" icon={StoreVerified01Icon} title="No shop views yet" description="Shops appear here when buyers start visiting them." />
         ) : (
           <ol className="space-y-1">
             {top.map((s, i) => (

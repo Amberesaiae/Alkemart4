@@ -2,6 +2,7 @@ import { useEffect, useState } from "react"
 import { createFileRoute, Link } from "@tanstack/react-router"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { HugeiconsIcon } from "@hugeicons/react"
+import { BrandIllustration } from "@workspace/console-ui/components/brand-illustration"
 import {
   Alert02Icon,
   Calendar03Icon,
@@ -17,8 +18,6 @@ import {
 } from "@hugeicons/core-free-icons"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { Skeleton } from "@/components/ui/skeleton"
 import { SellerAvatar } from "@/components/commerce/seller-avatar"
@@ -26,7 +25,6 @@ import { ErrorState } from "@/components/feedback/states"
 import { ReviewDialog } from "@/components/checkout/review-dialog"
 import { PageSeo } from "@/components/seo/page-seo"
 import { useSession } from "@/hooks/use-store"
-import { lookupEmail } from "@/lib/checkout-session"
 import { formatMoney } from "@/lib/market"
 import { confirmReceived, formatAddressLines, getOrder, maskOrderId, problemSorted, type SellerOrder, type StoreOrder } from "@/lib/orders"
 import { ProblemForm, ReturnStatus } from "@/components/orders/return-panel"
@@ -148,7 +146,7 @@ function Timeline({ so }: { so: SellerOrder }) {
               <HugeiconsIcon icon={copy[x.s].icon} className="size-[18px]" aria-hidden />
             </span>
             <div className="min-w-0 pt-1">
-              <p className={cn("text-[15px] font-semibold", !reached && "text-muted-foreground")}>
+              <p className={cn("text-[length:var(--text-legacy-15)] font-semibold", !reached && "text-muted-foreground")}>
                 {copy[x.s].label}
                 <span className="sr-only">{reached ? " — done" : isNext ? " — next" : ""}</span>
               </p>
@@ -170,6 +168,7 @@ function Timeline({ so }: { so: SellerOrder }) {
 function Handover({ so, who, currency }: { so: SellerOrder; who: string; currency: string }) {
   const qc = useQueryClient()
   const [reporting, setReporting] = useState(false)
+  const [confirming, setConfirming] = useState(false)
   const pickup = so.fulfillmentMethod === "pickup"
   const done = () => void qc.invalidateQueries({ queryKey: ["store", "order"] })
   const fail = (e: unknown) => toast.error((e as Error).message || "That didn't go through. Try again.")
@@ -180,7 +179,10 @@ function Handover({ so, who, currency }: { so: SellerOrder; who: string; currenc
   // A cancelled order still shows how its refund went.
   if (so.status === "cancelled") return rc ? <div className="border-t border-border p-4 sm:p-5"><ReturnStatus so={so} rc={rc} who={who} currency={currency} /></div> : null
   const delivered = so.status === "delivered"
-  const canConfirm = !caseOpen && (!delivered || so.deliveryConfirmedBy === "seller")
+  // Confirming pays the seller: a delivery only once it's on its way (the API
+  // enforces the same); a pickup whenever the buyer collects it.
+  const onItsWay = so.status === "shipped" || (pickup && so.status === "placed")
+  const canConfirm = !caseOpen && (onItsWay || (delivered && so.deliveryConfirmedBy === "seller"))
   const canReport = (so.status === "shipped" || delivered) && !so.problemReported && !caseOpen
 
   return (
@@ -225,10 +227,25 @@ function Handover({ so, who, currency }: { so: SellerOrder; who: string; currenc
         </div>
       ) : reporting ? (
         <ProblemForm so={so} who={who} currency={currency} onClose={() => setReporting(false)} />
+      ) : confirming ? (
+        <div role="group" aria-labelledby={`confirm-${so.id}`} className="space-y-3 rounded-2xl border-2 border-foreground/15 p-3.5">
+          <p id={`confirm-${so.id}`} className="text-sm">
+            <span className="font-semibold">{pickup ? "Collected everything?" : "Is everything in your hands?"}</span> Confirming pays the seller. If something turns out to be wrong,
+            you can still ask for a return.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <Button size="sm" disabled={received.isPending} onClick={() => received.mutate(undefined, { onSettled: () => setConfirming(false) })}>
+              Yes, I have it
+            </Button>
+            <Button size="sm" variant="outline" disabled={received.isPending} onClick={() => setConfirming(false)}>
+              Not yet
+            </Button>
+          </div>
+        </div>
       ) : canConfirm || canReport ? (
         <div className="flex flex-wrap gap-2">
           {canConfirm ? (
-            <Button size="sm" disabled={received.isPending} onClick={() => received.mutate()}>
+            <Button size="sm" onClick={() => setConfirming(true)}>
               {pickup ? "I collected it" : "I got my order"}
             </Button>
           ) : null}
@@ -281,7 +298,7 @@ function Shipment({ so, order, index, count, who }: { so: SellerOrder; order: St
             <h2 id={`ship-${so.id}`} className={cn("text-xl font-extrabold", h.tone === "late" && "text-deal")}>
               {h.title}
             </h2>
-            {h.line ? <p className="text-[15px] text-muted-foreground">{h.line}</p> : null}
+            {h.line ? <p className="text-[length:var(--text-legacy-15)] text-muted-foreground">{h.line}</p> : null}
           </div>
         </div>
       </header>
@@ -290,7 +307,7 @@ function Shipment({ so, order, index, count, who }: { so: SellerOrder; order: St
         <Timeline so={so} />
         <ul className="space-y-2.5 sm:border-l sm:border-border sm:pl-5">
           {so.items.map((it) => (
-            <li key={it.id} className="flex items-start justify-between gap-3 text-[15px]">
+            <li key={it.id} className="flex items-start justify-between gap-3 text-[length:var(--text-legacy-15)]">
               <span className="min-w-0">
                 {it.productId ? (
                   <Link to="/product/$id" params={{ id: it.productId }} className="line-clamp-2 font-medium hover:underline">
@@ -324,14 +341,12 @@ function OrderPage() {
   const { id } = Route.useParams()
   const { placed, pay } = Route.useSearch()
   const session = useSession()
-  const [email, setEmail] = useState(() => lookupEmail.get() ?? "")
-  const [submitted, setSubmitted] = useState(() => lookupEmail.get() ?? "")
-  const who = submitted || session.data?.email || ""
+  const who = session.data?.email ?? ""
 
   const q = useQuery({
     queryKey: ["store", "order", id, who],
-    queryFn: () => getOrder(id, { email: who || undefined }),
-    enabled: Boolean(who) || Boolean(session.data),
+    queryFn: () => getOrder(id),
+    enabled: Boolean(session.data?.emailVerified),
     retry: false,
     // Live while anything is still moving; stops once every package is done.
     refetchInterval: (query) => {
@@ -345,7 +360,7 @@ function OrderPage() {
   }, [order?.id])
 
   const justPlaced = placed === "1"
-  const needsEmail = !who && !session.isLoading && !session.data
+  const needsSignIn = !session.isLoading && !session.data
   const cod = order?.paymentMethod === "cod"
   const allPickup = !!order?.sellerOrders.length && order.sellerOrders.every((o) => o.fulfillmentMethod === "pickup")
 
@@ -353,11 +368,9 @@ function OrderPage() {
     <div className="container-page max-w-5xl space-y-5 pt-4 sm:space-y-6 sm:pt-6">
       <PageSeo title={order ? `Order ${maskOrderId(order.id)}` : "Your order"} noindex />
 
-      {justPlaced ? (
+      {justPlaced && order ? (
         <section className="flex items-start gap-4 rounded-3xl bg-brand p-5 sm:items-center sm:p-7" aria-live="polite">
-          <span className="grid size-12 shrink-0 place-items-center rounded-full bg-background sm:size-14">
-            <HugeiconsIcon icon={CheckmarkCircle02Icon} className="size-7 text-success sm:size-8" />
-          </span>
+          <BrandIllustration name="order-confirmed" className="h-24 w-24 shrink-0 object-contain sm:h-32 sm:w-32" />
           <div className="min-w-0 space-y-1">
             <h1 className="text-2xl font-extrabold sm:text-3xl">Your order is in!</h1>
             <p className="font-medium text-foreground/80">
@@ -378,35 +391,20 @@ function OrderPage() {
         </div>
       )}
 
-      {needsEmail || (q.isError && !session.data) ? (
-        <form
-          className="space-y-3 rounded-3xl border border-border p-5 sm:p-6"
-          onSubmit={(e) => {
-            e.preventDefault()
-            lookupEmail.set(email.trim())
-            setSubmitted(email.trim())
-          }}
-        >
-          <p className="font-semibold">Confirm it's your order</p>
-          <p className="text-sm text-muted-foreground">Enter the email you used at checkout.</p>
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <Label htmlFor="lookup-email" className="sr-only">
-              Email
-            </Label>
-            <Input id="lookup-email" type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" className="h-11" />
-            <Button type="submit" size="lg">
-              View order
-            </Button>
-          </div>
-          {q.isError ? (
-            <p role="alert" className="text-sm text-destructive">
-              {q.error instanceof Error ? q.error.message : "Order not found"}
-            </p>
-          ) : null}
-        </form>
+      {needsSignIn ? (
+        <section className="space-y-3 rounded-3xl border border-border p-5 sm:p-6">
+          <p className="font-semibold">Sign in to view your order</p>
+          <p className="text-sm text-muted-foreground">Orders are private to the verified account that placed them.</p>
+          <Button asChild><Link to="/login" search={{ redirect: `/order/${id}` }}>Sign in</Link></Button>
+        </section>
+      ) : session.data && !session.data.emailVerified ? (
+        <section className="space-y-3 rounded-3xl border border-border p-5 sm:p-6">
+          <p className="font-semibold">Verify your email to view this order</p>
+          <Button asChild><Link to="/verify-email" search={{ redirect: `/order/${id}` }}>Verify email</Link></Button>
+        </section>
       ) : null}
 
-      {q.isLoading ? <Skeleton className="h-80 rounded-3xl" /> : null}
+      {q.isLoading && session.data?.emailVerified ? <Skeleton className="h-80 rounded-3xl" /> : null}
       {q.isError && session.data ? <ErrorState title="This order didn't load" error={q.error} onRetry={() => void q.refetch()} /> : null}
 
       {order ? (
@@ -436,7 +434,7 @@ function OrderPage() {
           </div>
 
           <aside className="space-y-4">
-            <div className="space-y-2 rounded-3xl border border-border p-4 text-[15px] sm:p-5">
+            <div className="space-y-2 rounded-3xl border border-border p-4 text-[length:var(--text-legacy-15)] sm:p-5">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Items</span>
                 <span className="tabular">{formatMoney(order.itemTotal, order.currencyCode)}</span>
@@ -452,7 +450,7 @@ function OrderPage() {
               </div>
             </div>
 
-            <div className="flex gap-3 rounded-3xl border border-border p-4 text-[15px] sm:p-5">
+            <div className="flex gap-3 rounded-3xl border border-border p-4 text-[length:var(--text-legacy-15)] sm:p-5">
               <HugeiconsIcon icon={Wallet01Icon} className="mt-0.5 size-5 shrink-0 text-muted-foreground" aria-hidden />
               <div>
                 <p className="font-semibold">{PAY_LABEL[order.paymentMethod ?? ""] ?? "Payment"}</p>
@@ -480,7 +478,7 @@ function OrderPage() {
             </div>
 
             {order.shippingAddress && !allPickup ? (
-              <div className="flex gap-3 rounded-3xl border border-border p-4 text-[15px] sm:p-5">
+              <div className="flex gap-3 rounded-3xl border border-border p-4 text-[length:var(--text-legacy-15)] sm:p-5">
                 <HugeiconsIcon icon={Location01Icon} className="mt-0.5 size-5 shrink-0 text-muted-foreground" aria-hidden />
                 <address className="not-italic">
                   <p className="font-semibold">Delivering to</p>
@@ -493,7 +491,7 @@ function OrderPage() {
               </div>
             ) : null}
 
-            <div className="rounded-3xl bg-surface p-4 text-[15px] sm:p-5">
+            <div className="rounded-3xl bg-surface p-4 text-[length:var(--text-legacy-15)] sm:p-5">
               <p className="flex items-center gap-2 font-semibold">
                 <HugeiconsIcon icon={Alert02Icon} className="size-5" aria-hidden />
                 Something wrong?

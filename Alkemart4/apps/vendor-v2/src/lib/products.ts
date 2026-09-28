@@ -182,6 +182,10 @@ export async function uploadImage(
   kind: "products" | "logos" | "banners" = "products",
 ): Promise<string> {
   const blob = await compressImage(file)
+  // Catch formats the phone couldn't convert (e.g. HEIC) before spending data on an upload.
+  if (!["image/jpeg", "image/png", "image/webp"].includes(blob.type)) {
+    throw Object.assign(new Error("Use a JPG, PNG or WebP photo."), { status: 415 })
+  }
   const form = new FormData()
   const name = file.name.replace(/\.[^.]+$/, "") + (blob.type === "image/jpeg" ? ".jpg" : "")
   form.append("file", new File([blob], name, { type: blob.type || file.type }))

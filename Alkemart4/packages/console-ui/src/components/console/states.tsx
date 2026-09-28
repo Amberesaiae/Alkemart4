@@ -2,6 +2,7 @@ import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react"
 import { Alert02Icon, InboxIcon, WifiDisconnected02Icon } from "@hugeicons/core-free-icons"
 import { Button } from "@workspace/console-ui/components/button"
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@workspace/console-ui/components/empty"
+import { BrandIllustration, type BrandIllustrationName } from "@workspace/console-ui/components/brand-illustration"
 
 type Err = { status?: number; message?: string } | null | undefined
 
@@ -29,9 +30,9 @@ export function ErrorState({
   return (
     <Empty role="alert" className={className}>
       <EmptyHeader>
-        <EmptyMedia variant="icon">
+        <BrandIllustration name={offline ? "offline" : "not-found"} fallback={<EmptyMedia variant="icon">
           <HugeiconsIcon icon={offline ? WifiDisconnected02Icon : Alert02Icon} />
-        </EmptyMedia>
+        </EmptyMedia>} />
         <EmptyTitle>{offline ? "You're offline or the connection dropped" : title}</EmptyTitle>
         <EmptyDescription>
           {offline
@@ -57,21 +58,25 @@ export function EmptyState({
   title,
   description,
   icon = InboxIcon,
+  illustration,
+  illustrationSize = "default",
   action,
   className,
 }: {
   title: string
   description?: React.ReactNode
   icon?: IconSvgElement
+  illustration?: BrandIllustrationName
+  illustrationSize?: "default" | "compact"
   action?: React.ReactNode
   className?: string
 }) {
   return (
     <Empty className={className}>
       <EmptyHeader>
-        <EmptyMedia variant="icon">
+        {illustration ? <BrandIllustration name={illustration} className={illustrationSize === "compact" ? "mx-auto size-28 max-w-full object-contain sm:size-32" : undefined} fallback={<EmptyMedia variant="icon"><HugeiconsIcon icon={icon} /></EmptyMedia>} /> : <EmptyMedia variant="icon">
           <HugeiconsIcon icon={icon} />
-        </EmptyMedia>
+        </EmptyMedia>}
         <EmptyTitle>{title}</EmptyTitle>
         {description ? <EmptyDescription>{description}</EmptyDescription> : null}
       </EmptyHeader>

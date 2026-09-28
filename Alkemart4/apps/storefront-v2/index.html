@@ -15,20 +15,27 @@
     <meta property="og:image" content="/brand/og.png" />
     <link rel="icon" href="/icons/icon-512.png" type="image/png" />
     <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="stylesheet" href="/brand/loading.css" />
     <style>
-      /* Boot frame: header height + brand loading mark, so first paint is not a white flash. */
+      /* Keep sizing separate from the shared mark styles loaded during app startup. */
       html, body { margin: 0; background: #fff; }
       .boot { display: grid; min-height: 100dvh; place-items: center; }
-      .boot-mark { position: relative; width: 44px; height: 44px; overflow: hidden; animation: alkemart-spin 1.1s linear infinite; }
-      .boot-mark img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
-      @keyframes alkemart-spin { to { transform: rotate(360deg); } }
-      @media (prefers-reduced-motion: reduce) { .boot-mark { animation: none; } }
+      .boot-mark { width: 44px; height: 44px; }
     </style>
   </head>
   <body>
     <div id="root">
       <div class="boot" role="status" aria-label="Loading alkemart">
-        <span class="boot-mark" aria-hidden="true"><img src="/brand/alkemart-mark.png" alt="" /></span>
+        <span class="boot-mark" aria-hidden="true">
+          <span class="brand-loading-mark">
+          <img class="brand-loading-base" src="/brand/alkemart-mark.png" alt="" />
+          <img class="brand-loading-petal brand-loading-petal--coral" src="/brand/alkemart-mark.png" alt="" />
+          <img class="brand-loading-petal brand-loading-petal--violet" src="/brand/alkemart-mark.png" alt="" />
+          <img class="brand-loading-petal brand-loading-petal--teal" src="/brand/alkemart-mark.png" alt="" />
+          <img class="brand-loading-petal brand-loading-petal--blue" src="/brand/alkemart-mark.png" alt="" />
+          <img class="brand-loading-petal brand-loading-petal--head" src="/brand/alkemart-mark.png" alt="" />
+          </span>
+        </span>
       </div>
     </div>
     <noscript>

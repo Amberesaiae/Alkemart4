@@ -20,8 +20,9 @@ and run their own shops; nobody checks every delivery.
   an online payout is released at once. On the seller's word alone the buyer
   gets a short report window first (same-day orders 24h, others 48h).
   Pay-on-delivery is unaffected — the seller already has the cash.
-- **Buyer:** "I got it" / "I collected it", "There's a problem" (holds only
-  that order's payout and emails the seller), "It's sorted" (releases it).
+- **Buyer:** "I got it" / "I collected it" (a delivery only once it's sent,
+  with a confirm step, because it pays the seller), "There's a problem" (holds
+  only that order's payout and emails the seller), "It's sorted" (releases it).
 - **Admin is out of the everyday flow.** The numbers (report windows, code
   tries, same-town km) are one delivery policy with domain defaults, tunable in
   admin → Rules (audited). Admin steps in only when a report can't be settled.
@@ -69,8 +70,10 @@ and run their own shops; nobody checks every delivery.
   seller wants the item first, they agree it with the buyer in Messages).
 - **Buyer** accepts a decline, asks alkemart to decide, or says it's sorted
   (no deadline on the buyer; the order's payout waits until they answer).
-  **Seller silent** past the reply time → goes to admin. Checked on every read
-  and by the cron. Returns open only after delivery (no "never arrived"
+  **Seller silent** past the reply time → goes to admin. Checked whenever a
+  buyer, seller or admin opens returns or orders (the admin nav badge reads it
+  on every admin page). `scheduled()` also sweeps, but no cron trigger is
+  configured — Queues replaced cron (wrangler.toml). Returns open only after delivery (no "never arrived"
   reason). Windows are fixed domain defaults (7-day faulty, 7-day default
   change of mind, 48h seller reply), not admin settings.
 - **Admin** sees only cases that need a decision and has two choices:

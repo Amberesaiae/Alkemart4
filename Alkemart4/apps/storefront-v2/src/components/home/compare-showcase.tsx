@@ -9,6 +9,7 @@ import { SellerAvatar } from "@/components/commerce/seller-avatar"
 import { useVendorDirectory } from "@/hooks/use-vendors"
 import { getPeerComparison, productParam, type StoreProductCard } from "@/lib/products"
 import { formatMoney, useMarket } from "@/lib/market"
+import { thumbFallback } from "@alkemart/shared/media"
 
 /**
  * "One product. More choices." — the marketplace's reason to exist, shown
@@ -40,7 +41,7 @@ export function CompareShowcase({ products }: { products: StoreProductCard[] }) 
       <div className="grid overflow-hidden rounded-3xl border border-border lg:grid-cols-[0.95fr_1.4fr]">
         <Link {...to} className="flex gap-5 bg-surface p-5 sm:p-6">
           <span className="size-28 shrink-0 overflow-hidden rounded-2xl bg-background sm:size-36">
-            {image ? <img src={image} alt="" className="size-full object-contain p-3 mix-blend-multiply" /> : null}
+            {image ? <img src={image} alt="" className="size-full object-contain p-3 mix-blend-multiply" onError={thumbFallback(pick.thumbnail)} /> : null}
           </span>
           <span className="min-w-0 space-y-2">
             <span className="line-clamp-2 text-lg font-bold">{pick.title}</span>
@@ -82,7 +83,7 @@ export function CompareShowcase({ products }: { products: StoreProductCard[] }) 
                   <p className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
                     <span className="truncate font-semibold">{o.seller.name}</span>
                     {o.offerId === bestId ? (
-                      <span className="rounded-full bg-brand px-2 py-0.5 text-[11px] font-bold text-brand-foreground">Best price</span>
+                      <span className="rounded-full bg-brand px-2 py-0.5 text-[length:var(--text-legacy-11)] font-bold text-brand-foreground">Best price</span>
                     ) : null}
                   </p>
                   <p className="flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
@@ -97,7 +98,7 @@ export function CompareShowcase({ products }: { products: StoreProductCard[] }) 
                 </div>
                 <div className="text-right">
                   <p className="font-extrabold tabular">{total != null ? formatMoney(total, o.currencyCode) : "—"}</p>
-                  <p className="text-[11px] text-muted-foreground tabular">
+                  <p className="text-[length:var(--text-legacy-11)] text-muted-foreground tabular">
                     {o.deliveryAmount == null ? "+ delivery" : o.deliveryAmount === 0 ? "free delivery" : `incl. ${formatMoney(o.deliveryAmount, o.currencyCode)} delivery`}
                   </p>
                 </div>

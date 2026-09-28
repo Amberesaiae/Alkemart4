@@ -1,22 +1,22 @@
 # Alkemart demo accounts (Workers / Supabase)
 
-> **Security:** These passwords are for **lab/demo only**. Rotate before any public launch. Never reuse on production customer data.
+> **Security incident:** Previously published demo passwords must be treated as compromised, including copies in git history. Removing them here does not rotate live accounts. Rotate through a trusted operator, revoke sessions, and keep replacement credentials in a password manager or CI secret store, never this repository.
 
 API: `https://alkemart-api.glean-circular-passport.workers.dev`
 
-| Role | Email | Password | Notes |
-|------|-------|----------|-------|
-| **Admin** | `admin@alkemart.test` | `AdminPass1` | Seeded in Postgres; no public register |
-| **Vendor** | `vendor@alkemart.test` | `VendorPass1` | Linked to catalog seller `seller-a` (Accra Mart / Tecno Spark). Re-login after migrate. |
-| **Buyer** | `buyer@alkemart.test` | `BuyerPass1` | Storefront shopper |
+| Role | Email | Notes |
+|------|-------|-------|
+| **Admin** | `admin@alkemart.test` | Provisioned only; rotate and require MFA |
+| **Vendor** | `vendor@alkemart.test` | Verify seller membership before any stock change |
+| **Buyer** | `buyer@alkemart.test` | Demo shopper; rotate |
 
 ## Canonical UIs (gold `#FEBF31`)
 
 | App | Source | Live Pages |
 |-----|--------|------------|
-| Storefront | `apps/storefront` | https://alkemart4-storefront.pages.dev |
-| Vendor | `apps/backend/apps/ghana-vendor` | https://alkemart4-vendor.pages.dev |
-| Admin | `apps/backend/apps/admin` | https://alkemart4-admin.pages.dev |
+| Storefront | `apps/storefront-v2` | https://alkemart4-storefront.pages.dev |
+| Vendor | `apps/vendor-v2` | https://alkemart4-vendor.pages.dev |
+| Admin | `apps/admin-v2` | https://alkemart4-admin.pages.dev |
 
 All three bake `VITE_ALKEMART_API_URL=https://alkemart-api.glean-circular-passport.workers.dev`.
 
@@ -37,14 +37,14 @@ Do **not** use `archive/workers-shell-*-sludge` — those were mistaken generic 
 Rotate these passwords before any public launch (and after enabling edge WAF — see `docs/ops/cloudflare-waf-checklist.md`):
 
 ```bash
-# Admin JWT required. Supply only the passwords you want to change (min 10 chars).
+# Admin JWT required. Supply only the passwords you want to change (14–200 chars).
 curl -X POST "$API/admin/migrate/rotate-demo-passwords" \
   -H "Authorization: Bearer $ADMIN_JWT" \
   -H 'content-type: application/json' \
   -d '{"adminPassword":"…","vendorPassword":"…","buyerPassword":"…"}'
 ```
 
-Then update this file and any CI secrets. Do not commit real production passwords.
+Update CI secrets privately. Do not put replacement passwords in this file or shell history. The hardened rotation endpoint stamps password changes so old sessions are rejected; deploy that fix before relying on revocation. Do not sign in with exposed demo credentials to verify them.
 
 ### Free-tier payment-intent expiry
 

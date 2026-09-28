@@ -134,14 +134,14 @@ function AccountPage() {
         {orders.isPending ? (
           <Skeleton className="h-24 rounded-3xl" />
         ) : orders.isError ? (
-          <p className="rounded-3xl border border-border p-4 text-sm text-muted-foreground">
+          <p className="rounded-3xl border border-border p-4 text-[length:var(--text-legacy-15)] text-muted-foreground">
             Your orders didn't load.{" "}
             <button type="button" className="font-semibold text-foreground underline" onClick={() => void orders.refetch()}>
               Try again
             </button>
           </p>
         ) : recent.length === 0 ? (
-          <p className="rounded-3xl border border-border p-4 text-[15px] text-muted-foreground">
+          <p className="rounded-3xl border border-border p-4 text-sm text-muted-foreground">
             No orders yet.{" "}
             <Link to="/" className="font-semibold text-foreground underline underline-offset-4">
               Start shopping
@@ -202,7 +202,7 @@ function AccountPage() {
         {subsQ.data?.length ? (
           <ul className="divide-y divide-border">
             {subsQ.data.map((s) => (
-              <li key={s.id} className="flex items-center justify-between gap-3 py-3 text-[15px]">
+              <li key={s.id} className="flex items-center justify-between gap-3 py-3 text-[length:var(--text-legacy-15)]">
                 <Link to="/product/$id" params={{ id: s.productId }} className="min-w-0 hover:underline">
                   {s.kind === "back_in_stock"
                     ? "Back in stock"

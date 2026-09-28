@@ -29,6 +29,7 @@ import { Route as SellersRouteImport } from './routes/sellers'
 import { Route as ShopsRouteImport } from './routes/shops'
 import { Route as SigninRouteImport } from './routes/signin'
 import { Route as TermsRouteImport } from './routes/terms'
+import { Route as VerifyEmailRouteImport } from './routes/verify-email'
 import { Route as AccountAddressesRouteImport } from './routes/account_.addresses'
 import { Route as AccountSettingsRouteImport } from './routes/account_.settings'
 import { Route as AccountWishlistRouteImport } from './routes/account_.wishlist'
@@ -150,6 +151,11 @@ const SigninRoute = SigninRouteImport.update({
 const TermsRoute = TermsRouteImport.update({
   id: '/terms',
   path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const VerifyEmailRoute = VerifyEmailRouteImport.update({
+  id: '/verify-email',
+  path: '/verify-email',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AccountAddressesRoute = AccountAddressesRouteImport.update({
@@ -285,6 +291,7 @@ export interface FileRoutesByFullPath {
   '/shops': typeof ShopsRouteWithChildren
   '/signin': typeof SigninRoute
   '/terms': typeof TermsRoute
+  '/verify-email': typeof VerifyEmailRoute
   '/account/addresses': typeof AccountAddressesRoute
   '/account/settings': typeof AccountSettingsRoute
   '/account/wishlist': typeof AccountWishlistRoute
@@ -328,6 +335,7 @@ export interface FileRoutesByTo {
   '/sellers': typeof SellersRoute
   '/signin': typeof SigninRoute
   '/terms': typeof TermsRoute
+  '/verify-email': typeof VerifyEmailRoute
   '/account/addresses': typeof AccountAddressesRoute
   '/account/settings': typeof AccountSettingsRoute
   '/account/wishlist': typeof AccountWishlistRoute
@@ -373,6 +381,7 @@ export interface FileRoutesById {
   '/shops': typeof ShopsRouteWithChildren
   '/signin': typeof SigninRoute
   '/terms': typeof TermsRoute
+  '/verify-email': typeof VerifyEmailRoute
   '/account_/addresses': typeof AccountAddressesRoute
   '/account_/settings': typeof AccountSettingsRoute
   '/account_/wishlist': typeof AccountWishlistRoute
@@ -419,6 +428,7 @@ export interface FileRouteTypes {
     | '/shops'
     | '/signin'
     | '/terms'
+    | '/verify-email'
     | '/account/addresses'
     | '/account/settings'
     | '/account/wishlist'
@@ -462,6 +472,7 @@ export interface FileRouteTypes {
     | '/sellers'
     | '/signin'
     | '/terms'
+    | '/verify-email'
     | '/account/addresses'
     | '/account/settings'
     | '/account/wishlist'
@@ -506,6 +517,7 @@ export interface FileRouteTypes {
     | '/shops'
     | '/signin'
     | '/terms'
+    | '/verify-email'
     | '/account_/addresses'
     | '/account_/settings'
     | '/account_/wishlist'
@@ -551,6 +563,7 @@ export interface RootRouteChildren {
   ShopsRoute: typeof ShopsRouteWithChildren
   SigninRoute: typeof SigninRoute
   TermsRoute: typeof TermsRoute
+  VerifyEmailRoute: typeof VerifyEmailRoute
   AccountAddressesRoute: typeof AccountAddressesRoute
   AccountSettingsRoute: typeof AccountSettingsRoute
   AccountWishlistRoute: typeof AccountWishlistRoute
@@ -711,6 +724,13 @@ declare module '@tanstack/react-router' {
       path: '/terms'
       fullPath: '/terms'
       preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/verify-email': {
+      id: '/verify-email'
+      path: '/verify-email'
+      fullPath: '/verify-email'
+      preLoaderRoute: typeof VerifyEmailRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/account_/addresses': {
@@ -916,6 +936,7 @@ const rootRouteChildren: RootRouteChildren = {
   ShopsRoute: ShopsRouteWithChildren,
   SigninRoute: SigninRoute,
   TermsRoute: TermsRoute,
+  VerifyEmailRoute: VerifyEmailRoute,
   AccountAddressesRoute: AccountAddressesRoute,
   AccountSettingsRoute: AccountSettingsRoute,
   AccountWishlistRoute: AccountWishlistRoute,

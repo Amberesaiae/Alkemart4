@@ -47,6 +47,7 @@ import { trackCheckoutStarted, trackOrderCompleted } from "@/lib/analytics"
 import { cn } from "@/lib/utils"
 import { getAlkemartApiUrl } from "@/lib/env"
 import { LocationPicker, type Pin, type Place } from "@alkemart/maps"
+import { thumbFallback } from "@alkemart/shared/media"
 
 export const Route = createFileRoute("/checkout/")({
   component: CheckoutPage,
@@ -181,7 +182,7 @@ function CheckoutPage() {
     : (cartQ.data?.shippingTotal ?? null)
   const orderTotal = cartQ.data?.itemTotal != null && deliveryTotal != null ? cartQ.data.itemTotal + deliveryTotal : (cartQ.data?.total ?? null)
 
-  const email = form.email || session.data?.email || ""
+  const email = session.data?.email ?? ""
 
   const methods = market.paymentMethods.filter(
     (m) => m === "cod" || (m === "momo" && isMomoLabEnabled()) || (m === "card" && isCardEnabled()),
@@ -203,14 +204,14 @@ function CheckoutPage() {
   const productQs = useQueries({
     queries: ids.map((id) => ({ queryKey: qk.product(id), queryFn: () => getStoreProduct(id), staleTime: 300_000 })),
   })
-  const thumbs = new Map(productQs.flatMap((q) => (q.data ? [[q.data.id, q.data.thumbUrl ?? q.data.thumbnail] as const] : [])))
+  const thumbs = new Map(productQs.flatMap((q) => (q.data ? [[q.data.id, { src: q.data.thumbUrl ?? q.data.thumbnail, full: q.data.thumbnail }] as const] : [])))
 
   const required = ["email", "first_name", "last_name", "phone", ...market.address.fields.filter((f) => f.required).map((f) => f.key)] as (keyof Form)[]
   const missing = required.filter((k) => !(k === "email" ? email : form[k]).trim())
   const phoneDigits = form.phone.replace(/\D/g, "")
   const phoneInvalid = phoneDigits.length > 0 && phoneDigits.length < 9
   const emailInvalid = email.length > 0 && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())
-  const valid = missing.length === 0 && !phoneInvalid && !emailInvalid && (pay !== "momo" || Boolean(momoNetwork)) && unservable.length === 0
+  const valid = Boolean(session.data?.emailVerified) && missing.length === 0 && !phoneInvalid && !emailInvalid && (pay !== "momo" || Boolean(momoNetwork)) && unservable.length === 0
 
   const place = useMutation({
     mutationFn: () => {
@@ -325,23 +326,28 @@ function CheckoutPage() {
         ) : items.length === 0 ? (
           <>
             <h1 className="sr-only">Checkout</h1>
-            <EmptyState title="Nothing to check out" description="Your cart is empty." action={{ label: "Start shopping", to: "/" }} />
+            <EmptyState illustration="empty-cart" title="Nothing to check out" description="Your cart is empty." action={{ label: "Start shopping", to: "/" }} />
           </>
+        ) : session.isLoading ? (
+          <Skeleton className="h-64 rounded-3xl" />
+        ) : !session.data ? (
+          <section className="mx-auto max-w-xl space-y-4 rounded-3xl border border-border p-7 text-center">
+            <h1 className="text-3xl font-extrabold">Sign in to check out</h1>
+            <p className="text-muted-foreground">Your cart is saved on this device. Sign in or create an account to place and track your order.</p>
+            <Button asChild><Link to="/login" search={{ redirect: "/checkout" }}>Sign in or create account</Link></Button>
+          </section>
+        ) : !session.data.emailVerified ? (
+          <section className="mx-auto max-w-xl space-y-4 rounded-3xl border border-border p-7 text-center">
+            <h1 className="text-3xl font-extrabold">Verify your email to check out</h1>
+            <p className="text-muted-foreground">We need to confirm you control {session.data.email} before placing an order. Your cart will stay here.</p>
+            <Button asChild><Link to="/verify-email" search={{ redirect: "/checkout" }}>Verify email</Link></Button>
+          </section>
         ) : (
           <form onSubmit={submit} noValidate className="grid gap-8 lg:grid-cols-[1fr_400px] lg:items-start">
             <div className="space-y-5">
               <h1 className="text-3xl font-extrabold">Checkout</h1>
 
               <Step n={1} title="Contact & delivery address">
-                {!session.data ? (
-                  <p className="-mt-2 text-sm text-muted-foreground">
-                    Checking out as a guest.{" "}
-                    <Link to="/login" search={{ redirect: "/checkout" }} className="font-semibold text-foreground underline-offset-4 hover:underline">
-                      Sign in
-                    </Link>{" "}
-                    to see this order in your account.
-                  </p>
-                ) : null}
                 {session.data && book.length ? (
                   <fieldset className="space-y-2.5">
                     <legend className="mb-2 text-sm font-medium">Deliver to</legend>
@@ -363,7 +369,7 @@ function CheckoutPage() {
                             setFilledFrom(null)
                           }}
                         />
-                        <span className="min-w-0 text-[15px]">
+                        <span className="min-w-0 text-[length:var(--text-legacy-15)]">
                           <span className="block font-semibold">
                             {a.label ?? "Address"}
                             {a.isDefault ? <span className="ml-2 text-xs font-medium text-muted-foreground">Default</span> : null}
@@ -377,7 +383,7 @@ function CheckoutPage() {
                     ))}
                     <label
                       className={cn(
-                        "flex cursor-pointer items-center gap-3 rounded-2xl border p-3.5 text-[15px] font-semibold",
+                        "flex cursor-pointer items-center gap-3 rounded-2xl border p-3.5 text-[length:var(--text-legacy-15)] font-semibold",
                         chosenId === "new" ? "border-foreground bg-surface" : "border-dashed border-border hover:bg-muted/50",
                       )}
                     >
@@ -398,8 +404,8 @@ function CheckoutPage() {
                 <FieldGroup className="grid grid-cols-2 gap-x-3 gap-y-4">
                   <Field className="col-span-2" data-invalid={bad("email") || undefined}>
                     <FieldLabel htmlFor="email">Email</FieldLabel>
-                    <Input id="email" type="email" autoComplete="email" value={email} onChange={set("email")} aria-invalid={bad("email")} />
-                    <FieldDescription>Your receipt and order updates go here.</FieldDescription>
+                    <Input id="email" type="email" autoComplete="email" value={email} readOnly aria-invalid={bad("email")} />
+                    <FieldDescription>Receipts and order updates go to your verified account email.</FieldDescription>
                   </Field>
                   {!usingBook ? (
                   <>
@@ -638,8 +644,8 @@ function CheckoutPage() {
                     return (
                       <li key={l.id} className="flex items-center gap-3">
                         <span className="relative size-14 shrink-0 overflow-hidden rounded-xl bg-surface">
-                          {img ? <img src={img} alt="" className="size-full object-contain p-1 mix-blend-multiply" /> : null}
-                          <span className="absolute -top-1 -right-1 grid size-5 place-items-center rounded-full bg-foreground text-[10px] font-bold text-background">
+                          {img?.src ? <img src={img.src} alt="" className="size-full object-contain p-1 mix-blend-multiply" onError={thumbFallback(img.full)} /> : null}
+                          <span className="absolute -top-1 -right-1 grid size-5 place-items-center rounded-full bg-foreground text-[length:var(--text-legacy-10)] font-bold text-background">
                             {l.quantity}
                           </span>
                         </span>

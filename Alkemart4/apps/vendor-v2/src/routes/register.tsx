@@ -4,11 +4,14 @@ import { Button } from "@workspace/console-ui/components/button"
 import { Input } from "@workspace/console-ui/components/input"
 import { Label } from "@workspace/console-ui/components/label"
 import { Spinner } from "@workspace/console-ui/components/spinner"
+import { SignupChallenge } from "@workspace/console-ui/components/signup-challenge"
 import { AuthLayout } from "@/components/auth/auth-layout"
 import { PasswordField } from "@/components/auth/password-field"
 import { register } from "@/lib/api"
 import { getStorefrontUrl } from "@/lib/env"
 import { readSession } from "@/lib/session"
+import { WorkosSignIn } from "@workspace/console-ui/components/workos-sign-in"
+import { workosEnabled, workosBrowser } from "@/lib/workos"
 
 export const Route = createFileRoute("/register")({
   beforeLoad: () => {
@@ -38,6 +41,9 @@ function RegisterPage() {
   const [password, setPassword] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null)
+  const [challengeAttempt, setChallengeAttempt] = useState(0)
+  const siteKey = import.meta.env.VITE_TURNSTILE_SITE_KEY as string | undefined
   const link = handleEdited ? handle : toHandle(name)
   const linkValid = /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(link) && link.length >= 2
 
@@ -46,10 +52,11 @@ function RegisterPage() {
     setError(null)
     if (!linkValid) return setError("Your shop link can only use letters, numbers and hyphens.")
     if (password.length < 8) return setError("Your password needs at least 8 characters.")
+    if (siteKey && !turnstileToken) return setError("Please complete the verification first.")
     setBusy(true)
     try {
-      await register({ email: email.trim(), password, sellerName: name.trim(), sellerHandle: link })
-      void navigate({ to: "/setup" })
+      await register({ email: email.trim(), password, sellerName: name.trim(), sellerHandle: link, turnstileToken: turnstileToken ?? undefined })
+      void navigate({ to: "/verify-email" })
     } catch (err) {
       const e2 = err as { status?: number; message?: string }
       setError(
@@ -63,11 +70,16 @@ function RegisterPage() {
       )
     } finally {
       setBusy(false)
+      setChallengeAttempt((n) => n + 1)
     }
   }
 
   return (
     <AuthLayout>
+      {workosEnabled ? <>
+        <WorkosSignIn vendor register start={(input) => workosBrowser.start({ ...input, redirect: "/setup" })} />
+        <p className="mt-8 text-center"><Link to="/login" className="font-semibold underline">Sign in instead</Link></p>
+      </> : <>
       <h1 className="text-3xl font-extrabold tracking-tight">Open your shop</h1>
       <p className="mt-2 text-muted-foreground">It's free. Our team checks every new shop before buyers can order from it.</p>
       <form onSubmit={submit} className="mt-8 space-y-5">
@@ -121,6 +133,7 @@ function RegisterPage() {
           />
         </div>
         <PasswordField autoComplete="new-password" value={password} onChange={setPassword} hint="At least 8 characters." />
+        <SignupChallenge siteKey={siteKey} onToken={setTurnstileToken} resetKey={challengeAttempt} />
         <Button type="submit" variant="brand" size="xl" className="w-full" disabled={busy}>
           {busy ? <Spinner /> : null}
           Create my shop
@@ -132,6 +145,7 @@ function RegisterPage() {
           Sign in
         </Link>
       </p>
+      </>}
     </AuthLayout>
   )
 }

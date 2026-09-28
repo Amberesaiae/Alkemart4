@@ -14,6 +14,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@workspace/console-ui": "workspace:*",
     "@alkemart/api-client": "workspace:*",
     "@alkemart/domain": "workspace:*",
     "@alkemart/maps": "workspace:*",

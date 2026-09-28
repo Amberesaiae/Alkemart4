@@ -48,7 +48,7 @@ function MessagesPage() {
       ) : inbox.isError ? (
         <ErrorState title="Messages didn't load" error={inbox.error} onRetry={() => void inbox.refetch()} className="rounded-2xl border bg-card" />
       ) : !d?.items.length ? (
-        <EmptyState icon={Message01Icon} title="No messages yet" description="When a buyer asks about a product or an order, it shows here." className="rounded-2xl border bg-card" />
+        <EmptyState illustration="no-messages" icon={Message01Icon} title="No messages yet" description="When a buyer asks about a product or an order, it shows here." className="rounded-2xl border bg-card" />
       ) : (
         <ul className="divide-y overflow-hidden rounded-2xl border bg-card">
           {d.items.map((t) => (
@@ -80,7 +80,7 @@ function Questions() {
   const q = useQuery({ queryKey: ["questions"], queryFn: listQuestions })
   if (q.isPending) return <Skeleton className="h-48 rounded-2xl" />
   if (q.isError) return <ErrorState title="Questions didn't load" error={q.error} onRetry={() => void q.refetch()} className="rounded-2xl border bg-card" />
-  if (!q.data.items.length) return <EmptyState icon={Message01Icon} title="No product questions yet" description="Answered questions show on your product pages for every buyer." className="rounded-2xl border bg-card" />
+  if (!q.data.items.length) return <EmptyState illustration="no-messages" icon={Message01Icon} title="No product questions yet" description="Answered questions show on your product pages for every buyer." className="rounded-2xl border bg-card" />
   return (
     <ul className="space-y-3">
       {q.data.items.map((x) => (

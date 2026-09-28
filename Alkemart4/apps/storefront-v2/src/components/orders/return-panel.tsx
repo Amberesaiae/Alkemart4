@@ -15,7 +15,7 @@ const dayOnly = (iso: string) => new Intl.DateTimeFormat(undefined, { weekday: "
 const TELL = "tell" as const
 
 const textareaCls =
-  "w-full rounded-2xl border border-input bg-background px-3.5 py-2.5 text-[15px] outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+  "w-full rounded-2xl border border-input bg-background px-3.5 py-2.5 text-[length:var(--text-legacy-15)] outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
 
 function Choice({ active, onClick, title, line }: { active: boolean; onClick: () => void; title: string; line?: string | null }) {
   return (
@@ -25,7 +25,7 @@ function Choice({ active, onClick, title, line }: { active: boolean; onClick: ()
       aria-checked={active}
       onClick={onClick}
       className={cn(
-        "flex min-h-11 w-full items-start gap-3 rounded-2xl border-2 p-3 text-left text-[15px] transition-colors",
+        "flex min-h-11 w-full items-start gap-3 rounded-2xl border-2 p-3 text-left text-[length:var(--text-legacy-15)] transition-colors",
         active ? "border-foreground bg-surface" : "border-border hover:border-foreground/30",
       )}
     >
@@ -204,7 +204,7 @@ export function ReturnStatus({ so, rc, who, currency }: { so: SellerOrder; rc: R
   const open = rc.status !== "closed"
 
   return (
-    <div role="status" className={cn("space-y-3 rounded-2xl border-2 p-4 text-[15px]", open ? "border-warning bg-warning/10" : "border-border bg-surface")}>
+    <div role="status" className={cn("space-y-3 rounded-2xl border-2 p-4 text-[length:var(--text-legacy-15)]", open ? "border-warning bg-warning/10" : "border-border bg-surface")}>
       <div>
         <p className="font-bold">{title}</p>
         <p className="text-sm text-muted-foreground">{asked}</p>

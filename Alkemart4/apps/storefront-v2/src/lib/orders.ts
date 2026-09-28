@@ -247,53 +247,18 @@ export async function listMyOrders(): Promise<StoreOrder[]> {
 }
 
 /**
- * Signed in: GET /store/orders/:id. Otherwise (or when the account does not
- * own it) the guest lookup, which requires the checkout email.
+ * Order detail is available only to the verified account that placed it.
  */
 export async function getOrder(
   orderId: string,
-  opts?: { email?: string | null },
 ): Promise<StoreOrder> {
   const id = orderId.trim()
   if (!id) throw new Error("order id required")
   const token = getWorkersAccessToken()
-  if (token) {
-    try {
-      const data = await apiJson<{ orderGroup?: WorkersOrderGroup }>(
-        `/store/orders/${encodeURIComponent(id)}`,
-        { token },
-      )
-      if (data.orderGroup) return mapWorkersOrderGroup(data.orderGroup)
-    } catch {
-      /* not this account's order — fall through to email lookup */
-    }
-  }
-  const email = opts?.email?.trim()
-  if (!email) {
-    throw new Error(
-      token
-        ? "Order not found for this account. Try looking up with the checkout email."
-        : "Enter the email used at checkout to view this order.",
-    )
-  }
-  return lookupOrderByEmail(id, email)
-}
-
-/** Guest-safe lookup — the server requires the checkout email to match. */
-export async function lookupOrderByEmail(orderId: string, email: string): Promise<StoreOrder> {
-  try {
-    const data = await apiJson<{ orderGroup?: WorkersOrderGroup }>("/store/orders/lookup", {
-      method: "POST",
-      body: JSON.stringify({ orderId: orderId.trim(), email: email.trim() }),
-    })
-    if (!data.orderGroup) throw new Error("Order not found for that id and email")
-    return mapWorkersOrderGroup(data.orderGroup)
-  } catch (err) {
-    if ((err as { status?: number }).status === 404) {
-      throw new Error("Order not found for that id and email", { cause: err })
-    }
-    throw err
-  }
+  if (!token) throw new Error("Sign in to view this order")
+  const data = await apiJson<{ orderGroup?: WorkersOrderGroup }>(`/store/orders/${encodeURIComponent(id)}`, { token })
+  if (!data.orderGroup) throw new Error("Order not found for this account")
+  return mapWorkersOrderGroup(data.orderGroup)
 }
 
 /** Short ref for chrome — the same number sellers, SMS and admin quote. */

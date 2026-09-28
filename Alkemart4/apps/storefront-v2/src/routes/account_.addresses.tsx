@@ -121,7 +121,7 @@ function AddressesPage() {
                 </p>
                 {a.isDefault ? <Badge>Default</Badge> : null}
               </div>
-              <address className="mt-2 flex-1 text-[15px] not-italic">
+              <address className="mt-2 flex-1 text-[length:var(--text-legacy-15)] not-italic">
                 <span className="block font-medium">
                   {a.firstName} {a.lastName}
                 </span>

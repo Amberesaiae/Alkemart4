@@ -8,6 +8,24 @@ parameters without requiring a live database.
 
 ## Flow
 
+Production domain rollout uses `console.alkemart.com`, with the existing Access
+audience, two-email Google allowlist, and independent MFA retained. Custom domains
+are active. Deployment tooling now rejects a dirty tree; the API CORS source
+permits exact custom origins and excludes development origins in production.
+Backend Access enforcement and the admin proxy remain undeployed pending a
+reviewed release; frontend domain protection alone does not close API bypass.
+
+Security hardening (local, not deployed): admin sessions expire after one hour;
+legacy seven-day tokens are refused. Browser storage is tab-scoped. Admin/seller
+authorization checks current role, password-change stamp and seller membership.
+Demo rotation stamps revocation and audits affected emails without passwords.
+Distributed auth/checkout throttling and signup verification require configured
+production bindings/keys. Cloudflare Access now gates the admin Pages host and
+previews with Google, two allowed emails and independent MFA. Direct Worker API
+protection and the Pages same-origin proxy are implemented locally but not yet
+deployed; the production API remains bypassable until that rollout is verified.
+See [`SECURITY-HARDENING.md`](../../ops/SECURITY-HARDENING.md) for rollout gates.
+
 `login → seller approve/moderate → product moderate → orders → payouts` (+ migrate helpers)
 
 ## API
@@ -51,18 +69,32 @@ parameters without requiring a live database.
 | POST | `/admin/migrate/blueprint-phase3` | Verification evidence + price-history DDL |
 | POST | `/admin/migrate/blueprint-phase4` | Payout-holds DDL |
 
-## UI routes (`apps/backend/apps/admin`) — Workers nav
+## UI (`apps/admin-v2`)
 
-Workers-visible (`workers: true` in sidebar):
+Nav (`src/lib/nav.ts`), daily work first:
 
-- `/orders`, `/orders/$id`
-- `/payouts`
-- `/sellers-queue`, `/sellers`, `/sellers/$id`
-- `/product-moderation`
-- `/categories` (Workers taxonomy board: nodes table + Phase 8D proposals review; create proposes, retirement via deprecate-with-replacement — no hard delete)
-- `/login`
-
-**Hidden on Workers:** analytics, markets, featured, promotions, returns, disputes, commission-rates UI. Routes may still exist in the SPA; nav must not link them when `isWorkersApi`.
+- **Overview** — "Needs attention": returns to decide, refunds to check,
+  sellers ready to pay, reported chats, then the review queues (seller
+  applications, listings, appeals, buyer reviews). Marketplace numbers come
+  from `GET /admin/stats`, which reads the same domain summary as Business
+  (`platformSummary` in `apps/api/src/lib/business.ts`): orders not
+  cancelled, item value without delivery fees, one order per shop. The
+  Sellers list's per-shop orders and sales use the same summary.
+- **Operations** — Orders, Returns & disputes, Payouts, Reports, Buyer reviews.
+- **Sellers** — Sellers, Appeals. **Catalogue** — Listings, Categories.
+  Listing review mode (Listings → "Who reviews listings"): **Trust shops**
+  (default) — a listing that passes every rule goes live at once, and so does
+  a clean edit to a live listing; anything flagged (banned words, price
+  outlier, duplicate) or doubted by AI waits for a person. Also Manual,
+  AI assists, AI decides. A mode saved in `platform_settings` wins over the
+  default.
+- **Buyer reviews** — verified purchases publish at once; only ones with a
+  phone number, email, link or off-platform ask wait ("Waiting" tab,
+  `reviewNeedsCheck` in the domain). "Live" lists the newest published
+  reviews so admin can hide abuse.
+- **Storefront** — Homepage. **Insights** — Business. **Platform** — Rules.
+- **Growth** (built, not part of pilot daily work) — Campaigns, Guides,
+  Search & traffic.
 
 ## ACID checks
 
@@ -73,8 +105,9 @@ Workers-visible (`workers: true` in sidebar):
 
 ## Gaps
 
-- No Workers promotions CRUD  
-- Payout list endpoint soft-empty in UI  
+- `POST /admin/sellers/:id/terminate` has no button (suspend covers the pilot).
+- Order detail (`GET /admin/orders/:id`) isn't opened from the UI; Orders
+  shows each seller's part inline.
 
 ## Rules (platform settings)
 
@@ -106,10 +139,12 @@ both sides see. Decisions and refund retries are audit-logged.
 Return windows are fixed defaults in the domain (`DEFAULT_RETURN_POLICY`),
 not admin settings.
 
-## Reports (0045) and offer rules (0046)
+## Reports (0045)
 
 Operations → **Reports**: conversations a buyer or seller reported — the only
 messages admin can read (each opening audit-logged). Close the conversation
-for both sides or dismiss. Product questions can be hidden. Rules → **Make an
-offer**: accepted-price hours, reply hours, lowest offer %, open offers per
-buyer (`/admin/settings/deal-policy`).
+for both sides or dismiss. Product questions can be hidden.
+
+Make an offer (0046) is parked (PILOT-PLAN phase 5): the buyer and seller
+routes aren't mounted. `GET/PUT /admin/settings/deal-policy` still answers,
+but Rules doesn't show it.

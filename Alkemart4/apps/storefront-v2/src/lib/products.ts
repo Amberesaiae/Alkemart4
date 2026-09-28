@@ -3,6 +3,7 @@
  * card shape; never invents products, offers, prices or sellers.
  */
 import { apiJson } from "./http"
+import { thumbOf } from "@alkemart/shared/media"
 import { getAlkemartApiUrl } from "./env"
 import {
   getCatalog,
@@ -136,7 +137,7 @@ export function mapCfProductCard(c: CfProductCard): StoreProductCard {
     handle: null,
     slug: c.slug ?? null,
     thumbnail: c.imageUrl ?? null,
-    thumbUrl: c.imageUrl ?? null,
+    thumbUrl: thumbOf(c.imageUrl),
     offerId: c.bestOfferId,
     offerCount: c.offerCount,
     amount: pesewasStringToMajor(c.fromPricePesewas),
@@ -176,7 +177,7 @@ function mapCfDetail(d: CfProductDetail): StoreProductCard {
     description: d.description ?? null,
     thumbnail: d.imageUrls?.[0] ?? null,
     images: (d.imageUrls ?? []).map((url) => ({ url })),
-    thumbUrl: d.imageUrls?.[0] ?? null,
+    thumbUrl: thumbOf(d.imageUrls?.[0]),
     offerId: best?.offerId ?? null,
     offerCount: d.offers.length,
     amount: best ? pesewasStringToMajor(best.pricePesewas) : null,

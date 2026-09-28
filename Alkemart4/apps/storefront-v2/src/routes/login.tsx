@@ -10,6 +10,9 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { BrandLogo } from "@/components/brand/brand-logo"
 import { PageSeo } from "@/components/seo/page-seo"
 import { login, register } from "@/lib/auth"
+import { SignupChallenge } from "@workspace/console-ui/components/signup-challenge"
+import { WorkosSignIn } from "@workspace/console-ui/components/workos-sign-in"
+import { workosEnabled, workosBrowser } from "@/lib/workos"
 
 export const Route = createFileRoute("/login")({
   validateSearch: (s: Record<string, unknown>): { redirect?: string; mode?: "login" | "register"; expired?: string } => ({
@@ -44,15 +47,30 @@ function LoginPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [show, setShow] = useState(false)
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null)
+  const [challengeAttempt, setChallengeAttempt] = useState(0)
+  const siteKey = import.meta.env.VITE_TURNSTILE_SITE_KEY as string | undefined
 
   const auth = useMutation({
-    mutationFn: () => (mode === "login" ? login(email, password) : register({ email, password })),
-    onSuccess: async () => {
+    mutationFn: () => (mode === "login" ? login(email, password) : register({ email, password, turnstileToken: turnstileToken ?? undefined })),
+    onSettled: () => setChallengeAttempt((n) => n + 1),
+    onSuccess: async (customer) => {
       await queryClient.invalidateQueries({ queryKey: ["store"] })
-      void navigate({ to: safeRedirect(redirect) as never, replace: true })
+      if (!customer.emailVerified) {
+        void navigate({ to: "/verify-email", search: { redirect: safeRedirect(redirect) }, replace: true })
+      } else {
+        void navigate({ to: safeRedirect(redirect) as never, replace: true })
+      }
     },
   })
   const tooShort = mode === "register" && password.length > 0 && password.length < 8
+
+  if (workosEnabled) return <div className="mx-auto max-w-md space-y-8 px-4 py-12">
+    <PageSeo title={mode === "register" ? "Create account" : "Sign in"} noindex />
+    <BrandLogo size="lg" />
+    <WorkosSignIn register={mode === "register"} start={(input) => workosBrowser.start({ ...input, redirect: safeRedirect(redirect) })} />
+    <button type="button" className="text-sm font-semibold underline" onClick={() => setMode(mode === "login" ? "register" : "login")}>{mode === "login" ? "Create an account" : "Sign in instead"}</button>
+  </div>
 
   return (
     <div className="grid min-h-[calc(100dvh-4.5rem)] lg:grid-cols-2">
@@ -94,7 +112,7 @@ function LoginPage() {
           <form
             onSubmit={(e) => {
               e.preventDefault()
-              if (!tooShort) auth.mutate()
+              if (!tooShort && !(mode === "register" && siteKey && !turnstileToken)) auth.mutate()
             }}
           >
             <FieldGroup>
@@ -134,14 +152,14 @@ function LoginPage() {
                   {auth.error instanceof Error ? <span className="opacity-80">({auth.error.message})</span> : null}
                 </p>
               ) : null}
-              <Button type="submit" size="xl" className="w-full" disabled={auth.isPending || tooShort}>
+              {mode === "register" ? <SignupChallenge siteKey={siteKey} onToken={setTurnstileToken} resetKey={challengeAttempt} /> : null}
+              <Button type="submit" size="xl" className="w-full" disabled={auth.isPending || tooShort || Boolean(mode === "register" && siteKey && !turnstileToken)}>
                 {auth.isPending ? "Please wait…" : mode === "login" ? "Sign in" : "Create account"}
               </Button>
             </FieldGroup>
           </form>
           <p className="text-center text-sm text-muted-foreground">
-            No account needed to buy — you can check out as a guest.{" "}
-            <Link to="/orders" className="font-semibold text-foreground hover:underline">Find a guest order</Link>
+            Browse freely. A verified account is needed when you place an order.
           </p>
         </div>
       </div>

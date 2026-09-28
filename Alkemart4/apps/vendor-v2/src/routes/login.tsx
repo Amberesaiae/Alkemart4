@@ -8,6 +8,8 @@ import { AuthLayout } from "@/components/auth/auth-layout"
 import { PasswordField } from "@/components/auth/password-field"
 import { signIn } from "@/lib/api"
 import { readSession } from "@/lib/session"
+import { WorkosSignIn } from "@workspace/console-ui/components/workos-sign-in"
+import { workosEnabled, workosBrowser } from "@/lib/workos"
 
 type Search = { redirect?: string }
 
@@ -35,8 +37,8 @@ function LoginPage() {
     setError(null)
     setBusy(true)
     try {
-      await signIn(email, password)
-      void navigate({ to: back ?? "/" })
+      const session = await signIn(email, password)
+      void navigate({ to: session.user.emailVerified ? back ?? "/" : "/verify-email" })
     } catch (err) {
       const status = (err as { status?: number }).status
       setError(
@@ -53,6 +55,10 @@ function LoginPage() {
 
   return (
     <AuthLayout>
+      {workosEnabled ? <>
+        <WorkosSignIn vendor start={(input) => workosBrowser.start({ ...input, redirect: back })} />
+        <p className="mt-8 text-center"><Link to="/register" className="font-semibold underline">Open your shop</Link></p>
+      </> : <>
       <h1 className="text-3xl font-extrabold tracking-tight">Welcome back</h1>
       <p className="mt-2 text-muted-foreground">Sign in to manage your shop.</p>
       <form onSubmit={submit} className="mt-8 space-y-5" noValidate={false}>
@@ -76,6 +82,11 @@ function LoginPage() {
           />
         </div>
         <PasswordField autoComplete="current-password" value={password} onChange={setPassword} invalid={Boolean(error)} />
+        <p className="-mt-2 text-right text-[15px]">
+          <Link to="/forgot-password" className="font-semibold underline underline-offset-4">
+            Forgot password?
+          </Link>
+        </p>
         <Button type="submit" variant="brand" size="xl" className="w-full" disabled={busy}>
           {busy ? <Spinner /> : null}
           Sign in
@@ -87,6 +98,7 @@ function LoginPage() {
           Open your shop
         </Link>
       </p>
+      </>}
     </AuthLayout>
   )
 }

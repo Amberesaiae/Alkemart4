@@ -182,17 +182,25 @@ function NewProductPage() {
         if (row && !row.on && c.offer.active) patch.active = false
         if (Object.keys(patch).length) await updateVariant(productId, c.variant.id, patch)
       }
-      if (mode === "review") await sendForReview(productId)
-      return { productId, mode }
+      const decision = mode === "review" ? ((await sendForReview(productId)) as { review?: { decision: string } | null }).review?.decision : undefined
+      return { productId, mode, decision }
     },
-    onSuccess: ({ productId, mode }) => {
+    onSuccess: ({ productId, mode, decision }) => {
       try {
         localStorage.removeItem(DRAFT_KEY)
       } catch {
         /* ignore */
       }
       void qc.invalidateQueries({ queryKey: productsKey })
-      toast.success(mode === "review" ? "Sent for review — you'll see the result in Products." : "Saved as a draft.")
+      toast.success(
+        mode === "draft"
+          ? "Saved as a draft."
+          : decision === "approve"
+            ? "It's live! Buyers can find it now."
+            : decision === "request_changes"
+              ? "A few things need fixing — see the list on the product."
+              : "Sent for a quick check — you'll see the result in Products.",
+      )
       void navigate({ to: "/products/$id", params: { id: productId } })
     },
   })
@@ -367,7 +375,7 @@ function NewProductPage() {
       {step === 3 ? (
         <section aria-labelledby="s-review" className="space-y-5 rounded-2xl border bg-card p-4 sm:p-6">
           <h2 id="s-review" className="text-lg font-bold">
-            Check and send
+            Check and publish
           </h2>
           <div className="flex gap-4 rounded-2xl bg-surface p-3">
             {d.photos[0] ? <img src={d.photos[0]} alt="" className="size-24 shrink-0 rounded-xl object-cover" /> : null}
@@ -425,7 +433,7 @@ function NewProductPage() {
             </Button>
             <Button type="button" variant="brand" size="xl" className="min-w-0 flex-1 px-4" onClick={() => publish.mutate("review")} disabled={publish.isPending || blocks.length > 0}>
               {publish.isPending ? <Spinner /> : null}
-              Send for review
+              Publish
             </Button>
           </>
         )}

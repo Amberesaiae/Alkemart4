@@ -127,5 +127,7 @@ export type BuyerReview = {
   createdAt: string
   seller: { id: string; name: string; handle: string } | null
 }
-export const listBuyerReviews = () => api<{ reviews: BuyerReview[] }>("/admin/reviews").then((r) => r.reviews)
+/** "waiting": held for a look; "live": newest published, to take down abuse. */
+export const listBuyerReviews = (view: "waiting" | "live" = "waiting") =>
+  api<{ reviews: BuyerReview[] }>(`/admin/reviews${view === "live" ? "?view=live" : ""}`).then((r) => r.reviews)
 export const moderateReview = (id: string, action: "publish" | "hide") => post(`/admin/reviews/${encodeURIComponent(id)}/moderate`, { action })

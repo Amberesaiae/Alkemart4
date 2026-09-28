@@ -1,5 +1,5 @@
 import { getAlkemartApiUrl } from "./env"
-import { getWorkersAccessToken } from "./auth"
+import { ensureWorkersAccessToken } from "./auth"
 
 export type BuyerPreference = {
   channel: string
@@ -20,7 +20,7 @@ export type StockSubscription = {
 
 async function authed(path: string, init?: RequestInit) {
   const base = getAlkemartApiUrl()
-  const token = getWorkersAccessToken()
+  const token = await ensureWorkersAccessToken()
   if (!token) throw new Error("Sign in required")
   const res = await fetch(`${base}${path}`, {
     ...init,
@@ -68,7 +68,7 @@ export async function createSubscription(input: {
 
 export async function deleteSubscription(id: string): Promise<void> {
   const base = getAlkemartApiUrl()
-  const token = getWorkersAccessToken()
+  const token = await ensureWorkersAccessToken()
   if (!token) throw new Error("Sign in required")
   const res = await fetch(`${base}/store/subscriptions/${encodeURIComponent(id)}`, {
     method: "DELETE",
@@ -76,4 +76,3 @@ export async function deleteSubscription(id: string): Promise<void> {
   })
   if (!res.ok) throw new Error(`Unsubscribe failed (${res.status})`)
 }
-

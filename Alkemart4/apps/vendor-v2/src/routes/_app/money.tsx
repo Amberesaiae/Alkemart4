@@ -37,6 +37,7 @@ const LINE_STATE: Record<StatementLine["state"], { label: string; tone: Tone }> 
   paid: { label: "Paid", tone: "success" },
   held: { label: "On hold", tone: "warning" },
   cash: { label: "Cash collected", tone: "neutral" },
+  refunded: { label: "Refunded to buyer", tone: "neutral" },
 }
 
 const PAYOUT_TONE: Record<Payout["status"], Tone> = {
@@ -261,7 +262,7 @@ function StatementCard({ s }: { s: Statement }) {
     a.click()
     URL.revokeObjectURL(url)
   }
-  const filters: Filter[] = ["all", "pending", "sending", "paid", "held", "cash"]
+  const filters: Filter[] = ["all", "pending", "sending", "paid", "held", "cash", "refunded"]
   return (
     <Card>
       <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-3">
@@ -284,7 +285,7 @@ function StatementCard({ s }: { s: Statement }) {
             ))}
         </ToggleGroup>
         {rows.length === 0 ? (
-          <EmptyState icon={MoneyReceiveSquareIcon} title="No delivered orders yet" description="Orders appear here once they're delivered." action={<Button asChild variant="outline"><Link to="/orders">See orders</Link></Button>} />
+          <EmptyState illustration="empty-orders" illustrationSize="compact" icon={MoneyReceiveSquareIcon} title="No delivered orders yet" description="Orders appear here once they're delivered." action={<Button asChild variant="outline"><Link to="/orders">See orders</Link></Button>} />
         ) : (
           <ul className="divide-y">
             {rows.map((l) => (

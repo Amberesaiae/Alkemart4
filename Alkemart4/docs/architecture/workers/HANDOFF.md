@@ -1,3 +1,5 @@
+> **Latest:** read `HANDOFF-CLAUDE-2026-09-28.md` first — active domains, production WorkOS configuration, undeployed security fixes, and ordered release gates. Older audit history: `HANDOFF-AUDIT-2026-09-27.md`.
+
 # Handoff — where the pilot build stands (2026-09-27)
 
 **Release update:** the owner subsequently authorized the deployment workflow.
@@ -49,10 +51,7 @@ ship `public/_redirects`.
 
 Their tests are `describe.skip` until switched on.
 
-**Local dev:** `bun run dev:workers` (`scripts/dev-workers.sh`) still starts
-the retired apps; use the v2 apps instead (`bun run dev` inside each
-`apps/*-v2`, or the sandbox configs below). Updating that script to v2 is a
-small follow-up.
+**Local dev:** use the v2 apps instead (`bun run dev` inside each `apps/*-v2`, or the sandbox configs below). `scripts/dev-workers.sh` starts the v2 apps.
 
 ## Ground rules (owner)
 
@@ -75,8 +74,8 @@ small follow-up.
   API changes). Sessions print as `SELLER_SESSION` / `BUYER_SESSION` /
   `ADMIN_SESSION` JSON; put them in localStorage (`alkemart_session` for the
   storefront, `alkemart_admin_session` for admin).
-- UIs (`.claude/launch.json`): sandbox-storefront 5186, sandbox-vendor 3014,
-  sandbox-admin 3013.
+- UIs (`.claude/launch.json`): sandbox-storefront 5176, sandbox-vendor 3004,
+  sandbox-admin 3003.
 - `POST /__sandbox/clock {"hours":N}` moves the clock (report windows,
   deadlines). Fake Paystack: card initialise, MoMo charge/verify, refunds,
   transfers (return "pending"; admin **Check** settles them).

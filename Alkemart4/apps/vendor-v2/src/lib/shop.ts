@@ -86,3 +86,6 @@ export const setAlert = (topic: AlertTopic, optedIn: boolean) => api("/vendor/pr
 
 export const requestResetLink = (email: string) =>
   api<{ ok: true }>("/vendor/auth/password-reset/request", { method: "POST", json: { email } })
+/** Consumes the one-time token from the reset email. */
+export const confirmResetLink = (token: string, password: string) =>
+  api<{ ok: true }>("/vendor/auth/password-reset/confirm", { method: "POST", json: { token, password } })

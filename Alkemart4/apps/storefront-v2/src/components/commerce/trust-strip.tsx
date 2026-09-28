@@ -4,9 +4,12 @@ import {
   SecurityValidationIcon,
   Store04Icon,
   Wallet01Icon,
+  Globe02Icon,
+  CrownIcon,
 } from "@hugeicons/core-free-icons"
 import { getActiveMarket } from "@/lib/market"
 import { cn } from "@/lib/utils"
+const HOME_TRUST_ICONS: IconSvgElement[] = [SecurityValidationIcon, DeliveryTruck01Icon, Globe02Icon, CrownIcon]
 
 type Item = { icon: IconSvgElement; title: string; body: string }
 
@@ -31,14 +34,15 @@ export function TrustPanel() {
   return (
     <div className="relative z-10 -mt-10 rounded-t-[2rem] bg-background pt-5 sm:-mt-12">
       <ul className="container-page grid grid-cols-2 gap-y-4 lg:grid-cols-4 lg:divide-x lg:divide-border">
-        {items().map((it) => (
+        {items().map((it, index) => (
           <li key={it.title} className="flex items-center gap-3 lg:px-6 lg:first:pl-0">
-            <span className="grid size-11 shrink-0 place-items-center rounded-full bg-brand text-brand-foreground">
-              <HugeiconsIcon icon={it.icon} className="size-5" />
+            <span className="grid size-11 shrink-0 place-items-center rounded-full bg-brand text-brand-foreground md:size-14">
+              <HugeiconsIcon icon={it.icon} className="size-5 md:hidden" />
+              <HugeiconsIcon icon={HOME_TRUST_ICONS[index]} className="hidden size-6 md:block" strokeWidth={2} />
             </span>
             <span className="min-w-0">
               <span className="block text-sm leading-tight font-semibold">{it.title}</span>
-              <span className="mt-0.5 hidden text-[13px] text-muted-foreground sm:block">{it.body}</span>
+              <span className="mt-0.5 hidden text-[length:var(--text-legacy-13)] text-muted-foreground sm:block">{it.body}</span>
             </span>
           </li>
         ))}
@@ -57,7 +61,7 @@ export function TrustStrip({ className }: { className?: string }) {
           </span>
           <span className="min-w-0">
             <span className="block text-sm leading-tight font-semibold">{it.title}</span>
-            <span className="mt-0.5 hidden text-[13px] text-muted-foreground sm:block">{it.body}</span>
+            <span className="mt-0.5 hidden text-[length:var(--text-legacy-13)] text-muted-foreground sm:block">{it.body}</span>
           </span>
         </li>
       ))}

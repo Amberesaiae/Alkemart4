@@ -19,7 +19,7 @@ export function MessageList({ messages, me }: { messages: Message[]; me: "buyer"
           <li key={m.id} className={cn("flex flex-col gap-1", mine ? "items-end" : "items-start")}>
             <p
               className={cn(
-                "max-w-[85%] rounded-3xl px-4 py-2.5 text-[15px] whitespace-pre-wrap [overflow-wrap:anywhere]",
+                "max-w-[85%] rounded-3xl px-4 py-2.5 text-[length:var(--text-legacy-15)] whitespace-pre-wrap [overflow-wrap:anywhere]",
                 mine ? "rounded-br-lg bg-foreground text-background" : "rounded-bl-lg bg-surface",
               )}
             >
@@ -92,7 +92,7 @@ export function Composer({
             }
           }}
           placeholder="Write a message"
-          className="min-h-11 flex-1 resize-none rounded-2xl border border-input bg-background px-3.5 py-2.5 text-[15px] outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+          className="min-h-11 flex-1 resize-none rounded-2xl border border-input bg-background px-3.5 py-2.5 text-[length:var(--text-legacy-15)] outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
         />
         <Button type="submit" size="icon-lg" disabled={pending || !text.trim()} aria-label="Send">
           <HugeiconsIcon icon={SentIcon} />

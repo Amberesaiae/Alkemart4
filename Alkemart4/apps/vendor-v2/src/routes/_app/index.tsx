@@ -29,6 +29,7 @@ import { TASK_ROUTE } from "@/lib/nav"
 import { useOrders, useSeller, useShopStats, useStatement, useTasks } from "@/lib/queries"
 import { SETUP_STEPS } from "@/lib/setup"
 import { useSetup } from "@/lib/use-setup"
+import { thumbFallback, thumbOf } from "@alkemart/shared/media"
 
 export const Route = createFileRoute("/_app/")({ component: HomePage })
 
@@ -302,6 +303,8 @@ function ViewsCard() {
         ) : total === 0 ? (
           <EmptyState
             icon={ViewIcon}
+            illustration="first-listing"
+            illustrationSize="compact"
             title="No views yet"
             description="Share your shop link on WhatsApp and social media to bring your first buyers."
           />
@@ -351,7 +354,7 @@ function TopProductsCard() {
               <li key={p.productId} className="flex items-center gap-3">
                 <span className="w-5 text-center text-sm font-bold text-muted-foreground tabular">{i + 1}</span>
                 <span className="size-12 shrink-0 overflow-hidden rounded-xl bg-surface">
-                  {p.thumbnail ? <img src={p.thumbnail} alt="" className="size-full object-cover" loading="lazy" /> : null}
+                  {p.thumbnail ? <img src={thumbOf(p.thumbnail) ?? p.thumbnail} alt="" className="size-full object-cover" loading="lazy" onError={thumbFallback(p.thumbnail)} /> : null}
                 </span>
                 <span className="min-w-0 flex-1 truncate text-[15px] font-medium">{p.title}</span>
                 <span className="text-sm text-muted-foreground tabular">{p.views.toLocaleString()} views</span>
@@ -386,6 +389,7 @@ function RecentOrders() {
         <EmptyState
           icon={DeliveryBox01Icon}
           title="No orders yet"
+          illustration="empty-orders"
           description="When a buyer orders from you, it shows up here and in Orders."
           className="rounded-2xl border bg-card"
         />

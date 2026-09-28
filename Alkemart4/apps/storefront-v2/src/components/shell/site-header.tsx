@@ -34,7 +34,7 @@ function CartButton() {
       <Link to="/cart" aria-label={count ? `Cart, ${count} item${count === 1 ? "" : "s"}` : "Cart"}>
         <HugeiconsIcon icon={ShoppingCart01Icon} className="size-6" />
         {count > 0 ? (
-          <span className="absolute -top-0.5 -right-0.5 grid min-w-5 place-items-center rounded-full bg-brand px-1 text-[11px] font-bold text-brand-foreground tabular ring-2 ring-background">
+          <span className="absolute -top-0.5 -right-0.5 grid min-w-5 place-items-center rounded-full bg-brand px-1 text-[length:var(--text-legacy-11)] font-bold text-brand-foreground tabular ring-2 ring-background">
             {count > 99 ? "99+" : count}
           </span>
         ) : null}

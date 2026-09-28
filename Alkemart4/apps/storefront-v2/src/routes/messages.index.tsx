@@ -1,10 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router"
 import { useQuery } from "@tanstack/react-query"
-import { HugeiconsIcon } from "@hugeicons/react"
-import { Message01Icon } from "@hugeicons/core-free-icons"
 import { Skeleton } from "@/components/ui/skeleton"
 import { SellerAvatar } from "@/components/commerce/seller-avatar"
-import { ErrorState } from "@/components/feedback/states"
+import { EmptyState, ErrorState } from "@/components/feedback/states"
 import { PageSeo } from "@/components/seo/page-seo"
 import { listThreads } from "@/lib/messages"
 import { requireAuth } from "@/lib/route-guards"
@@ -25,11 +23,7 @@ function Inbox() {
       ) : q.isError ? (
         <ErrorState title="Messages didn't load" error={q.error} onRetry={() => void q.refetch()} />
       ) : q.data.items.length === 0 ? (
-        <div className="space-y-2 rounded-3xl border border-border p-6 text-center">
-          <HugeiconsIcon icon={Message01Icon} className="mx-auto size-8 text-muted-foreground" aria-hidden />
-          <p className="font-semibold">No conversations yet</p>
-          <p className="text-sm text-muted-foreground">Ask a shop about a product from its page, or about an order from the order page.</p>
-        </div>
+        <EmptyState illustration="no-messages" title="No conversations yet" description="Ask a shop about a product from its page, or about an order from the order page." />
       ) : (
         <ul className="divide-y divide-border overflow-hidden rounded-3xl border border-border">
           {q.data.items.map((t) => (

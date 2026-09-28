@@ -1,12 +1,14 @@
 import { useState } from "react"
 import { Link, useNavigate } from "@tanstack/react-router"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { MoreHorizontalIcon, Search01Icon, UserGroupIcon } from "@hugeicons/core-free-icons"
+import { MoreHorizontalIcon, Search01Icon, UserGroupIcon, WashingMachineIcon } from "@hugeicons/core-free-icons"
 import { Button } from "@/components/ui/button"
 import { DEPARTMENT_ICON } from "@/components/commerce/category-tile"
 import { departmentFor } from "@/lib/departments"
 import { useSearchHistory } from "@/lib/search-history"
 import type { StoreCategory } from "@/lib/products"
+import { SmartLink } from "@/components/commerce/smart-link"
+import { REFERENCE_DEPARTMENTS, referenceDepartmentHref } from "./reference-departments"
 
 /**
  * Full-bleed gold hero. Layout only — the right-hand art (product collage,
@@ -72,7 +74,7 @@ export function HomeHero({ departments }: { departments: StoreCategory[] }) {
               placeholder="Search phones, sneakers, beauty, home…"
               aria-label="Search alkemart"
               enterKeyHint="search"
-              className="h-11 min-w-0 flex-1 bg-transparent text-[15px] outline-none placeholder:text-muted-foreground"
+              className="h-11 min-w-0 flex-1 bg-transparent text-[length:var(--text-legacy-15)] outline-none placeholder:text-muted-foreground"
             />
             <Button type="submit" size="lg" className="h-11 px-6">
               Search
@@ -80,7 +82,7 @@ export function HomeHero({ departments }: { departments: StoreCategory[] }) {
           </form>
 
           {departments.length > 0 ? (
-            <ul aria-label="Popular departments" className="mt-6 flex gap-3 overflow-x-auto pb-1 [scrollbar-width:none] sm:gap-5">
+            <ul aria-label="Popular departments" className="mt-6 flex gap-3 overflow-x-auto pb-1 [scrollbar-width:none] sm:gap-5 md:hidden">
               {departments.slice(0, 6).map((c) => {
                 const dept = departmentFor(c.handle, c.name)
                 return (
@@ -108,6 +110,17 @@ export function HomeHero({ departments }: { departments: StoreCategory[] }) {
               </li>
             </ul>
           ) : null}
+          <ul aria-label="Popular departments" className="mt-6 hidden gap-4 pb-1 md:flex lg:gap-5">
+            {REFERENCE_DEPARTMENTS.map(dept => (
+              <li key={dept.id} className="min-w-0 flex-1">
+                <SmartLink href={referenceDepartmentHref(dept.id, departments)} className="group flex flex-col items-center gap-1.5 text-center text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-4">
+                  <span className="grid size-14 place-items-center rounded-full bg-background/70 group-hover:bg-background/90"><HugeiconsIcon icon={dept.id === "appliances" ? WashingMachineIcon : DEPARTMENT_ICON[dept.id]} className="size-6" strokeWidth={2} /></span>
+                  <span>{dept.short}</span>
+                </SmartLink>
+              </li>
+            ))}
+            <li className="min-w-0 flex-1"><Link to="/categories" className="flex flex-col items-center gap-1.5 text-center text-sm font-semibold"><span className="grid size-14 place-items-center rounded-full bg-background/70"><HugeiconsIcon icon={MoreHorizontalIcon} className="size-6" strokeWidth={2} /></span>More</Link></li>
+          </ul>
         </div>
       </div>
     </section>

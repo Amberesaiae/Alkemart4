@@ -1,4 +1,5 @@
 import { apiJson } from "./http"
+import { ensureWorkersAccessToken } from "./auth"
 
 /**
  * Verified-purchase review for one delivered seller order. The server checks
@@ -11,6 +12,9 @@ export async function submitReview(input: {
   rating: number
   title?: string | null
   body: string
-}): Promise<void> {
-  await apiJson("/store/reviews", { method: "POST", body: JSON.stringify(input) })
+}): Promise<{ status: "pending" | "published" }> {
+  const token = await ensureWorkersAccessToken()
+  if (!token) throw new Error("Sign in to review your order")
+  const r = await apiJson<{ review: { status: "pending" | "published" } }>("/store/reviews", { method: "POST", body: JSON.stringify(input), token })
+  return { status: r.review.status }
 }

@@ -9,12 +9,15 @@ import { Input } from "@/components/ui/input"
 import { Spinner } from "@/components/ui/spinner"
 import { PageSeo } from "@/components/seo/page-seo"
 import { requestPasswordReset } from "@/lib/account"
+import { workosEnabled, workosBrowser } from "@/lib/workos"
+import { WorkosSignIn } from "@workspace/console-ui/components/workos-sign-in"
 
 export const Route = createFileRoute("/forgot-password")({ component: ForgotPasswordPage })
 
 function ForgotPasswordPage() {
   const [email, setEmail] = useState("")
   const send = useMutation({ mutationFn: () => requestPasswordReset(email) })
+  if (workosEnabled) return <div className="container-page max-w-md py-10"><WorkosSignIn start={(input) => workosBrowser.start(input)} /><p className="mt-6 text-sm text-muted-foreground">Choose email sign-in, then Forgot password on the secure page. If your old account isn’t connected yet and you lost its password, contact support for reviewed recovery.</p></div>
   return (
     <div className="container-page flex max-w-md flex-col gap-6 py-10">
       <PageSeo title="Reset your password" noindex />

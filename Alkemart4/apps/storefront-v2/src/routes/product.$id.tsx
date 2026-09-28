@@ -348,7 +348,7 @@ function ProductPage() {
                     )}
                   </span>
                   {COMPARE_ENABLED && showOffers && selection?.autoPicked ? (
-                    <span className="rounded-full bg-brand px-2 py-0.5 text-[11px] font-bold text-brand-foreground">Best price</span>
+                    <span className="rounded-full bg-brand px-2 py-0.5 text-[length:var(--text-legacy-11)] font-bold text-brand-foreground">Best price</span>
                   ) : null}
                   {showOffers ? (
                     <a href="#sellers" className="inline-flex min-h-6 items-center font-semibold text-foreground underline underline-offset-4">

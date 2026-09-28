@@ -6,6 +6,53 @@
 
 @custom-variant dark (&:is(.dark *));
 
+@theme {
+  --text-legacy-10: 0.875rem;
+  --text-legacy-11: 0.875rem;
+  --text-legacy-13: 0.875rem;
+  --text-legacy-15: 1rem;
+  /* Storefront reading scale: secondary details 14px; body and controls
+     16px at the browser's default size. rem units honour user preferences. */
+  --text-xs: 0.875rem;
+  --text-xs--line-height: 1.5;
+  --text-sm: 1rem;
+  --text-sm--line-height: 1.5;
+  --text-base: 1rem;
+  --text-base--line-height: 1.6;
+  --text-2xl: 1.75rem;
+  --text-2xl--line-height: 1.25;
+  --text-3xl: 2rem;
+  --text-3xl--line-height: 1.2;
+}
+
+/* Preserve the approved mobile home composition; the larger reading scale
+   applies to desktop home and the other storefront routes. */
+@media (width < 48rem) {
+  .mobile-home-preserved {
+    --text-legacy-10: 0.625rem;
+    --text-legacy-11: 0.6875rem;
+    --text-legacy-13: 0.8125rem;
+    --text-legacy-15: 0.9375rem;
+    --text-xs: 0.75rem;
+    --text-xs--line-height: 1rem;
+    --text-sm: 0.875rem;
+    --text-sm--line-height: 1.25rem;
+    --text-base--line-height: 1.5rem;
+    --text-2xl: 1.5rem;
+    --text-2xl--line-height: 2rem;
+    --text-3xl: 1.875rem;
+    --text-3xl--line-height: 2.25rem;
+    line-height: 1.5;
+  }
+  .mobile-home-preserved .product-card-title {
+    font-size: 0.9375rem;
+    font-weight: 500;
+  }
+  .mobile-home-preserved .section-header {
+    flex-wrap: nowrap;
+  }
+}
+
 @theme inline {
   --font-heading: var(--font-sans);
   --font-sans: "Figtree Variable", ui-sans-serif, system-ui, sans-serif;
@@ -144,7 +191,7 @@
     -webkit-tap-highlight-color: transparent;
   }
   body {
-    @apply bg-background text-foreground antialiased;
+    @apply bg-background text-base text-foreground antialiased;
     font-feature-settings: "ss01", "cv11";
   }
   h1,

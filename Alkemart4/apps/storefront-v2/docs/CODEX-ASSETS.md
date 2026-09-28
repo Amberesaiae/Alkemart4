@@ -39,6 +39,7 @@ Visual references: `Alkemart4/alkedesign/*.png` (the approved mockups).
 | `icons/icon-512.png` | Square yellow raster app icon for browser and PWA surfaces. |
 | `brand/og.png` | 1200×630 social share card: gold `#FEBF31` ground, the mark, "alkemart" and "Many sellers. More choices. Better prices." Keep text inside a 1080×520 safe area. |
 | `icons/icon-192.png`, `icons/icon-512.png` | App icons (PWA). Mark centred on white, 12% padding. |
+| `screenshots/home-mobile.png` | 390×844 PNG screenshot of the mobile home page, used in the "Install app" prompt (the manifest points here). A real capture of the running app, not drawn art. Recapture after the home page changes: `google-chrome-stable --headless=new --hide-scrollbars --force-device-scale-factor=1 --window-size=390,844 --virtual-time-budget=12000 --screenshot=public/screenshots/home-mobile.png <storefront URL>`. |
 | `icons/icon-maskable-512.png` | Maskable: mark within the central 80% safe zone on a gold `#FEBF31` full-bleed square. |
 
 ## 2 · Department tile art (`public/images/departments/{id}.webp`)

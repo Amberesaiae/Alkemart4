@@ -48,14 +48,36 @@ const MOBILE_LINKS: FooterLink[] = [
   { label: "Terms", to: "/terms" },
 ]
 
+function FooterActions() {
+  return (
+    <section className="bg-brand text-brand-foreground" aria-label="Sell on alkemart">
+      <div className="container-page py-6 sm:py-7">
+        <div className="flex flex-col items-center gap-5 text-center">
+          <div className="space-y-2">
+            <h2 className="text-3xl leading-tight font-extrabold tracking-tight sm:text-4xl">Sell on alkemart.</h2>
+            <p className="mx-auto max-w-xl text-base leading-relaxed sm:text-lg">Your shop. Your way. Smart tools to manage it all.</p>
+          </div>
+          <a href={getVendorAppUrl()} className="inline-flex min-h-12 shrink-0 items-center justify-center rounded-full bg-brand-foreground px-6 py-3 text-base font-bold text-brand hover:bg-brand-foreground/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-foreground">
+            Start selling <span aria-hidden="true" className="ml-2">→</span>
+          </a>
+        </div>
+      </div>
+    </section>
+  )
+}
+
 export function SiteFooter() {
   const market = useMarket()
   return (
     <>
       {/* Phones: the tab bar already navigates, so this stays slim — help, trust and legal only. */}
       <footer className="mt-10 border-t border-border bg-surface md:hidden">
+        <FooterActions />
         <div className="container-page space-y-5 pt-6 pb-28">
-          <NewsletterForm source="footer-mobile" />
+          <section className="space-y-3" aria-label="Weekly deals">
+            <h2 className="text-xl font-extrabold">Good finds, in your inbox.</h2>
+            <NewsletterForm compact source="footer-mobile" />
+          </section>
           <nav aria-label="Help and legal">
             <ul className="grid grid-cols-2 gap-x-4 gap-y-1">
               {MOBILE_LINKS.map((l) => (
@@ -74,11 +96,6 @@ export function SiteFooter() {
             </ul>
           </nav>
           <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
-            <div className="flex items-center gap-1.5" aria-label="Payment methods">
-              {market.mobileMoney.map((m) => (
-                <img key={m.id} src={m.logo} alt={m.name} className="h-6 w-auto rounded bg-white p-0.5" loading="lazy" />
-              ))}
-            </div>
             <span className="text-xs text-muted-foreground">
               © {new Date().getFullYear()} alkemart · {market.name}
             </span>
@@ -86,26 +103,17 @@ export function SiteFooter() {
         </div>
       </footer>
 
-      <footer className="mt-16 hidden bg-[#111114] text-white md:block">
-        <div className="border-b border-white/10">
-          <div className="container-page flex items-center justify-between gap-8 py-8">
-            <p className="max-w-sm text-xl font-extrabold">Get the week's best deals and newest shops.</p>
-            <div className="w-full max-w-md">
-              <NewsletterForm tone="dark" source="footer" />
-            </div>
-          </div>
-        </div>
-        <div className="container-page grid gap-10 py-12 md:grid-cols-[1.4fr_repeat(3,1fr)]">
+      <footer className="relative isolate mt-16 hidden overflow-hidden bg-[#111114] text-white md:block">
+        <FooterActions />
+        <img src="/brand/alkemart-mark.png" alt="" aria-hidden="true" className="pointer-events-none absolute -bottom-20 -left-20 -z-10 size-96 opacity-[0.035] brightness-0 invert" />
+        <img src="/brand/alkemart-mark.png" alt="" aria-hidden="true" className="pointer-events-none absolute top-28 right-8 -z-10 size-56 rotate-12 opacity-[0.025] brightness-0 invert" />
+        <img src="/brand/alkemart-mark.png" alt="" aria-hidden="true" className="pointer-events-none absolute -bottom-16 left-[46%] -z-10 size-64 -rotate-12 opacity-[0.025] brightness-0 invert" />
+        <div className="container-page grid gap-x-10 gap-y-8 pt-10 pb-8 md:grid-cols-[1.4fr_repeat(3,1fr)]">
           <div className="space-y-4">
             <BrandLogo tone="light" />
             <p className="max-w-xs text-sm text-white/65">
               Many sellers. More choices. Better prices. Independent shops and trusted sellers in one marketplace.
             </p>
-            <div className="flex flex-wrap items-center gap-2">
-              {market.mobileMoney.map((m) => (
-                <img key={m.id} src={m.logo} alt={m.name} className="h-8 w-auto rounded-md bg-white p-1" loading="lazy" />
-              ))}
-            </div>
           </div>
           {COLUMNS.map((col) => (
             <nav key={col.title} aria-label={col.title}>
@@ -127,9 +135,18 @@ export function SiteFooter() {
               </ul>
             </nav>
           ))}
+          <section className="flex flex-col gap-4 md:col-span-3 md:col-start-2 lg:flex-row lg:items-start lg:gap-6" aria-label="Weekly deals">
+            <div className="shrink-0 space-y-1 lg:pt-2">
+              <h2 className="text-base font-bold">Good finds, in your inbox.</h2>
+              <p className="text-xs text-white/65">Fresh picks. Weekly deals.</p>
+            </div>
+            <div className="min-w-0 flex-1">
+              <NewsletterForm compact tone="dark" source="footer" />
+            </div>
+          </section>
         </div>
-        <div className="border-t border-white/10">
-          <div className="container-page flex flex-wrap items-center justify-between gap-2 py-5 text-xs text-white/50">
+        <div>
+          <div className="container-page flex flex-wrap items-center justify-between gap-2 py-5 text-xs text-white/70">
             <span>© {new Date().getFullYear()} alkemart</span>
             <span>Serving {market.name}</span>
           </div>

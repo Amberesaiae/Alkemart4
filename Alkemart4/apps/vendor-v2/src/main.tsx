@@ -7,6 +7,7 @@ import { TooltipProvider } from "@workspace/console-ui/components/tooltip"
 import { Toaster } from "@workspace/console-ui/components/sonner"
 import { setConsoleMarket } from "@workspace/console-ui/lib/money"
 import { routeTree } from "./routeTree.gen"
+import { workosEnabled, workosBrowser } from "./lib/workos"
 
 setConsoleMarket(import.meta.env.VITE_MARKET_CODE as string | undefined)
 
@@ -33,7 +34,7 @@ declare module "@tanstack/react-router" {
   }
 }
 
-createRoot(document.getElementById("root")!).render(
+function renderApp() { createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
@@ -43,3 +44,10 @@ createRoot(document.getElementById("root")!).render(
     </QueryClientProvider>
   </StrictMode>,
 )
+}
+if (workosEnabled) {
+  try { localStorage.removeItem("alkemart_seller_session") } catch { /* storage may be unavailable */ }
+  workosBrowser.restore().then(renderApp).catch(() => {
+    document.getElementById("root")!.textContent = "Secure sign-in is temporarily unavailable. Reload to try again."
+  })
+} else renderApp()

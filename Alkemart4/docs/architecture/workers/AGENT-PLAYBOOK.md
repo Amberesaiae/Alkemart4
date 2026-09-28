@@ -16,10 +16,10 @@ If a document conflicts with this playbook or `docs/architecture/workers/*`, **t
 | API | `apps/api` |
 | Domain / money rules | `packages/domain`, `packages/paystack`, `packages/shared` |
 | Schema | `packages/db` |
-| Storefront | `apps/storefront` |
-| Vendor UI | `apps/backend/apps/ghana-vendor` |
-| Admin UI | `apps/backend/apps/admin` |
-| Shared UI | `packages/ui` |
+| Storefront | `apps/storefront-v2` |
+| Vendor UI | `apps/vendor-v2` |
+| Admin UI | `apps/admin-v2` |
+| Shared UI | `packages/console-ui` |
 | Canonical docs | `docs/architecture/workers/`, `docs/ops/`, `DEPLOYMENT.md`, `AGENTS.md`, `README.md` |
 
 ## 2. What you must not use as a write path
@@ -62,7 +62,7 @@ Cross-cutting UI chrome → `NAV-MATRIX.md` + `ENGINEERING-STANDARDS.md`.
 
 ### Step D — Verify
 
-1. Local: `bun run dev:workers` (see `LOCAL-DEV.md`).  
+1. Local: `bun run dev` inside each `apps/*-v2` (see `LOCAL-DEV.md`).  
 2. API: `./scripts/e2e-workers-smoke.sh` and/or `./scripts/e2e-workers-acid.sh` (point `ALKEMART_API_URL` at local if needed).  
 3. Manual click path from `NAV-MATRIX.md` for the routes you touched.  
 4. Do **not** push unless the human asks. Stay on `main`.

@@ -4,10 +4,10 @@ import { Alert02Icon, Search01Icon } from "@hugeicons/core-free-icons"
 import { Button } from "@/components/ui/button"
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
 import { cn } from "@/lib/utils"
+import { BrandIllustration, type BrandIllustrationName } from "@workspace/console-ui/components/brand-illustration"
 
 /**
- * Empty result. `illustration` points at a Codex spot illustration under
- * /illustrations; the icon shows until (or if) the file is missing.
+ * Empty result. Artwork is bundled by the shared kit; icons remain a fallback.
  */
 export function EmptyState({
   title,
@@ -21,7 +21,7 @@ export function EmptyState({
   title: string
   description?: React.ReactNode
   icon?: IconSvgElement
-  illustration?: string
+  illustration?: BrandIllustrationName
   action?: { label: string } & Pick<LinkProps, "to" | "params" | "search">
   className?: string
   children?: React.ReactNode
@@ -30,19 +30,11 @@ export function EmptyState({
     <Empty className={cn("rounded-3xl border border-dashed border-border bg-card py-12", className)}>
       <EmptyHeader>
         {illustration ? (
-          <img
-            src={`/illustrations/${illustration}.webp`}
-            alt=""
-            className="mx-auto mb-2 h-32 w-auto"
-            onError={(e) => {
-              e.currentTarget.style.display = "none"
-              e.currentTarget.nextElementSibling?.removeAttribute("hidden")
-            }}
-          />
+          <BrandIllustration name={illustration} fallback={<EmptyMedia variant="icon"><HugeiconsIcon icon={icon} /></EmptyMedia>} />
         ) : null}
-        <EmptyMedia variant="icon" hidden={Boolean(illustration)}>
+        {!illustration ? <EmptyMedia variant="icon">
           <HugeiconsIcon icon={icon} />
-        </EmptyMedia>
+        </EmptyMedia> : null}
         <EmptyTitle>{title}</EmptyTitle>
         {description ? <EmptyDescription>{description}</EmptyDescription> : null}
       </EmptyHeader>
@@ -75,6 +67,7 @@ export function ErrorState({
   className?: string
 }) {
   const message = error instanceof Error ? error.message : null
+  const offline = (typeof navigator !== "undefined" && !navigator.onLine) || (error instanceof TypeError && /fetch|network/i.test(error.message))
   return (
     <div
       role="alert"
@@ -83,9 +76,9 @@ export function ErrorState({
         className,
       )}
     >
-      <span className="grid size-11 place-items-center rounded-full bg-muted">
+      <BrandIllustration name={offline ? "offline" : "not-found"} fallback={<span className="grid size-11 place-items-center rounded-full bg-muted">
         <HugeiconsIcon icon={Alert02Icon} className="size-5" />
-      </span>
+      </span>} />
       <div className="space-y-1">
         <p className="font-semibold">{title}</p>
         <p className="text-sm text-muted-foreground">

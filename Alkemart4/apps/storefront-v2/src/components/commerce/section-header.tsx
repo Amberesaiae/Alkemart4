@@ -22,7 +22,7 @@ export function SectionHeader({
   id?: string
 }) {
   return (
-    <div className={cn("mb-4 flex items-end justify-between gap-4 sm:mb-5", className)}>
+    <div className={cn("section-header mb-4 flex flex-wrap items-end justify-between gap-4 sm:mb-5", className)}>
       <div className="min-w-0">
         {eyebrow ? (
           <p className="mb-1 text-xs font-semibold tracking-[0.18em] text-muted-foreground uppercase">

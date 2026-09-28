@@ -76,7 +76,7 @@ export function ProductQuestions({ productId, sellerId, sellerName }: { productI
             value={text}
             onChange={(e) => setText(e.target.value)}
             placeholder="e.g. Does it come with a charger?"
-            className="w-full rounded-2xl border border-input bg-background px-3.5 py-2.5 text-[15px] outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+            className="w-full rounded-2xl border border-input bg-background px-3.5 py-2.5 text-[length:var(--text-legacy-15)] outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
           />
           <p className="text-xs text-muted-foreground">Everyone can see questions and answers. For your order or delivery, message the shop instead.</p>
           <Button type="submit" size="sm" disabled={text.trim().length < 8 || ask.isPending}>

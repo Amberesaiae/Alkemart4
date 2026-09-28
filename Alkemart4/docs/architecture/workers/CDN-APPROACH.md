@@ -25,7 +25,7 @@ day — search engine down, docs fetched direct).
 | `/store/catalog` (+ search/products/sellers reads) | `public, max-age=6, s-maxage=60, SWR 300` | prices/stock move; edge absorbs stampedes, SWR covers revalidation tail |
 | merchandising (categories, guides, collections, course, homepage) | `s-maxage=300` | slow-moving; hand-edited content |
 | build (sitemap, feed) | `s-maxage=600` | polled rarely by machines |
-| `/media/*` (R2) | `public, max-age=31536000, immutable` + ETag | content-addressed keys (`{kind}/{owner}/{uuid}[.thumb].{ext}`); allowlisted key pattern; magic-byte sniffed uploads; WebP variants via Images binding in prod |
+| `/media/*` (R2) | `public, max-age=31536000, immutable` + ETag, served from the Cache API after the first hit | content-addressed keys (`{kind}/{owner}/{uuid}[.thumb].{ext}`); allowlisted key pattern; magic-byte sniffed uploads; WebP variants via Images binding in prod. With `MEDIA_PUBLIC_URL` (R2 custom domain) new uploads bypass the Worker entirely; cards/lists use the `.thumb.webp` (`@alkemart/shared/media`) |
 | vendor/*, admin/* (whole apps) | `no-store` (mount middleware) | every response is authed/personal |
 | `/hooks/paystack` | `no-store` | webhooks must never replay from cache |
 | store private (auth, cart, checkout, orders, preferences, subscriptions, experiments) | `no-store` | personal/mutating/assignment responses |

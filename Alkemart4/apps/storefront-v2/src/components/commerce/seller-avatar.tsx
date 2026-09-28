@@ -30,7 +30,7 @@ export function SellerAvatar({
 }) {
   const box = cn(
     "relative inline-grid shrink-0 place-items-center overflow-hidden rounded-full font-bold text-white ring-2 ring-background",
-    size === "sm" && "size-7 text-[10px]",
+    size === "sm" && "size-7 text-[length:var(--text-legacy-10)]",
     size === "md" && "size-10 text-xs",
     size === "lg" && "size-14 text-sm",
     size === "xl" && "size-20 text-lg",

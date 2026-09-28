@@ -47,8 +47,10 @@ export function ProductCard({
   const soldOut = p.availableQty === 0
   const badge = badgeFor(p)
   const sellers = p.offerCount ?? 0
-  const [broken, setBroken] = useState(false)
-  const image = broken ? null : (p.thumbUrl ?? p.thumbnail ?? p.images?.[0]?.url ?? null)
+  // Thumb first (small), then the full photo if the thumb is missing, then the placeholder.
+  const sources = [...new Set([p.thumbUrl, p.thumbnail, p.images?.[0]?.url].filter((u): u is string => !!u))]
+  const [failed, setFailed] = useState(0)
+  const image = sources[failed] ?? null
 
   /**
    * Direct add only when there is nothing to choose: one seller and no
@@ -101,7 +103,7 @@ export function ProductCard({
               alt={p.title}
               loading={priority ? "eager" : "lazy"}
               decoding="async"
-              onError={() => setBroken(true)}
+              onError={() => setFailed((n) => n + 1)}
               className="size-full object-contain p-[9%] mix-blend-multiply"
             />
           ) : (
@@ -129,11 +131,11 @@ export function ProductCard({
               {p.categoryLabel}
             </p>
           ) : null}
-          <h3 className="line-clamp-2 text-sm leading-snug font-medium sm:text-[15px] text-foreground">{p.title}</h3>
+          <h3 className="product-card-title line-clamp-2 text-base leading-snug font-semibold text-foreground">{p.title}</h3>
           <Rating avg={p.ratingAvg} count={p.ratingCount} />
           <div className="mt-auto pt-1.5 pr-11">
             <Price amount={p.amount} currency={p.currencyCode} from={COMPARE_ENABLED && sellers > 1} />
-            <p className="mt-0.5 truncate text-[13px] text-muted-foreground">
+            <p className="mt-0.5 truncate text-[length:var(--text-legacy-13)] text-muted-foreground">
               {COMPARE_ENABLED && sellers > 1 ? (
                 <span className="font-semibold text-foreground">{sellers} sellers</span>
               ) : p.seller?.name ? (

@@ -1,4 +1,4 @@
-import { getWorkersAccessToken } from "./auth"
+import { ensureWorkersAccessToken } from "./auth"
 import { getAlkemartApiUrl } from "./env"
 import { clearLocalCartId, ensureCartId, getLocalCartId, retrieveCart } from "./cart"
 
@@ -116,13 +116,14 @@ export async function placeGhanaOrder(input: {
     body.callbackUrl = input.callbackUrl
   }
 
+  const token = await ensureWorkersAccessToken()
   const res = await fetch(`${getAlkemartApiUrl()}/store/checkout`, {
     method: "POST",
     headers: {
       "content-type": "application/json",
       accept: "application/json",
       // A signed-in buyer's accepted offer prices are applied server-side.
-      ...(getWorkersAccessToken() ? { authorization: `Bearer ${getWorkersAccessToken()}` } : {}),
+      ...(token ? { authorization: `Bearer ${token}` } : {}),
     },
     body: JSON.stringify(body),
   })
@@ -169,9 +170,10 @@ export async function placeGhanaOrder(input: {
 export async function pollMomoCheckoutStatus(
   cartId: string,
 ): Promise<GhanaCheckoutResult | { status: "failed" | "idle"; message?: string; cart_id: string }> {
+  const token = await ensureWorkersAccessToken()
   const res = await fetch(
     `${getAlkemartApiUrl()}/store/checkout/status?cartId=${encodeURIComponent(cartId)}`,
-    { headers: { Accept: "application/json" } },
+    { headers: { Accept: "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) } },
   )
   const data = (await res.json().catch(() => ({}))) as {
     status?: string

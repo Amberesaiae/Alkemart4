@@ -43,6 +43,7 @@ import {
   type ReviewReason,
 } from "@/lib/api"
 import { awaitsReview, qk } from "@/lib/queries"
+import { thumbFallback, thumbOf } from "@alkemart/shared/media"
 
 type Tab = "review" | "sent-back" | "rejected" | "live"
 const TABS: { id: Tab; label: string }[] = [
@@ -80,6 +81,7 @@ const PRESETS: { code: string; message: string; for: Decision[] }[] = [
 ]
 
 const MODE_COPY: Record<ReviewMode, { label: string; body: string }> = {
+  trust: { label: "Trust shops", body: "Listings that pass every rule go live at once. Anything flagged waits here for a person." },
   manual: { label: "Manual", body: "Every listing waits for a person. Rule checks still send back obvious problems." },
   assist: { label: "AI assists", body: "AI reviews each listing and leaves its opinion here. A person decides." },
   auto: { label: "AI decides", body: "AI approves only clean, confident listings; anything unusual waits for a person. You can overturn any decision." },
@@ -106,7 +108,7 @@ function ListingsPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Listings" description="Check new and changed listings before buyers see them." />
+      <PageHeader title="Listings" description="Listings that need a person, and every listing on the marketplace." />
       <ModeSwitch />
 
       <nav aria-label="Listing queues" className="flex flex-wrap gap-2">
@@ -147,7 +149,7 @@ function ListingsPage() {
             <li key={l.id}>
               <button type="button" onClick={() => setOpen(l)} className="flex w-full items-center gap-4 p-3 text-left hover:bg-muted/60 sm:p-4">
                 <span className="grid size-16 shrink-0 place-items-center overflow-hidden rounded-xl bg-surface">
-                  {l.imageUrl ? <img src={l.imageUrl} alt="" className="size-full object-cover" loading="lazy" /> : <HugeiconsIcon icon={ImageNotFound01Icon} className="size-6 text-muted-foreground" aria-hidden />}
+                  {l.imageUrl ? <img src={thumbOf(l.imageUrl) ?? l.imageUrl} alt="" className="size-full object-cover" loading="lazy" onError={thumbFallback(l.imageUrl)} /> : <HugeiconsIcon icon={ImageNotFound01Icon} className="size-6 text-muted-foreground" aria-hidden />}
                 </span>
                 <span className="min-w-0 flex-1 space-y-1">
                   <span className="block truncate font-semibold">{l.title}</span>
@@ -216,6 +218,7 @@ function ModeSwitch() {
         <ToggleGroup
           type="single"
           variant="outline"
+          className="flex-wrap justify-start"
           value={mode}
           onValueChange={(v) => {
             if (!v || v === mode) return

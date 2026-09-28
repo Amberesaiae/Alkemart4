@@ -99,7 +99,7 @@ function SellersPage() {
       ) : q.isError ? (
         <ErrorState title="Sellers didn't load" error={q.error} onRetry={() => void q.refetch()} className="rounded-2xl border bg-card" />
       ) : rows.length === 0 ? (
-        <EmptyState icon={Store01Icon} title={tab === "applications" ? "No applications waiting" : "No sellers here"} className="rounded-2xl border bg-card" />
+        <EmptyState illustration={needle ? "no-results" : "first-listing"} icon={Store01Icon} title={needle ? "No matching sellers" : tab === "applications" ? "No applications waiting" : "No sellers here"} description={needle ? "Try another shop name, handle or email." : undefined} className="rounded-2xl border bg-card" />
       ) : (
         <ul className="divide-y overflow-hidden rounded-2xl border bg-card">
           {rows.map((s) => (
@@ -113,7 +113,7 @@ function SellersPage() {
                 </span>
                 <span className="hidden text-right text-sm sm:block">
                   <span className="block font-semibold tabular">{formatMinor(s.gmvPesewas)}</span>
-                  <span className="block text-muted-foreground">{s.orderCount} orders</span>
+                  <span className="block text-muted-foreground">{s.orderCount} order{s.orderCount === 1 ? "" : "s"}</span>
                 </span>
                 <ToneBadge tone={STATUS[s.status].tone}>{STATUS[s.status].label}</ToneBadge>
                 <HugeiconsIcon icon={ArrowRight01Icon} className="size-5 text-muted-foreground" aria-hidden />

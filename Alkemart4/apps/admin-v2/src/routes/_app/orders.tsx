@@ -116,7 +116,7 @@ function OrdersPage() {
       ) : q.isError ? (
         <ErrorState title="Orders didn't load" error={q.error} onRetry={() => void q.refetch()} className="rounded-2xl border bg-card" />
       ) : rows.length === 0 ? (
-        <EmptyState icon={PackageIcon} title={view === "late" && !needle ? "Nothing late — every promise is on track" : "No orders here"} className="rounded-2xl border bg-card" />
+        <EmptyState illustration={needle ? "no-results" : "empty-orders"} icon={PackageIcon} title={needle ? "No matching orders" : view === "late" ? "Nothing late — every promise is on track" : "No orders here"} description={needle ? "Try another reference, email or phone number." : undefined} className="rounded-2xl border bg-card" />
       ) : (
         <ul className="divide-y overflow-hidden rounded-2xl border bg-card">
           {rows.map((g) => {

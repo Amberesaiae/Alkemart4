@@ -23,6 +23,7 @@ import { qk, useCart, useCartLineMutations } from "@/hooks/use-store"
 import { groupCartBySeller, type CartLine } from "@/lib/cart"
 import { formatMoney, useMarket } from "@/lib/market"
 import { getStoreProduct, productParam, type StoreProductCard } from "@/lib/products"
+import { thumbFallback } from "@alkemart/shared/media"
 
 export const Route = createFileRoute("/cart")({
   component: CartPage,
@@ -262,7 +263,7 @@ function CartRow({
   return (
     <li className="flex gap-4 p-4 sm:p-5">
       <div className="size-20 shrink-0 overflow-hidden rounded-2xl bg-surface sm:size-24">
-        {image ? <img src={image} alt="" className="size-full object-contain p-2 mix-blend-multiply" loading="lazy" /> : null}
+        {image ? <img src={image} alt="" className="size-full object-contain p-2 mix-blend-multiply" loading="lazy" onError={thumbFallback(product?.thumbnail)} /> : null}
       </div>
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <div className="flex items-start justify-between gap-3">

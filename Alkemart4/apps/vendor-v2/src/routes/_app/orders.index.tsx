@@ -91,6 +91,7 @@ function OrdersPage() {
       ) : sorted.length === 0 ? (
         <EmptyState
           icon={DeliveryBox01Icon}
+          illustration="empty-orders"
           title={tab === "to-pack" ? "Nothing to pack" : tab === "on-the-way" ? "Nothing on the way" : tab === "delivered" ? "No delivered orders yet" : tab === "returns" ? "No open returns" : "No orders yet"}
           description={tab === "to-pack" ? "New orders show up here as soon as a buyer checks out." : undefined}
           className="rounded-2xl border bg-card"

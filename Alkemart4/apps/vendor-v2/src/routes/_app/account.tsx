@@ -11,6 +11,7 @@ import { Switch } from "@workspace/console-ui/components/switch"
 import { PageHeader } from "@workspace/console-ui/components/console/page-header"
 import { ErrorState } from "@workspace/console-ui/components/console/states"
 import { signOut } from "@/lib/api"
+import { workosEnabled, workosBrowser } from "@/lib/workos"
 import { qk } from "@/lib/queries"
 import { getAlerts, getShop, requestResetLink, setAlert, type AlertTopic } from "@/lib/shop"
 
@@ -79,16 +80,14 @@ function SignInCard({ email }: { email: string | null }) {
           <HugeiconsIcon icon={Mail01Icon} className="size-5" aria-hidden /> {email ?? "—"}
         </p>
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" size="lg" disabled={!email || reset.isPending} onClick={() => reset.mutate()}>
-            {reset.isPending ? <Spinner /> : null} Email me a password-change link
+          <Button variant="outline" size="lg" disabled={!email || reset.isPending} onClick={() => workosEnabled ? void workosBrowser.start({}).catch(() => toast.error("Could not open secure sign-in.")) : reset.mutate()}>
+            {reset.isPending ? <Spinner /> : null} {workosEnabled ? "Open secure sign-in & recovery" : "Email me a password-change link"}
           </Button>
           <Button
             variant="ghost"
             size="lg"
             onClick={() => {
-              signOut()
-              qc.clear()
-              void navigate({ to: "/login" })
+              void signOut().then(() => { qc.clear(); void navigate({ to: "/login" }) }).catch(() => toast.error("Sign-out did not finish. Please try again."))
             }}
           >
             <HugeiconsIcon icon={Logout01Icon} data-icon="inline-start" /> Sign out

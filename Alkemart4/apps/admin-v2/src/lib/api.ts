@@ -97,7 +97,7 @@ export const decideListing = (id: string, decision: Decision, body: { reasons?: 
     { method: "POST", json: body },
   )
 
-export type ReviewMode = "manual" | "assist" | "auto"
+export type ReviewMode = "trust" | "manual" | "assist" | "auto"
 export const getReviewMode = () => api<{ mode: ReviewMode }>("/admin/products/review-settings").then((r) => r.mode)
 export const setReviewMode = (mode: ReviewMode) =>
   api<{ mode: ReviewMode }>("/admin/products/review-settings", { method: "PUT", json: { mode } }).then((r) => r.mode)

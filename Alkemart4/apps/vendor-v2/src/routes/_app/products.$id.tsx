@@ -111,7 +111,7 @@ function Editor({ p }: { p: VendorProduct }) {
       refresh(next)
       const d = (next as VendorProduct & { review?: { decision: string } | null }).review?.decision
       toast.success(
-        d === "approve" ? "Approved — it's live!" : d === "request_changes" ? "A few things need fixing — see the list above." : "Sent for review.",
+        d === "approve" ? "It's live! Buyers can find it now." : d === "request_changes" ? "A few things need fixing — see the list above." : "Sent for a quick check — we'll let you know.",
       )
     },
     onError: (e) => toast.error(errText(e)),
@@ -137,7 +137,7 @@ function Editor({ p }: { p: VendorProduct }) {
             <span>Fix: {findings.filter((f) => f.severity === "block").map((f) => f.message).join(" ")}</span>
           ) : (
             <Button variant="brand" size="lg" className="mt-2" onClick={() => review.mutate()} disabled={review.isPending}>
-              {review.isPending ? <Spinner /> : null} Send for review
+              {review.isPending ? <Spinner /> : null} Publish
             </Button>
           )}
         </Banner>

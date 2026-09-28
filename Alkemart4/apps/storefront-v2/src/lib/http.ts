@@ -1,5 +1,6 @@
 import { getAlkemartApiUrl } from "./env"
-import { logout } from "./auth"
+import { logout, ensureWorkersAccessToken } from "./auth"
+import { workosEnabled } from "./workos"
 
 let ending = false
 function endSession() {
@@ -27,12 +28,13 @@ export async function apiJson<T>(
   init?: RequestInit & { token?: string | null },
 ): Promise<T> {
   const { token, ...rest } = init ?? {}
+  const currentToken = token && workosEnabled ? await ensureWorkersAccessToken() : token
   const res = await fetch(`${getAlkemartApiUrl()}${path}`, {
     ...rest,
     headers: {
       accept: "application/json",
       ...(rest.body ? { "content-type": "application/json" } : {}),
-      ...(token ? { authorization: `Bearer ${token}` } : {}),
+      ...(currentToken ? { authorization: `Bearer ${currentToken}` } : {}),
       ...(rest.headers as Record<string, string> | undefined),
     },
   })

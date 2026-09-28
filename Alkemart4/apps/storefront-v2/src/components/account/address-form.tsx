@@ -206,7 +206,7 @@ export function AddressForm({
       ) : null}
 
       {showDefault ? (
-        <label className="flex items-center gap-2.5 text-[15px]">
+        <label className="flex items-center gap-2.5 text-[length:var(--text-legacy-15)]">
           <Checkbox checked={v.isDefault} onCheckedChange={(x) => setV((s) => ({ ...s, isDefault: Boolean(x) }))} />
           Use as my default delivery address
         </label>

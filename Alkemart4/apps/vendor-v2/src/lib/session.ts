@@ -3,11 +3,12 @@
  * token is kept on the device until it expires or the seller signs out —
  * sellers stay signed in across tabs and app restarts (CONSOLE-REDESIGN §8).
  */
+import { workosBrowser, workosEnabled } from "./workos"
 const KEY = "alkemart_seller_session"
 
 export type SellerSession = {
   token: string
-  user: { id: string; email: string; role: string; sellerId?: string }
+  user: { id: string; email: string; role: string; sellerId?: string; emailVerified?: boolean }
 }
 
 type Listener = () => void
@@ -23,6 +24,7 @@ function expiry(token: string): number | null {
 }
 
 export function readSession(): SellerSession | null {
+  if (workosEnabled) return workosBrowser.peek()
   try {
     const raw = localStorage.getItem(KEY)
     if (!raw) return null
@@ -40,6 +42,11 @@ export function readSession(): SellerSession | null {
 }
 
 export function writeSession(s: SellerSession | null) {
+  if (workosEnabled) {
+    if (!s) workosBrowser.clear()
+    listeners.forEach((l) => l())
+    return
+  }
   try {
     if (s) localStorage.setItem(KEY, JSON.stringify(s))
     else localStorage.removeItem(KEY)

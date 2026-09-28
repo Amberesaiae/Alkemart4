@@ -62,7 +62,7 @@ function AnalyticsPage() {
           {q.isPending ? (
             <Skeleton className="h-56 rounded-xl" />
           ) : !d?.byDay.length ? (
-            <EmptyState icon={Search01Icon} title="No searches yet in this period" />
+            <EmptyState illustration="no-results" illustrationSize="compact" icon={Search01Icon} title="No searches yet in this period" />
           ) : (
             <ChartContainer config={chartConfig} className="h-56 w-full" aria-label={`Searches per day over the last ${days} days`}>
               <BarChart data={d.byDay.map((x) => ({ date: x.date, found: x.searches - x.zero, zero: x.zero }))} margin={{ left: 0, right: 4 }}>
@@ -252,7 +252,7 @@ function TopShops() {
         {q.isPending ? (
           <Skeleton className="h-40 rounded-xl" />
         ) : !shops.length ? (
-          <EmptyState icon={Store01Icon} title="No shop visits yet" />
+          <EmptyState illustration="first-listing" illustrationSize="compact" icon={Store01Icon} title="No shop visits yet" />
         ) : (
           <ol className="divide-y">
             {shops.map((s, i) => (

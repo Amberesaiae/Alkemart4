@@ -70,20 +70,19 @@ export const NAV_GROUPS: { label?: string; items: AdminNavItem[] }[] = [
   },
   {
     label: "Storefront",
+    items: [{ to: "/homepage", label: "Homepage", icon: WebDesign01Icon }],
+  },
+  { label: "Insights", items: [{ to: "/business", label: "Business", icon: MoneyBag02Icon }] },
+  { label: "Platform", items: [{ to: "/settings", label: "Rules", icon: Settings02Icon }] },
+  {
+    // Built and working, but not part of the pilot's daily work (PILOT-PLAN).
+    label: "Growth",
     items: [
-      { to: "/homepage", label: "Homepage", icon: WebDesign01Icon },
       { to: "/campaigns", label: "Campaigns", icon: Megaphone01Icon },
       { to: "/guides", label: "Guides", icon: BookOpen01Icon },
-    ],
-  },
-  {
-    label: "Insights",
-    items: [
-      { to: "/business", label: "Business", icon: MoneyBag02Icon },
       { to: "/analytics", label: "Search & traffic", icon: ChartLineData01Icon },
     ],
   },
-  { label: "Platform", items: [{ to: "/settings", label: "Rules", icon: Settings02Icon }] },
 ]
 
 export const QUEUE_LABEL = {

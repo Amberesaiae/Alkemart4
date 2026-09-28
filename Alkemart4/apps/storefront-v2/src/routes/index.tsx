@@ -17,7 +17,6 @@ import { COMPARE_ENABLED } from "@/lib/features"
 import { PromoSection } from "@/components/home/promo-section"
 import { CampaignPlacements } from "@/components/home/campaign-placements"
 import { StoreRailSection } from "@/components/home/store-rail-section"
-import { SellerCta } from "@/components/home/seller-cta"
 import { TrustPanel } from "@/components/commerce/trust-strip"
 import { ProductRail } from "@/components/commerce/product-grid"
 import { SectionHeader } from "@/components/commerce/section-header"
@@ -223,7 +222,6 @@ function HomePage() {
         ))}
 
       <RecentlyViewed />
-      <SellerCta />
     </div>
   )
 }

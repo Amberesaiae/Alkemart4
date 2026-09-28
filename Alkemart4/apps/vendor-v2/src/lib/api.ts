@@ -4,7 +4,8 @@
  * (CONSOLE-REDESIGN V5).
  */
 import { api } from "./http"
-import { writeSession, type SellerSession } from "./session"
+import { readSession, writeSession, type SellerSession } from "./session"
+import { workosBrowser, workosEnabled } from "./workos"
 
 // ─── Auth ────────────────────────────────────────────────────────────────
 
@@ -17,7 +18,7 @@ export async function signIn(email: string, password: string) {
   return s
 }
 
-export type RegisterInput = { email: string; password: string; sellerName: string; sellerHandle: string }
+export type RegisterInput = { email: string; password: string; sellerName: string; sellerHandle: string; turnstileToken?: string }
 
 export async function register(input: RegisterInput) {
   const s = await api<SellerSession>("/vendor/auth/register", { method: "POST", json: input })
@@ -25,8 +26,18 @@ export async function register(input: RegisterInput) {
   return s
 }
 
-export function signOut() {
+export async function signOut() {
+  if (workosEnabled) await workosBrowser.logout()
   writeSession(null)
+}
+
+export const resendEmailVerification = () =>
+  api<{ ok: boolean; verified: boolean }>("/vendor/auth/verify-email/request", { method: "POST" })
+
+export async function confirmEmailVerification(token: string) {
+  const result = await api<{ ok: boolean; userId: string }>("/vendor/auth/verify-email/confirm", { method: "POST", json: { token } })
+  const session = readSession()
+  if (session?.user.id === result.userId) writeSession({ ...session, user: { ...session.user, emailVerified: true } })
 }
 
 // ─── Shop ────────────────────────────────────────────────────────────────
@@ -231,7 +242,7 @@ export type StatementLine = {
   orderGroupId: string
   orderedAt: string | null
   /** paid = arrived · sending = on its way · pending = in the next payout · held = paused · cash = you collected it */
-  state: "paid" | "sending" | "pending" | "held" | "cash"
+  state: "paid" | "sending" | "pending" | "held" | "cash" | "refunded"
   subtotalPesewas: string
   paymentMethod: string | null
   commissionPesewas: string

@@ -1,8 +1,28 @@
 # Lifecycle — Buyer
 
+## Hosted authentication pilot (feature-gated)
+
+With `WORKOS_ENABLED=1` and the matching UI flag, buyers use hosted AuthKit
+Google/email sign-in. The callback consumes encrypted browser-bound state once;
+refresh credentials stay encrypted server-side, never in browser storage.
+Existing local accounts require explicit password proof to link. Five-minute
+access credentials remain in memory; protected calls check local session
+revocation. Old marketplace JWTs and local password/reset endpoints are
+disabled at cutover. Reviews require a verified buyer whose account matches
+the order, not a submitted email alone. See `docs/ops/WORKOS-PILOT.md`.
+Same-origin Pages auth Functions support the current Cloudflare URLs.
+This implementation is not enabled or deployed.
+
 ## Flow
 
-`register/login → browse/search → PDP → cart → checkout (COD|MoMo|card) → order detail`
+`browse/search → PDP → cart → register/login + verify email → checkout (COD|MoMo|card) → order detail`
+
+Browsing and cart creation stay public. Purchase, payment-status polling and
+private order operations require a fresh, email-verified buyer session. The
+checkout email must match that account. Verification links are one-use,
+stored hashed and expire after 30 minutes; `/verify-email` provides confirm
+and resend controls. Existing accounts must verify rather than being silently
+backfilled as verified (migration 0050).
 
 ## API
 
@@ -90,9 +110,11 @@ Address book CRUD, wishlist persistence, full-text search (substring `q` only).
 - The fee is recomputed server-side at checkout and frozen on the order.
 - Order page: the 4-digit handover/pickup code (until delivered), pickup spot
   with directions, "I got my order" / "I collected it" (confirms and releases
-  the seller's payment), "There's a problem" (tells the seller, holds that
+  the seller's payment; shown for a delivery only once the seller has sent it,
+  for a pickup any time, and asks "Is everything in your hands?" first — the
+  API refuses a delivery confirmed before it's sent), "There's a problem" (tells the seller, holds that
   order's payment) and "It's sorted". Signed-in buyers use their session;
-  guests prove it with the checkout email (`POST /store/orders/:orderId/received|problem|problem/resolved`).
+  buyers must use a fresh, email-verified account session for checkout, order detail, and state-changing order actions (`POST /store/orders/:orderId/received|problem|problem/resolved`). Email alone is not proof of ownership.
 - The order email includes each seller's code.
 
 ## Returns and disputes (0044)
@@ -132,4 +154,3 @@ Too low for the seller's hidden floor → declined at once. The seller accepts
 or counters; an accepted price shows in the cart ("Your offer price") and is
 charged at checkout for that buyer, listing and quantity until it expires.
 API: `/store/deals`; cart and checkout read the buyer's session.
-

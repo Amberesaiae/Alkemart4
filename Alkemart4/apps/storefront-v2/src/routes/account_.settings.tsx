@@ -10,6 +10,7 @@ import { Spinner } from "@/components/ui/spinner"
 import { ErrorState } from "@/components/feedback/states"
 import { PageSeo } from "@/components/seo/page-seo"
 import { changePassword, getAccount, updateAccount, type Account } from "@/lib/account"
+import { workosEnabled, workosBrowser } from "@/lib/workos"
 import { useMarket } from "@/lib/market"
 import { requireAuth } from "@/lib/route-guards"
 
@@ -132,6 +133,7 @@ function PasswordForm() {
       toast.success("Password changed. Other devices will need to sign in again.")
     },
   })
+  if (workosEnabled) return <section className="space-y-3 rounded-3xl border p-6"><h2 className="text-lg font-bold">Sign-in & recovery</h2><p className="text-sm text-muted-foreground">Google passwords are managed by Google. For email sign-in, use Forgot password on the secure sign-in page.</p><Button onClick={() => void workosBrowser.start({}).catch(() => toast.error("Could not open secure sign-in."))}>Open secure sign-in</Button></section>
   return (
     <section aria-labelledby="password-title" className="space-y-4 rounded-3xl border border-border p-4 sm:p-6">
       <div>

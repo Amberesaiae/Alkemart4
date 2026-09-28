@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query"
 import { listReturns, type ReturnView } from "./returns"
 import { listReported } from "./messages"
+import { listPayable } from "./payouts"
 import { getMe, getStats, getTraffic, listAppeals, listListings, listPendingReviews, listSellers, type AdminListing } from "./api"
 
 export const qk = {
@@ -33,3 +34,5 @@ export const usePendingReviews = () => useQuery({ queryKey: qk.reviews, queryFn:
 export const useReportedMessages = () => useQuery({ queryKey: ["reported-messages"], queryFn: listReported, staleTime: 30_000 })
 /** Returns the buyer and seller couldn't settle (the nav badge). */
 export const useReturnsToDecide = () => useQuery({ queryKey: qk.returns("decide"), queryFn: () => listReturns("decide"), staleTime: 30_000 })
+/** Sellers with released money waiting (shares its cache with Payouts). */
+export const usePayable = () => useQuery({ queryKey: ["payable"], queryFn: listPayable, staleTime: 20_000 })

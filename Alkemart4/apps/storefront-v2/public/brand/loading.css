@@ -1,0 +1,48 @@
+/* Shared by the HTML boot frame and React loaders: no rotation or translation.
+   Clipped copies preserve the exact approved silhouette, including the head. */
+.brand-loading-mark {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.brand-loading-mark img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.brand-loading-base { filter: saturate(0.25); opacity: 0.3; }
+.brand-loading-petal {
+  opacity: 0;
+  animation: brand-petal-highlight 2.5s linear infinite;
+}
+.brand-loading-petal--coral {
+  clip-path: polygon(40% 10%, 65% 10%, 65% 34%, 47% 53%, 40% 51%);
+  animation-delay: 0s;
+}
+.brand-loading-petal--violet {
+  clip-path: polygon(65% 34%, 90% 32%, 90% 57%, 51% 57%, 50% 52%);
+  animation-delay: -2s;
+}
+.brand-loading-petal--teal {
+  clip-path: polygon(49% 57%, 79% 57%, 83% 90%, 47% 90%, 47% 60%);
+  animation-delay: -1.5s;
+}
+.brand-loading-petal--blue {
+  clip-path: polygon(10% 54%, 42% 52%, 45% 55%, 43% 90%, 10% 90%);
+  animation-delay: -1s;
+}
+.brand-loading-petal--head {
+  clip-path: circle(9% at 27% 45%);
+  animation-delay: -0.5s;
+}
+@keyframes brand-petal-highlight {
+  0%, 16%, 100% { opacity: 1; }
+  20%, 96% { opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .brand-loading-petal { animation: none; }
+  .brand-loading-base { filter: none; opacity: 1; }
+}

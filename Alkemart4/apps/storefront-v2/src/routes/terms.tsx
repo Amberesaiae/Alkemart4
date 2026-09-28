@@ -112,9 +112,9 @@ function TermsPage() {
 
           <TermsSection id="accounts" n="3" t="Accounts">
             <p>
-              You may shop as a guest with cash on delivery, or create an
-              account to keep addresses, view order history, and check out
-              faster. You are responsible for keeping your sign-in credentials
+              You may browse and fill your cart without signing in. To place an
+              order, create and verify an account. Your account keeps addresses
+              and order history. You are responsible for keeping your sign-in credentials
               confidential and for all activity under your account.
             </p>
             <p>

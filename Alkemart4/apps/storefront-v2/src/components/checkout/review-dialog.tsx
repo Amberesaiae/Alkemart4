@@ -19,10 +19,10 @@ export function ReviewDialog({ orderId, email, sellerName }: { orderId: string; 
   const [done, setDone] = useState(false)
   const send = useMutation({
     mutationFn: () => submitReview({ orderId, buyerEmail: email, rating, title: title.trim() || null, body: body.trim() }),
-    onSuccess: () => {
+    onSuccess: ({ status }) => {
       setDone(true)
       setOpen(false)
-      toast.success("Thanks! Your review will appear once it's checked.")
+      toast.success(status === "published" ? "Thanks! Your review is up." : "Thanks! Your review will appear once it's checked.")
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Couldn't send your review"),
   })

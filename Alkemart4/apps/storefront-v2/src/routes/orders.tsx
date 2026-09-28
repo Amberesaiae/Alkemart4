@@ -1,20 +1,15 @@
-import { useState } from "react"
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
+import { createFileRoute, Link } from "@tanstack/react-router"
 import { useQuery } from "@tanstack/react-query"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { ArrowRight01Icon, PackageIcon } from "@hugeicons/core-free-icons"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
 import { EmptyState, ErrorState } from "@/components/feedback/states"
 import { PageSeo } from "@/components/seo/page-seo"
 import { useSession } from "@/hooks/use-store"
-import { lookupEmail } from "@/lib/checkout-session"
 import { formatMoney } from "@/lib/market"
 import { listMyOrders, maskOrderId, type StoreOrder } from "@/lib/orders"
-import { listRecentOrderIds } from "@/lib/recent-orders"
 
 export const Route = createFileRoute("/orders")({
   component: OrdersPage,
@@ -57,12 +52,8 @@ function OrderCard({ order }: { order: StoreOrder }) {
 }
 
 function OrdersPage() {
-  const navigate = useNavigate()
   const session = useSession()
-  const [ref, setRef] = useState("")
-  const [email, setEmail] = useState(() => lookupEmail.get() ?? "")
-  const [recent] = useState(() => listRecentOrderIds())
-  const ordersQ = useQuery({ queryKey: ["store", "orders"], queryFn: listMyOrders, enabled: Boolean(session.data) })
+  const ordersQ = useQuery({ queryKey: ["store", "orders"], queryFn: listMyOrders, enabled: Boolean(session.data?.emailVerified) })
 
   return (
     <div className="container-page max-w-3xl space-y-8 pt-6">
@@ -72,7 +63,7 @@ function OrdersPage() {
         <p className="mt-1 text-muted-foreground">Track deliveries and find past orders.</p>
       </header>
 
-      {session.data ? (
+      {session.data?.emailVerified ? (
         <section className="space-y-3">
           {ordersQ.isLoading ? (
             Array.from({ length: 3 }, (_, i) => <Skeleton key={i} className="h-20 rounded-3xl" />)
@@ -90,6 +81,11 @@ function OrdersPage() {
             />
           )}
         </section>
+      ) : session.data && !session.data.emailVerified ? (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-3xl bg-surface p-5">
+          <p className="text-sm">Verify your email to view and manage orders.</p>
+          <Button asChild><Link to="/verify-email" search={{ redirect: "/orders" }}>Verify email</Link></Button>
+        </div>
       ) : !session.isLoading ? (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-3xl bg-surface p-5">
           <p className="text-sm">
@@ -102,43 +98,6 @@ function OrdersPage() {
         </div>
       ) : null}
 
-      <section className="space-y-4 rounded-3xl border border-border p-5 sm:p-6">
-        <div>
-          <h2 className="font-bold">Find an order</h2>
-          <p className="text-sm text-muted-foreground">Use the reference from your confirmation and the email you checked out with.</p>
-        </div>
-        <form
-          className="grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end"
-          onSubmit={(e) => {
-            e.preventDefault()
-            if (!ref.trim()) return
-            if (email.trim()) lookupEmail.set(email.trim())
-            void navigate({ to: "/order/$id", params: { id: ref.trim() } })
-          }}
-        >
-          <div className="space-y-1.5">
-            <Label htmlFor="ref">Order reference</Label>
-            <Input id="ref" value={ref} onChange={(e) => setRef(e.target.value)} autoComplete="off" spellCheck={false} />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="em">Checkout email</Label>
-            <Input id="em" type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" />
-          </div>
-          <Button type="submit" disabled={!ref.trim()}>Find order</Button>
-        </form>
-        {recent.length ? (
-          <div className="space-y-2 pt-2">
-            <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">On this device</p>
-            <div className="flex flex-wrap gap-2">
-              {recent.map((id) => (
-                <Button key={id} asChild variant="secondary" size="sm">
-                  <Link to="/order/$id" params={{ id }}>{maskOrderId(id)}</Link>
-                </Button>
-              ))}
-            </div>
-          </div>
-        ) : null}
-      </section>
     </div>
   )
 }

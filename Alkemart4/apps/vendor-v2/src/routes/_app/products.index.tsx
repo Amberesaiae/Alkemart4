@@ -13,6 +13,7 @@ import { formatMinor } from "@workspace/console-ui/lib/money"
 import { cn } from "@workspace/console-ui/lib/utils"
 import type { Tone } from "@workspace/console-ui/lib/status"
 import { listProducts, priceRange, shelfOf, stockOf, type Shelf, type VendorProduct } from "@/lib/products"
+import { thumbFallback, thumbOf } from "@alkemart/shared/media"
 
 const SHELVES: { id: Shelf | "all"; label: string; tone: Tone }[] = [
   { id: "all", label: "All", tone: "neutral" },
@@ -105,6 +106,7 @@ function ProductsPage() {
         <EmptyState
           icon={Tag01Icon}
           title="Add your first product"
+          illustration="first-listing"
           description="Snap a photo, set a price and how many you have. It takes about a minute."
           action={
             <Button asChild variant="brand" size="xl">
@@ -116,7 +118,7 @@ function ProductsPage() {
           className="rounded-2xl border bg-card py-12"
         />
       ) : shown.length === 0 ? (
-        <EmptyState title="Nothing here" description={term ? `No products match “${term}”.` : "No products on this shelf."} className="rounded-2xl border bg-card" />
+        <EmptyState illustration={term ? "no-results" : "first-listing"} title="Nothing here" description={term ? `No products match “${term}”.` : "No products on this shelf."} className="rounded-2xl border bg-card" />
       ) : (
         <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {shown.map((p) => (
@@ -153,7 +155,7 @@ function ProductRow({ p }: { p: VendorProduct }) {
     >
       <span className="grid size-20 shrink-0 place-items-center overflow-hidden rounded-xl bg-surface">
         {img ? (
-          <img src={img} alt="" className="size-full object-cover" loading="lazy" />
+          <img src={thumbOf(img) ?? img} alt="" className="size-full object-cover" loading="lazy" onError={thumbFallback(img)} />
         ) : (
           <HugeiconsIcon icon={ImageNotFound01Icon} className="size-7 text-muted-foreground" aria-hidden />
         )}

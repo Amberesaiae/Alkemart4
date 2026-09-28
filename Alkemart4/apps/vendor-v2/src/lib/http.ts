@@ -1,6 +1,7 @@
 import { downloadFile } from "@workspace/console-ui/lib/download"
 import { getApiUrl } from "./env"
 import { readSession, writeSession } from "./session"
+import { workosBrowser, workosEnabled } from "./workos"
 
 /** `status` is undefined for network failures (offline, DNS, CORS). */
 export type ApiError = Error & { status?: number }
@@ -12,7 +13,7 @@ export type ApiError = Error & { status?: number }
  */
 export async function api<T>(path: string, init?: RequestInit & { json?: unknown }): Promise<T> {
   const { json, ...rest } = init ?? {}
-  const token = readSession()?.token
+  const token = workosEnabled ? (await workosBrowser.restore())?.token : readSession()?.token
   let res: Response
   try {
     res = await fetch(`${getApiUrl()}${path}`, {
@@ -39,4 +40,4 @@ export async function api<T>(path: string, init?: RequestInit & { json?: unknown
 }
 
 /** Download a file from the API with this console's session (CSV exports, statements). */
-export const download = (path: string) => downloadFile(`${getApiUrl()}${path}`, readSession()?.token)
+export const download = async (path: string) => downloadFile(`${getApiUrl()}${path}`, workosEnabled ? (await workosBrowser.restore())?.token : readSession()?.token)

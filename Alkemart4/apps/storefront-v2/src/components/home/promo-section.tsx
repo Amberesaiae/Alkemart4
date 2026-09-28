@@ -6,6 +6,7 @@ import { ArrowRight01Icon } from "@hugeicons/core-free-icons"
 import { Button } from "@/components/ui/button"
 import { SmartLink } from "@/components/commerce/smart-link"
 import { cn } from "@/lib/utils"
+import { PromoCarousel } from "./promo-carousel"
 
 type Promo = Extract<
   HomeSection,
@@ -19,13 +20,13 @@ const THEME: Record<HomeTheme, string> = {
 }
 
 /** Studio links are site-relative or absolute; both render as plain anchors. */
-function Cta({ link, theme, secondary }: { link: HomeLink; theme: HomeTheme; secondary?: boolean }) {
+function Cta({ link, theme, secondary, compact }: { link: HomeLink; theme: HomeTheme; secondary?: boolean; compact?: boolean }) {
   return (
     <Button
       asChild
       size="xl"
       variant={secondary ? "outline" : theme === "black" ? "brand" : "default"}
-      className={cn(secondary && theme === "black" && "border-white/30 bg-transparent text-white hover:bg-white/10")}
+      className={cn(compact && "md:h-11 md:px-5", secondary && theme === "black" && "border-white/30 bg-transparent text-white hover:bg-white/10")}
     >
       <SmartLink href={link.href}>
         {link.label}
@@ -124,13 +125,18 @@ export function PromoSection({ section }: { section: Promo }) {
   const eyebrow = "eyebrow" in section ? section.eyebrow : undefined
   const body = "body" in section ? section.body : undefined
   const subtitle = section.type === "promo_hero" ? section.subtitle : undefined
+  const compactBand = section.type === "promo_band"
+  const carousel = section.type === "promo_band" && section.id === "deals-band" && cover
 
   return (
     <section className="container-page">
+      {carousel ? <PromoCarousel section={section} /> : null}
       <div
         className={cn(
           "group relative isolate grid overflow-hidden rounded-[2rem]",
           cover ? "min-h-40 text-white sm:min-h-44" : cn("md:grid-cols-2", THEME[section.theme]),
+          compactBand && "md:min-h-32",
+          carousel && "md:hidden",
         )}
       >
         {cover ? (
@@ -139,7 +145,7 @@ export function PromoSection({ section }: { section: Promo }) {
               src={section.imageUrl}
               alt=""
               loading="lazy"
-              className="absolute inset-0 -z-10 size-full object-cover"
+              className="absolute inset-0 -z-10 size-full object-cover md:relative md:inset-auto md:h-auto md:w-full md:object-contain"
               style={{ objectPosition: section.type === "promo_band" ? section.focalPoint : undefined }}
             />
             {scrim !== "none" ? (
@@ -153,22 +159,22 @@ export function PromoSection({ section }: { section: Promo }) {
             ) : null}
           </>
         ) : null}
-        <div className="flex flex-col justify-center gap-2.5 p-4 sm:gap-3 sm:p-5 lg:p-6">
-          {eyebrow ? <p className="text-xs font-semibold tracking-[0.18em] uppercase opacity-80">{eyebrow}</p> : null}
+        <div className={cn("flex flex-col justify-center gap-2.5 p-4 sm:gap-3 sm:p-5 lg:p-6", compactBand && "md:gap-2 md:px-6 md:py-4 lg:py-4", cover && "md:absolute md:inset-0")}>
+          {eyebrow ? <p className={cn("text-xs font-semibold tracking-[0.18em] uppercase opacity-80", compactBand && "md:hidden")}>{eyebrow}</p> : null}
           <h2 className="max-w-lg text-xl leading-tight font-extrabold sm:text-2xl">{section.title}</h2>
-          {subtitle || body ? <p className="max-w-md text-sm opacity-85 sm:text-base">{subtitle ?? body}</p> : null}
+          {subtitle || body ? <p className={cn("max-w-md text-sm opacity-85 sm:text-base", compactBand && "md:hidden")}>{subtitle ?? body}</p> : null}
           {section.type === "countdown_banner" ? (
             <Clock to={section.countdownTo} expiredLabel={section.expiredLabel} />
           ) : null}
           {section.action || secondary ? (
             <div className="flex flex-wrap gap-2">
-              {section.action ? <Cta link={section.action} theme={section.theme} /> : null}
-              {secondary ? <Cta link={secondary} theme={section.theme} secondary /> : null}
+              {section.action ? <Cta link={section.action} theme={section.theme} compact={compactBand} /> : null}
+              {secondary ? <Cta link={secondary} theme={section.theme} secondary compact={compactBand} /> : null}
             </div>
           ) : null}
         </div>
         {!cover && section.imageUrl ? (
-          <div className="relative min-h-32 sm:min-h-36">
+          <div className={cn("relative min-h-32 sm:min-h-36", compactBand && "md:min-h-32")}>
             <img src={section.imageUrl} alt="" loading="lazy" className="absolute inset-0 size-full object-cover" />
           </div>
         ) : null}

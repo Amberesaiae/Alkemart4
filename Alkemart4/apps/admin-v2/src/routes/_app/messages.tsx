@@ -49,7 +49,7 @@ function Reported() {
   const [open, setOpen] = useState<string | null>(null)
   if (q.isPending) return <Skeleton className="h-40 rounded-2xl" />
   if (q.isError) return <ErrorState title="Reports didn't load" error={q.error} onRetry={() => void q.refetch()} className="rounded-2xl border bg-card" />
-  if (!q.data.items.length) return <EmptyState icon={CheckmarkCircle02Icon} title="No reported conversations" className="rounded-2xl border bg-card" />
+  if (!q.data.items.length) return <EmptyState illustration="no-messages" icon={CheckmarkCircle02Icon} title="No reported conversations" className="rounded-2xl border bg-card" />
   return (
     <ul className="space-y-3">
       {q.data.items.map((t) => (
@@ -112,7 +112,7 @@ function Questions() {
   })
   if (q.isPending) return <Skeleton className="h-40 rounded-2xl" />
   if (q.isError) return <ErrorState title="Questions didn't load" error={q.error} onRetry={() => void q.refetch()} className="rounded-2xl border bg-card" />
-  if (!q.data.items.length) return <EmptyState icon={CheckmarkCircle02Icon} title="No product questions yet" className="rounded-2xl border bg-card" />
+  if (!q.data.items.length) return <EmptyState illustration="no-messages" icon={CheckmarkCircle02Icon} title="No product questions yet" className="rounded-2xl border bg-card" />
   return (
     <ul className="divide-y rounded-2xl border bg-card">
       {q.data.items.map((x) => (

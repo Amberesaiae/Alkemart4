@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router"
 import { cn } from "@/lib/utils"
+export { BrandSpinner } from "@workspace/console-ui/components/brand-spinner"
 
 /** Raster-only pinwheel crop used where the standalone mark is needed. */
 export function BrandIcon({ className }: { className?: string }) {
@@ -52,14 +53,5 @@ export function BrandLogo({
     <Link to="/" aria-label="alkemart home" className="rounded-lg">
       {body}
     </Link>
-  )
-}
-
-/** Brand loading mark — use for page-level waits, not inline buttons. */
-export function BrandSpinner({ className, label = "Loading" }: { className?: string; label?: string }) {
-  return (
-    <span data-slot="spinner" role="status" aria-label={label} className={cn("inline-grid size-10 place-items-center", className)}>
-      <BrandIcon className="size-full animate-spin" />
-    </span>
   )
 }

@@ -90,10 +90,10 @@ export function OfferList({
                   <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                     <span className="truncate font-semibold">{name}</span>
                     {COMPARE_ENABLED && o.offerId === bestId && offers.length > 1 ? (
-                      <span className="rounded-full bg-brand px-2 py-0.5 text-[11px] font-bold text-brand-foreground">Best price</span>
+                      <span className="rounded-full bg-brand px-2 py-0.5 text-[length:var(--text-legacy-11)] font-bold text-brand-foreground">Best price</span>
                     ) : null}
                     {o.offerId === topRated && offers.length > 1 ? (
-                      <span className="rounded-full bg-success-soft px-2 py-0.5 text-[11px] font-bold text-success">Top rated</span>
+                      <span className="rounded-full bg-success-soft px-2 py-0.5 text-[length:var(--text-legacy-11)] font-bold text-success">Top rated</span>
                     ) : null}
                   </div>
                   <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">

@@ -1,8 +1,33 @@
 # Lifecycle — Vendor
 
+## Hosted authentication and pilot permissions
+
+WorkOS migration is feature-gated and not deployed. A buyer may open a shop
+without replacing their local identity or order history; vendor privileges
+always come from current database membership, never provider role metadata.
+Existing sellers link with explicit local password proof plus a verified
+provider identity. Revocation and suspended/terminated write blocks apply on
+every protected request. Same-origin Pages auth Functions avoid third-party
+cookies on the current deployment URLs.
+
+Pilot staff may operate catalog/collections/imports, fulfillment orders,
+reviews/messages, uploads/videos and their preferences. Shop identity,
+policies, financial decisions, payout/business/onboarding access and unknown
+staff write surfaces require the owner. Payout destinations remain immutable
+after initial setup. Verified owner email is not proof of payout-account
+ownership or MFA: sensitive-action step-up and independent payout review
+remain release gates. See `docs/ops/WORKOS-PILOT.md`.
+
 ## Flow
 
-`register → /setup stepper → admin approve → product/offer create → propose → admin publish → fulfill (ship/deliver)`
+`register → verify email → /setup stepper → admin approve → product/offer create → propose → admin publish → fulfill (ship/deliver)`
+
+Email verification uses a one-use, hashed token with a 30-minute expiry
+(`/vendor/auth/verify-email/request|confirm`, UI `/verify-email`). Initial payout
+setup requires the verified owner; existing destinations cannot be replaced
+through the vendor session. Approval/reopening and new or retried payouts also
+require a current verified owner. Email ownership does not replace independent
+vendor identity and payout-account checks. Automatic payouts remain off for the pilot.
 
 ### First-run setup (`vendor-v2` `/setup`)
 
@@ -63,11 +88,13 @@ the seller gets the full price. (Automatic payouts are built but off.)
 |--------|------|-------|
 | POST | `/vendor/auth/register` | `{ email, password, sellerName, sellerHandle }` → seller `pending_approval` |
 | POST | `/vendor/auth/login` | JWT |
+| POST | `/vendor/auth/password-reset/request` | `{ email }` → emails `VENDOR_URL/reset-password?token=…` (same answer whether or not the account exists) |
+| POST | `/vendor/auth/password-reset/confirm` | `{ token, password }` — one use, one hour. UI: `/forgot-password` (linked from sign-in) and `/reset-password` |
 | GET | `/vendor/me` | Session |
 | GET | `/vendor/onboarding/status` | Readiness |
 | POST | `/vendor/onboarding/ghana-setup` | MoMo + Paystack transfer recipient |
 | GET/POST | `/vendor/products` | List / create (product+variant+offer) |
-| GET | `/vendor/payouts/statement` | Own money: pending/held/paid/**cash** lines + totals (Money tab). COD lines are `state: "cash"` — cash already with the seller, commission owed, never paid out (see LIFECYCLE-PAYMENT). |
+| GET | `/vendor/payouts/statement` | Own money: pending/held/paid/**cash** lines + totals (Money tab). COD lines are `state: "cash"` — cash already with the seller, commission owed, never paid out (see LIFECYCLE-PAYMENT). Online orders refunded in full before payout are `state: "refunded"` (net 0). |
 | GET/POST | `/vendor/collections` | Shelf CRUD (auto-slug, schedule, visibility) |
 | PUT | `/vendor/collections/:id/products` | Replace membership (own products only, ≤30) |
 | GET/PUT | `/vendor/preferences` | Dashboard alert topics (stock/price/sla/order/payout; all on by default) |
@@ -161,4 +188,3 @@ Questions (answers go public on the product page), Offers (accept, counter,
 decline; offers under your hidden lowest price are declined for you). On a
 product's price row: "Buyers can make offers" and an optional lowest price
 that buyers never see. API: `/vendor/messages`, `/vendor/deals`.
-

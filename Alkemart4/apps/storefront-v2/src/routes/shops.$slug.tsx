@@ -264,6 +264,7 @@ function StorePage() {
             ) : !productsQ.isLoading && visible.length === 0 ? (
               <EmptyState
                 title={products.length ? "No products match" : "No products yet"}
+                illustration={products.length ? "no-results" : "first-listing"}
                 description={products.length ? "Try a different word." : `${vendor.name} hasn't listed anything yet.`}
               />
             ) : (

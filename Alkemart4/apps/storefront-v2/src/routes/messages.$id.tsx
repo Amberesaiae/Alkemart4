@@ -81,7 +81,7 @@ function ThreadPage() {
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}
                   placeholder="e.g. They asked me to pay by MoMo outside the app."
-                  className="w-full rounded-2xl border border-input bg-background px-3.5 py-2.5 text-[15px] outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                  className="w-full rounded-2xl border border-input bg-background px-3.5 py-2.5 text-[length:var(--text-legacy-15)] outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
                 />
                 <p className="text-muted-foreground">alkemart reads a conversation only when it's reported.</p>
                 <div className="flex gap-2">

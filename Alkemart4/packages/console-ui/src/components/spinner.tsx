@@ -1,10 +1,9 @@
 import { cn } from "cn"
-import { HugeiconsIcon } from "@hugeicons/react"
-import { Loading03Icon } from "@hugeicons/core-free-icons"
+import { BrandSpinner } from "./brand-spinner"
 
-function Spinner({ className, ...props }: Omit<React.ComponentProps<"svg">, "strokeWidth">) {
+function Spinner({ className, ...props }: React.ComponentProps<"span">) {
   return (
-    <HugeiconsIcon icon={Loading03Icon} strokeWidth={2} data-slot="spinner" role="status" aria-label="Loading" className={cn("size-4 animate-spin", className)} {...props} />
+    <BrandSpinner className={cn("size-4", className)} {...props} />
   )
 }
 

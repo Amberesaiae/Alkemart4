@@ -15,6 +15,7 @@ import { readSession } from "@/lib/session"
 import { SETUP_STEPS, type SetupStepId } from "@/lib/setup"
 import type { ShopSettings } from "@/lib/shop"
 import { useSetup } from "@/lib/use-setup"
+import { BrandIllustration } from "@workspace/console-ui/components/brand-illustration"
 
 type Step = SetupStepId | "done"
 const IDS: Step[] = [...SETUP_STEPS.map((s) => s.id), "done"]
@@ -190,6 +191,7 @@ function Done({ s, count, total, missing, headingRef }: { s: ShopSettings; count
   const complete = count === total
   return (
     <div className="space-y-6">
+      {complete ? <BrandIllustration name="shop-launched" /> : null}
       <div className="space-y-2">
         <h1 ref={headingRef} tabIndex={-1} className="text-2xl font-extrabold outline-none sm:text-3xl">
           {complete ? "Your shop is ready 🎉" : `Nice — ${count} of ${total} done`}
