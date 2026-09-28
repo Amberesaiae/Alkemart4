@@ -20,10 +20,47 @@ Revisions made (local, not deployed):
   vars; production fails closed (503) when unset. Tests now cover a valid
   signed assertion, wrong identity/audience/issuer and missing config.
 
-Owner decisions still open: guest checkout was removed (sign-in + verified
-email required to buy, guest order lookup now needs sign-in). With production
-mail not configured, deploying the backend would block every unverified buyer
-from checkout — sequence mail before, or together with, the API release.
+**Repo state (2026-09-28):** all work is committed on `main` and pushed
+(`a487a53` v1 removal, `5471bc6` API hardening, `af59779` UI, `c684364` config).
+Only `main` exists locally and on origin. Superseded branches are kept as tags
+`archive/mowafer-storefront-rebuild`, `archive/e2e-audit-session-2` and
+`archive/clean-slate-backend`. Untracked on purpose: `alkedesign/`, `bara/`
+(raw image assets) and a stray root `pnpm-lock.yaml`.
+
+**Preflight (read-only):** live Worker version
+`8ba3e69e-bbbb-4973-a0a6-4a5a5c4f7ffe` is the rollback point
+(`bunx wrangler rollback 8ba3e69e-bbbb-4973-a0a6-4a5a5c4f7ffe`). Worker secrets:
+JWT_SECRET, PAYSTACK_SECRET_KEY, WORKOS_API_KEY only. check-migrations OK (52
+files); live ledger pending 0050/0051.
+
+### Release runbook (backend + UIs ship together)
+
+Account-only checkout is live in both API and storefront, so they cannot ship
+separately: the new API rejects the old storefront's guest checkout, and the
+new storefront needs verification mail to let anyone buy.
+
+1. Owner supplies: Resend API key with alkemart.com verified (add only the
+   DKIM/SPF records Resend lists, and merge SPF into the existing Namecheap TXT
+   rather than adding a second one); Turnstile widget for alkemart.com +
+   sell.alkemart.com (site key → `VITE_TURNSTILE_SITE_KEY`, secret →
+   `TURNSTILE_SECRET_KEY`, `TURNSTILE_HOSTNAMES`).
+2. `wrangler secret put` RESEND_API_KEY, TURNSTILE_SECRET_KEY (stdin).
+3. Fresh full backup (needs pg_dump 17 or Supabase CLI), restore-test it,
+   then `bun run db:migrate` over session port 5432 for 0050 + 0051.
+4. `cd apps/api && bunx wrangler deploy` (WORKOS_ENABLED stays 0; creates the
+   AuthRateLimiter DO and the two auth zone routes). Record the new version.
+5. `bun run deploy:pages` (clean tree required) for all three apps.
+6. Verify: `curl https://api.alkemart.com/admin/me` and workers.dev → 403;
+   console admin works through Access; buyer register → mail → verify →
+   checkout; old guest-order email links prompt for sign-in; /health, CORS.
+7. On failure: roll back the Worker to the version above and redeploy the
+   previous Pages deployments. Migrations are additive, so they can stay.
+8. WorkOS cutover is a separate later release (cookie secret, client ID,
+   WORKOS_ENABLED=1 + VITE_WORKOS_ENABLED=1, session policy 7d/24h, E2E).
+
+Owner decision (2026-09-28): keep account-only checkout (sign-in + verified
+email to buy; guest order lookup needs sign-in). Production mail is therefore
+a hard prerequisite of the release, not a follow-up.
 
 
 Latest handoff as of 2026-09-28, Africa/Accra. This supersedes older statements
@@ -39,11 +76,9 @@ want a separate staging Supabase project imposed as a prerequisite: use the
 existing production database only with a verified backup, reviewed migrations,
 rollback evidence, and explicit rollout controls. This does not waive testing.
 
-Stay on main and preserve user changes. No push is authorized. Do not ship the
-whole dirty tree: approximately **1,500 changed entries**, including unrelated
-UI/illustration work. No commit was made during this continuation. Review and
-isolate the intended release; coordinate a commit with the owner under repo rules.
-Do not delete, stash, reset, or revert unrelated changes to get a clean checkout.
+Stay on main and preserve user changes. The formerly dirty tree was reviewed
+and committed to main in logical commits (see Repo state above); deploying
+still needs explicit owner approval per step.
 Read AGENTS.md and its required architecture/lifecycle docs first. Retired
 apps/storefront, apps/backend/** and archive/** are not deployment targets.
 
