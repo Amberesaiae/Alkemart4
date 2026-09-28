@@ -36,6 +36,15 @@ RESEND_API_KEY
 0x4AAAAAAFFxBFw6fPs_cRjN, hosts alkemart.com + sell.alkemart.com). check-migrations OK (52
 files); live ledger now 52 (0050/0051 applied 2026-09-28).
 
+**Showroom stock-out (2026-09-28, owner request):** every product in all 9
+shops is out of stock (42 offers, 0 units; verified read-only). Pages stay
+visible; add-to-cart refuses. Previous stock (34 offers, 1,207 units) is in
+`scripts/.stock-backup-2026-09-28T04-21-14-901Z.json` (git-ignored, mode 600).
+Restore: `DATABASE_URL=<session-mode url> bun scripts/pilot-stock-out-demo.ts
+--apply --restore=scripts/.stock-backup-2026-09-28T04-21-14-901Z.json`. Hurry
+Ventures is the only open shop whose owner can sign in (and restock). Shop
+covers are briefed for Codex in apps/storefront-v2/docs/SHOP-COVERS.md.
+
 ### Release runbook (backend + UIs ship together)
 
 Account-only checkout is live in both API and storefront, so they cannot ship
