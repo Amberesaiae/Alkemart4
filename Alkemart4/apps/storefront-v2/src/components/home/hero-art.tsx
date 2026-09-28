@@ -6,6 +6,13 @@ import { cn } from "@/lib/utils"
 const INTERVAL_MS = 5000
 
 /**
+ * Frame for phone art: the canvas's left 22% is empty (it's where the desktop
+ * headline sits), so phones crop it away and anchor right — the artwork fills
+ * the frame instead of floating in padding.
+ */
+const FRAME = "aspect-[1109/1034] object-cover object-right"
+
+/**
  * One image stands still. Two or more swipe (scroll-snap), advance every 5s
  * and stop for reduced motion, while hidden or off screen, while touched or
  * focused, and for good on pause (WCAG 2.2.2).
@@ -53,7 +60,7 @@ export function HeroArt({ images, className }: { images: string[]; className?: s
 
   if (count === 0) return null
   if (!many) {
-    return <img src={images[0]} alt="" width={1600} height={1200} fetchPriority="high" className={cn("aspect-[4/3] object-contain", className)} />
+    return <img src={images[0]} alt="" width={1600} height={1200} fetchPriority="high" className={cn(FRAME, className)} />
   }
 
   return (
@@ -85,7 +92,7 @@ export function HeroArt({ images, className }: { images: string[]; className?: s
             height={1200}
             loading={i === 0 ? "eager" : "lazy"}
             fetchPriority={i === 0 ? "high" : undefined}
-            className="aspect-[4/3] w-full shrink-0 snap-center object-contain"
+            className={cn(FRAME, "w-full shrink-0 snap-center")}
           />
         ))}
       </div>

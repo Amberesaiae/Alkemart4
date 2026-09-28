@@ -77,7 +77,7 @@ export function HomeHero({ departments, allCategories, stocked }: {
             >
               Whatever you’re looking for, someone’s selling it.
             </h1>
-            <HeroArt images={PHONE_HERO_ART} className="-mr-4 w-[60%] shrink-0 md:hidden" />
+            <HeroArt images={PHONE_HERO_ART} className="w-[58%] shrink-0 md:hidden" />
           </div>
           <p className="mt-4 hidden max-w-xl text-lg font-medium text-foreground/80 md:block">
             Discover products from trusted sellers, all in one place.
