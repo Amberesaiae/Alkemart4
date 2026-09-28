@@ -33,6 +33,7 @@ export const requireAdminAccess: MiddlewareHandler<AppEnv> = async (c, next) => 
     if (typeof payload.email !== "string" || !approved.has(payload.email.toLowerCase())) {
       return c.json({ error: "access_denied" }, 403)
     }
+    c.set("adminAccessEmail", payload.email.toLowerCase())
   } catch {
     return c.json({ error: "access_denied" }, 403)
   }

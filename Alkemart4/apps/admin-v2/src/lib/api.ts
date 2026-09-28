@@ -11,6 +11,13 @@ export async function signIn(email: string, password: string) {
   return s
 }
 
+/** Production: sign in from the Cloudflare Access pass (Google). 404 locally, where there is no Access. */
+export async function signInWithAccess() {
+  const s = await api<AdminSession>("/admin/auth/access", { method: "POST" })
+  writeSession(s)
+  return s
+}
+
 export function signOut() {
   writeSession(null)
 }

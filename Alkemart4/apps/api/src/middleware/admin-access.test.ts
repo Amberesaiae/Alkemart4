@@ -64,3 +64,45 @@ describe("admin Access gate", () => {
     expect((await app().request("/store/catalog", {}, { ENVIRONMENT: "production" } as AppEnv["Bindings"])).status).toBe(200)
   })
 })
+
+describe("admin sign-in from the Access pass", () => {
+  async function full() {
+    const { createApp } = await import("../index")
+    const { InMemoryAuthRepository } = await import("../auth-repository")
+    const repo = new InMemoryAuthRepository()
+    const app = createApp({ authRepo: repo, jwtSecret: "local-test-jwt-secret" })
+    // Production sign-in routes need the auth rate limiter; this stand-in allows every request.
+    const limiter = { idFromName: () => "id", get: () => ({ fetch: async () => Response.json({ allowed: true, retryAfter: 0 }) }) }
+    return { repo, call: (path: string, init: RequestInit, env = PROD) => app.request(path, init, { ...env, AUTH_RATE_LIMITER: limiter, JWT_SECRET: "local-test-jwt-secret" } as never) }
+  }
+
+  it("signs an approved person in as their own admin account, created once", async () => {
+    const s = await full()
+    // The same Gmail may already shop on alkemart; the admin account stays separate.
+    await s.repo.createUser({ id: "shopper", email: "owner@example.com", passwordHash: "x", role: "buyer" })
+    const headers = { "Cf-Access-Jwt-Assertion": await sign({ email: "Owner@Example.com" }) }
+    const first = await s.call("/admin/auth/access", { method: "POST", headers })
+    expect(first.status).toBe(200)
+    const body = await first.json() as { token: string; user: { email: string; role: string } }
+    expect(body.user).toMatchObject({ email: "owner+console@example.com", role: "admin" })
+    const again = await (await s.call("/admin/auth/access", { method: "POST", headers })).json() as { user: { id: string } }
+    expect((await s.repo.findUserByEmail("owner+console@example.com"))!.id).toBe(again.user.id)
+    expect((await s.repo.findUserByEmail("owner@example.com"))!.role).toBe("buyer")
+    const me = await s.call("/admin/me", { headers: { ...headers, Authorization: `Bearer ${body.token}` } })
+    expect(me.status).toBe(200)
+  })
+
+  it("refuses without a pass, for strangers, and outside production", async () => {
+    const s = await full()
+    expect((await s.call("/admin/auth/access", { method: "POST" })).status).toBe(403)
+    expect((await s.call("/admin/auth/access", { method: "POST", headers: { "Cf-Access-Jwt-Assertion": await sign({ email: "stranger@example.com" }) } })).status).toBe(403)
+    expect((await s.call("/admin/auth/access", { method: "POST" }, { ENVIRONMENT: "development" } as never)).status).toBe(404)
+  })
+
+  it("never lets the access-only admin account sign in with a password", async () => {
+    const s = await full()
+    await s.call("/admin/auth/access", { method: "POST", headers: { "Cf-Access-Jwt-Assertion": await sign({ email: "owner@example.com" }) } })
+    const login = await s.call("/admin/auth/login", { method: "POST", headers: { "Content-Type": "application/json", "Cf-Access-Jwt-Assertion": await sign({ email: "owner@example.com" }) }, body: JSON.stringify({ email: "owner+console@example.com", password: "access-only" }) })
+    expect(login.status).toBe(401)
+  })
+})

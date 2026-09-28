@@ -90,6 +90,8 @@ export type WebhookDedup = {
 export type AppEnv = {
   Bindings: ApiEnv
   Variables: {
+    /** Email from a verified Cloudflare Access assertion (production /admin only). */
+    adminAccessEmail?: string
     workos: WorkosStore
     workosFetch: typeof fetch
     repo: CatalogRepository
