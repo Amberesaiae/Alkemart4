@@ -74,6 +74,8 @@ WORKOS_ENABLED = "0"
 ADMIN_ACCESS_TEAM = "https://proud-block-b3f8.cloudflareaccess.com"
 ADMIN_ACCESS_AUD = "e841b78f33d66a76e22cf6e82159e78a8f087534e87545af6090110184478982"
 ADMIN_ACCESS_EMAILS = "isaiahamber5@gmail.com,akpey.mawuena@gmail.com"
+# Sign-up challenge must come from these hosts (secret: TURNSTILE_SECRET_KEY).
+TURNSTILE_HOSTNAMES = "alkemart.com,sell.alkemart.com"
 
 
 [[durable_objects.bindings]]

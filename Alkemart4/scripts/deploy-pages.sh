@@ -14,6 +14,9 @@ export VITE_ALKEMART_STOREFRONT_URL="${VITE_ALKEMART_STOREFRONT_URL:-https://alk
 export VITE_STOREFRONT_URL="${VITE_STOREFRONT_URL:-$VITE_ALKEMART_STOREFRONT_URL}"
 export VITE_VENDOR_APP_URL="${VITE_VENDOR_APP_URL:-https://sell.alkemart.com}"
 export VITE_PUBLIC_SITE_URL="${VITE_PUBLIC_SITE_URL:-$VITE_STOREFRONT_URL}"
+# Public Turnstile site key ("alkemart production sign-up" widget: alkemart.com,
+# sell.alkemart.com). Its secret lives only in the Worker as TURNSTILE_SECRET_KEY.
+export VITE_TURNSTILE_SITE_KEY="${VITE_TURNSTILE_SITE_KEY:-0x4AAAAAAFFxBFw6fPs_cRjN}"
 
 deploy_one() {
   local dir="$1" project="$2"
