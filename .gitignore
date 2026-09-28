@@ -66,3 +66,4 @@ alkemart-backup-*
 
 # Stock backups from scripts/pilot-stock-out-demo.ts
 .stock-backup-*.json
+.showroom-backup-*.json

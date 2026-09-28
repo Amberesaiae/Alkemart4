@@ -1,0 +1,193 @@
+{
+ "sellerIds": {
+  "hurry-ventures": "5e8d3820-f925-4eb0-94a6-94c112526f23",
+  "demo-kumasi-fabrics": "d4853888-d2c6-40e5-aa9e-7104c96a4f33",
+  "demo-takoradi-home": "05b0084f-0a43-4bea-895d-a53c44907f9d",
+  "demo-osu-electronics": "c1639684-7ecf-435b-9f3a-d03896146e54",
+  "demo-tamale-grocers": "cd13c9f0-bc9a-4367-8ff1-91aab4a3ccad",
+  "seller-b": "seller-b",
+  "kwaku-boateng-tools": "fb7dbb1b-33da-4973-a65b-182bfc98f289"
+ },
+ "images": {
+  "leather-sandals": {
+   "key": "products/5e8d3820-f925-4eb0-94a6-94c112526f23/6bdce71b-f805-4182-8584-9f938c08d37a.webp",
+   "thumbKey": "products/5e8d3820-f925-4eb0-94a6-94c112526f23/6bdce71b-f805-4182-8584-9f938c08d37a.thumb.webp",
+   "url": "https://api.alkemart.com/media/products/5e8d3820-f925-4eb0-94a6-94c112526f23/6bdce71b-f805-4182-8584-9f938c08d37a.webp"
+  },
+  "vintage-leather-satchel": {
+   "key": "products/5e8d3820-f925-4eb0-94a6-94c112526f23/ddc0020e-4209-4713-845a-adc44ba91c37.webp",
+   "thumbKey": "products/5e8d3820-f925-4eb0-94a6-94c112526f23/ddc0020e-4209-4713-845a-adc44ba91c37.thumb.webp",
+   "url": "https://api.alkemart.com/media/products/5e8d3820-f925-4eb0-94a6-94c112526f23/ddc0020e-4209-4713-845a-adc44ba91c37.webp"
+  },
+  "ankara-strap-slides": {
+   "key": "products/5e8d3820-f925-4eb0-94a6-94c112526f23/40837311-4b61-4c99-96b6-f6169f1577a9.webp",
+   "thumbKey": "products/5e8d3820-f925-4eb0-94a6-94c112526f23/40837311-4b61-4c99-96b6-f6169f1577a9.thumb.webp",
+   "url": "https://api.alkemart.com/media/products/5e8d3820-f925-4eb0-94a6-94c112526f23/40837311-4b61-4c99-96b6-f6169f1577a9.webp"
+  },
+  "bolga-leather-crossbody": {
+   "key": "products/5e8d3820-f925-4eb0-94a6-94c112526f23/59da5529-4141-4ed3-b10f-a6255cf79f00.webp",
+   "thumbKey": "products/5e8d3820-f925-4eb0-94a6-94c112526f23/59da5529-4141-4ed3-b10f-a6255cf79f00.thumb.webp",
+   "url": "https://api.alkemart.com/media/products/5e8d3820-f925-4eb0-94a6-94c112526f23/59da5529-4141-4ed3-b10f-a6255cf79f00.webp"
+  },
+  "mudcloth-palazzo": {
+   "key": "products/d4853888-d2c6-40e5-aa9e-7104c96a4f33/47192efc-5a4f-4443-a5bd-28290c9187b3.webp",
+   "thumbKey": "products/d4853888-d2c6-40e5-aa9e-7104c96a4f33/47192efc-5a4f-4443-a5bd-28290c9187b3.thumb.webp",
+   "url": "https://api.alkemart.com/media/products/d4853888-d2c6-40e5-aa9e-7104c96a4f33/47192efc-5a4f-4443-a5bd-28290c9187b3.webp"
+  },
+  "tribal-linen-shirt": {
+   "key": "products/d4853888-d2c6-40e5-aa9e-7104c96a4f33/6fe8094d-8e31-455b-bce3-a5a4bd671c5b.webp",
+   "thumbKey": "products/d4853888-d2c6-40e5-aa9e-7104c96a4f33/6fe8094d-8e31-455b-bce3-a5a4bd671c5b.thumb.webp",
+   "url": "https://api.alkemart.com/media/products/d4853888-d2c6-40e5-aa9e-7104c96a4f33/6fe8094d-8e31-455b-bce3-a5a4bd671c5b.webp"
+  },
+  "kente-cap": {
+   "key": "products/d4853888-d2c6-40e5-aa9e-7104c96a4f33/9c850b43-3691-4834-ba5d-8eabe0e5b39d.webp",
+   "thumbKey": "products/d4853888-d2c6-40e5-aa9e-7104c96a4f33/9c850b43-3691-4834-ba5d-8eabe0e5b39d.thumb.webp",
+   "url": "https://api.alkemart.com/media/products/d4853888-d2c6-40e5-aa9e-7104c96a4f33/9c850b43-3691-4834-ba5d-8eabe0e5b39d.webp"
+  },
+  "ankara-fila": {
+   "key": "products/d4853888-d2c6-40e5-aa9e-7104c96a4f33/1c49a8c8-0b5d-4697-8191-8352add48b48.webp",
+   "thumbKey": "products/d4853888-d2c6-40e5-aa9e-7104c96a4f33/1c49a8c8-0b5d-4697-8191-8352add48b48.thumb.webp",
+   "url": "https://api.alkemart.com/media/products/d4853888-d2c6-40e5-aa9e-7104c96a4f33/1c49a8c8-0b5d-4697-8191-8352add48b48.webp"
+  },
+  "wax-print": {
+   "key": "products/d4853888-d2c6-40e5-aa9e-7104c96a4f33/e242ad9d-633a-470d-92be-c7368b0c35c9.webp",
+   "thumbKey": "products/d4853888-d2c6-40e5-aa9e-7104c96a4f33/e242ad9d-633a-470d-92be-c7368b0c35c9.thumb.webp",
+   "url": "https://api.alkemart.com/media/products/d4853888-d2c6-40e5-aa9e-7104c96a4f33/e242ad9d-633a-470d-92be-c7368b0c35c9.webp"
+  },
+  "frying-pan": {
+   "key": "products/05b0084f-0a43-4bea-895d-a53c44907f9d/c0cb28c6-452b-4e1b-8666-eaeb3f39f7df.webp",
+   "thumbKey": "products/05b0084f-0a43-4bea-895d-a53c44907f9d/c0cb28c6-452b-4e1b-8666-eaeb3f39f7df.thumb.webp",
+   "url": "https://api.alkemart.com/media/products/05b0084f-0a43-4bea-895d-a53c44907f9d/c0cb28c6-452b-4e1b-8666-eaeb3f39f7df.webp"
+  },
+  "stainless-cookware": {
+   "key": "products/05b0084f-0a43-4bea-895d-a53c44907f9d/b554c500-bcd6-4fe9-9475-39e3add06ee0.webp",
+   "thumbKey": "products/05b0084f-0a43-4bea-895d-a53c44907f9d/b554c500-bcd6-4fe9-9475-39e3add06ee0.thumb.webp",
+   "url": "https://api.alkemart.com/media/products/05b0084f-0a43-4bea-895d-a53c44907f9d/b554c500-bcd6-4fe9-9475-39e3add06ee0.webp"
+  },
+  "ceramic-dinner-set": {
+   "key": "products/05b0084f-0a43-4bea-895d-a53c44907f9d/12ccffe2-f719-4df2-969b-596c2495618f.webp",
+   "thumbKey": "products/05b0084f-0a43-4bea-895d-a53c44907f9d/12ccffe2-f719-4df2-969b-596c2495618f.thumb.webp",
+   "url": "https://api.alkemart.com/media/products/05b0084f-0a43-4bea-895d-a53c44907f9d/12ccffe2-f719-4df2-969b-596c2495618f.webp"
+  },
+  "storage-baskets": {
+   "key": "products/05b0084f-0a43-4bea-895d-a53c44907f9d/7857cb27-8322-4d72-a8c4-74635cf0ea1e.webp",
+   "thumbKey": "products/05b0084f-0a43-4bea-895d-a53c44907f9d/7857cb27-8322-4d72-a8c4-74635cf0ea1e.thumb.webp",
+   "url": "https://api.alkemart.com/media/products/05b0084f-0a43-4bea-895d-a53c44907f9d/7857cb27-8322-4d72-a8c4-74635cf0ea1e.webp"
+  },
+  "cooler-box": {
+   "key": "products/05b0084f-0a43-4bea-895d-a53c44907f9d/ac3f36d0-958d-4765-997e-34c599592543.webp",
+   "thumbKey": "products/05b0084f-0a43-4bea-895d-a53c44907f9d/ac3f36d0-958d-4765-997e-34c599592543.thumb.webp",
+   "url": "https://api.alkemart.com/media/products/05b0084f-0a43-4bea-895d-a53c44907f9d/ac3f36d0-958d-4765-997e-34c599592543.webp"
+  },
+  "blender": {
+   "key": "products/c1639684-7ecf-435b-9f3a-d03896146e54/1c69fb47-82db-432d-a8f6-d0b2994188b3.webp",
+   "thumbKey": "products/c1639684-7ecf-435b-9f3a-d03896146e54/1c69fb47-82db-432d-a8f6-d0b2994188b3.thumb.webp",
+   "url": "https://api.alkemart.com/media/products/c1639684-7ecf-435b-9f3a-d03896146e54/1c69fb47-82db-432d-a8f6-d0b2994188b3.webp"
+  },
+  "air-fryer": {
+   "key": "products/c1639684-7ecf-435b-9f3a-d03896146e54/afa9d8e4-c046-411d-b9d5-d817eee9aff6.webp",
+   "thumbKey": "products/c1639684-7ecf-435b-9f3a-d03896146e54/afa9d8e4-c046-411d-b9d5-d817eee9aff6.thumb.webp",
+   "url": "https://api.alkemart.com/media/products/c1639684-7ecf-435b-9f3a-d03896146e54/afa9d8e4-c046-411d-b9d5-d817eee9aff6.webp"
+  },
+  "gas-hob": {
+   "key": "products/c1639684-7ecf-435b-9f3a-d03896146e54/cd4011e7-754c-4eaf-afb4-c0d7727f08a8.webp",
+   "thumbKey": "products/c1639684-7ecf-435b-9f3a-d03896146e54/cd4011e7-754c-4eaf-afb4-c0d7727f08a8.thumb.webp",
+   "url": "https://api.alkemart.com/media/products/c1639684-7ecf-435b-9f3a-d03896146e54/cd4011e7-754c-4eaf-afb4-c0d7727f08a8.webp"
+  },
+  "water-dispenser": {
+   "key": "products/c1639684-7ecf-435b-9f3a-d03896146e54/1b4251c2-c5ad-47e4-a03b-397859a9d801.webp",
+   "thumbKey": "products/c1639684-7ecf-435b-9f3a-d03896146e54/1b4251c2-c5ad-47e4-a03b-397859a9d801.thumb.webp",
+   "url": "https://api.alkemart.com/media/products/c1639684-7ecf-435b-9f3a-d03896146e54/1b4251c2-c5ad-47e4-a03b-397859a9d801.webp"
+  },
+  "washer": {
+   "key": "products/c1639684-7ecf-435b-9f3a-d03896146e54/57c3c9e4-14e7-4ebb-84d5-e4bdf2e5586e.webp",
+   "thumbKey": "products/c1639684-7ecf-435b-9f3a-d03896146e54/57c3c9e4-14e7-4ebb-84d5-e4bdf2e5586e.thumb.webp",
+   "url": "https://api.alkemart.com/media/products/c1639684-7ecf-435b-9f3a-d03896146e54/57c3c9e4-14e7-4ebb-84d5-e4bdf2e5586e.webp"
+  },
+  "brown-sofa": {
+   "key": "products/cd13c9f0-bc9a-4367-8ff1-91aab4a3ccad/fed4a2f2-283d-4e3b-a9fb-041307042ac5.webp",
+   "thumbKey": "products/cd13c9f0-bc9a-4367-8ff1-91aab4a3ccad/fed4a2f2-283d-4e3b-a9fb-041307042ac5.thumb.webp",
+   "url": "https://api.alkemart.com/media/products/cd13c9f0-bc9a-4367-8ff1-91aab4a3ccad/fed4a2f2-283d-4e3b-a9fb-041307042ac5.webp"
+  },
+  "grey-sectional": {
+   "key": "products/cd13c9f0-bc9a-4367-8ff1-91aab4a3ccad/7f25f526-0201-48f7-acee-6a784506e03a.webp",
+   "thumbKey": "products/cd13c9f0-bc9a-4367-8ff1-91aab4a3ccad/7f25f526-0201-48f7-acee-6a784506e03a.thumb.webp",
+   "url": "https://api.alkemart.com/media/products/cd13c9f0-bc9a-4367-8ff1-91aab4a3ccad/7f25f526-0201-48f7-acee-6a784506e03a.webp"
+  },
+  "l-sofa": {
+   "key": "products/cd13c9f0-bc9a-4367-8ff1-91aab4a3ccad/15fe74f3-5b74-4272-8f37-4a4855c15861.webp",
+   "thumbKey": "products/cd13c9f0-bc9a-4367-8ff1-91aab4a3ccad/15fe74f3-5b74-4272-8f37-4a4855c15861.thumb.webp",
+   "url": "https://api.alkemart.com/media/products/cd13c9f0-bc9a-4367-8ff1-91aab4a3ccad/15fe74f3-5b74-4272-8f37-4a4855c15861.webp"
+  },
+  "shaggy-rugs": {
+   "key": "products/cd13c9f0-bc9a-4367-8ff1-91aab4a3ccad/aea6dc66-9736-4fec-b4b4-f9dbc1843931.webp",
+   "thumbKey": "products/cd13c9f0-bc9a-4367-8ff1-91aab4a3ccad/aea6dc66-9736-4fec-b4b4-f9dbc1843931.thumb.webp",
+   "url": "https://api.alkemart.com/media/products/cd13c9f0-bc9a-4367-8ff1-91aab4a3ccad/aea6dc66-9736-4fec-b4b4-f9dbc1843931.webp"
+  },
+  "pendant-light": {
+   "key": "products/seller-b/817b75fe-ad0d-48f0-9085-af0a113e3857.webp",
+   "thumbKey": "products/seller-b/817b75fe-ad0d-48f0-9085-af0a113e3857.thumb.webp",
+   "url": "https://api.alkemart.com/media/products/seller-b/817b75fe-ad0d-48f0-9085-af0a113e3857.webp"
+  },
+  "pendant-light-2": {
+   "key": "products/seller-b/f471760e-51c4-4c55-9ed8-d81fb3acbf2f.webp",
+   "thumbKey": "products/seller-b/f471760e-51c4-4c55-9ed8-d81fb3acbf2f.thumb.webp",
+   "url": "https://api.alkemart.com/media/products/seller-b/f471760e-51c4-4c55-9ed8-d81fb3acbf2f.webp"
+  },
+  "teapot-lamp": {
+   "key": "products/seller-b/f2399971-5a61-403d-a832-1d71a468b296.webp",
+   "thumbKey": "products/seller-b/f2399971-5a61-403d-a832-1d71a468b296.thumb.webp",
+   "url": "https://api.alkemart.com/media/products/seller-b/f2399971-5a61-403d-a832-1d71a468b296.webp"
+  },
+  "moon-lamp": {
+   "key": "products/seller-b/a092af77-f7b9-4dd8-b152-31119a73e0ff.webp",
+   "thumbKey": "products/seller-b/a092af77-f7b9-4dd8-b152-31119a73e0ff.thumb.webp",
+   "url": "https://api.alkemart.com/media/products/seller-b/a092af77-f7b9-4dd8-b152-31119a73e0ff.webp"
+  },
+  "wine-shelf": {
+   "key": "products/seller-b/ba154eb2-1f57-4662-b23e-2cf1dffa06ce.webp",
+   "thumbKey": "products/seller-b/ba154eb2-1f57-4662-b23e-2cf1dffa06ce.thumb.webp",
+   "url": "https://api.alkemart.com/media/products/seller-b/ba154eb2-1f57-4662-b23e-2cf1dffa06ce.webp"
+  },
+  "wine-rack": {
+   "key": "products/seller-b/c12195ba-6a6b-4a14-902f-b8937eca18ba.webp",
+   "thumbKey": "products/seller-b/c12195ba-6a6b-4a14-902f-b8937eca18ba.thumb.webp",
+   "url": "https://api.alkemart.com/media/products/seller-b/c12195ba-6a6b-4a14-902f-b8937eca18ba.webp"
+  },
+  "bolga-fans": {
+   "key": "products/seller-b/1d9ab1c3-9a72-44a6-9675-668e42004592.webp",
+   "thumbKey": "products/seller-b/1d9ab1c3-9a72-44a6-9675-668e42004592.thumb.webp",
+   "url": "https://api.alkemart.com/media/products/seller-b/1d9ab1c3-9a72-44a6-9675-668e42004592.webp"
+  },
+  "remote-covers": {
+   "key": "products/seller-b/c52e26a5-c03d-4b34-a7ec-9173bd51711f.webp",
+   "thumbKey": "products/seller-b/c52e26a5-c03d-4b34-a7ec-9173bd51711f.thumb.webp",
+   "url": "https://api.alkemart.com/media/products/seller-b/c52e26a5-c03d-4b34-a7ec-9173bd51711f.webp"
+  },
+  "gym-keychains": {
+   "key": "products/seller-b/745aec06-878e-4a48-8d2d-9ed57892fa53.webp",
+   "thumbKey": "products/seller-b/745aec06-878e-4a48-8d2d-9ed57892fa53.thumb.webp",
+   "url": "https://api.alkemart.com/media/products/seller-b/745aec06-878e-4a48-8d2d-9ed57892fa53.webp"
+  },
+  "drill-kit": {
+   "key": "products/fb7dbb1b-33da-4973-a65b-182bfc98f289/5c267905-2f47-4dc6-b9f5-88f7616ef31a.webp",
+   "thumbKey": "products/fb7dbb1b-33da-4973-a65b-182bfc98f289/5c267905-2f47-4dc6-b9f5-88f7616ef31a.thumb.webp",
+   "url": "https://api.alkemart.com/media/products/fb7dbb1b-33da-4973-a65b-182bfc98f289/5c267905-2f47-4dc6-b9f5-88f7616ef31a.webp"
+  },
+  "insulated-tools": {
+   "key": "products/fb7dbb1b-33da-4973-a65b-182bfc98f289/04e90a63-7a00-4ae2-965c-d4f5b5ba0439.webp",
+   "thumbKey": "products/fb7dbb1b-33da-4973-a65b-182bfc98f289/04e90a63-7a00-4ae2-965c-d4f5b5ba0439.thumb.webp",
+   "url": "https://api.alkemart.com/media/products/fb7dbb1b-33da-4973-a65b-182bfc98f289/04e90a63-7a00-4ae2-965c-d4f5b5ba0439.webp"
+  },
+  "hivis-trousers": {
+   "key": "products/fb7dbb1b-33da-4973-a65b-182bfc98f289/46210b12-96ee-4ea8-aa2f-3a819a9562ab.webp",
+   "thumbKey": "products/fb7dbb1b-33da-4973-a65b-182bfc98f289/46210b12-96ee-4ea8-aa2f-3a819a9562ab.thumb.webp",
+   "url": "https://api.alkemart.com/media/products/fb7dbb1b-33da-4973-a65b-182bfc98f289/46210b12-96ee-4ea8-aa2f-3a819a9562ab.webp"
+  },
+  "safety-kit": {
+   "key": "products/fb7dbb1b-33da-4973-a65b-182bfc98f289/e99c835b-8b5a-42de-863d-0eaafae2eedf.webp",
+   "thumbKey": "products/fb7dbb1b-33da-4973-a65b-182bfc98f289/e99c835b-8b5a-42de-863d-0eaafae2eedf.thumb.webp",
+   "url": "https://api.alkemart.com/media/products/fb7dbb1b-33da-4973-a65b-182bfc98f289/e99c835b-8b5a-42de-863d-0eaafae2eedf.webp"
+  }
+ }
+}
