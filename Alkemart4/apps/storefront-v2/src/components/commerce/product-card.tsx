@@ -104,7 +104,7 @@ export function ProductCard({
               loading={priority ? "eager" : "lazy"}
               decoding="async"
               onError={() => setFailed((n) => n + 1)}
-              className="size-full object-contain p-[9%] mix-blend-multiply"
+              className="size-full object-cover"
             />
           ) : (
             <div className="grid size-full place-items-center">
@@ -127,7 +127,7 @@ export function ProductCard({
 
         <div className="flex flex-1 flex-col gap-1 px-1 pt-3">
           {p.categoryLabel ? (
-            <p className="truncate text-xs font-medium tracking-wide text-muted-foreground uppercase">
+            <p className="truncate text-xs font-medium text-muted-foreground">
               {p.categoryLabel}
             </p>
           ) : null}

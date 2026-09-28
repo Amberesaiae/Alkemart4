@@ -381,7 +381,7 @@ function ProductPage() {
               <NotifyMe productId={p.id} offerId={selection.activeOfferId} path={path} />
             ) : null}
 
-            <div className="hidden space-y-3 lg:block">
+            <div className={cn("hidden space-y-3", !selection?.outOfStock && "lg:block")}>
               <BuyControls
                 qty={qty}
                 setQty={setQty}
@@ -476,6 +476,20 @@ function ProductPage() {
 
       {/* Phone buy bar */}
       <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/95 p-3 pb-safe backdrop-blur lg:hidden">
+        {selection?.outOfStock ? (
+          // One clear state instead of two disabled buttons.
+          <div className="flex items-center gap-3">
+            <p className="flex-1 text-base font-semibold">Sold out</p>
+            <Button
+              variant="brand"
+              size="xl"
+              onClick={() => document.getElementById("notify-me")?.scrollIntoView({ behavior: "smooth", block: "center" })}
+            >
+              Notify me when it's back
+            </Button>
+          </div>
+        ) : (
+        <>
         {reason ? <p className="mb-2 text-center text-xs font-medium text-muted-foreground">{reason}</p> : null}
         {selection?.requiresOfferPick && !selection.activeOfferId && showOffers ? (
           <Button
@@ -501,6 +515,8 @@ function ProductPage() {
               Buy now
             </Button>
           </div>
+        )}
+        </>
         )}
       </div>
     </div>

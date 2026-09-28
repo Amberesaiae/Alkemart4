@@ -41,7 +41,8 @@ export function StoreCard({
         className,
       )}
     >
-      <div className={cn("relative bg-muted", shop.banner ? "h-28 sm:h-32" : "h-16 sm:h-20")}>
+      {/* Same height with or without a cover, so every card lines up. */}
+      <div className="relative h-28 bg-muted sm:h-32">
         {shop.banner ? (
           <img
             src={shop.banner}
@@ -49,12 +50,7 @@ export function StoreCard({
             loading="lazy"
             className="size-full object-cover transition-transform duration-500 group-hover/store:scale-[1.03]"
           />
-        ) : (
-          <div
-            aria-hidden
-            className="size-full bg-[radial-gradient(circle_at_20%_20%,var(--brand)_0,transparent_45%),radial-gradient(circle_at_80%_60%,var(--dept-fashion)_0,transparent_50%)] opacity-40"
-          />
-        )}
+        ) : null}
         <div className="absolute top-3 left-3 flex flex-wrap gap-1.5">
           {(shop.badges ?? []).slice(0, 2).map((b) => (
             <Badge key={b.id} className={BADGE_TONE[b.tone] ?? BADGE_TONE.neutral}>

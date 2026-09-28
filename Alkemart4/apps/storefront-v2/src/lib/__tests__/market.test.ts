@@ -15,6 +15,9 @@ describe("storefront market", () => {
     expect(formatMoney(8499, m.currency.code)).toContain("8,499.00")
     expect(formatMoney(8499, null, { compact: true })).not.toContain(".00")
     expect(formatMoney(null)).toBe("—")
+    // The symbol and amount never split across lines.
+    expect(formatMoney(8499, m.currency.code)).toMatch(/\u00A0/)
+    expect(formatMoney(8499, m.currency.code)).not.toMatch(/ /)
   })
 
   it("keeps foreign currencies in their own code", () => {

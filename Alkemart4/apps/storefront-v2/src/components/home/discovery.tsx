@@ -70,6 +70,25 @@ export function createClaims(alreadyShown: Iterable<string> = []) {
   }
 }
 
+/** Category ids/handles (leaf and every ancestor) that have at least one listing. */
+export function stockedCategories(products: StoreProductCard[], categories: StoreCategory[]): Set<string> {
+  const byKey = new Map<string, StoreCategory>()
+  for (const c of categories) {
+    byKey.set(c.id, c)
+    if (c.handle) byKey.set(c.handle, c)
+  }
+  const out = new Set<string>()
+  for (const p of products) {
+    let node = byKey.get(p.categoryHandles?.[0] ?? "")
+    for (let hops = 0; node && hops < 8; hops++) {
+      out.add(node.id)
+      if (node.handle) out.add(node.handle)
+      node = node.parentCategoryId ? byKey.get(node.parentCategoryId) : undefined
+    }
+  }
+  return out
+}
+
 export type HomeRow = { key: string; title: string; eyebrow?: string; subtitle?: string; products: StoreProductCard[]; action?: Parameters<typeof SectionHeader>[0]["action"] }
 export type HomeSpotlight = { shop: StoreVendor; line: string | null; products: StoreProductCard[] }
 
@@ -108,9 +127,12 @@ export function useHomeDiscovery(categories: StoreCategory[], alreadyShown: stri
     staleTime: 300_000,
   })
 
+  // Known as soon as the catalogue loads; null means "not known yet, show everything".
+  const stocked = catalogQ.data && categories.length ? stockedCategories(catalogQ.data.products, categories) : null
+
   // Rows wait for every source, so claims resolve in one consistent order.
   const loading = catalogQ.isLoading || popularQ.isLoading || madeQ.isLoading || vendorsQ.isLoading || shopProductsQ.isLoading
-  if (loading || !categories.length) return { loading, top: [] as HomeRow[], spotlight: null, middle: [] as HomeRow[], bottom: [] as HomeRow[] }
+  if (loading || !categories.length) return { loading, stocked, top: [] as HomeRow[], spotlight: null, middle: [] as HomeRow[], bottom: [] as HomeRow[] }
 
   const all = catalogQ.data?.products ?? []
   const claims = createClaims(alreadyShown)
@@ -125,16 +147,16 @@ export function useHomeDiscovery(categories: StoreCategory[], alreadyShown: stri
     : null
 
   const top = rotationPick(departmentRows(all, categories), 2, now, 1).flatMap(({ department, products }) =>
-    row({ key: `dept-${department.id}`, eyebrow: "Department of the day", title: department.name, action: { label: "See all", to: "/categories/$slug", params: { slug: department.handle ?? department.id } } }, products),
+    row({ key: `dept-${department.id}`, title: department.name, subtitle: "Today's department · changes daily", action: { label: "See all", to: "/categories/$slug", params: { slug: department.handle ?? department.id } } }, products),
   )
   top.push(...row({ key: "popular", title: "Popular right now", subtitle: "What buyers ordered most this week" }, popularQ.data?.products ?? []))
 
-  const middle = row({ key: "made-in-ghana", eyebrow: "Proudly local", title: "Made in Ghana", subtitle: "Handmade and locally made, as stated by each seller" }, madeQ.data?.products ?? [])
+  const middle = row({ key: "made-in-ghana", title: "Made in Ghana", subtitle: "Handmade and locally made, as stated by each seller" }, madeQ.data?.products ?? [])
   const bottom = [
     ...row({ key: "gifts", title: `Gifts under ${formatMoney(200, null, { compact: true })}`, subtitle: "Cheapest first" }, priceRow(all, categories, 200)),
     ...row({ key: "home", title: `Home upgrades under ${formatMoney(1000, null, { compact: true })}`, subtitle: "Cheapest first" }, priceRow(all, categories, 1000, "home-living")),
   ]
-  return { loading, top, spotlight, middle, bottom }
+  return { loading, stocked, top, spotlight, middle, bottom }
 }
 
 export function HomeRows({ rows }: { rows: HomeRow[] }) {

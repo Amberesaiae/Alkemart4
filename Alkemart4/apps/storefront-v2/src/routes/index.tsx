@@ -177,9 +177,9 @@ function HomePage() {
       ) : null}
       {/* The first screen: hero, promises and the category row read as one unit. */}
       <div>
-        <HomeHero departments={departments} />
+        <HomeHero departments={departments} allCategories={categoriesQ.data ?? []} stocked={discovery.stocked} />
         <TrustPanel />
-        {department ? <DepartmentRow departments={departments} tiles={department.tiles ?? []} className="mt-5 sm:mt-6" /> : null}
+        {department ? <DepartmentRow departments={departments} allCategories={categoriesQ.data ?? []} stocked={discovery.stocked} tiles={department.tiles ?? []} className="mt-5 sm:mt-6" /> : null}
       </div>
 
       {featuredQ.isError && categoriesQ.isError && departments.length === 0 ? (

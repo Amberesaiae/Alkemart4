@@ -37,7 +37,7 @@ export function Gallery({ images, title }: { images: string[]; title: string }) 
                   src={src}
                   alt={i === 0 ? title : `${title} — image ${i + 1}`}
                   loading={i === 0 ? "eager" : "lazy"}
-                  className="size-full object-contain p-[8%] mix-blend-multiply"
+                  className="size-full object-cover"
                 />
               ) : (
                 <span className="text-sm text-muted-foreground">No photo yet</span>
@@ -67,7 +67,7 @@ export function Gallery({ images, title }: { images: string[]; title: string }) 
                   i === active ? "ring-2 ring-foreground" : "hover:ring-1 hover:ring-border",
                 )}
               >
-                <img src={src} alt="" className="size-full object-contain p-1.5 mix-blend-multiply" loading="lazy" />
+                <img src={src} alt="" className="size-full object-cover" loading="lazy" />
               </button>
             </li>
           ))}

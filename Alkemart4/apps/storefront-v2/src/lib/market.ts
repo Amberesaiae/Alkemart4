@@ -179,9 +179,10 @@ export function formatMoney(
         p.type === "currency" && code === m.currency.code ? m.currency.symbol : p.value,
       )
       .join("")
-      .replace(/^(\D+)\s*/, "$1 ")
+      // Non-breaking: "GH₵" never wraps away from its amount on narrow cards.
+      .replace(/^(\D+?)\s*(?=[\d−-])/, "$1\u00A0")
   } catch {
-    return `${code} ${amount.toFixed(2)}`
+    return `${code}\u00A0${amount.toFixed(2)}`
   }
 }
 

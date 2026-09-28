@@ -10,8 +10,29 @@ export const REFERENCE_DEPARTMENTS = [
   { id: "appliances", title: "Appliances", short: "Appliances", tagline: "For a smarter home", light: false, ground: "#9EEACD" },
 ] as const
 
+type ReferenceId = typeof REFERENCE_DEPARTMENTS[number]["id"]
+
+/** The real category behind a marketing entry point, if the taxonomy has one. */
+export function referenceDepartmentCategory(id: ReferenceId, categories: StoreCategory[]): StoreCategory | undefined {
+  // Appliances live under Home & Living; point at that category, not a search.
+  if (id === "appliances") {
+    const appliances = categories.find((c) => c.handle === "home-appliances")
+    if (appliances) return appliances
+  }
+  return categories.find(c => !c.parentCategoryId && departmentFor(c.handle, c.name).id === id)
+}
+
 /** Never invent taxonomy handles for a marketing entry point. */
-export function referenceDepartmentHref(id: typeof REFERENCE_DEPARTMENTS[number]["id"], categories: StoreCategory[]) {
-  const category = categories.find(c => departmentFor(c.handle, c.name).id === id)
+export function referenceDepartmentHref(id: ReferenceId, categories: StoreCategory[]) {
+  const category = referenceDepartmentCategory(id, categories)
   return category ? `/categories/${category.handle ?? category.id}` : `/search?q=${encodeURIComponent(id)}`
+}
+
+/** Entry points with listings behind them; all of them while stock is unknown. */
+export function stockedReferenceDepartments(categories: StoreCategory[], stocked: Set<string> | null) {
+  if (!stocked) return [...REFERENCE_DEPARTMENTS]
+  return REFERENCE_DEPARTMENTS.filter((d) => {
+    const c = referenceDepartmentCategory(d.id, categories)
+    return Boolean(c && stocked.has(c.id))
+  })
 }

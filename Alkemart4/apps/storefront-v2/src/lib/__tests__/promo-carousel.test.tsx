@@ -52,7 +52,8 @@ describe("desktop campaign carousel", () => {
     act(() => vi.advanceTimersByTime(13000))
     expect(screen.getByRole("heading").textContent).toBe("See delivery costs before you order.")
     fireEvent.keyDown(carousel, { key: "ArrowLeft" })
-    expect(screen.getByRole("heading").textContent).toBe("Deals")
+    // Wraps to the last platform message; there is no deals slide.
+    expect(screen.getByRole("heading").textContent).toBe("Own a shop? Bring it online.")
     fireEvent.pointerDown(carousel, { clientX: 200 })
     fireEvent.pointerUp(carousel, { clientX: 50 })
     expect(screen.getByRole("heading").textContent).toBe("See delivery costs before you order.")

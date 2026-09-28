@@ -30,14 +30,14 @@ export function Price({
       {from ? <span className="text-xs font-medium text-muted-foreground">From</span> : null}
       <span
         className={cn(
-          "font-bold text-foreground",
+          "font-bold whitespace-nowrap text-foreground",
           size === "sm" && "text-sm",
           size === "md" && "text-base sm:text-lg",
           size === "lg" && "text-xl",
           size === "xl" && "text-3xl font-extrabold tracking-tight",
         )}
       >
-        {formatMoney(amount, currency)}
+        {formatMoney(amount, currency, { compact: true })}
       </span>
       {drop ? (
         <>

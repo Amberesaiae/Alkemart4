@@ -129,9 +129,10 @@ export function PromoSection({ section }: { section: Promo }) {
   const carousel = section.type === "promo_band" && section.id === "deals-band" && cover
 
   return (
-    <section className="container-page">
+    // Phones have no band for the default slot, so the wrapper must not add a gap either.
+    <section className={cn("container-page", carousel && "hidden md:block")}>
       {carousel ? <PromoCarousel section={section} /> : null}
-      <div
+      {carousel ? null : <div
         className={cn(
           "group relative isolate grid overflow-hidden rounded-[2rem]",
           cover ? "min-h-40 text-white sm:min-h-44" : cn("md:grid-cols-2", THEME[section.theme]),
@@ -178,7 +179,7 @@ export function PromoSection({ section }: { section: Promo }) {
             <img src={section.imageUrl} alt="" loading="lazy" className="absolute inset-0 size-full object-cover" />
           </div>
         ) : null}
-      </div>
+      </div>}
     </section>
   )
 }

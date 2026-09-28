@@ -8,7 +8,7 @@ import { departmentFor } from "@/lib/departments"
 import { useSearchHistory } from "@/lib/search-history"
 import type { StoreCategory } from "@/lib/products"
 import { SmartLink } from "@/components/commerce/smart-link"
-import { REFERENCE_DEPARTMENTS, referenceDepartmentHref } from "./reference-departments"
+import { referenceDepartmentHref, stockedReferenceDepartments } from "./reference-departments"
 
 /**
  * Full-bleed gold hero. Layout only — the right-hand art (product collage,
@@ -16,7 +16,15 @@ import { REFERENCE_DEPARTMENTS, referenceDepartmentHref } from "./reference-depa
  * sellers" notes) is one generated image at /images/hero/home.webp
  * (docs/CODEX-ASSETS.md). Until it exists the gold simply stands on its own.
  */
-export function HomeHero({ departments }: { departments: StoreCategory[] }) {
+export function HomeHero({ departments, allCategories, stocked }: {
+  departments: StoreCategory[]
+  /** Full taxonomy (sub-categories too), for entry points like Appliances. */
+  allCategories: StoreCategory[]
+  /** Categories with listings; null while unknown (show everything). */
+  stocked: Set<string> | null
+}) {
+  const shownDepartments = stocked ? departments.filter((c) => stocked.has(c.id)) : departments
+  const reference = stockedReferenceDepartments(allCategories.length ? allCategories : departments, stocked)
   const navigate = useNavigate()
   const { trackSearch } = useSearchHistory()
   const [q, setQ] = useState("")
@@ -40,25 +48,25 @@ export function HomeHero({ departments }: { departments: StoreCategory[] }) {
         </div>
       ) : null}
 
-      <div className="container-page pt-6 pb-16 sm:pt-10 lg:pt-8 lg:pb-20">
+      <div className="container-page pt-4 pb-14 sm:pt-10 sm:pb-16 lg:pt-8 lg:pb-20">
         <div className="max-w-2xl min-w-0">
-          <p className="mb-5 inline-flex items-center gap-2 rounded-full bg-background/60 px-3.5 py-1.5 text-xs font-semibold sm:text-sm">
+          <p className="mb-5 hidden items-center gap-2 rounded-full bg-background/60 px-3.5 py-1.5 text-xs font-semibold sm:inline-flex sm:text-sm">
             <HugeiconsIcon icon={UserGroupIcon} className="size-4" />
             Many sellers. More choices. One marketplace.
           </p>
           <h1
             id="home-hero-title"
-            className="text-[2.4rem] leading-[0.95] font-extrabold tracking-[-0.045em] text-balance sm:text-6xl lg:text-[4.25rem]"
+            className="text-[1.85rem] leading-[1] font-extrabold tracking-[-0.04em] text-balance sm:text-6xl sm:leading-[0.95] lg:text-[4.25rem]"
           >
             Whatever you’re looking for, someone’s selling it.
           </h1>
-          <p className="mt-4 max-w-xl text-base font-medium text-foreground/80 sm:text-lg">
+          <p className="mt-4 hidden max-w-xl text-base font-medium text-foreground/80 sm:block sm:text-lg">
             Discover products from trusted sellers, all in one place.
           </p>
 
           <form
             role="search"
-            className="mt-6 flex max-w-2xl items-center gap-2 rounded-full bg-background p-1.5 shadow-lift"
+            className="mt-4 flex max-w-2xl items-center gap-2 rounded-full bg-background p-1.5 shadow-lift sm:mt-6"
             onSubmit={(e) => {
               e.preventDefault()
               const term = q.trim()
@@ -81,9 +89,9 @@ export function HomeHero({ departments }: { departments: StoreCategory[] }) {
             </Button>
           </form>
 
-          {departments.length > 0 ? (
-            <ul aria-label="Popular departments" className="mt-6 flex gap-3 overflow-x-auto pb-1 [scrollbar-width:none] sm:gap-5 md:hidden">
-              {departments.slice(0, 6).map((c) => {
+          {shownDepartments.length > 0 ? (
+            <ul aria-label="Popular departments" className="mt-4 flex gap-3 overflow-x-auto pb-1 [scrollbar-width:none] sm:gap-5 md:hidden">
+              {shownDepartments.slice(0, 6).map((c) => {
                 const dept = departmentFor(c.handle, c.name)
                 return (
                   <li key={c.id} className="shrink-0">
@@ -111,9 +119,9 @@ export function HomeHero({ departments }: { departments: StoreCategory[] }) {
             </ul>
           ) : null}
           <ul aria-label="Popular departments" className="mt-6 hidden gap-4 pb-1 md:flex lg:gap-5">
-            {REFERENCE_DEPARTMENTS.map(dept => (
+            {reference.map(dept => (
               <li key={dept.id} className="min-w-0 flex-1">
-                <SmartLink href={referenceDepartmentHref(dept.id, departments)} className="group flex flex-col items-center gap-1.5 text-center text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-4">
+                <SmartLink href={referenceDepartmentHref(dept.id, allCategories.length ? allCategories : departments)} className="group flex flex-col items-center gap-1.5 text-center text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-4">
                   <span className="grid size-14 place-items-center rounded-full bg-background/70 group-hover:bg-background/90"><HugeiconsIcon icon={dept.id === "appliances" ? WashingMachineIcon : DEPARTMENT_ICON[dept.id]} className="size-6" strokeWidth={2} /></span>
                   <span>{dept.short}</span>
                 </SmartLink>

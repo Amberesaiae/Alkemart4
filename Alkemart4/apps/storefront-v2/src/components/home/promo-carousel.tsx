@@ -9,14 +9,14 @@ import { cn } from "@/lib/utils"
 
 type Band = Extract<HomeSection, { type: "promo_band" }>
 
-/** Desktop-only campaign rotation. The original mobile band stays in PromoSection. */
-export function PromoCarousel({ section }: { section: Band }) {
+/** Desktop-only rotation of platform messages. Phones get no band (see PromoSection). */
+export function PromoCarousel(_props: { section: Band }) {
   const slides = [
     { title: "See delivery costs before you order.", action: { label: "How delivery works", href: "/delivery" }, image: "/images/promos/campaign-delivery-calm-v1.webp", style: "bg-[#faf3e5] text-[#171719]", story: true },
     { title: "Compare prices across shops.", action: { label: "Compare and choose", href: "/categories/all" }, image: "/images/promos/campaign-compare-calm-v1.webp", style: "bg-[#b8c4b8] text-[#171719]", story: true },
     { title: "Your next find starts here.", action: { label: "Discover products", href: "/categories/all" }, image: "/images/promos/campaign-discovery-calm-v1.webp", style: "bg-[#f4efe5] text-[#171719]", story: true },
     { title: "Own a shop? Bring it online.", action: { label: "Start selling", href: getVendorAppUrl() }, image: "/images/promos/campaign-seller-calm-v1.webp", style: "bg-[#f4e5d0] text-[#171719]", story: true },
-    { title: section.title, action: section.action, image: section.imageUrl, style: "bg-[#0641b8] text-white", story: false },
+    // The band's own "deals" slide is gone: no deal copy without real deals behind it.
   ]
   const [active, setActive] = useState(0)
   const [paused, setPaused] = useState(false)

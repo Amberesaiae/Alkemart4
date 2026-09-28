@@ -131,56 +131,15 @@ function StorePage() {
 
       <section className="container-page">
         <div className="overflow-hidden rounded-[2rem] border border-border">
-          <div className="relative h-40 bg-muted sm:h-56">
-            {cover ? <img src={cover} alt="" className="size-full object-cover" /> : (
-              <div aria-hidden className="size-full bg-[radial-gradient(circle_at_15%_30%,var(--brand)_0,transparent_40%),radial-gradient(circle_at_85%_70%,var(--dept-gaming)_0,transparent_45%)] opacity-50" />
-            )}
+          {/* No cover yet: a short plain strip, not decorative filler. */}
+          <div className={cn("relative bg-muted", cover ? "h-32 sm:h-56" : "h-16 sm:h-24")}>
+            {cover ? <img src={cover} alt="" className="size-full object-cover" /> : null}
           </div>
-          <div className="flex flex-col gap-4 px-5 pb-5 sm:flex-row sm:items-end sm:px-8 sm:pb-6">
+          <div className="flex flex-col gap-3 px-5 pb-5 sm:flex-row sm:items-end sm:gap-4 sm:px-8 sm:pb-6">
+            {/* Phones: avatar and actions share one row; wider screens lay them out in the header row. */}
+            <div className="flex items-end justify-between sm:contents">
             <SellerAvatar name={vendor.name} logo={vendor.logoWebUrl ?? vendor.logoImageUrl} size="xl" className="-mt-10 ring-4 ring-background sm:-mt-12" />
-            <div className="min-w-0 flex-1 space-y-1.5">
-              <div className="flex flex-wrap items-center gap-2">
-                <h1 className="text-2xl font-extrabold sm:text-3xl">{vendor.name}</h1>
-                {verified.map((v) => (
-                  <Tooltip key={v.id}>
-                    <TooltipTrigger asChild>
-                      <Badge className="cursor-help bg-success-soft text-success">
-                        <HugeiconsIcon icon={CheckmarkBadge01Icon} data-icon="inline-start" />
-                        {v.kind === "identity" ? "ID verified" : v.kind === "business" ? "Registered business" : v.kind === "fulfillment_proven" ? "Proven delivery" : v.kind === "brand_auth" ? "Authorised seller" : "Contact verified"}
-                      </Badge>
-                    </TooltipTrigger>
-                    <TooltipContent>{v.meaning}</TooltipContent>
-                  </Tooltip>
-                ))}
-                {(vendor.badges ?? []).map((b) => (
-                  <Badge key={b.id} variant="secondary">
-                    {b.label}
-                  </Badge>
-                ))}
-              </div>
-              {t?.tagline ? <p className="text-muted-foreground">{t.tagline}</p> : null}
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
-                <Rating avg={t?.ratingAvg} count={t?.ratingCount} />
-                {vendor.replyTime?.label ? <span>{vendor.replyTime.label}</span> : null}
-                {t?.location ? (
-                  <span className="inline-flex items-center gap-1">
-                    <HugeiconsIcon icon={Location01Icon} className="size-4" /> {t.location}
-                  </span>
-                ) : null}
-                {delivery ? (
-                  <span className="inline-flex items-center gap-1">
-                    <HugeiconsIcon icon={Clock01Icon} className="size-4" /> {delivery}
-                  </span>
-                ) : null}
-                {t?.salesCount ? (
-                  <span className="inline-flex items-center gap-1">
-                    <HugeiconsIcon icon={PackageIcon} className="size-4" /> {t.salesCount.toLocaleString()} {t.salesCount === 1 ? "order" : "orders"}
-                  </span>
-                ) : null}
-              </div>
-              {t ? <ShopSocials social={t.social} className="pt-1.5" /> : null}
-            </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 sm:order-last">
               {whatsapp ? (
                 <Button asChild variant="outline">
                   <a href={whatsapp} target="_blank" rel="noopener noreferrer">
@@ -206,6 +165,50 @@ function StorePage() {
               >
                 <HugeiconsIcon icon={Share01Icon} />
               </Button>
+            </div>
+            </div>
+            <div className="min-w-0 flex-1 space-y-1.5">
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="text-2xl font-extrabold sm:text-3xl">{vendor.name}</h1>
+                {verified.map((v) => (
+                  <Tooltip key={v.id}>
+                    <TooltipTrigger asChild>
+                      <Badge className="cursor-help bg-success-soft text-success">
+                        <HugeiconsIcon icon={CheckmarkBadge01Icon} data-icon="inline-start" />
+                        {v.kind === "identity" ? "ID verified" : v.kind === "business" ? "Registered business" : v.kind === "fulfillment_proven" ? "Proven delivery" : v.kind === "brand_auth" ? "Authorised seller" : "Contact verified"}
+                      </Badge>
+                    </TooltipTrigger>
+                    <TooltipContent>{v.meaning}</TooltipContent>
+                  </Tooltip>
+                ))}
+                {(vendor.badges ?? []).map((b) => (
+                  <Badge key={b.id} variant="secondary">
+                    {b.label}
+                  </Badge>
+                ))}
+              </div>
+              {t?.tagline || vendor.bio ? <p className="line-clamp-2 max-w-2xl text-sm text-muted-foreground sm:text-base">{t?.tagline ?? vendor.bio}</p> : null}
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
+                <Rating avg={t?.ratingAvg} count={t?.ratingCount} />
+                {vendor.replyTime?.label ? <span>{vendor.replyTime.label}</span> : null}
+                {t?.location ? (
+                  <span className="inline-flex items-center gap-1">
+                    <HugeiconsIcon icon={Location01Icon} className="size-4" /> {t.location}
+                  </span>
+                ) : null}
+                {delivery ? (
+                  <span className="inline-flex items-center gap-1">
+                    <HugeiconsIcon icon={Clock01Icon} className="size-4" /> {delivery}
+                  </span>
+                ) : null}
+                {/* A count starts meaning something at a few orders; 1–2 reads as noise. */}
+                {t?.salesCount && t.salesCount >= 3 ? (
+                  <span className="inline-flex items-center gap-1">
+                    <HugeiconsIcon icon={PackageIcon} className="size-4" /> {t.salesCount.toLocaleString()} {t.salesCount === 1 ? "order" : "orders"}
+                  </span>
+                ) : null}
+              </div>
+              {t ? <ShopSocials social={t.social} className="pt-1.5" /> : null}
             </div>
           </div>
           {paused || t?.announcement ? (

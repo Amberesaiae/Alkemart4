@@ -24,7 +24,7 @@ export function NotifyMe({ productId, offerId, path }: { productId: string; offe
     onError: (e) => toast.error(e instanceof Error ? e.message : "Couldn't save the alert"),
   })
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 rounded-3xl bg-surface p-4">
+    <div id="notify-me" className="flex scroll-mt-24 flex-wrap items-center justify-between gap-3 rounded-3xl bg-surface p-4">
       <div className="flex items-center gap-3">
         <span className="grid size-10 place-items-center rounded-full bg-background">
           <HugeiconsIcon icon={Notification01Icon} className="size-5" />
