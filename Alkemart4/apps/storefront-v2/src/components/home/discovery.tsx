@@ -6,7 +6,6 @@ import { SectionHeader } from "@/components/commerce/section-header"
 import { Button } from "@/components/ui/button"
 import { formatMoney } from "@/lib/market"
 import { listPopularProducts, listStoreProducts, type StoreCategory, type StoreProductCard } from "@/lib/products"
-import { getStoreVendorBySlug, listStoreVendors, type StoreVendor } from "@/lib/vendors"
 
 /**
  * Homepage discovery, planned as one page: rows fill top to bottom and a
@@ -90,7 +89,6 @@ export function stockedCategories(products: StoreProductCard[], categories: Stor
 }
 
 export type HomeRow = { key: string; title: string; eyebrow?: string; subtitle?: string; products: StoreProductCard[]; action?: Parameters<typeof SectionHeader>[0]["action"] }
-export type HomeSpotlight = { shop: StoreVendor; line: string | null; products: StoreProductCard[] }
 
 /** Everything below "Fresh picks", resolved in page order with no repeats. */
 export function useHomeDiscovery(categories: StoreCategory[], alreadyShown: string[]) {
@@ -110,29 +108,12 @@ export function useHomeDiscovery(categories: StoreCategory[], alreadyShown: stri
     queryFn: () => listStoreProducts({ limit: 24, sort: "newest", madeIn: "ghana" }),
     staleTime: 300_000,
   })
-  // Shop story: one shop a week, in turn, among open shops with a cover.
-  const vendorsQ = useQuery({ queryKey: ["store", "vendors"], queryFn: listStoreVendors, staleTime: 300_000 })
-  const eligible = (vendorsQ.data ?? []).filter((v) => v.availability !== "paused" && Boolean(v.banner)).sort((a, b) => a.slug.localeCompare(b.slug))
-  const pick = rotationPick(eligible, 1, now, 7)[0]
-  const shopQ = useQuery({
-    queryKey: ["store", "vendor", pick?.slug],
-    queryFn: () => getStoreVendorBySlug(pick!.slug),
-    enabled: Boolean(pick),
-    staleTime: 300_000,
-  })
-  const shopProductsQ = useQuery({
-    queryKey: ["store", "spotlight", "products", pick?.slug],
-    queryFn: () => listStoreProducts({ sellerHandle: pick!.slug, limit: 24 }),
-    enabled: Boolean(pick),
-    staleTime: 300_000,
-  })
-
   // Known as soon as the catalogue loads; null means "not known yet, show everything".
   const stocked = catalogQ.data && categories.length ? stockedCategories(catalogQ.data.products, categories) : null
 
   // Rows wait for every source, so claims resolve in one consistent order.
-  const loading = catalogQ.isLoading || popularQ.isLoading || madeQ.isLoading || vendorsQ.isLoading || shopProductsQ.isLoading
-  if (loading || !categories.length) return { loading, stocked, top: [] as HomeRow[], spotlight: null, middle: [] as HomeRow[], bottom: [] as HomeRow[] }
+  const loading = catalogQ.isLoading || popularQ.isLoading || madeQ.isLoading
+  if (loading || !categories.length) return { loading, stocked, top: [] as HomeRow[], middle: [] as HomeRow[], bottom: [] as HomeRow[] }
 
   const all = catalogQ.data?.products ?? []
   const claims = createClaims(alreadyShown)
@@ -140,11 +121,6 @@ export function useHomeDiscovery(categories: StoreCategory[], alreadyShown: stri
     const products = claims.take(list)
     return products.length ? [{ ...r, products }] : []
   }
-
-  // Shop of the week picks first: four of its own listings, which later rows skip.
-  const spotlight: HomeSpotlight | null = pick
-    ? { shop: pick, line: shopQ.data?.vendor.bio ?? pick.tagline ?? pick.bio ?? null, products: claims.take(shopProductsQ.data?.products ?? [], 4, 4) }
-    : null
 
   const top = rotationPick(departmentRows(all, categories), 2, now, 1).flatMap(({ department, products }) =>
     row({ key: `dept-${department.id}`, title: department.name, subtitle: "Today's department · changes daily", action: { label: "See all", to: "/categories/$slug", params: { slug: department.handle ?? department.id } } }, products),
@@ -156,7 +132,7 @@ export function useHomeDiscovery(categories: StoreCategory[], alreadyShown: stri
     ...row({ key: "gifts", title: `Gifts under ${formatMoney(200, null, { compact: true })}`, subtitle: "Cheapest first" }, priceRow(all, categories, 200)),
     ...row({ key: "home", title: `Home upgrades under ${formatMoney(1000, null, { compact: true })}`, subtitle: "Cheapest first" }, priceRow(all, categories, 1000, "home-living")),
   ]
-  return { loading, stocked, top, spotlight, middle, bottom }
+  return { loading, stocked, top, middle, bottom }
 }
 
 export function HomeRows({ rows }: { rows: HomeRow[] }) {

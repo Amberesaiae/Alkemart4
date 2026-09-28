@@ -71,23 +71,20 @@ export function SiteFooter() {
   return (
     <>
       {/* Phones: the tab bar already navigates, so this stays slim — help, trust and legal only. */}
-      <footer className="mt-10 border-t border-border bg-surface md:hidden">
-        <FooterActions />
-        <div className="container-page space-y-5 pt-6 pb-28">
-          <section className="space-y-3" aria-label="Weekly deals">
-            <h2 className="text-xl font-extrabold">Good finds, in your inbox.</h2>
-            <NewsletterForm compact source="footer-mobile" />
-          </section>
+      {/* Phones: the tab bar navigates and Account links to selling, so the footer is
+          only a compact row of help and legal links — no bands or forms. */}
+      <footer className="mt-8 border-t border-border bg-surface md:hidden">
+        <div className="container-page pt-4 pb-28">
           <nav aria-label="Help and legal">
-            <ul className="grid grid-cols-2 gap-x-4 gap-y-1">
+            <ul className="flex flex-wrap gap-x-4">
               {MOBILE_LINKS.map((l) => (
                 <li key={l.label}>
                   {l.to ? (
-                    <Link to={l.to} className="flex min-h-10 items-center text-sm font-medium text-foreground/80 hover:text-foreground">
+                    <Link to={l.to} className="flex min-h-10 items-center text-xs font-medium text-foreground/75 hover:text-foreground">
                       {l.label}
                     </Link>
                   ) : (
-                    <a href={l.href} className="flex min-h-10 items-center text-sm font-medium text-foreground/80 hover:text-foreground">
+                    <a href={l.href} className="flex min-h-10 items-center text-xs font-medium text-foreground/75 hover:text-foreground">
                       {l.label}
                     </a>
                   )}
@@ -95,11 +92,7 @@ export function SiteFooter() {
               ))}
             </ul>
           </nav>
-          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
-            <span className="text-xs text-muted-foreground">
-              © {new Date().getFullYear()} alkemart · {market.name}
-            </span>
-          </div>
+          <p className="mt-2 text-xs text-muted-foreground">© {new Date().getFullYear()} alkemart · {market.name}</p>
         </div>
       </footer>
 

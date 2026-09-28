@@ -131,7 +131,7 @@ export function ProductCard({
               {p.categoryLabel}
             </p>
           ) : null}
-          <h3 className="product-card-title line-clamp-2 text-base leading-snug font-semibold text-foreground">{p.title}</h3>
+          <h3 className="product-card-title line-clamp-2 text-sm leading-snug font-semibold text-foreground sm:text-base">{p.title}</h3>
           <Rating avg={p.ratingAvg} count={p.ratingCount} />
           <div className="mt-auto pt-1.5 pr-11">
             <Price amount={p.amount} currency={p.currencyCode} from={COMPARE_ENABLED && sellers > 1} />

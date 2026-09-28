@@ -10,7 +10,6 @@ import {
 } from "@alkemart/shared/homepage"
 import { HomeHero } from "@/components/home/home-hero"
 import { DepartmentRow } from "@/components/home/department-row"
-import { StoreSpotlight } from "@/components/home/store-spotlight"
 import { HomeRows, SeeAllProducts, useHomeDiscovery } from "@/components/home/discovery"
 import { ShelfSection } from "@/components/home/shelf-section"
 import { CompareShowcase } from "@/components/home/compare-showcase"
@@ -168,7 +167,7 @@ function HomePage() {
   }
 
   return (
-    <div className="space-y-12 sm:space-y-16">
+    <div className="space-y-8 sm:space-y-16">
       <PageSeo title="Many sellers, one marketplace" description={defaultDescription()} path="/" jsonLd={jsonLd} />
       {preview ? (
         <p role="status" className="sticky top-0 z-50 bg-foreground px-4 py-2 text-center text-sm font-semibold text-background">
@@ -199,7 +198,6 @@ function HomePage() {
       <HomeRows rows={discovery.top} />
       {COMPARE_ENABLED ? <CompareShowcase products={featured} /> : null}
       {campaign ? <PromoSection section={campaign} /> : null}
-      <StoreSpotlight spotlight={discovery.spotlight} />
       <HomeRows rows={discovery.middle} />
       {course ? <CampaignPlacements course={course} /> : null}
       {proof ? <ShelfSection section={proof} {...shared} /> : null}

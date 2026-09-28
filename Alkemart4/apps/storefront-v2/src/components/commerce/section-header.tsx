@@ -22,14 +22,14 @@ export function SectionHeader({
   id?: string
 }) {
   return (
-    <div className={cn("section-header mb-4 flex flex-wrap items-end justify-between gap-4 sm:mb-5", className)}>
+    <div className={cn("section-header mb-3 flex flex-wrap items-end justify-between gap-4 sm:mb-5", className)}>
       <div className="min-w-0">
         {eyebrow ? (
           <p className="mb-1 text-xs font-semibold tracking-[0.18em] text-muted-foreground uppercase">
             {eyebrow}
           </p>
         ) : null}
-        <h2 id={id} className="text-xl font-extrabold sm:text-2xl">
+        <h2 id={id} className="text-lg font-extrabold sm:text-2xl">
           {title}
         </h2>
         {subtitle ? <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p> : null}

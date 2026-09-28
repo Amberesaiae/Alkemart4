@@ -28,13 +28,14 @@ describe("desktop campaign carousel", () => {
     render(<PromoCarousel section={section} />)
     expect(screen.getAllByRole("group")).toHaveLength(1)
     act(() => vi.advanceTimersByTime(4000))
-    expect(screen.getByRole("heading").textContent).toBe("Compare prices across shops.")
-    expect(screen.getByRole("link").getAttribute("href")).toBe("/categories/all")
+    expect(screen.getByRole("heading").textContent).toBe("Find your finishing touch.")
+    expect(screen.getByRole("link").getAttribute("href")).toBe("/shops")
     fireEvent.click(screen.getByRole("button", { name: "Pause campaigns" }))
     act(() => vi.advanceTimersByTime(13000))
-    expect(screen.getByRole("heading").textContent).toBe("Compare prices across shops.")
-    fireEvent.click(screen.getByRole("button", { name: "Show campaign 3: Your next find starts here." }))
-    expect(screen.getByRole("heading").textContent).toBe("Your next find starts here.")
+    expect(screen.getByRole("heading").textContent).toBe("Find your finishing touch.")
+    fireEvent.click(screen.getByRole("button", { name: "Show campaign 1: From the shop to your doorstep." }))
+    expect(screen.getByRole("heading").textContent).toBe("From the shop to your doorstep.")
+    expect(screen.getByRole("link").getAttribute("href")).toBe("/delivery")
   })
 
   it.each(["reduced motion", "mobile"])("does not autoplay with %s", (mode) => {
@@ -42,7 +43,7 @@ describe("desktop campaign carousel", () => {
     desktop = mode !== "mobile"
     render(<PromoCarousel section={section} />)
     act(() => vi.advanceTimersByTime(20000))
-    expect(screen.getByRole("heading").textContent).toBe("See delivery costs before you order.")
+    expect(screen.getByRole("heading").textContent).toBe("From the shop to your doorstep.")
   })
 
   it("pauses on hover and supports keyboard and swipe navigation", () => {
@@ -50,12 +51,12 @@ describe("desktop campaign carousel", () => {
     const carousel = screen.getByRole("region")
     fireEvent.mouseEnter(carousel)
     act(() => vi.advanceTimersByTime(13000))
-    expect(screen.getByRole("heading").textContent).toBe("See delivery costs before you order.")
+    expect(screen.getByRole("heading").textContent).toBe("From the shop to your doorstep.")
     fireEvent.keyDown(carousel, { key: "ArrowLeft" })
     // Wraps to the last platform message; there is no deals slide.
-    expect(screen.getByRole("heading").textContent).toBe("Own a shop? Bring it online.")
+    expect(screen.getByRole("heading").textContent).toBe("Find your finishing touch.")
     fireEvent.pointerDown(carousel, { clientX: 200 })
     fireEvent.pointerUp(carousel, { clientX: 50 })
-    expect(screen.getByRole("heading").textContent).toBe("See delivery costs before you order.")
+    expect(screen.getByRole("heading").textContent).toBe("From the shop to your doorstep.")
   })
 })

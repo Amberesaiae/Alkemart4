@@ -4,7 +4,6 @@ import { HugeiconsIcon } from "@hugeicons/react"
 import { ArrowRight01Icon, PauseIcon, PlayIcon } from "@hugeicons/core-free-icons"
 import { SmartLink } from "@/components/commerce/smart-link"
 import { Button } from "@/components/ui/button"
-import { getVendorAppUrl } from "@/lib/env"
 import { cn } from "@/lib/utils"
 
 type Band = Extract<HomeSection, { type: "promo_band" }>
@@ -12,10 +11,9 @@ type Band = Extract<HomeSection, { type: "promo_band" }>
 /** Desktop-only rotation of platform messages. Phones get no band (see PromoSection). */
 export function PromoCarousel(_props: { section: Band }) {
   const slides = [
-    { title: "See delivery costs before you order.", action: { label: "How delivery works", href: "/delivery" }, image: "/images/promos/campaign-delivery-calm-v1.webp", style: "bg-[#faf3e5] text-[#171719]", story: true },
-    { title: "Compare prices across shops.", action: { label: "Compare and choose", href: "/categories/all" }, image: "/images/promos/campaign-compare-calm-v1.webp", style: "bg-[#b8c4b8] text-[#171719]", story: true },
-    { title: "Your next find starts here.", action: { label: "Discover products", href: "/categories/all" }, image: "/images/promos/campaign-discovery-calm-v1.webp", style: "bg-[#f4efe5] text-[#171719]", story: true },
-    { title: "Own a shop? Bring it online.", action: { label: "Start selling", href: getVendorAppUrl() }, image: "/images/promos/campaign-seller-calm-v1.webp", style: "bg-[#f4e5d0] text-[#171719]", story: true },
+    { title: "From the shop to your doorstep.", action: { label: "How delivery works", href: "/delivery" }, image: "/images/promos/concepts/delivery-rider-campaign-v2.webp", style: "bg-[#644536] text-white", story: true },
+    // Bara's public shop is not published yet: no invented shop URL or stock claim.
+    { title: "Find your finishing touch.", action: { label: "Explore shops", href: "/shops" }, image: "/images/promos/concepts/bara-jewellery-campaign-v2.webp", style: "bg-[#47291d] text-white", story: true },
     // The band's own "deals" slide is gone: no deal copy without real deals behind it.
   ]
   const [active, setActive] = useState(0)
@@ -63,16 +61,16 @@ export function PromoCarousel(_props: { section: Band }) {
       onPointerUp={(event) => { if (pointer.current !== null && Math.abs(event.clientX - pointer.current) > 60) { swiped.current = true; move(event.clientX < pointer.current ? 1 : -1) }; pointer.current = null }}
       onClickCapture={(event) => { if (swiped.current) { event.preventDefault(); event.stopPropagation(); swiped.current = false } }}
       onPointerCancel={() => { pointer.current = null }}>
-      <div className="relative aspect-[1612/300] overflow-hidden rounded-[2rem] [touch-action:pan-y]">
+      <div className="relative h-[200px] overflow-hidden rounded-[2rem] lg:h-[240px] [touch-action:pan-y]">
         {slides.map((slide, index) => (
           <div key={slide.image} role="group" aria-roledescription="slide" aria-label={`${index + 1} of ${count}`} aria-hidden={index !== active} inert={index !== active}
             className={cn("absolute inset-0 overflow-hidden transition-opacity duration-500 motion-reduce:transition-none", slide.style, index === active ? "z-10 opacity-100" : "z-0 opacity-0")}>
             <img src={slide.image} alt="" loading="lazy" draggable={false}
-              className={cn("absolute inset-0 size-full object-contain", slide.story && "object-right")}
-              style={slide.story ? { maskImage: "linear-gradient(to right, transparent 42%, black 65%)" } : undefined} />
-            <div className="relative flex h-full w-[58%] flex-col justify-center gap-3 px-6 lg:px-8">
-              <h2 className="max-w-lg text-xl leading-tight font-extrabold lg:text-3xl">{slide.title}</h2>
-              {slide.action ? <Button asChild variant={slide.story ? "default" : "brand"} className="h-11 w-fit px-5">
+              className="absolute inset-y-0 right-0 h-full w-auto max-w-none [mask-image:linear-gradient(to_right,transparent,black_20%)]" />
+            <div aria-hidden className="absolute inset-0 bg-gradient-to-r from-black/45 via-black/10 to-transparent" />
+            <div className="relative flex h-full w-[45%] flex-col justify-center gap-4 px-6 lg:px-8">
+              <h2 className="max-w-lg text-2xl leading-[1.12] font-extrabold tracking-tight lg:text-3xl">{slide.title}</h2>
+              {slide.action ? <Button asChild variant="brand" className="h-11 w-fit px-5">
                 <SmartLink href={slide.action.href}>{slide.action.label}<HugeiconsIcon icon={ArrowRight01Icon} data-icon="inline-end" /></SmartLink>
               </Button> : null}
             </div>
