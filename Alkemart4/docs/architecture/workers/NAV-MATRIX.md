@@ -80,8 +80,24 @@ Typography QA: body/navigation/inputs render at 16px, secondary copy at
 14px under default settings. Verify home, catalogue, login and cart at
 375px and desktop, then narrow/zoomed reflow: no clipped controls or
 page-wide horizontal scrolling (product rails remain independently scrollable).
-Mobile home is a deliberate exception: preserve its approved type scale
-and layout; the larger scale applies to desktop home and other routes.
+Mobile home and other storefront routes share the compact reading scale:
+22px page titles, 18px section headings, 14px card/category/button labels,
+15px product-card prices; inputs/sort remain 16px. Check the same product in
+a home shelf, category results and shop results for matching width, corners
+and text treatment. Shared buttons/select triggers are at least 44px tall.
+Home shows six large category tiles in two columns in buyer priority order,
+even when a department has no listings. See all/Explore shows every API
+department (no listing filter). Open an empty department and verify honest
+empty results, image loading and full studio subjects inside 4:5 frames.
+
+Remaining mobile control QA: toggle login/register and show/hide password
+without submitting; contact inputs/native select match at 44px height and
+16px type; search clear and store filter buttons remain easy to tap. Quantity
+and variant controls use 44px targets; cart price and actions reflow at 320px.
+Check dialog/sheet titles do not collide with close buttons and long content
+scrolls within the viewport. Public page checks use read-only live preview;
+authenticated account/order/message content needs a test session and populated
+cart/checkout needs a non-production commerce fixture.
 
 Storefront v2 footer: seller invitation and newsletter share one compact
 gold section, divided side by side on desktop and stacked on phones.

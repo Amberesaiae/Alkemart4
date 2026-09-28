@@ -69,7 +69,7 @@ function StoresPage() {
 
   const chip = (active: boolean) =>
     cn(
-      "inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-full border px-4 text-sm font-semibold whitespace-nowrap transition-colors",
+      "inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full border px-4 text-sm font-semibold whitespace-nowrap transition-colors",
       active ? "border-foreground bg-foreground text-background" : "border-border bg-background hover:bg-muted",
     )
   const nearMe = async () => {

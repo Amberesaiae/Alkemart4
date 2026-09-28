@@ -1,11 +1,11 @@
 import { HugeiconsIcon } from "@hugeicons/react"
 import { FavouriteIcon } from "@hugeicons/core-free-icons"
-import { toast } from "sonner"
 import { useSavedItems } from "@/lib/wishlist"
 import type { StoreProductCard } from "@/lib/products"
 import { cn } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
 
-/** Heart toggle for the device-local Saved list. */
+/** Quiet, reversible toggle: the filled heart and aria-pressed convey state. */
 export function SaveButton({
   product,
   className,
@@ -18,7 +18,9 @@ export function SaveButton({
   const { isSaved, toggle } = useSavedItems()
   const saved = isSaved(product.id)
   return (
-    <button
+    <Button
+      variant={variant === "inline" ? "outline" : "ghost"}
+      size="icon-lg"
       type="button"
       aria-pressed={saved}
       aria-label={saved ? `Remove ${product.title} from saved` : `Save ${product.title}`}
@@ -33,13 +35,11 @@ export function SaveButton({
           amount: product.amount ?? null,
           currencyCode: product.currencyCode ?? null,
         })
-        toast(saved ? "Removed from Saved" : "Saved on this device")
       }}
       className={cn(
-        "grid place-items-center rounded-full transition-colors",
         variant === "floating"
-          ? "size-10 bg-background/90 shadow-sm backdrop-blur hover:bg-background"
-          : "size-10 border border-border hover:bg-muted",
+          ? "bg-background/90 shadow-sm backdrop-blur hover:bg-background"
+          : "",
         className,
       )}
     >
@@ -47,6 +47,6 @@ export function SaveButton({
         icon={FavouriteIcon}
         className={cn("size-[18px]", saved ? "fill-deal text-deal" : "text-foreground")}
       />
-    </button>
+    </Button>
   )
 }

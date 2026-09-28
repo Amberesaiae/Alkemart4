@@ -237,7 +237,7 @@ function ProductPage() {
   }
 
   return (
-    <div className="pb-28 lg:pb-0">
+    <div className="pb-[calc(11rem+env(safe-area-inset-bottom))] md:pb-28 lg:pb-0">
       <PageSeo
         title={p.title}
         description={p.description ? truncateMeta(stripHtml(p.description)) : `${p.title} on alkemart`}
@@ -475,17 +475,18 @@ function ProductPage() {
       </div>
 
       {/* Phone buy bar */}
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/95 p-3 pb-safe backdrop-blur lg:hidden">
+      <div className="fixed inset-x-0 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-40 border-t border-border bg-background/95 p-3 backdrop-blur md:bottom-0 md:pb-safe lg:hidden">
         {selection?.outOfStock ? (
           // One clear state instead of two disabled buttons.
-          <div className="flex items-center gap-3">
-            <p className="flex-1 text-base font-semibold">Sold out</p>
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm font-semibold">Sold out</p>
             <Button
               variant="brand"
-              size="xl"
+              size="lg"
+              aria-label="Notify me when it's back"
               onClick={() => document.getElementById("notify-me")?.scrollIntoView({ behavior: "smooth", block: "center" })}
             >
-              Notify me when it's back
+              Notify me
             </Button>
           </div>
         ) : (

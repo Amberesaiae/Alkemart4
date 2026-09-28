@@ -32,6 +32,7 @@ export function QtyStepper({
     >
       <button
         type="button"
+        data-slot="quantity-button"
         className={btn}
         disabled={disabled || value <= min}
         onClick={() => onChange(value - 1)}
@@ -48,6 +49,7 @@ export function QtyStepper({
       </span>
       <button
         type="button"
+        data-slot="quantity-button"
         className={btn}
         disabled={disabled || (max != null && value >= max)}
         onClick={() => onChange(value + 1)}

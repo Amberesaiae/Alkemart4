@@ -25,15 +25,15 @@
   --text-3xl--line-height: 1.2;
 }
 
-/* Preserve the approved mobile home composition; the larger reading scale
-   applies to desktop home and the other storefront routes.
-   Phone home scale — type: hero 20 (beside art at 60% width) → section titles 18 → card prices 15 bold →
-   card names 14 → chips, tiles, details 13 → labels 12; fields always 16
+/* One mobile reading scale across the storefront, including portalled sheets.
+   Type: home hero 20 (beside art at 60% width), page titles 22, section titles
+   18, card prices 15 bold, card names/category labels/buttons 14, details 13,
+   small labels 12; fields always 16
    (no iOS focus zoom). Space: 4/8/12/16/32 — 12 under a section title, 32
-   between sections, 16 page gutter. Sizes: chips 32 tall, tap targets ≥40,
-   department tiles three across. */
+   between home sections, 16 page gutter. Sizes: standard buttons ≥44 tall,
+   department tiles two across. */
 @media (width < 48rem) {
-  .mobile-home-preserved {
+  :root {
     --text-legacy-10: 0.625rem;
     --text-legacy-11: 0.6875rem;
     --text-legacy-13: 0.8125rem;
@@ -43,18 +43,27 @@
     --text-sm: 0.875rem;
     --text-sm--line-height: 1.25rem;
     --text-base--line-height: 1.5rem;
-    --text-2xl: 1.5rem;
-    --text-2xl--line-height: 2rem;
-    --text-3xl: 1.875rem;
-    --text-3xl--line-height: 2.25rem;
+    --text-xl: 1.125rem;
+    --text-xl--line-height: 1.5rem;
+    --text-2xl: 1.125rem;
+    --text-2xl--line-height: 1.5rem;
+    --text-3xl: 1.375rem;
+    --text-3xl--line-height: 1.75rem;
+    --text-4xl: 1.375rem;
+    --text-4xl--line-height: 1.75rem;
     line-height: 1.5;
+  }
+  /* Page headings share a scale; the home hero keeps its art-led composition. */
+  #main h1:not(.sr-only):not(#home-hero-title) {
+    font-size: 1.375rem;
+    line-height: 1.25;
   }
   /* Titles carry the row on phones; subtitles are desktop detail. */
   .mobile-home-preserved .section-header-subtitle {
     display: none;
   }
-  /* Rows already name their department; three lines per card, not four. */
-  .mobile-home-preserved .product-card-eyebrow {
+  /* Use the same compact card anatomy on shelves and listing pages. */
+  .product-card-eyebrow {
     display: none;
   }
   .mobile-home-preserved .section-header {
@@ -62,8 +71,30 @@
   }
   /* iOS zooms the page when a field under 16px is focused; the compact scale
      never applies to what people type into. */
-  .mobile-home-preserved :is(input, textarea, select) {
+  :is(input, textarea, select, [data-slot="select-trigger"]) {
     font-size: 1rem;
+  }
+  /* Visible controls and their touch targets grow together on every route. */
+  [data-slot="button"],
+  [data-slot="sheet-close"],
+  [data-slot="dialog-close"],
+  [data-slot="input"],
+  [data-slot="native-select"],
+  [data-slot="tabs-trigger"],
+  [data-slot="quantity-button"],
+  [data-slot="variant-option"],
+  [data-slot="select-trigger"] {
+    min-height: 2.75rem;
+  }
+  [data-slot="button"][data-size^="icon"],
+  [data-slot="sheet-close"][data-size^="icon"],
+  [data-slot="dialog-close"][data-size^="icon"],
+  [data-slot="quantity-button"] {
+    min-width: 2.75rem;
+  }
+  [data-slot="tabs-list"] {
+    height: auto;
+    min-height: 3.125rem;
   }
 }
 
@@ -202,6 +233,8 @@
   }
   html {
     @apply font-sans;
+    /* Keep the page column fixed when navigation changes document height. */
+    scrollbar-gutter: stable;
     -webkit-tap-highlight-color: transparent;
     /* No accidental double-tap zoom on rails and buttons; pinch zoom stays. */
     touch-action: manipulation;
@@ -225,6 +258,12 @@
 
 @utility container-page {
   @apply mx-auto w-full max-w-[1320px] px-4 sm:px-6 lg:px-8;
+}
+
+/* The stable root gutter already reserves scroll space. Radix's scroll lock
+   must not add a second gutter when a sheet or select opens. */
+html body[data-scroll-locked] {
+  margin-right: 0 !important;
 }
 
 /* Horizontal shelves: native scroll-snap, no JS carousel, no scrollbar. */

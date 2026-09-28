@@ -1,5 +1,28 @@
 # Lifecycle — Buyer
 
+## Mobile discovery presentation (2026-09-28)
+
+Home shows six prominent departments in buyer priority order in a compact,
+three-column grid. Listing availability never removes a category. See all and
+Explore open the complete department directory, including empty departments.
+Both grids share 4:5 image frames with labels below; studio art fits uncropped
+and canonical photos retain their framing metadata. Mobile routes share the
+home's compact typography and product-card sizing; form fields remain 16px
+and standard shared buttons/selects have 44px minimum touch targets.
+
+## Delivery guidance (2026-09-28)
+
+The delivery page omits the realistic rider image and uses success-state-style
+spot illustrations for the order-to-door steps, a short address checklist, and
+concise expandable fee/timing guidance. No video is shown without a supplied asset. Delivery remains
+seller-arranged: no guaranteed speed, universal coverage, or owned-fleet claim.
+Pay-on-arrival guidance is market-gated and conditional on checkout availability.
+
+Storefront category art is mapped locally in `department-art.ts`; all 13
+departments have dedicated artwork, without changing admin studio presets.
+The root reserves a stable scrollbar gutter across navigation. Modal scroll
+locking does not add a second gutter to the body.
+
 ## Hosted authentication pilot (feature-gated)
 
 With `WORKOS_ENABLED=1` and the matching UI flag, buyers use hosted AuthKit
@@ -154,3 +177,6 @@ Too low for the seller's hidden floor → declined at once. The seller accepts
 or counters; an accepted price shows in the cart ("Your offer price") and is
 charged at checkout for that buyer, listing and quantity until it expires.
 API: `/store/deals`; cart and checkout read the buyer's session.
+# Homepage campaign refresh (2026-09-28)
+
+Desktop promo carousel uses the approved muted delivery-rider and Bara jewellery artwork, with live HTML headings/buttons. Band height is 200px (240px on large screens); artwork is fitted to the height and right-aligned without cropping its subjects. Delivery links to `/delivery`; jewellery links to `/shops` as “Explore shops” until Bara has a verified public storefront. Removed generic compare/discovery/seller carousel slides; seller recruitment remains separate. Existing pause, focus/hover, reduced-motion and keyboard/swipe behavior retained. No production deployment in this change.

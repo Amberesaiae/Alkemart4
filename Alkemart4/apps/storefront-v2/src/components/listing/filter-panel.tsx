@@ -90,16 +90,17 @@ export function FilterPanel({
                 const active = state.subCategory === c.id
                 return (
                   <li key={c.id}>
-                    <button
+                    <Button
+                      variant="ghost"
                       type="button"
                       onClick={() => onChange({ ...state, subCategory: c.id })}
                       className={cn(
-                        "w-full rounded-xl px-3 py-2 text-left text-sm",
+                        "w-full justify-start whitespace-normal text-left",
                         active ? "bg-muted font-semibold" : "text-muted-foreground hover:bg-muted hover:text-foreground",
                       )}
                     >
                       {c.label}
-                    </button>
+                    </Button>
                   </li>
                 )
               })}
@@ -126,7 +127,7 @@ export function FilterPanel({
             {[0, 4, 3].map((r) => (
               <div key={r} className="flex items-center gap-2.5">
                 <RadioGroupItem value={String(r)} id={`${uid}-rating-${r}`} />
-                <Label htmlFor={`${uid}-rating-${r}`} className="flex items-center gap-1 font-normal">
+                <Label htmlFor={`${uid}-rating-${r}`} className="flex min-h-11 flex-1 cursor-pointer items-center gap-1 font-normal">
                   {r === 0 ? (
                     "Any rating"
                   ) : (
@@ -162,7 +163,7 @@ export function FilterPanel({
                         })
                       }
                     />
-                    <Label htmlFor={`${uid}-seller-${s.handle}`} className="flex-1 truncate font-normal">
+                    <Label htmlFor={`${uid}-seller-${s.handle}`} className="min-h-11 flex-1 cursor-pointer truncate font-normal">
                       {s.name}
                     </Label>
                     {s.count ? <span className="text-xs text-muted-foreground tabular">{s.count}</span> : null}
@@ -185,7 +186,7 @@ export function FilterPanel({
                 return (
                   <li key={value} className="flex items-center gap-2.5">
                     <Checkbox id={id} checked={checked} onCheckedChange={() => onChange(toggleAttributeFacet(state, f.code, value))} />
-                    <Label htmlFor={id} className="flex-1 truncate font-normal">
+                    <Label htmlFor={id} className="min-h-11 flex-1 cursor-pointer truncate font-normal">
                       {value}
                     </Label>
                     <span className="text-xs text-muted-foreground tabular">{count}</span>
@@ -198,10 +199,12 @@ export function FilterPanel({
       ))}
 
       {slug !== "all" ? (
-        <div className="pt-4">
-          <Link to="/categories" className="text-sm font-semibold hover:underline">
+        <div className="border-t border-border p-4">
+          <Button asChild variant="outline" className="w-full">
+          <Link to="/categories">
             ← All categories
           </Link>
+          </Button>
         </div>
       ) : null}
     </Accordion>

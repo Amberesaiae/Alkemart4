@@ -48,14 +48,25 @@ does not imply approval (the existing approval caveat remains).
 
 ## Frontend production practices
 
-Storefront v2 reading scale: body text, navigation and form controls are
-1rem (16px at default browser settings); secondary details are 0.875rem
-(14px). Use rem-based type tokens instead of 10–15px font utilities. Keep
-section headings distinct (28px/32px), readable line spacing, and allow
-controls to grow with text. Check 375px and desktop layouts plus zoom/reflow;
-this sizing policy is not a claim of full WCAG conformance. The approved
-mobile homepage is explicitly excluded: its existing type scale and
-composition are preserved below 768px via a home-route-only scope.
+Storefront v2 uses one mobile reading scale below 768px across every route
+and portalled sheet: page titles 22px, section headings 18px, product titles
+and button/category labels 14px, prices 15px, small labels 12px. Form fields
+and sort controls stay 16px to prevent iOS focus zoom. Standard shared buttons
+and select triggers have a 44px minimum height; icon buttons also have a 44px
+minimum width. Product shelves and grids share two-column card widths and
+the same rounded-xl corners on phones. Category tiles use two columns and 4:5 frames; studio
+art fits without cropping, while canonical photos use their framing metadata.
+Desktop retains the larger reading scale (16px body/controls, 14px details).
+Use rem units and check narrow layouts/reflow. The home-only scope now controls
+composition (compact section headers), not a separate typography system.
+
+Custom mobile quantity buttons, variant choices, login tabs/password toggles,
+and native select fields follow the same 44px control target. Product-card
+save/add icons retain their compact visible size with a 44px expanded hit
+area. Cart rows stack price beneath the item title and let actions wrap on
+narrow phones. Content heroes, guide cards and contact forms use 16px mobile
+padding. Dialogs scroll within the viewport; modal headings reserve space for
+the close button and use the mobile section-heading scale.
 
 Storefront footer newsletter uses brand gold with ink text and a dark CTA;
 keep its labelled email input and double-opt-in feedback intact. The shared

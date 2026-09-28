@@ -1,4 +1,5 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router"
+import { useEffect, useState } from "react"
 import { useQueryClient } from "@tanstack/react-query"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
@@ -100,7 +101,7 @@ function AccountMenu() {
   )
 }
 
-/** On the home page the header joins the hero: gold on phones, ink on desktop. */
+/** Home uses a rounded gold top bar on phones and an ink header on desktop. */
 const ON_INK = "lg:group-data-[tone=hero]/header:text-white lg:group-data-[tone=hero]/header:hover:bg-white/10"
 const NAV_LINK = cn(
   "inline-flex min-h-10 items-center rounded-full px-3 text-sm font-semibold hover:bg-foreground/5 data-[status=active]:bg-foreground/5",
@@ -117,6 +118,20 @@ function phoneSearch(pathname: string) {
 export function SiteHeader() {
   const pathname = useRouterState({ select: (s) => s.location.pathname })
   const hero = pathname === "/"
+  const [scrolledPastHero, setPastHero] = useState(false)
+  // Only meaningful on the home page; elsewhere it's simply false (no reset needed).
+  const pastHero = hero && scrolledPastHero
+  useEffect(() => {
+    if (!hero) return
+    const sync = () => {
+      const section = document.getElementById("home-hero")
+      setPastHero(Boolean(section && section.getBoundingClientRect().bottom <= 64))
+    }
+    sync()
+    window.addEventListener("scroll", sync, { passive: true })
+    window.addEventListener("resize", sync)
+    return () => { window.removeEventListener("scroll", sync); window.removeEventListener("resize", sync) }
+  }, [hero])
   // Checkout is a focused flow: no search, menus or cart to wander off to.
   // The page's own "‹ Cart · Secure checkout" row handles the way back.
   if (pathname.startsWith("/checkout")) {
@@ -134,7 +149,7 @@ export function SiteHeader() {
       className={cn(
         "group/header sticky top-0 z-40",
         hero
-          ? "bg-brand lg:bg-ink lg:on-ink"
+          ? cn("rounded-b-xl transition-colors motion-reduce:transition-none lg:rounded-none lg:bg-ink lg:on-ink", pastHero ? "bg-background shadow-sm" : "bg-brand")
           : "border-b border-border/70 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80",
       )}
     >

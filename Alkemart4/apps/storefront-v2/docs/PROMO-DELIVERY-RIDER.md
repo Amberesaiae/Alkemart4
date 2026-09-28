@@ -1,0 +1,20 @@
+# Delivery rider campaign preview
+
+## Muted natural direction v2
+
+Preferred preview: `public/images/promos/concepts/delivery-rider-campaign-v2.webp`. Warm cocoa/terracotta neighborhood backdrop, soft daylight and charcoal rider gear replace saturated yellow/blue. Parcel branding remains the color accent. Built-in image edit of v1; no live banner changes.
+
+Exact edit prompt: Use case: lighting-weather and precise-object-edit. Edit attached Alkemart delivery campaign banner, landscape 3:1. Preserve same Ghanaian rider identity, safe helmeted riding pose, both hands on handlebars, realistic motorbike, secured cream Alkemart parcel with unchanged wordmark and colorful logo, subject placement right half, full wheels visible. Change art direction away from oversaturated yellow/blue. Replace bright yellow wall with a real richly textured warm cocoa-brown and muted terracotta plaster boundary wall, simple quiet left headline area, understated charcoal gate on right and very restrained defocused greenery. Soft overcast afternoon light, rich natural photographic contrast, warm skin, no glaring sunshine, no bright yellow anywhere. Change saturated cobalt uniform to deep muted navy/charcoal jacket and matte charcoal helmet, practical reflective seam detail; retain small brand detail. Preserve true colorful parcel logo as the small bright accent, cream cardboard clearly visible. Background softly motion-blurred to suggest riding, not flat studio brown void; believable urban residential context without extra props/people or visual clutter. Match the depth and warm brown palette of a tasteful jewellery photograph without turning it into a dark gloomy scene. No added text, no floating logos, no sepia filter over logo, no additional items. Rider and parcel are the story, not brand-colored walls.
+
+Replaces audio/headset as the proposed second campaign concept. Existing live banners are unchanged; the audio preview is retained as an unused exploration.
+
+Asset: `public/images/promos/concepts/delivery-rider-campaign-v1.webp`
+
+Suggested headline: “From the shop to your doorstep.”
+Suggested CTA: “How delivery works” linked to `/delivery`. Do not imply unverified delivery speeds or that Alkemart owns a delivery fleet. Synthetic campaign scene; generated parcel branding requires final identity review. Prepare dedicated responsive crops before implementation.
+
+Mode: built-in image generation. Input reference: `public/brand/alkemart-logo-primary.png` (identity only).
+
+## Exact prompt
+
+Use case: ads-marketing. Asset: Alkemart delivery promo banner concept, landscape 3:1. Create realistic energetic commercial photography of ONE Ghanaian Black delivery rider riding a compact practical motorbike along a clean contemporary Accra neighborhood street in daylight. Three-quarter side view, entire motorcycle including both wheels visible, rider and bike concentrated in right 55%, left 40% quiet softly defocused warm yellow wall for HTML headline later. Rider wears a correctly fastened blue protective motorcycle helmet, blue practical jacket, long trousers and closed shoes, both hands on handlebars, eyes facing road, relaxed competent posture. One substantial cream cardboard Alkemart parcel securely strapped flat to rear cargo rack, readable broad side facing camera. Reference image is brand identity ONLY: reproduce its lowercase 'alkemart' wordmark and colorful asymmetrical mark as a modest printed label on parcel; do not invent logo petals or change colors. Package is clearly visible but not oversized or precarious. Bright gold and blue accents, natural skin and fabric texture, believable tires, fork, wheel axles and contact shadows. Subtle background panning motion, keep rider, parcel and bike crisp. The story is your shopping on its way, not racing. No additional people, no collage, no phones, no loose flying parcels, no other products, no huge logo floating in sky, no text outside parcel label, no watermark, no neon or glossy AI look. Synthetic campaign concept, no promised delivery time.

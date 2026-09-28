@@ -23,7 +23,7 @@ function GuidesPage() {
           <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {q.data.map((g) => (
               <li key={g.slug}>
-                <Link to="/guides/$slug" params={{ slug: g.slug }} className="flex h-full flex-col gap-2 rounded-3xl border border-border p-6 transition-shadow hover:shadow-lift">
+                <Link to="/guides/$slug" params={{ slug: g.slug }} className="flex h-full flex-col gap-2 rounded-2xl border border-border p-4 transition-shadow hover:shadow-lift sm:rounded-3xl sm:p-6">
                   <p className="text-lg font-bold">{g.title}</p>
                   <p className="line-clamp-3 flex-1 text-sm text-muted-foreground">{g.excerpt}</p>
                   <p className="text-xs text-muted-foreground">By {g.author}</p>

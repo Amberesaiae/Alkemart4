@@ -161,14 +161,9 @@ function HomePage() {
   const freshShown = decision?.source === "featured" ? featured.slice(0, decision.limit).map((p) => p.id) : []
   const discovery = useHomeDiscovery(categoriesQ.data ?? [], freshShown)
 
-  // Phones browse departments in a grid after the second product row.
-  // Studio picks (homepage settings) lead, then the rest in buyer order.
-  const phoneDepartments = useMemo(() => {
-    const live = discovery.stocked ? departments.filter((c) => discovery.stocked!.has(c.id)) : departments
-    const picked = (department?.tiles ?? []).map((t) => t.categoryId)
-    const rank = (c: StoreCategory) => (picked.includes(c.id) ? picked.indexOf(c.id) : picked.length)
-    return [...live].sort((a, b) => rank(a) - rank(b)).slice(0, 6)
-  }, [departments, discovery.stocked, department?.tiles])
+  // Six prominent departments in buyer order, regardless of listing/stock
+  // availability. Explore keeps the complete directory one tap away.
+  const phoneDepartments = departments.slice(0, 6)
 
   const shared = {
     categories: categoriesQ.data ?? [],
@@ -212,7 +207,7 @@ function HomePage() {
       {phoneDepartments.length ? (
         <section className="container-page md:hidden" aria-labelledby="home-dept-grid">
           <SectionHeader id="home-dept-grid" title="Shop by category" action={{ label: "See all", to: "/categories" }} />
-          <DepartmentGrid departments={phoneDepartments} tiles={department?.tiles} />
+          <DepartmentGrid departments={phoneDepartments} tiles={department?.tiles} compact />
         </section>
       ) : null}
       <HomeRows rows={discovery.top.slice(1)} />

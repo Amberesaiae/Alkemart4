@@ -76,7 +76,7 @@ export function ProductRail({
   const ref = useRef<HTMLDivElement>(null)
   const scroll = (dir: 1 | -1) =>
     ref.current?.scrollBy({ left: dir * ref.current.clientWidth * 0.9, behavior: "smooth" })
-  const item = "w-[44%] shrink-0 sm:w-[30%] lg:w-[22%] xl:w-[18.4%]"
+  const item = "w-[calc((100%-0.75rem)/2)] shrink-0 sm:w-[30%] lg:w-[22%] xl:w-[18.4%]"
   return (
     <div className="relative">
       <div ref={ref} className="rail -mx-4 scroll-px-4 px-4 pb-1 sm:mx-0 sm:scroll-px-0 sm:px-0" role="list" aria-label={label}>

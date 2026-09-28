@@ -41,7 +41,7 @@ export function SectionHeader({
             params={action.params as never}
             search={action.search as never}
             aria-label={action.label}
-            className="-my-2 inline-flex min-h-10 shrink-0 items-center gap-1 rounded-full py-2 text-sm font-semibold whitespace-nowrap hover:underline"
+            className="-my-2 inline-flex min-h-11 shrink-0 items-center gap-1 rounded-full py-2 text-sm font-semibold whitespace-nowrap hover:underline"
           >
             {/* Phones: the short form, so titles keep the row. */}
             <span className="md:hidden">{action.label.startsWith("See all") ? "See all" : action.label}</span>

@@ -31,7 +31,7 @@ function ContactPage() {
       <PageHero eyebrow="Contact" title="Talk to us" lead="For anything about an order, include its reference — it gets you an answer faster." art="/illustrations/support.webp" />
       <section className="container-page grid max-w-5xl gap-8 md:grid-cols-[1.4fr_1fr]">
         <form
-          className="rounded-3xl border border-border p-6"
+          className="rounded-2xl border border-border p-4 sm:rounded-3xl sm:p-6"
           onSubmit={(e) => {
             e.preventDefault()
             const subject = encodeURIComponent(`[${topic}] ${ref ? `Order ${ref} — ` : ""}${name}`)

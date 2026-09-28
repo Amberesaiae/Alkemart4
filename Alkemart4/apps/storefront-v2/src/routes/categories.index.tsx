@@ -1,5 +1,4 @@
 import { useMemo, useState } from "react"
-import { useQuery } from "@tanstack/react-query"
 import { createFileRoute, Link } from "@tanstack/react-router"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { ArrowRight01Icon, DrinkIcon, Plant01Icon } from "@hugeicons/core-free-icons"
@@ -10,8 +9,8 @@ import { ErrorState } from "@/components/feedback/states"
 import { PageSeo } from "@/components/seo/page-seo"
 import { useCategories } from "@/hooks/use-store"
 import { departmentFor } from "@/lib/departments"
-import { listStoreProducts, type StoreCategory } from "@/lib/products"
-import { stockedCategories } from "@/components/home/discovery"
+import { departmentArtFor } from "@/lib/department-art"
+import type { StoreCategory } from "@/lib/products"
 import { DepartmentGrid } from "@/components/commerce/department-grid"
 import { cn } from "@/lib/utils"
 
@@ -25,8 +24,8 @@ type Dept = { cat: StoreCategory; kids: StoreCategory[] }
  * The category directory: every department with its sub-categories one tap
  * away. Finding by name is the header search's job (it suggests categories,
  * shops and products as you type) — one search box, not two. Phones get the
- * three-across department grid (departments with listings only, once
- * known); a tile opens the department, whose page lists its sub-categories.
+ * two-across grid of every department, including those without listings;
+ * a tile opens the department, whose page lists its sub-categories.
  * Wide screens get the directory with sub-categories inline.
  */
 function CategoriesPage() {
@@ -45,14 +44,6 @@ function CategoriesPage() {
   }, [q.data])
 
   const subCount = depts.reduce((n, d) => n + d.kids.length, 0)
-  // Same query as the homepage's discovery rows, so it's usually cached.
-  const catalogQ = useQuery({
-    queryKey: ["store", "discovery", "catalog"],
-    queryFn: () => listStoreProducts({ limit: 96, sort: "newest" }),
-    staleTime: 300_000,
-  })
-  const stocked = catalogQ.data && q.data?.length ? stockedCategories(catalogQ.data.products, q.data) : null
-  const phoneDepts = stocked ? depts.filter((d) => stocked.has(d.cat.id)) : depts
 
   return (
     <div className="container-page space-y-4 pt-4 pb-10 sm:space-y-8 sm:pt-8">
@@ -80,14 +71,14 @@ function CategoriesPage() {
       {q.isError ? <ErrorState error={q.error} onRetry={() => void q.refetch()} /> : null}
 
       {q.isLoading ? (
-        <div className="grid gap-3 lg:grid-cols-3">
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-1 lg:grid-cols-3">
           {Array.from({ length: 6 }, (_, i) => (
-            <Skeleton key={i} className="h-28 rounded-3xl" />
+            <Skeleton key={i} className="aspect-[4/5] rounded-xl md:aspect-auto md:h-28 md:rounded-3xl" />
           ))}
         </div>
       ) : (
         <>
-          <DepartmentGrid departments={phoneDepts.map((d) => d.cat)} className="md:hidden" />
+          <DepartmentGrid departments={depts.map((d) => d.cat)} className="md:hidden" />
           <ul className="hidden gap-4 md:grid lg:grid-cols-3">
             {depts.map((d) => (
               <DeptCard key={d.cat.id} d={d} />
@@ -112,7 +103,8 @@ function DeptThumb({ cat, size }: { cat: StoreCategory; size: "sm" | "lg" }) {
   const dept = departmentFor(cat.handle, cat.name)
   const key = `${cat.handle ?? ""} ${cat.name}`.toLowerCase()
   const icon = ICON_OVERRIDE.find((o) => o.re.test(key))?.icon ?? DEPARTMENT_ICON[dept.id]
-  const [broken, setBroken] = useState(!HAS_ART.has(dept.id))
+  const directoryArt = departmentArtFor(cat.handle)
+  const [broken, setBroken] = useState(!directoryArt && !HAS_ART.has(dept.id))
   return (
     <span
       className={cn("relative grid shrink-0 place-items-center overflow-hidden", size === "lg" ? "size-16 rounded-2xl sm:size-20" : "size-11 rounded-xl")}
@@ -120,7 +112,7 @@ function DeptThumb({ cat, size }: { cat: StoreCategory; size: "sm" | "lg" }) {
       aria-hidden
     >
       {!broken ? (
-        <img src={dept.cutout} alt="" loading="lazy" decoding="async" onError={() => setBroken(true)} className="absolute inset-0 size-full object-cover object-bottom" />
+        <img src={directoryArt ?? dept.cutout} alt="" loading="lazy" decoding="async" onError={() => setBroken(true)} className="absolute inset-0 size-full object-cover object-center" />
       ) : (
         <HugeiconsIcon icon={icon} className={cn(size === "lg" ? "size-8" : "size-5", dept.tone === "light" ? "text-white" : "text-foreground")} />
       )}

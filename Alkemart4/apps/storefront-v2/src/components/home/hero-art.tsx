@@ -2,8 +2,9 @@ import { useEffect, useRef, useState } from "react"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { PauseIcon, PlayIcon } from "@hugeicons/core-free-icons"
 import { cn } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
 
-const INTERVAL_MS = 5000
+const INTERVAL_MS = 6000
 
 /**
  * Frame for phone art: the canvas's left 22% is empty (it's where the desktop
@@ -13,19 +14,20 @@ const INTERVAL_MS = 5000
 const FRAME = "aspect-[1109/1034] object-cover object-right"
 
 /**
- * One image stands still. Two or more swipe (scroll-snap), advance every 5s
+ * One image stands still. Two or more crossfade, accept horizontal swipes and advance every 6s
  * and stop for reduced motion, while hidden or off screen, while touched or
  * focused, and for good on pause (WCAG 2.2.2).
  */
-export function HeroArt({ images, className }: { images: string[]; className?: string }) {
+export function HeroArt({ images, captions = [], showDots = true, onSlideChange, className }: { images: string[]; captions?: string[]; showDots?: boolean; onSlideChange?: (index: number) => void; className?: string }) {
   const [active, setActive] = useState(0)
   const [paused, setPaused] = useState(false)
   const [holding, setHolding] = useState(false)
   const [eligible, setEligible] = useState(false)
   const root = useRef<HTMLDivElement>(null)
-  const track = useRef<HTMLDivElement>(null)
+  const touchStart = useRef<number | null>(null)
   const count = images.length
   const many = count > 1
+  useEffect(() => { onSlideChange?.(active) }, [active, onSlideChange])
 
   useEffect(() => {
     if (!many) return
@@ -46,10 +48,7 @@ export function HeroArt({ images, className }: { images: string[]; className?: s
     }
   }, [many])
 
-  const go = (i: number) => {
-    const el = track.current
-    if (el) el.scrollTo({ left: i * el.clientWidth, behavior: "smooth" })
-  }
+  const go = (i: number) => setActive((i + count) % count)
 
   const rotating = many && eligible && !paused && !holding
   useEffect(() => {
@@ -68,10 +67,14 @@ export function HeroArt({ images, className }: { images: string[]; className?: s
       ref={root}
       role="region"
       aria-roledescription="carousel"
-      aria-label="alkemart"
+      aria-label="Featured product collections"
       className={cn("relative", className)}
-      onPointerDown={() => setHolding(true)}
-      onPointerUp={() => setHolding(false)}
+      onPointerDown={(e) => { setHolding(true); touchStart.current = e.clientX }}
+      onPointerUp={(e) => {
+        if (touchStart.current !== null && Math.abs(e.clientX - touchStart.current) > 35) go(active + (e.clientX < touchStart.current ? 1 : -1))
+        touchStart.current = null
+        setHolding(false)
+      }}
       onPointerCancel={() => setHolding(false)}
       onFocusCapture={() => setHolding(true)}
       onBlurCapture={(e) => {
@@ -79,9 +82,7 @@ export function HeroArt({ images, className }: { images: string[]; className?: s
       }}
     >
       <div
-        ref={track}
-        onScroll={(e) => setActive(Math.round(e.currentTarget.scrollLeft / e.currentTarget.clientWidth))}
-        className="flex snap-x snap-mandatory overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="relative aspect-[1109/1034] touch-pan-y"
       >
         {images.map((src, i) => (
           <img
@@ -92,31 +93,38 @@ export function HeroArt({ images, className }: { images: string[]; className?: s
             height={1200}
             loading={i === 0 ? "eager" : "lazy"}
             fetchPriority={i === 0 ? "high" : undefined}
-            className={cn(FRAME, "w-full shrink-0 snap-center")}
+            aria-hidden={i !== active}
+            className={cn(FRAME, "absolute inset-0 size-full transition-opacity duration-700 ease-out motion-reduce:transition-none", i === active ? "opacity-100" : "opacity-0")}
           />
         ))}
       </div>
-      <div className="mt-1 flex items-center justify-center gap-1">
-        {images.map((src, i) => (
+      {captions[active] ? <p className="mt-2 min-h-[2lh] text-center text-xs leading-tight font-medium">{captions[active]}</p> : null}
+      {/* With dots: a row under the art. Without: the pause control takes no row of its own —
+          on phones it sits just above the art's right edge (beside the short headline, clear of
+          the artwork's notes); on wider screens on the art's bottom corner. */}
+      <div className={cn("flex items-center", showDots ? "mt-1 justify-center" : "absolute right-0 bottom-[calc(100%-0.5rem)] md:top-auto md:bottom-0")}>
+        {showDots && images.map((src, i) => (
           <button
             key={src}
             type="button"
             onClick={() => go(i)}
             aria-label={`Slide ${i + 1} of ${count}`}
             aria-current={i === active}
-            className="grid size-6 place-items-center"
+            className="grid size-11 place-items-center"
           >
             <span className={cn("h-1.5 rounded-full bg-foreground transition-all", i === active ? "w-4" : "w-1.5 opacity-30")} />
           </button>
         ))}
-        <button
+        <Button
           type="button"
           onClick={() => setPaused((p) => !p)}
           aria-label={paused ? "Play slides" : "Pause slides"}
-          className="grid size-6 place-items-center"
+          variant="outline"
+          size="icon"
+          className="size-11 rounded-full border-foreground/15 bg-background/80 hover:bg-background"
         >
-          <HugeiconsIcon icon={paused ? PlayIcon : PauseIcon} className="size-3.5" />
-        </button>
+          <HugeiconsIcon icon={paused ? PlayIcon : PauseIcon} className="size-4" />
+        </Button>
       </div>
     </div>
   )

@@ -129,7 +129,7 @@ export function SearchBox({
               type="button"
               onClick={() => setQ("")}
               aria-label="Clear search"
-              className="absolute top-1/2 right-3 grid size-8 -translate-y-1/2 place-items-center rounded-full text-muted-foreground hover:bg-muted"
+              className="absolute top-1/2 right-1 grid size-11 -translate-y-1/2 place-items-center rounded-full text-muted-foreground hover:bg-muted md:right-3 md:size-8"
             >
               <HugeiconsIcon icon={Cancel01Icon} className="size-4" />
             </button>

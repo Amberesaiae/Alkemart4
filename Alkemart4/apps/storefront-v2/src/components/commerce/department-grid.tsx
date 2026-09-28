@@ -1,10 +1,12 @@
 import { useState } from "react"
 import type { CategoryBannerTile } from "@alkemart/shared/homepage"
+import { categoryArtFor } from "@alkemart/shared/category-art"
 import { Link } from "@tanstack/react-router"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { CustomerService01Icon, DrinkIcon, HammerIcon, Package01Icon, Plant01Icon } from "@hugeicons/core-free-icons"
 import { DEPARTMENT_ICON } from "@/components/commerce/category-tile"
 import { departmentFor } from "@/lib/departments"
+import { departmentArtFor } from "@/lib/department-art"
 import type { StoreCategory } from "@/lib/products"
 import { cn } from "@/lib/utils"
 
@@ -29,24 +31,25 @@ const ICON_OVERRIDE: { re: RegExp; icon: typeof DrinkIcon }[] = [
 ]
 
 /**
- * Phone department grid: three a row, a square picture with the name under
+ * Phone department grid: two a row, a portrait picture with the name under
  * it — never on it, so no name sits on a product or depends on a photo's
- * colours. Studio scenes keep their product in the bottom 70%, so the square
- * crop anchors to the bottom. Names reserve two lines so rows align. Used on the
- * home page (after the second product row) and the Categories page, so both
- * always look the same.
+ * colours. The full studio scene fits its original 4:5 frame without cropping
+ * the subject. Names reserve two lines so rows align. Used on the
+ * Categories page. Home uses a compact three-column preview with the same
+ * uncropped artwork and label treatment.
  */
-export function DepartmentGrid({ departments, tiles = [], className, label = "Departments" }: {
+export function DepartmentGrid({ departments, tiles = [], className, label = "Departments", compact = false }: {
   departments: StoreCategory[]
   /** Homepage-settings overrides (picture, label) per category. */
   tiles?: CategoryBannerTile[]
   className?: string
   label?: string
+  compact?: boolean
 }) {
   if (departments.length === 0) return null
   const byCategory = new Map(tiles.map((t) => [t.categoryId, t]))
   return (
-    <ul aria-label={label} className={cn("grid grid-cols-3 gap-x-2 gap-y-3", className)}>
+    <ul aria-label={label} className={cn("grid gap-x-3 gap-y-4", compact ? "grid-cols-3" : "grid-cols-2", className)}>
       {departments.map((c) => (
         <DepartmentTile key={c.id} cat={c} tile={byCategory.get(c.id)} />
       ))}
@@ -59,7 +62,9 @@ function DepartmentTile({ cat, tile }: { cat: StoreCategory; tile?: CategoryBann
   const key = `${cat.handle ?? ""} ${cat.name}`.toLowerCase()
   const icon = ICON_OVERRIDE.find((o) => o.re.test(key))?.icon ?? DEPARTMENT_ICON[dept.id]
   const studio = STUDIO[dept.id]
-  const image = tile?.imageUrl ?? (studio ? `/images/departments/${studio}.webp` : null)
+  const canonical = categoryArtFor(cat.handle)
+  const directoryArt = departmentArtFor(cat.handle)
+  const image = tile?.imageUrl ?? directoryArt ?? (studio ? `/images/departments/${studio}.webp` : canonical?.photo)
   const [broken, setBroken] = useState(false)
   const photo = Boolean(image) && !broken
   return (
@@ -70,7 +75,7 @@ function DepartmentTile({ cat, tile }: { cat: StoreCategory; tile?: CategoryBann
         className="group flex flex-col gap-1.5 rounded-xl focus-visible:outline-2 focus-visible:outline-offset-2"
       >
         <span
-          className={cn("grid aspect-square place-items-center overflow-hidden rounded-xl", !photo && "ring-1 ring-foreground/5 ring-inset")}
+          className={cn("grid aspect-[4/5] place-items-center overflow-hidden rounded-xl", !photo && "ring-1 ring-foreground/5 ring-inset")}
           // Photos sit on their own colour; icon tiles take a soft tint so they recede until they get
           // art. The neutral default is already pale, so it takes the surface grey instead.
           style={{ background: photo ? dept.ground : dept.id === "default" ? "var(--muted)" : `color-mix(in srgb, ${dept.ground} 20%, white)` }}
@@ -84,14 +89,14 @@ function DepartmentTile({ cat, tile }: { cat: StoreCategory; tile?: CategoryBann
               loading="lazy"
               decoding="async"
               onError={() => setBroken(true)}
-              className="size-full object-cover object-bottom transition-transform duration-300 group-hover:scale-105 motion-reduce:transition-none"
+              className={cn("size-full", tile?.imageUrl || studio || directoryArt ? "object-contain object-center" : cn("object-cover", canonical?.objectPos))}
             />
           ) : (
             // Strong grounds colour the icon; pale ones (yellow, grey) would vanish on their own tint.
-            <HugeiconsIcon icon={icon} aria-hidden className="size-10" style={{ color: dept.tone === "light" ? dept.ground : "var(--foreground)" }} />
+            <HugeiconsIcon icon={icon} aria-hidden className="size-14" style={{ color: dept.tone === "light" ? dept.ground : "var(--foreground)" }} />
           )}
         </span>
-        <span className="line-clamp-2 min-h-[2lh] text-center text-[length:var(--text-legacy-13)] leading-tight font-semibold">
+        <span className="line-clamp-2 min-h-[2lh] text-center text-sm leading-tight font-semibold">
           {tile?.label ?? cat.name}
         </span>
       </Link>

@@ -1,7 +1,7 @@
 import { useState } from "react"
 import { Link, useNavigate } from "@tanstack/react-router"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { MoreHorizontalIcon, Search01Icon, UserGroupIcon, WashingMachineIcon } from "@hugeicons/core-free-icons"
+import { MoreHorizontalIcon, Search01Icon, WashingMachineIcon } from "@hugeicons/core-free-icons"
 import { Button } from "@/components/ui/button"
 import { DEPARTMENT_ICON } from "@/components/commerce/category-tile"
 import { useSearchHistory } from "@/lib/search-history"
@@ -11,22 +11,19 @@ import { REFERENCE_DEPARTMENTS, referenceDepartmentHref } from "./reference-depa
 import { HeroArt } from "./hero-art"
 
 /**
- * Phone hero art, in order: the desktop art first, then Codex slides in the
- * same style (docs/CODEX-ASSETS.md §3, `hero/phone-*.webp`). Two or more swipe.
+ * Product collages share the existing hero style, with distinct products.
+ * See docs/HERO-COLLAGES-2026-09-28.md.
  */
-const PHONE_HERO_ART = ["/images/hero/home.webp"]
+const PHONE_HERO_ART = ["/images/hero/home.webp", "/images/hero/craft-v1.webp", "/images/hero/interiors-v1.webp"]
+const DESKTOP_HEADLINES = ["Many sellers. One marketplace.", "Find your next favourite.", "Find your next favourite."]
 
 /** Phone department chips under the hero search. */
 const CHIP =
   "inline-flex h-8 shrink-0 items-center rounded-full bg-background/80 px-3 text-[length:var(--text-legacy-13)] font-semibold whitespace-nowrap focus-visible:outline-2 focus-visible:outline-foreground"
 
 /**
- * Full-bleed gold hero. Phones get the compact version: the headline beside
- * the hero art, search, and a row of department chips, all scrolling away
- * with the page (only the header stays pinned). Desktop art is layout only — the right-hand art (product collage,
- * colour petals and the handwritten "More choices / Better prices / Trusted
- * sellers" notes) is one generated image at /images/hero/home.webp
- * (docs/CODEX-ASSETS.md). Until it exists the gold simply stands on its own.
+ * Gold hero: mobile headline above the collage; desktop headline, search
+ * and departments beside it. Both rotate the same three product collections.
  */
 export function HomeHero({ departments, allCategories, stocked }: {
   departments: StoreCategory[]
@@ -44,48 +41,26 @@ export function HomeHero({ departments, allCategories, stocked }: {
   const navigate = useNavigate()
   const { trackSearch } = useSearchHistory()
   const [q, setQ] = useState("")
-  const [art, setArt] = useState(true)
+  const [desktopSlide, setDesktopSlide] = useState(0)
 
   return (
-    <section aria-labelledby="home-hero-title" className="relative isolate overflow-hidden bg-brand">
-      {art ? (
-        // Aligned to the page column (not the viewport edge); the bottom 3.5rem
-        // is left clear because the white panel overlaps it.
-        <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 hidden lg:block">
-          <div className="container-page relative h-full">
-            <img
-              src="/images/hero/home.webp"
-              alt=""
-              fetchPriority="high"
-              onError={() => setArt(false)}
-              className="absolute top-5 right-4 bottom-16 w-[50%] object-contain object-right sm:right-6 lg:right-8"
-            />
-          </div>
-        </div>
-      ) : null}
-
-      <div className="container-page pt-3 pb-4 md:pt-10 md:pb-16 lg:pt-8 lg:pb-20">
+    <section id="home-hero" aria-labelledby="home-hero-title" className="relative isolate -mt-3 overflow-hidden bg-brand pt-3 after:pointer-events-none after:absolute after:inset-x-0 after:bottom-0 after:h-4 after:rounded-t-2xl after:bg-background after:content-[''] lg:mt-0 lg:pt-0">
+      <div className="container-page pt-2 pb-6 md:grid md:grid-cols-2 md:items-center md:gap-8 md:pt-6 md:pb-16">
         <div className="max-w-2xl min-w-0">
-          <p className="mb-5 hidden items-center gap-2 rounded-full bg-background/60 px-3.5 py-1.5 text-sm font-semibold md:inline-flex">
-            <HugeiconsIcon icon={UserGroupIcon} className="size-4" />
-            Many sellers. More choices. One marketplace.
-          </p>
-          <div className="flex items-center gap-2 md:block">
+          <div>
             <h1
               id="home-hero-title"
-              className="min-w-0 flex-1 text-[1.25rem] leading-[1.15] font-extrabold tracking-tight text-balance md:text-6xl md:leading-[0.95] md:tracking-[-0.045em] lg:text-[4.25rem]"
+              className="text-2xl leading-tight font-extrabold tracking-tight text-balance md:relative md:min-h-[3lh] md:text-5xl md:leading-[0.95] md:tracking-[-0.045em] lg:min-h-[2.2lh] lg:text-[4.25rem]"
             >
-              Whatever you’re looking for, someone’s selling it.
+              <span className="md:hidden">Find your next favourite.</span>
+              {DESKTOP_HEADLINES.map((headline, i) => <span key={i} aria-hidden={i !== desktopSlide} className={`hidden md:absolute md:inset-0 md:flex md:items-center transition-opacity duration-700 motion-reduce:transition-none ${i === desktopSlide ? "opacity-100" : "opacity-0"}`}>{headline}</span>)}
             </h1>
-            <HeroArt images={PHONE_HERO_ART} className="w-[58%] shrink-0 md:hidden" />
+            <HeroArt images={PHONE_HERO_ART} showDots={false} className="mt-2 w-full md:hidden" />
           </div>
-          <p className="mt-4 hidden max-w-xl text-lg font-medium text-foreground/80 md:block">
-            Discover products from trusted sellers, all in one place.
-          </p>
 
           <form
             role="search"
-            className="mt-3 flex max-w-2xl items-center gap-2 rounded-full bg-background p-1 shadow-lift md:mt-6 md:p-1.5"
+            className="mt-2 flex max-w-2xl items-center gap-2 rounded-full bg-background p-1 shadow-lift md:mt-6 md:p-1.5"
             onSubmit={(e) => {
               e.preventDefault()
               const term = q.trim()
@@ -109,7 +84,7 @@ export function HomeHero({ departments, allCategories, stocked }: {
           </form>
 
           {chips.length > 0 ? (
-            <nav aria-label="Popular departments" className="-mx-4 mt-3 flex gap-2 overflow-x-auto px-4 [scrollbar-width:none] md:hidden">
+            <nav aria-label="Popular departments" className="mt-3 flex gap-2 overflow-x-auto rounded-full p-1 [scrollbar-width:none] md:hidden">
               {chips.map((c) => (
                 <Link key={c.slug} to="/categories/$slug" params={{ slug: c.slug }} className={CHIP}>
                   {c.label}
@@ -132,6 +107,7 @@ export function HomeHero({ departments, allCategories, stocked }: {
             <li className="min-w-0 flex-1"><Link to="/categories" className="flex flex-col items-center gap-1.5 text-center text-sm font-semibold"><span className="grid size-14 place-items-center rounded-full bg-background/70"><HugeiconsIcon icon={MoreHorizontalIcon} className="size-6" strokeWidth={2} /></span>More</Link></li>
           </ul>
         </div>
+        <HeroArt images={PHONE_HERO_ART} showDots={false} onSlideChange={setDesktopSlide} className="mx-auto hidden w-full max-w-[34rem] md:block" />
       </div>
     </section>
   )

@@ -93,7 +93,7 @@ function LoginPage() {
       {/* Phones: the form starts at the top (no floating gap); wide screens centre it beside the art. */}
       <div className="flex items-start justify-center px-4 pt-4 pb-10 lg:items-center lg:py-10">
         <div className="w-full max-w-sm space-y-6">
-          <Link to="/account" className="-ml-1 inline-flex min-h-10 items-center gap-1 text-sm font-semibold text-muted-foreground hover:text-foreground lg:hidden">
+          <Link to="/account" className="-ml-1 inline-flex min-h-11 items-center gap-1 text-sm font-semibold text-muted-foreground hover:text-foreground lg:hidden">
             <HugeiconsIcon icon={ArrowLeft01Icon} className="size-4" aria-hidden /> Account
           </Link>
           <div className="space-y-2">
@@ -128,7 +128,7 @@ function LoginPage() {
                 <div className="flex items-center justify-between gap-2">
                   <FieldLabel htmlFor="password">Password</FieldLabel>
                   {mode === "login" ? (
-                    <Link to="/forgot-password" className="inline-flex min-h-6 items-center text-sm font-semibold text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
+                    <Link to="/forgot-password" className="inline-flex min-h-11 items-center text-sm font-semibold text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
                       Forgot password?
                     </Link>
                   ) : null}
@@ -142,9 +142,9 @@ function LoginPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     aria-invalid={tooShort}
-                    className="pr-11"
+                    className="pr-14"
                   />
-                  <button type="button" onClick={() => setShow((s) => !s)} aria-label={show ? "Hide password" : "Show password"} className="absolute top-1/2 right-2 grid size-8 -translate-y-1/2 place-items-center rounded-full text-muted-foreground hover:bg-muted">
+                  <button type="button" onClick={() => setShow((s) => !s)} aria-label={show ? "Hide password" : "Show password"} className="absolute top-1/2 right-0.5 grid size-11 -translate-y-1/2 place-items-center rounded-full text-muted-foreground hover:bg-muted md:right-2 md:size-8">
                     <HugeiconsIcon icon={show ? ViewOffIcon : ViewIcon} className="size-4" />
                   </button>
                 </div>

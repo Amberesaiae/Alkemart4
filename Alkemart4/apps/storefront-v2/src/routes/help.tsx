@@ -5,6 +5,7 @@ import { PageHero } from "@/components/content/page-hero"
 import { PageSeo } from "@/components/seo/page-seo"
 import { getVendorAppUrl } from "@/lib/env"
 import { useMarket } from "@/lib/market"
+import helpArt from "../../../../packages/console-ui/src/assets/empty-states/no-messages-v1.png"
 
 export const Route = createFileRoute("/help")({
   component: HelpPage,
@@ -32,9 +33,9 @@ function HelpPage() {
   return (
     <div className="space-y-10">
       <PageSeo title="Help" description="Answers about payments, delivery, orders and returns on alkemart." path="/help" />
-      <PageHero eyebrow="Help centre" title="How can we help?" lead="Payments, delivery, orders and returns — the short answers." art="/illustrations/help.webp">
+      <PageHero eyebrow="Help centre" title="Hey, what’s up?" lead="Order questions? Payment stuck? Let’s sort it out." art={helpArt} showMobileArt>
         <Button asChild size="lg"><Link to="/orders">Track an order</Link></Button>
-        <Button asChild size="lg" variant="outline" className="bg-background"><Link to="/contact">Contact us</Link></Button>
+        <Button asChild size="lg" variant="outline" className="bg-background"><Link to="/contact">Talk to us</Link></Button>
       </PageHero>
       <section className="container-page max-w-3xl">
         <Accordion type="single" collapsible className="rounded-3xl border border-border px-5">

@@ -14,6 +14,11 @@ function components(dir: string): string[] {
 }
 
 describe("storefront reading scale", () => {
+  it("reserves one scrollbar gutter across routes and modal scroll locks", () => {
+    const css = readFileSync(join(sourceRoot, "index.css"), "utf8")
+    expect(css).toContain("scrollbar-gutter: stable;")
+    expect(css).toMatch(/body\[data-scroll-locked\]\s*\{\s*margin-right: 0 !important;/)
+  })
   it("uses relative sizes for readable body and secondary text", () => {
     const css = readFileSync(join(sourceRoot, "index.css"), "utf8")
     expect(css).toContain("--text-xs: 0.875rem;")
@@ -29,18 +34,17 @@ describe("storefront reading scale", () => {
     expect(violations).toEqual([])
   })
 
-  it("preserves the mobile home scale without affecting other routes", () => {
+  it("shares the compact mobile scale across routes and portalled controls", () => {
     const css = readFileSync(join(sourceRoot, "index.css"), "utf8")
-    const layout = readFileSync(join(sourceRoot, "routes/__root.tsx"), "utf8")
-    expect(css).toContain("@media (width < 48rem)")
+    expect(css).toMatch(/@media \(width < 48rem\) \{\s*:root \{/)
     expect(css).toContain("--text-xs: 0.75rem;")
     expect(css).toContain("--text-sm: 0.875rem;")
-    expect(layout).toContain('pathname === "/" ? "mobile-home-preserved"')
+    expect(css).not.toMatch(/\.mobile-home-preserved\s*\{[^}]*--text-/s)
   })
 
-  it("keeps fields at 16px on the compact phone home (iOS zooms smaller ones on focus)", () => {
+  it("keeps fields at 16px on all phone routes (iOS zooms smaller ones on focus)", () => {
     const css = readFileSync(join(sourceRoot, "index.css"), "utf8")
-    expect(css).toMatch(/\.mobile-home-preserved :is\(input, textarea, select\) \{\s*font-size: 1rem;/)
+    expect(css).toMatch(/:is\(input, textarea, select, \[data-slot="select-trigger"\]\) \{\s*font-size: 1rem;/)
     expect(css).not.toMatch(/user-scalable|maximum-scale/)
     const viewport = readFileSync(join(sourceRoot, "../index.html"), "utf8")
     expect(viewport).not.toMatch(/user-scalable=no|maximum-scale=1/)

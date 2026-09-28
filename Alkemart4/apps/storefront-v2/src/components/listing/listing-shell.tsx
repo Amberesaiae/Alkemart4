@@ -75,7 +75,7 @@ export function ListingShell<T extends string>({
               <h1 className="text-2xl font-extrabold sm:text-3xl">{title}</h1>
               {countLabel ? <p className="mt-1 text-sm text-muted-foreground">{countLabel}</p> : null}
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex w-full items-center gap-2 sm:w-auto">
               <Sheet>
                 <SheetTrigger asChild>
                   <Button variant="outline" className="lg:hidden">
@@ -88,8 +88,8 @@ export function ListingShell<T extends string>({
                   <SheetHeader>
                     <SheetTitle>Filters</SheetTitle>
                   </SheetHeader>
-                  <div className="overflow-y-auto px-4">{filters}</div>
-                  <SheetFooter className="border-t border-border">
+                  <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4">{filters}</div>
+                  <SheetFooter className="shrink-0 border-t border-border p-4 pb-safe">
                     <Button variant="ghost" onClick={onClearAll} disabled={!applied.length}>
                       Clear all
                     </Button>
@@ -97,7 +97,7 @@ export function ListingShell<T extends string>({
                 </SheetContent>
               </Sheet>
               <Select value={sort} onValueChange={(v) => onSort(v as T)}>
-                <SelectTrigger className="w-44" aria-label="Sort by">
+                <SelectTrigger className="min-w-0 flex-1 sm:w-44 sm:flex-none" aria-label="Sort by">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent align="end">
@@ -115,20 +115,21 @@ export function ListingShell<T extends string>({
           {applied.length ? (
             <div className="mb-4 flex flex-wrap items-center gap-2">
               {applied.map((a) => (
-                <button
+                <Button
                   key={a.key}
                   type="button"
                   onClick={() => onRemoveFacet(a)}
                   aria-label={`Remove ${a.group}: ${a.label}`}
-                  className="inline-flex items-center gap-1.5 rounded-full bg-surface py-1.5 pr-2 pl-3 text-xs font-medium hover:bg-muted"
+                  variant="secondary"
+                  size="sm"
                 >
                   <span className="text-muted-foreground">{a.group}:</span> {a.label}
                   <HugeiconsIcon icon={Cancel01Icon} className="size-3.5" />
-                </button>
+                </Button>
               ))}
-              <button type="button" onClick={onClearAll} className="px-2 text-xs font-semibold hover:underline">
+              <Button type="button" variant="ghost" size="sm" onClick={onClearAll}>
                 Clear all
-              </button>
+              </Button>
             </div>
           ) : null}
 

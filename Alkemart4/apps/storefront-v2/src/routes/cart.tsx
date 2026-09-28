@@ -261,12 +261,12 @@ function CartRow({
     <span className="line-clamp-2 font-semibold">{line.title}</span>
   )
   return (
-    <li className="flex gap-4 p-4 sm:p-5">
-      <div className="size-20 shrink-0 overflow-hidden rounded-2xl bg-surface sm:size-24">
+    <li className="flex gap-3 p-3 sm:gap-4 sm:p-5">
+      <div className="size-16 shrink-0 overflow-hidden rounded-xl bg-surface sm:size-24 sm:rounded-2xl">
         {image ? <img src={image} alt="" className="size-full object-contain p-2 mix-blend-multiply" loading="lazy" onError={thumbFallback(product?.thumbnail)} /> : null}
       </div>
-      <div className="flex min-w-0 flex-1 flex-col gap-1">
-        <div className="flex items-start justify-between gap-3">
+      <div className="flex min-w-0 flex-1 flex-col gap-1 text-sm">
+        <div className="flex flex-col items-start gap-1 sm:flex-row sm:justify-between sm:gap-3">
           <div className="min-w-0">
             {title}
             {variant ? <p className="text-sm text-muted-foreground">{variant}</p> : null}
@@ -281,7 +281,7 @@ function CartRow({
         {line.quantity > 1 && line.unitPrice != null ? (
           <p className="text-xs text-muted-foreground tabular">{formatMoney(line.unitPrice, line.currencyCode)} each</p>
         ) : null}
-        <div className="mt-auto flex items-center justify-between gap-3 pt-2">
+        <div className="mt-auto flex flex-wrap items-center justify-between gap-2 pt-2">
           <QtyStepper
             size="sm"
             value={line.quantity}

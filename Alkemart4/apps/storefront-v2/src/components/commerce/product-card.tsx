@@ -146,8 +146,8 @@ export function ProductCard({
         </div>
       </Link>
 
-      {/* Phones: 32px to see, 40px to tap (the ::after widens the target). */}
-      <SaveButton product={p} className="absolute top-2 right-2 size-8 after:absolute after:-inset-1 sm:top-2.5 sm:right-2.5 sm:size-10 [&_svg]:size-4 sm:[&_svg]:size-[18px]" />
+      {/* Phones: 32px to see, 44px to tap (the ::after widens the target). */}
+      <SaveButton product={p} className="absolute top-2 right-2 size-8 after:absolute after:-inset-1.5 sm:top-2.5 sm:right-2.5 sm:size-10 [&_svg]:size-4 sm:[&_svg]:size-[18px]" />
 
       {!soldOut ? (
         <button
@@ -155,7 +155,7 @@ export function ProductCard({
           onClick={onQuickAdd}
           disabled={resolving || add.isPending}
           aria-label={sellers > 1 ? `Choose a seller for ${p.title}` : `Add ${p.title} to cart`}
-          className="absolute right-0.5 bottom-0.5 grid size-9 place-items-center rounded-full bg-brand text-brand-foreground shadow-sm after:absolute after:-inset-0.5 disabled:opacity-70 sm:right-1 sm:bottom-1 sm:size-10"
+          className="absolute right-0.5 bottom-0.5 grid size-9 place-items-center rounded-full bg-brand text-brand-foreground shadow-sm after:absolute after:-inset-1 disabled:opacity-70 sm:right-1 sm:bottom-1 sm:size-10"
         >
           {resolving || add.isPending ? (
             <Spinner className="size-4" />
@@ -173,7 +173,7 @@ export function ProductCard({
 export function ProductCardSkeleton() {
   return (
     <div className="flex flex-col gap-2.5" aria-hidden>
-      <Skeleton className="aspect-square w-full rounded-3xl" />
+      <Skeleton className="aspect-square w-full rounded-xl sm:rounded-3xl" />
       <Skeleton className="h-3.5 w-11/12" />
       <Skeleton className="h-3.5 w-2/3" />
       <Skeleton className="h-4 w-1/3" />

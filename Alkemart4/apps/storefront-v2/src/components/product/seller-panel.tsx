@@ -3,6 +3,7 @@ import { HugeiconsIcon } from "@hugeicons/react"
 import { ArrowRight01Icon, Calendar03Icon, Location01Icon, PackageIcon } from "@hugeicons/core-free-icons"
 import { Rating } from "@/components/commerce/rating"
 import { SellerAvatar } from "@/components/commerce/seller-avatar"
+import { Button } from "@/components/ui/button"
 import type { StoreVendorDetail } from "@/lib/vendors"
 
 /** The shop behind the chosen offer — facts from the shop API only. */
@@ -56,20 +57,22 @@ export function SellerPanel({ vendor, productId, productTitle }: { vendor: Store
         </ul>
       ) : null}
       {vendor.replyTime?.label ? <p className="text-sm text-muted-foreground">{vendor.replyTime.label}</p> : null}
+      <Button asChild variant="outline" className="w-full">
       <Link
         to="/messages/new"
         search={{ sellerId: vendor.id, ...(productId ? { productId } : {}), shop: vendor.name, ...(productTitle ? { about: productTitle } : {}) }}
-        className="flex min-h-11 items-center justify-center rounded-full border border-border text-sm font-semibold hover:bg-muted"
       >
         Message the shop
       </Link>
+      </Button>
+      <Button asChild variant="secondary" className="w-full justify-between">
       <Link
         to="/shops/$slug"
         params={{ slug: vendor.slug }}
-        className="flex items-center justify-between rounded-full bg-surface px-4 py-2.5 text-sm font-semibold hover:bg-muted"
       >
         Visit store <HugeiconsIcon icon={ArrowRight01Icon} className="size-4" />
       </Link>
+      </Button>
     </div>
   )
 }
