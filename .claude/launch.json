@@ -1,0 +1,89 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "storefront-v2",
+      "runtimeExecutable": "bun",
+      "runtimeArgs": [
+        "run",
+        "--cwd",
+        "Alkemart4/apps/storefront-v2",
+        "dev"
+      ],
+      "port": 5176
+    },
+    {
+      "name": "vendor-v2",
+      "runtimeExecutable": "bun",
+      "runtimeArgs": [
+        "run",
+        "--cwd",
+        "Alkemart4/apps/vendor-v2",
+        "dev"
+      ],
+      "port": 3004
+    },
+    {
+      "name": "admin-v2",
+      "runtimeExecutable": "bun",
+      "runtimeArgs": [
+        "run",
+        "--cwd",
+        "Alkemart4/apps/admin-v2",
+        "dev"
+      ],
+      "port": 3003
+    },
+    {
+      "name": "sandbox-storefront",
+      "runtimeExecutable": "bun",
+      "runtimeArgs": [
+        "run",
+        "--cwd",
+        "Alkemart4/apps/storefront-v2",
+        "dev",
+        "--",
+        "--mode",
+        "sandbox",
+        "--port",
+        "5186",
+        "--strictPort"
+      ],
+      "port": 5186
+    },
+    {
+      "name": "sandbox-vendor",
+      "runtimeExecutable": "bun",
+      "runtimeArgs": [
+        "run",
+        "--cwd",
+        "Alkemart4/apps/vendor-v2",
+        "dev",
+        "--",
+        "--mode",
+        "sandbox",
+        "--port",
+        "3014",
+        "--strictPort"
+      ],
+      "port": 3014
+    },
+    {
+      "name": "sandbox-admin",
+      "runtimeExecutable": "bun",
+      "runtimeArgs": [
+        "run",
+        "--cwd",
+        "Alkemart4/apps/admin-v2",
+        "dev",
+        "--",
+        "--mode",
+        "sandbox",
+        "--port",
+        "3013",
+        "--strictPort"
+      ],
+      "port": 3013
+    }
+  ]
+}
