@@ -122,7 +122,7 @@ export function SearchBox({
             placeholder={placeholder}
             aria-label="Search alkemart"
             enterKeyHint="search"
-            className="h-12 w-full rounded-full border border-border bg-surface pr-12 pl-12 text-[length:var(--text-legacy-15)] outline-none placeholder:text-muted-foreground focus:border-foreground/30 focus:bg-background focus:shadow-lift"
+            className="h-12 w-full rounded-full border border-border bg-surface pr-12 pl-12 text-base outline-none placeholder:text-muted-foreground focus:border-foreground/30 focus:bg-background focus:shadow-lift"
           />
           {q ? (
             <button

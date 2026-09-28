@@ -26,7 +26,9 @@
 }
 
 /* Preserve the approved mobile home composition; the larger reading scale
-   applies to desktop home and the other storefront routes. */
+   applies to desktop home and the other storefront routes. Phone home steps:
+   hero line 22px → section titles 18px → product names 15px (price 16px bold)
+   → details 13px → labels 12px. Fields stay 16px (no iOS focus zoom). */
 @media (width < 48rem) {
   .mobile-home-preserved {
     --text-legacy-10: 0.625rem;
@@ -48,8 +50,17 @@
     font-size: 0.9375rem;
     font-weight: 500;
   }
+  /* Rows already name their department; three lines per card, not four. */
+  .mobile-home-preserved .product-card-eyebrow {
+    display: none;
+  }
   .mobile-home-preserved .section-header {
     flex-wrap: nowrap;
+  }
+  /* iOS zooms the page when a field under 16px is focused; the compact scale
+     never applies to what people type into. */
+  .mobile-home-preserved :is(input, textarea, select) {
+    font-size: 1rem;
   }
 }
 
@@ -189,6 +200,8 @@
   html {
     @apply font-sans;
     -webkit-tap-highlight-color: transparent;
+    /* No accidental double-tap zoom on rails and buttons; pinch zoom stays. */
+    touch-action: manipulation;
   }
   body {
     @apply bg-background text-base text-foreground antialiased;

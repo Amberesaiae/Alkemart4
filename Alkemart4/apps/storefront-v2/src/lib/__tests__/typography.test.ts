@@ -37,4 +37,12 @@ describe("storefront reading scale", () => {
     expect(css).toContain("--text-sm: 0.875rem;")
     expect(layout).toContain('pathname === "/" ? "mobile-home-preserved"')
   })
+
+  it("keeps fields at 16px on the compact phone home (iOS zooms smaller ones on focus)", () => {
+    const css = readFileSync(join(sourceRoot, "index.css"), "utf8")
+    expect(css).toMatch(/\.mobile-home-preserved :is\(input, textarea, select\) \{\s*font-size: 1rem;/)
+    expect(css).not.toMatch(/user-scalable|maximum-scale/)
+    const viewport = readFileSync(join(sourceRoot, "../index.html"), "utf8")
+    expect(viewport).not.toMatch(/user-scalable=no|maximum-scale=1/)
+  })
 })

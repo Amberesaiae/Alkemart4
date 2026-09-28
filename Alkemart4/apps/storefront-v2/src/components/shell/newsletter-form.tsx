@@ -49,7 +49,7 @@ export function NewsletterForm({ tone = "light", source, compact = false }: { to
           aria-invalid={m.isError || undefined}
           aria-describedby={`nl-${source}-hint`}
           className={cn(
-            "h-11 min-w-0 flex-1 px-4 text-sm outline-none",
+            "h-11 min-w-0 flex-1 px-4 text-base outline-none",
             compact ? "border-0 bg-transparent px-2 focus-visible:shadow-none focus-visible:outline-none" : "rounded-full border focus-visible:ring-[3px] focus-visible:ring-ring/40",
             dark ? compact ? "text-white placeholder:text-white/60" : "border-white/20 bg-white/10 text-white placeholder:text-white/50" : "border-border",
           )}

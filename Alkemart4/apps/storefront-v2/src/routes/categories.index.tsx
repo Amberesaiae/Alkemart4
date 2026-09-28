@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react"
+import { useQuery } from "@tanstack/react-query"
 import { createFileRoute, Link } from "@tanstack/react-router"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { ArrowRight01Icon, DrinkIcon, Plant01Icon } from "@hugeicons/core-free-icons"
@@ -9,7 +10,9 @@ import { ErrorState } from "@/components/feedback/states"
 import { PageSeo } from "@/components/seo/page-seo"
 import { useCategories } from "@/hooks/use-store"
 import { departmentFor } from "@/lib/departments"
-import type { StoreCategory } from "@/lib/products"
+import { listStoreProducts, type StoreCategory } from "@/lib/products"
+import { stockedCategories } from "@/components/home/discovery"
+import { REFERENCE_DEPARTMENTS } from "@/components/home/reference-departments"
 import { cn } from "@/lib/utils"
 
 export const Route = createFileRoute("/categories/")({
@@ -21,9 +24,10 @@ type Dept = { cat: StoreCategory; kids: StoreCategory[] }
 /**
  * The category directory: every department with its sub-categories one tap
  * away. Finding by name is the header search's job (it suggests categories,
- * shops and products as you type) — one search box, not two. Phones get
- * compact rows (≈5 departments per screen, not one); wide screens get a
- * directory grid.
+ * shops and products as you type) — one search box, not two. Phones get a
+ * two-column grid of photo tiles (departments with listings only, once
+ * known); a tile opens the department, whose page lists its sub-categories.
+ * Wide screens get the directory with sub-categories inline.
  */
 function CategoriesPage() {
   const q = useCategories()
@@ -41,6 +45,14 @@ function CategoriesPage() {
   }, [q.data])
 
   const subCount = depts.reduce((n, d) => n + d.kids.length, 0)
+  // Same query as the homepage's discovery rows, so it's usually cached.
+  const catalogQ = useQuery({
+    queryKey: ["store", "discovery", "catalog"],
+    queryFn: () => listStoreProducts({ limit: 96, sort: "newest" }),
+    staleTime: 300_000,
+  })
+  const stocked = catalogQ.data && q.data?.length ? stockedCategories(catalogQ.data.products, q.data) : null
+  const phoneDepts = stocked ? depts.filter((d) => stocked.has(d.cat.id)) : depts
 
   return (
     <div className="container-page space-y-6 pt-5 pb-10 sm:space-y-8 sm:pt-8">
@@ -48,14 +60,14 @@ function CategoriesPage() {
 
       <header className="space-y-4">
         <div>
-          <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl">Shop by category</h1>
-          <p className="mt-1 text-muted-foreground">
+          <h1 className="text-2xl font-extrabold tracking-tight sm:text-4xl">Shop by category</h1>
+          <p className="mt-1 hidden text-muted-foreground md:block">
             {depts.length ? `${depts.length} departments · ${subCount} categories` : "Every department in one place"}
           </p>
         </div>
         {/* Jump strip: every department as a chip, for quick scanning on phones. */}
         {depts.length ? (
-          <nav aria-label="Jump to a department" className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:px-0 lg:hidden">
+          <nav aria-label="Jump to a department" className="hidden flex-wrap gap-2 md:flex lg:hidden">
             {depts.map((d) => (
               <a key={d.cat.id} href={`#dept-${d.cat.handle ?? d.cat.id}`} className="shrink-0 rounded-full border border-border bg-background px-3.5 py-2 text-sm font-semibold whitespace-nowrap hover:bg-muted">
                 {d.cat.name}
@@ -74,11 +86,18 @@ function CategoriesPage() {
           ))}
         </div>
       ) : (
-        <ul className="grid gap-3 sm:gap-4 lg:grid-cols-3">
-          {depts.map((d) => (
-            <DeptCard key={d.cat.id} d={d} />
-          ))}
-        </ul>
+        <>
+          <ul aria-label="Departments" className="grid grid-cols-2 gap-3 md:hidden">
+            {phoneDepts.map((d) => (
+              <DeptPhotoTile key={d.cat.id} cat={d.cat} />
+            ))}
+          </ul>
+          <ul className="hidden gap-4 md:grid lg:grid-cols-3">
+            {depts.map((d) => (
+              <DeptCard key={d.cat.id} d={d} />
+            ))}
+          </ul>
+        </>
       )}
     </div>
   )
@@ -110,6 +129,46 @@ function DeptThumb({ cat, size }: { cat: StoreCategory; size: "sm" | "lg" }) {
         <HugeiconsIcon icon={icon} className={cn(size === "lg" ? "size-8" : "size-5", dept.tone === "light" ? "text-white" : "text-foreground")} />
       )}
     </span>
+  )
+}
+
+/** Departments with a studio photo (/images/departments/reference-*). */
+const STUDIO: Record<string, string> = {
+  electronics: "reference-electronics-v1",
+  fashion: "reference-fashion-v2",
+  home: "reference-home-v1",
+  beauty: "reference-beauty-v1",
+  gaming: "reference-gaming-v1",
+  appliances: "reference-appliances-v1",
+}
+
+/** Phone tile: name and one line on the department's own ground, photo behind. */
+function DeptPhotoTile({ cat }: { cat: StoreCategory }) {
+  const dept = departmentFor(cat.handle, cat.name)
+  const key = `${cat.handle ?? ""} ${cat.name}`.toLowerCase()
+  const icon = ICON_OVERRIDE.find((o) => o.re.test(key))?.icon ?? DEPARTMENT_ICON[dept.id]
+  const studio = STUDIO[dept.id]
+  const [broken, setBroken] = useState(false)
+  // Text colour follows whichever ground is showing: the photo's, or the department's.
+  const photoLight = REFERENCE_DEPARTMENTS.find((r) => r.id === dept.id)?.light
+  const light = studio && !broken && photoLight != null ? photoLight : dept.tone === "light"
+  return (
+    <li>
+      <Link
+        to="/categories/$slug"
+        params={{ slug: cat.handle ?? cat.id }}
+        style={{ background: dept.ground }}
+        className={cn("relative isolate flex aspect-[4/5] flex-col overflow-hidden rounded-2xl p-3", light ? "text-white" : "text-foreground")}
+      >
+        {studio && !broken ? (
+          <img src={`/images/departments/${studio}.webp`} alt="" width={900} height={1125} loading="lazy" decoding="async" onError={() => setBroken(true)} className="absolute inset-0 -z-10 size-full object-cover" />
+        ) : (
+          <HugeiconsIcon icon={icon} aria-hidden className="absolute right-3 bottom-3 -z-10 size-16 opacity-80" />
+        )}
+        <span className="text-base leading-tight font-extrabold">{cat.name}</span>
+        <span className="mt-0.5 line-clamp-2 text-xs leading-snug opacity-90">{dept.tagline}</span>
+      </Link>
+    </li>
   )
 }
 

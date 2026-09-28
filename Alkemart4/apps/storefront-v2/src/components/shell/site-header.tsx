@@ -23,6 +23,7 @@ import { SearchBox } from "@/components/shell/search-box"
 import { CategoryMenu } from "@/components/shell/category-menu"
 import { DeliverToPicker } from "@/components/shell/deliver-to-picker"
 import { useCartCount, useSession } from "@/hooks/use-store"
+import { useHomeSticky } from "@/lib/home-sticky"
 import { logout } from "@/lib/auth"
 import { getVendorAppUrl } from "@/lib/env"
 import { cn } from "@/lib/utils"
@@ -111,6 +112,9 @@ export function SiteHeader() {
   const pathname = useRouterState({ select: (s) => s.location.pathname })
   const onSearch = pathname === "/search"
   const hero = pathname === "/"
+  const sticky = useHomeSticky()
+  // Phone home, hero search scrolled away: search and departments take over.
+  const compact = hero && sticky.stuck
   // Checkout is a focused flow: no search, menus or cart to wander off to.
   // The page's own "‹ Cart · Secure checkout" row handles the way back.
   if (pathname.startsWith("/checkout")) {
@@ -132,7 +136,7 @@ export function SiteHeader() {
           : "border-b border-border/70 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80",
       )}
     >
-      <div className="container-page flex h-16 items-center gap-3 md:h-[72px] lg:gap-5">
+      <div inert={compact} className="container-page flex h-16 items-center gap-3 md:h-[72px] lg:gap-5">
         <BrandLogo size="md" hero={hero} className="shrink-0" />
         <DeliverToPicker className={cn("hidden xl:inline-flex", ON_INK)} />
         <SearchBox className={cn("hidden max-w-2xl flex-1 md:block", hero && "[&_input]:border-transparent [&_input]:bg-background")} />
@@ -151,6 +155,31 @@ export function SiteHeader() {
           <CartButton />
         </div>
       </div>
+      {compact ? (
+        // Overlays the row it replaces instead of resizing the header, so the
+        // page below never jumps when it appears.
+        <div className="absolute inset-x-0 top-0 bg-brand shadow-sm md:hidden">
+          <div className="container-page flex items-center gap-1 pt-2">
+            <SearchBox placeholder="Search products or stores" className="min-w-0 flex-1 [&_input]:h-11 [&_input]:border-transparent [&_input]:bg-background" />
+            <CartButton />
+          </div>
+          <nav aria-label="Departments" className="flex gap-2 overflow-x-auto px-4 pt-2 pb-2 [scrollbar-width:none]">
+            {sticky.chips.map((c) => (
+              <Link
+                key={c.slug}
+                to="/categories/$slug"
+                params={{ slug: c.slug }}
+                className="inline-flex h-8 shrink-0 items-center rounded-full bg-background/70 px-3 text-sm font-semibold whitespace-nowrap"
+              >
+                {c.label}
+              </Link>
+            ))}
+            <Link to="/categories" className="inline-flex h-8 shrink-0 items-center rounded-full bg-background/70 px-3 text-sm font-semibold">
+              All
+            </Link>
+          </nav>
+        </div>
+      ) : null}
       {/* Home has the hero search; a second box directly above it is clutter. */}
       {!onSearch && !hero ? (
         <div className="container-page pb-3 md:hidden">

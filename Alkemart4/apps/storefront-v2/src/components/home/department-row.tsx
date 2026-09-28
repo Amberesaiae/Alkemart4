@@ -1,3 +1,4 @@
+import { useId } from "react"
 import type { CategoryBannerTile } from "@alkemart/shared/homepage"
 import { CategoryTile } from "@/components/commerce/category-tile"
 import { SectionHeader } from "@/components/commerce/section-header"
@@ -6,7 +7,7 @@ import { cn } from "@/lib/utils"
 import { SmartLink } from "@/components/commerce/smart-link"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { ArrowRight01Icon } from "@hugeicons/core-free-icons"
-import { referenceDepartmentHref, stockedReferenceDepartments } from "./reference-departments"
+import { REFERENCE_DEPARTMENTS, referenceDepartmentHref } from "./reference-departments"
 
 /**
  * One row of tall department tiles (scrolls on phones). Tiles come from the
@@ -20,6 +21,7 @@ export function DepartmentRow({
   className,
   allCategories = [],
   stocked = null,
+  only,
 }: {
   title?: string
   className?: string
@@ -28,10 +30,12 @@ export function DepartmentRow({
   allCategories?: StoreCategory[]
   /** Categories with listings; null while unknown (show everything). */
   stocked?: Set<string> | null
+  /** Phones browse departments below the first shelf; desktop right under the hero. */
+  only?: "phone" | "desktop"
 }) {
+  const headingId = useId()
   // An entry point with nothing behind it is a dead end: hide it once stock is known.
   const live = stocked ? departments.filter((c) => stocked.has(c.id)) : departments
-  const reference = stockedReferenceDepartments(allCategories.length ? allCategories : departments, stocked)
   const byId = new Map(live.map((c) => [c.id, c]))
   const configured = tiles.flatMap((t) => {
     const cat = byId.get(t.categoryId)
@@ -43,14 +47,13 @@ export function DepartmentRow({
     ...configured,
     ...live.filter((c) => !used.has(c.id)).map((cat) => ({ tile: { categoryId: cat.id } as CategoryBannerTile, cat })),
   ].slice(0, 6)
-  if (entries.length === 0 && reference.length === 0) return null
   return (
-    <section className={cn("container-page", className)} aria-labelledby="dept-row-title">
+    <section className={cn("container-page", only === "phone" && "md:hidden", only === "desktop" && "hidden md:block", className)} aria-labelledby={headingId}>
       {title ? (
-        <SectionHeader id="dept-row-title" title={title} action={{ label: "All categories", to: "/categories" }} />
+        <SectionHeader id={headingId} title={title} action={{ label: "All categories", to: "/categories" }} />
       ) : (
         // Tiles are h3s; keep the outline h1 → h2 → h3 without a visible heading.
-        <h2 id="dept-row-title" className="sr-only">
+        <h2 id={headingId} className="sr-only">
           Shop by category
         </h2>
       )}
@@ -67,8 +70,8 @@ export function DepartmentRow({
           />
         ))}
       </div>
-      <div className={cn("hidden gap-3 md:grid md:grid-cols-3", reference.length > 3 ? "lg:grid-cols-6" : "lg:grid-cols-3")}>
-        {reference.map(dept => (
+      <div className="hidden gap-3 md:grid md:grid-cols-3 lg:grid-cols-6">
+        {REFERENCE_DEPARTMENTS.map(dept => (
           <SmartLink key={dept.id} href={referenceDepartmentHref(dept.id, allCategories.length ? allCategories : departments)} style={{ background: dept.ground }} className={cn("group relative isolate aspect-[4/5] overflow-hidden rounded-2xl focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand", dept.light ? "text-white" : "text-foreground")}>
             <img src={`/images/departments/reference-${dept.id}-${dept.id === "fashion" ? "v2" : "v1"}.webp`} alt="" width={900} height={1125} loading="lazy" className="absolute inset-0 size-full object-cover" />
             <div className="relative p-3 lg:p-4 xl:p-5">

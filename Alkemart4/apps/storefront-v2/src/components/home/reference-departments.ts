@@ -27,12 +27,3 @@ export function referenceDepartmentHref(id: ReferenceId, categories: StoreCatego
   const category = referenceDepartmentCategory(id, categories)
   return category ? `/categories/${category.handle ?? category.id}` : `/search?q=${encodeURIComponent(id)}`
 }
-
-/** Entry points with listings behind them; all of them while stock is unknown. */
-export function stockedReferenceDepartments(categories: StoreCategory[], stocked: Set<string> | null) {
-  if (!stocked) return [...REFERENCE_DEPARTMENTS]
-  return REFERENCE_DEPARTMENTS.filter((d) => {
-    const c = referenceDepartmentCategory(d.id, categories)
-    return Boolean(c && stocked.has(c.id))
-  })
-}

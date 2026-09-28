@@ -127,7 +127,7 @@ export function ProductCard({
 
         <div className="flex flex-1 flex-col gap-1 px-1 pt-3">
           {p.categoryLabel ? (
-            <p className="truncate text-xs font-medium text-muted-foreground">
+            <p className="product-card-eyebrow truncate text-xs font-medium text-muted-foreground">
               {p.categoryLabel}
             </p>
           ) : null}
