@@ -16,7 +16,7 @@ export function StoreSpotlight({ spotlight }: { spotlight: HomeSpotlight | null 
   return (
     <section className="container-page" aria-label={`Shop of the week: ${shop.name}`}>
       <SectionHeader title="Shop of the week" action={{ label: "Visit shop", to: "/shops/$slug", params: { slug: shop.slug } }} />
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] lg:gap-8">
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-8">
         <Link to="/shops/$slug" params={{ slug: shop.slug }} className="group block">
           {shop.banner ? (
             <img
@@ -30,7 +30,7 @@ export function StoreSpotlight({ spotlight }: { spotlight: HomeSpotlight | null 
           {facts.length ? <p className="mt-1 text-sm text-muted-foreground">{facts.join(" · ")}</p> : null}
           {line ? <p className="mt-2 line-clamp-3 text-sm text-foreground/80">{line}</p> : null}
         </Link>
-        <div className="grid grid-cols-2 gap-x-3 gap-y-6 sm:gap-x-4 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-x-3 gap-y-6 sm:grid-cols-4 sm:gap-x-4 lg:grid-cols-2">
           {products.map((p) => (
             <ProductCard key={p.id} product={p} />
           ))}
