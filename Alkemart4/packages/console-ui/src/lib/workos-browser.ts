@@ -65,9 +65,10 @@ export class WorkosBrowser {
     throw new Error("We couldn’t send a code right now. Please try again.")
   }
   /** Checks the emailed code; on success the session cookie is set and the safe next path returned. */
-  async verifyEmail(code: string): Promise<string> {
+  async verifyEmail(code: string): Promise<string | "shop"> {
     const response = await fetch(this.endpoint("email/verify"), { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code }) })
-    const body = await response.json().catch(() => ({})) as { redirect?: string; message?: string; error?: string }
+    const body = await response.json().catch(() => ({})) as { redirect?: string; next?: string; message?: string; error?: string }
+    if (response.ok && body.next === "shop") return "shop"
     if (response.ok && body.redirect?.startsWith("/") && !body.redirect.startsWith("//")) { this.clear(); return body.redirect }
     const reason = body.message ?? body.error ?? ""
     if (reason === "invalid_code") throw new Error("That code isn’t right. Check the email and try again.")
@@ -76,6 +77,15 @@ export class WorkosBrowser {
       ? "This email already has an Alkemart account. Choose Connect it below and enter its password to keep your orders and shop."
       : "This account doesn’t have a shop yet. Choose Open your shop to get started.")
     throw new Error("Sign-in is temporarily unavailable. Please try again.")
+  }
+  /** New seller, after signing in: name the shop (its link is made from the name). */
+  async createShop(name: string): Promise<string> {
+    const response = await fetch(this.endpoint("shop"), { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name }) })
+    const body = await response.json().catch(() => ({})) as { redirect?: string; error?: string }
+    if (response.ok && body.redirect?.startsWith("/") && !body.redirect.startsWith("//")) { this.clear(); return body.redirect }
+    if (response.status === 401) throw new Error("Your sign-in expired. Please sign in again.")
+    if (response.status === 400) throw new Error("Give your shop a name of at least 2 letters.")
+    throw new Error("We couldn’t open your shop right now. Please try again.")
   }
   async logout() {
     this.logoutPending = true

@@ -78,7 +78,6 @@ function RegisterPage() {
     <AuthLayout>
       {workosEnabled ? <>
         <WorkosSignIn vendor register browser={workosBrowser} redirect="/setup" />
-        <p className="mt-8 text-center"><Link to="/login" className="font-semibold underline">Sign in instead</Link></p>
       </> : <>
       <h1 className="text-3xl font-extrabold tracking-tight">Open your shop</h1>
       <p className="mt-2 text-muted-foreground">It's free. Our team checks every new shop before buyers can order from it.</p>

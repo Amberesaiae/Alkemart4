@@ -43,7 +43,15 @@ async function provision(repo: AuthRepository, input: WorkosProvision, mappedId:
     user = old
   }
   if (!user) {
-    if (await repo.findUserByEmail(email)) throw new WorkosAccountError("account_link_required")
+    // WorkOS only returns verified emails (Google-verified, or a code sent to that
+    // inbox), the same proof our email reset gives. So an existing account with
+    // this email is the person's own: sign them into it (orders, shop and all).
+    // Admin accounts are never reached this way.
+    const existing = await repo.findUserByEmail(email)
+    if (existing?.role === "admin") throw new WorkosAccountError("account_restricted")
+    if (existing) user = existing
+  }
+  if (!user) {
     // A provider-only account cannot authenticate via any local password endpoint.
     const credentials = { id: crypto.randomUUID(), email, passwordHash: "!workos-only" }
     if (input.actor === "vendor") {

@@ -3,66 +3,45 @@ import { Button } from "./button"
 import { Input } from "./input"
 import { Label } from "./label"
 import { Spinner } from "./spinner"
-import { CodeExpiredError, type WorkosBrowser, type WorkosStartInput } from "../lib/workos-browser"
+import { CodeExpiredError, type WorkosBrowser } from "../lib/workos-browser"
 
 /**
- * Buyer and seller sign-in, entirely on our own page. WorkOS runs behind it:
- * "Continue with Google" goes straight to Google (no hosted page), and email
- * sign-in sends a six-digit code that is entered here. Connecting an old
- * password account works with either.
+ * One sign-in for everyone, new or returning: Google, or a six-digit code by
+ * email. There is no separate sign-up and no password. An existing account
+ * with the same email is simply signed in. On the seller app, someone with
+ * no shop yet is asked one thing next: the shop's name.
  */
-export function WorkosSignIn({ vendor = false, register = false, browser, redirect }: {
+export function WorkosSignIn({ vendor = false, browser, redirect }: {
   vendor?: boolean
+  /** Accepted for older callers; sign-in and sign-up are the same now. */
   register?: boolean
   browser: WorkosBrowser
   redirect?: string
 }) {
   const id = useId()
-  const [linking, setLinking] = useState(false)
+  const params = new URLSearchParams(window.location.search)
+  const [step, setStep] = useState<"start" | "code" | "shop">(vendor && params.get("step") === "shop" ? "shop" : "start")
   const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [name, setName] = useState("")
-  const [handle, setHandle] = useState("")
   const [code, setCode] = useState("")
-  const [sentTo, setSentTo] = useState<string | null>(null)
-  const [busy, setBusy] = useState<"google" | "email" | "code" | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const authError = new URLSearchParams(window.location.search).get("auth_error")
-  const callbackMessage = authError === "account_link_required"
-    ? "This email already has an Alkemart account. Choose Connect it below and enter its password to keep your orders and shop."
-    : authError === "vendor_membership_required"
-      ? "This account doesn’t have a shop yet. Choose Open your shop to get started."
-      : authError ? "Sign-in couldn’t be completed. Please try again." : null
+  const [shopName, setShopName] = useState("")
+  const [busy, setBusy] = useState<"google" | "email" | "code" | "shop" | null>(null)
+  const [error, setError] = useState<string | null>(params.get("auth_error") ? "Sign-in didn’t finish. Please try again." : null)
 
-  const needsShop = vendor && register
-  const shopReady = !needsShop || (name.trim().length > 0 && /^[a-z0-9]+(-[a-z0-9]+)*$/.test(handle) && handle.length >= 2)
-  const base = (): WorkosStartInput => ({
-    mode: register ? "register" : "login",
-    ...(redirect ? { redirect } : {}),
-    ...(linking ? { link: { email: email.trim(), password } } : {}),
-    ...(needsShop ? { shop: { name: name.trim(), handle: handle.trim() } } : {}),
-  })
-
-  async function run(kind: "google" | "email" | "code", action: () => Promise<void>) {
+  async function run(kind: NonNullable<typeof busy>, action: () => Promise<void>) {
     setError(null)
     setBusy(kind)
     try { await action() } catch (e) {
-      if (e instanceof CodeExpiredError) { setSentTo(null); setCode("") }
+      if (e instanceof CodeExpiredError) { setStep("start"); setCode("") }
       setError(e instanceof Error ? e.message : "Something went wrong. Please try again.")
       setBusy(null)
     }
   }
-  const google = () => run("google", async () => {
-    if (!shopReady) throw new Error("Add your shop name and link first.")
-    await browser.start({ ...base(), provider: "google" })
-  })
+  const google = () => run("google", () => browser.start({ mode: "login", provider: "google", ...(redirect ? { redirect } : {}) }))
   const sendCode = (e?: React.FormEvent) => {
     e?.preventDefault()
     return run("email", async () => {
-      if (!shopReady) throw new Error("Add your shop name and link first.")
-      const to = email.trim()
-      await browser.startEmail({ ...base(), email: to })
-      setSentTo(to)
+      await browser.startEmail({ mode: "login", email: email.trim(), ...(redirect ? { redirect } : {}) })
+      setStep("code")
       setCode("")
       setBusy(null)
     })
@@ -71,23 +50,37 @@ export function WorkosSignIn({ vendor = false, register = false, browser, redire
     e.preventDefault()
     return run("code", async () => {
       const next = await browser.verifyEmail(code)
+      if (next === "shop") { setStep("shop"); setBusy(null); return }
       window.location.assign(next)
     })
   }
+  const openShop = (e: React.FormEvent) => {
+    e.preventDefault()
+    return run("shop", async () => window.location.assign(await browser.createShop(shopName.trim())))
+  }
 
-  const title = register ? vendor ? "Open your shop" : "Create your account" : "Welcome back"
+  const heading = step === "code" ? "Check your email" : step === "shop" ? "What’s your shop called?" : vendor ? "Sign in to sell on alkemart" : "Sign in to alkemart"
+  const intro = step === "code"
+    ? <>We sent a 6-digit code to <span className="font-semibold text-foreground">{email.trim()}</span>. It works for 10 minutes.</>
+    : step === "shop" ? "You’re signed in. Name your shop — you can change it later."
+      : vendor ? "New or returning — the same steps open your seller account." : "New or returning — the same steps create your account."
+
   return <div className="space-y-6">
     <div className="space-y-2">
-      <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">{sentTo ? "Check your email" : title}</h1>
-      <p className="text-muted-foreground">
-        {sentTo
-          ? <>We sent a 6-digit code to <span className="font-semibold text-foreground">{sentTo}</span>. It works for 10 minutes.</>
-          : vendor ? "Sign in to manage your shop." : "Sign in to track orders and check out."}
-      </p>
+      <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">{heading}</h1>
+      <p className="text-muted-foreground">{intro}</p>
     </div>
-    {(error || (!sentTo && callbackMessage)) && <p role="alert" className="rounded-xl bg-muted p-4 text-sm">{error ?? callbackMessage}</p>}
+    {error && <p role="alert" className="rounded-xl bg-muted p-4 text-sm">{error}</p>}
 
-    {sentTo ? (
+    {step === "shop" ? (
+      <form onSubmit={openShop} className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor={`${id}-shop`}>Shop name</Label>
+          <Input id={`${id}-shop`} value={shopName} onChange={(e) => setShopName(e.target.value)} placeholder="Ama’s Fabrics" autoComplete="organization" minLength={2} maxLength={80} required autoFocus />
+        </div>
+        <Button type="submit" variant="brand" size="xl" className="w-full" disabled={busy !== null || shopName.trim().length < 2}>{busy === "shop" && <Spinner />}Open my shop</Button>
+      </form>
+    ) : step === "code" ? (
       <form onSubmit={verify} className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor={`${id}-code`}>6-digit code</Label>
@@ -97,43 +90,28 @@ export function WorkosSignIn({ vendor = false, register = false, browser, redire
             className="h-12 text-center text-2xl font-bold tracking-[0.4em]"
           />
         </div>
-        <Button type="submit" variant="brand" size="xl" className="w-full" disabled={busy !== null || code.length !== 6}>{busy === "code" && <Spinner />}Sign in</Button>
+        <Button type="submit" variant="brand" size="xl" className="w-full" disabled={busy !== null || code.length !== 6}>{busy === "code" && <Spinner />}Continue</Button>
         <div className="flex flex-wrap justify-between gap-2 text-sm">
           <button type="button" onClick={() => void sendCode()} disabled={busy !== null} className="min-h-10 font-semibold underline underline-offset-4">Send a new code</button>
-          <button type="button" onClick={() => { setSentTo(null); setCode(""); setError(null) }} className="min-h-10 font-semibold underline underline-offset-4">Use a different email</button>
+          <button type="button" onClick={() => { setStep("start"); setCode(""); setError(null) }} className="min-h-10 font-semibold underline underline-offset-4">Use a different email</button>
         </div>
       </form>
     ) : (
       <div className="space-y-5">
-        {needsShop && <div className="space-y-4">
-          <div className="space-y-2"><Label htmlFor={`${id}-name`}>Shop name</Label><Input id={`${id}-name`} value={name} onChange={(e) => setName(e.target.value)} maxLength={80} required autoComplete="organization" /></div>
-          <div className="space-y-2"><Label htmlFor={`${id}-handle`}>Shop link</Label><Input id={`${id}-handle`} value={handle} onChange={(e) => setHandle(e.target.value.toLowerCase())} minLength={2} maxLength={40} pattern="[a-z0-9]+(-[a-z0-9]+)*" required autoCapitalize="none" /><p className="text-sm text-muted-foreground">Lowercase words joined with hyphens, like ama-fabrics.</p></div>
-        </div>}
-        {linking && <div className="space-y-4 rounded-2xl border border-border p-4">
-          <p className="text-sm text-muted-foreground">Enter your old Alkemart password once, then continue with Google or an email code using the same email. Your orders and shop stay with you.</p>
-          <div className="space-y-2"><Label htmlFor={`${id}-password`}>Old password</Label><Input id={`${id}-password`} type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required maxLength={200} /></div>
-        </div>}
-
-        <Button type="button" variant="outline" size="xl" className="w-full gap-3 bg-background" onClick={() => void google()} disabled={busy !== null || (linking && (!email.trim() || !password))}>
+        <Button type="button" variant="outline" size="xl" className="w-full gap-3 bg-background" onClick={() => void google()} disabled={busy !== null}>
           {busy === "google" ? <Spinner /> : <GoogleMark />}Continue with Google
         </Button>
-
         <div className="flex items-center gap-3 text-sm text-muted-foreground" aria-hidden><span className="h-px flex-1 bg-border" />or<span className="h-px flex-1 bg-border" /></div>
-
         <form onSubmit={sendCode} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor={`${id}-email`}>Email</Label>
             <Input id={`${id}-email`} type="email" autoComplete="email" inputMode="email" placeholder="name@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required maxLength={320} />
           </div>
-          <Button type="submit" variant="brand" size="xl" className="w-full" disabled={busy !== null || (linking && !password)}>{busy === "email" && <Spinner />}Email me a code</Button>
+          <Button type="submit" variant="brand" size="xl" className="w-full" disabled={busy !== null}>{busy === "email" && <Spinner />}Email me a code</Button>
         </form>
-        <p className="text-center text-sm text-muted-foreground">No password needed. {linking ? "Use the email of your old account." : "New here? The same steps create your account."}</p>
+        <p className="text-center text-sm text-muted-foreground">No password needed.</p>
       </div>
     )}
-
-    {!sentTo && <button type="button" onClick={() => { setLinking(!linking); setPassword(""); setError(null) }} className="min-h-10 text-sm font-semibold underline underline-offset-4">
-      {linking ? "I don’t have an old account" : "Already had an Alkemart account? Connect it"}
-    </button>}
   </div>
 }
 

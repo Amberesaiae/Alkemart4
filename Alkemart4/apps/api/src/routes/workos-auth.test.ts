@@ -114,13 +114,19 @@ describe("WorkOS marketplace authentication", () => {
     expect((await s.call("/store/auth/workos/logout", { method: "POST", headers: { Cookie: completed.cookie, Origin: env.STOREFRONT_URL } })).status).toBe(200)
     expect((await s.call("/store/account", { headers })).status).toBe(401)
   })
-  it("does not auto-link an existing email", async () => {
+  it("signs a verified email into its existing account, keeping its ID and history", async () => {
     const s = setup()
-    const old = await s.repo.createUser({ id: "legacy", email: identity.email, passwordHash: "old", role: "buyer" })
+    await s.repo.createUser({ id: "legacy", email: identity.email, passwordHash: "old", role: "buyer" })
     const result = await complete(s)
-    expect(result.response.headers.get("location")).toContain("account_link_required")
+    expect(result.cookie).not.toBe("")
+    expect((await restore(s, result.cookie)).data.user.id).toBe("legacy")
+  })
+  it("never signs a WorkOS identity into an admin account by email", async () => {
+    const s = setup()
+    await s.repo.createUser({ id: "ops", email: identity.email, passwordHash: "x", role: "admin" })
+    const result = await complete(s)
+    expect(result.response.headers.get("location")).toContain("account_restricted")
     expect(result.cookie).toBe("")
-    expect(old.emailVerifiedAt).toBeUndefined()
   })
   it("links only with old-account proof and keeps the local ID", async () => {
     const s = setup()
@@ -237,5 +243,33 @@ describe("WorkOS sign-in on our own pages", () => {
     await s.call("/store/auth/workos/email/start", json({ email: "buyer@example.com" }))
     expect((await s.call("/store/auth/workos/email/verify", json({ code: "123456" }))).status).toBe(400)
     expect((await s.call("/store/auth/workos/email/start", json({ email: "buyer@example.com" }, { Origin: "https://attacker.example" }))).status).toBe(403)
+  })
+})
+
+describe("new seller: sign in first, then name the shop", () => {
+  beforeEach(resetRateLimits)
+  it("asks for the shop name after sign-in and builds the link from it", async () => {
+    const s = setup({ id: "user_new_seller", email: "ama@example.com", email_verified: true })
+    await s.repo.registerVendor({ user: { id: "other", email: "other@example.com", passwordHash: "x" }, seller: { id: "s-other", name: "Taken", handle: "amas-fabrics" } })
+    const attempt = await begin(s, "vendor")
+    const back = await s.call(attempt.callback, { headers: { Cookie: attempt.cookie } })
+    expect(back.headers.get("location")).toBe(`${env.VENDOR_URL}/register?step=shop`)
+    const pending = (back.headers.get("set-cookie") ?? "").match(/alkemart_vendor_pending=[^; ,]+/)![0]
+    expect(back.headers.get("set-cookie")).not.toMatch(/alkemart_vendor_session=[^;]/)
+
+    const named = await s.call("/vendor/auth/workos/shop", { method: "POST", headers: { Origin: env.VENDOR_URL, "Content-Type": "application/json", Cookie: pending }, body: JSON.stringify({ name: "Ama's Fabrics" }) })
+    expect(named.status).toBe(200)
+    const body = await named.json() as { redirect: string; handle: string }
+    expect(body.redirect).toBe("/setup")
+    expect(body.handle).toMatch(/^amas-fabrics-[a-z0-9]{1,4}$/)
+    const session = (named.headers.get("set-cookie") ?? "").match(/alkemart_vendor_session=([^; ,]+)/)![1]
+    const restored = await restore(s, `alkemart_vendor_session=${session}`, "vendor")
+    expect(restored.data.user.role).toBe("seller_member")
+    expect(restored.data.user.sellerId).toBeTruthy()
+  })
+  it("refuses to name a shop without a pending sign-in", async () => {
+    const s = setup()
+    const r = await s.call("/vendor/auth/workos/shop", { method: "POST", headers: { Origin: env.VENDOR_URL, "Content-Type": "application/json" }, body: JSON.stringify({ name: "Ama's Fabrics" }) })
+    expect(r.status).toBe(401)
   })
 })

@@ -35,7 +35,7 @@ function safePath(value: string | undefined, fallback: string) {
   const url = new URL(value, "https://safe.invalid")
   return url.origin === "https://safe.invalid" ? `${url.pathname}${url.search}${url.hash}` : fallback
 }
-function cookieName(actor: WorkosActor, kind: "attempt" | "session" | "email", secure: boolean) { return `${secure ? "__Host-" : ""}alkemart_${actor}_${kind}` }
+function cookieName(actor: WorkosActor, kind: "attempt" | "session" | "email" | "pending", secure: boolean) { return `${secure ? "__Host-" : ""}alkemart_${actor}_${kind}` }
 function checkOrigin(origin: string | undefined, expected: string) {
   if (origin !== expected) throw new HTTPException(403, { message: "invalid_origin" })
 }
@@ -45,6 +45,27 @@ function cookieParts(cookie: string | undefined) {
 }
 
 type Cfg = ReturnType<typeof workosConfig>
+
+/** A new seller signed in fine but has no shop yet: ask for its name next. */
+class ShopNeeded extends Error {}
+const ShopName = z.object({ name: z.string().trim().min(2).max(80) })
+const Pending = z.object({
+  subject: z.string(), email: z.string(), refreshToken: z.string(), providerSessionId: z.string(), accessExpiresAt: z.number(),
+  redirect: z.string(), link: z.object({ userId: z.string(), passwordVersion: z.string() }).optional(),
+})
+
+/** Shop link from its name: "Ama's Fabrics" → "amas-fabrics" (suffix if taken). */
+async function handleFor(c: Context<AppEnv>, name: string) {
+  const base = name.normalize("NFKD").replace(/[\u0300-\u036f]/g, "").replace(/['\u2019]/g, "").toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 32).replace(/-+$/, "") || "shop"
+  const root = base.length >= 2 ? base : `${base}-shop`
+  if (!await c.get("authRepo").findSellerByHandle(root)) return root
+  for (let i = 0; i < 5; i++) {
+    const candidate = `${root}-${crypto.getRandomValues(new Uint32Array(1))[0]!.toString(36).slice(0, 4)}`
+    if (!await c.get("authRepo").findSellerByHandle(candidate)) return candidate
+  }
+  throw new HTTPException(409, { message: "shop_link_unavailable" })
+}
 
 /** Old-account linking: the existing password proves ownership (never an email-only merge). */
 async function checkLink(c: Context<AppEnv>, input: { email: string; password: string } | undefined) {
@@ -64,7 +85,18 @@ async function checkLink(c: Context<AppEnv>, input: { email: string; password: s
  * cookie. Returns the safe in-app path to go to next.
  */
 async function establishSession(c: Context<AppEnv>, cfg: Cfg, actor: WorkosActor, authenticated: WorkosAuthentication, data: z.infer<typeof Attempt>) {
-  const user = await c.get("workos").provision({ clientId: cfg.clientId, subject: authenticated.user.id, email: authenticated.user.email, actor, link: data.link, shop: data.shop })
+  let user
+  try {
+    user = await c.get("workos").provision({ clientId: cfg.clientId, subject: authenticated.user.id, email: authenticated.user.email, actor, link: data.link, shop: data.shop })
+  } catch (error) {
+    if (error instanceof WorkosAccountError && error.code === "vendor_membership_required" && actor === "vendor" && !data.shop) {
+      // Hold the finished sign-in (encrypted, this browser only, 15 minutes) while they name the shop.
+      const pending = { subject: authenticated.user.id, email: authenticated.user.email, refreshToken: authenticated.refreshToken, providerSessionId: authenticated.providerSessionId, accessExpiresAt: authenticated.accessExpiresAt, redirect: data.redirect, ...(data.link ? { link: data.link } : {}) }
+      setCookie(c, cookieName(actor, "pending", cfg.secure), await sealWorkosData(pending, cfg.secret, 900), { path: "/", httpOnly: true, secure: cfg.secure, sameSite: "Lax", maxAge: 900 })
+      throw new ShopNeeded()
+    }
+    throw error
+  }
   const id = crypto.randomUUID(), secret = (await createWorkosChallenge()).state
   const session = {
     id, userId: user.id, subject: authenticated.user.id, clientId: cfg.clientId, actor,
@@ -163,6 +195,7 @@ export function workosAuth(actor: WorkosActor) {
       const redirect = await establishSession(c, cfg, actor, authenticated, data)
       return c.json({ redirect })
     } catch (error) {
+      if (error instanceof ShopNeeded) return c.json({ next: "shop" })
       console.warn(JSON.stringify({ event: "workos-login", actor, method: "email", outcome: "rejected" }))
       if (error instanceof WorkosAccountError) throw new HTTPException(409, { message: error.code })
       if (error instanceof HTTPException) throw error
@@ -186,6 +219,8 @@ export function workosAuth(actor: WorkosActor) {
       const redirect = await establishSession(c, cfg, actor, authenticated, data)
       return c.redirect(`${cfg.appOrigin}${redirect}`)
     } catch (error) {
+      // New seller without a shop: signed in, now name the shop.
+      if (error instanceof ShopNeeded) return c.redirect(`${cfg.appOrigin}/register?step=shop`)
       console.warn(JSON.stringify({ event: "workos-login", actor, outcome: "rejected" }))
       if (error instanceof WorkosAccountError) return fail(error.code)
       if (error instanceof WorkosAuthenticationError || error instanceof HTTPException) return fail("authentication_failed")
@@ -252,6 +287,29 @@ export function workosAuth(actor: WorkosActor) {
     }
     deleteCookie(c, cookieName(actor, "session", cfg.secure), { path: "/", secure: cfg.secure, httpOnly: true, sameSite: "Lax" })
     return c.json({ ok: true })
+  })
+  // New seller, second step: name the shop. The finished sign-in waits in the
+  // encrypted pending cookie from the step before.
+  routes.post("/shop", async (c) => {
+    const cfg = workosConfig(c, actor)
+    if (actor !== "vendor") throw new HTTPException(404, { message: "not_found" })
+    checkOrigin(c.req.header("Origin"), cfg.appOrigin)
+    const parsed = ShopName.safeParse(await readJsonBody(c))
+    if (!parsed.success) throw new HTTPException(400, { message: "invalid_shop_name" })
+    const sealed = getCookie(c, cookieName(actor, "pending", cfg.secure))
+    let pending: z.infer<typeof Pending>
+    try { pending = Pending.parse(await openWorkosData(sealed ?? "", cfg.secret)) } catch { throw new HTTPException(401, { message: "sign_in_again" }) }
+    const shop = { name: parsed.data.name, handle: await handleFor(c, parsed.data.name) }
+    const authenticated: WorkosAuthentication = { user: { id: pending.subject, email: pending.email, emailVerified: true }, accessToken: "", refreshToken: pending.refreshToken, providerSessionId: pending.providerSessionId, accessExpiresAt: pending.accessExpiresAt }
+    try {
+      await establishSession(c, cfg, actor, authenticated, { actor, clientId: cfg.clientId, verifier: "shop", redirect: "/setup", shop, ...(pending.link ? { link: pending.link } : {}) })
+    } catch (error) {
+      if (error instanceof WorkosAccountError) throw new HTTPException(409, { message: error.code })
+      if (error instanceof HTTPException) throw error
+      throw new HTTPException(503, { message: "authentication_unavailable" })
+    }
+    deleteCookie(c, cookieName(actor, "pending", cfg.secure), { path: "/", secure: cfg.secure, httpOnly: true, sameSite: "Lax" })
+    return c.json({ redirect: "/setup", handle: shop.handle })
   })
   return routes
 }
