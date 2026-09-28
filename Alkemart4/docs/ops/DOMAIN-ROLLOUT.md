@@ -78,11 +78,11 @@ credentials through the private file and revoke temporary tokens after use.
   root SPF `include:_spf.mx.cloudflare.net`). The five Namecheap placeholder
   MX records and their SPF were removed (the domain was new; Namecheap hides
   forwarding under custom nameservers, and no forwards had been configured).
-- **support@alkemart.com:** rule `bca88b41fae94fdea1e824dd9efd7776` currently
-  forwards to isaiahamber5@gmail.com. A rule allows one destination, so
-  `infra/support-mail` (Email Worker) forwards to both admins; once it is
-  deployed and akpey.mawuena@gmail.com is a verified destination, point the
-  rule's action at the Worker.
+- **support@alkemart.com:** rule `bca88b41fae94fdea1e824dd9efd7776` hands mail
+  to the Email Worker `alkemart-support-mail` (`infra/support-mail`, deployed
+  2026-09-28, version fb39db5a), which forwards a copy to each admin. A rule
+  allows only one destination, hence the Worker. Destinations must be
+  verified Email Routing addresses; mail bounces only if no copy is delivered.
 - **DMARC:** `_dmarc` = `v=DMARC1; p=none; rua=mailto:support@alkemart.com`
   (monitor only). Tighten to `p=quarantine` after clean aggregate reports.
 - **Sending (parked):** Resend domain `33238fea-40d8-4f2f-aa88-fb4f716820c4`
