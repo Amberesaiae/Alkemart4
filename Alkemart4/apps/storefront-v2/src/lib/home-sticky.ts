@@ -28,3 +28,7 @@ export function useHomeSticky(): State {
     () => state,
   )
 }
+
+/** One chip style for the hero row and the stuck header row: they are the same control. */
+export const HOME_CHIP =
+  "inline-flex h-8 shrink-0 items-center rounded-full bg-background/80 px-3 text-[length:var(--text-legacy-13)] font-semibold whitespace-nowrap focus-visible:outline-2 focus-visible:outline-foreground"

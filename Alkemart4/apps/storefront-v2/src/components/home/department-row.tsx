@@ -1,6 +1,4 @@
 import { useId } from "react"
-import type { CategoryBannerTile } from "@alkemart/shared/homepage"
-import { CategoryTile } from "@/components/commerce/category-tile"
 import { SectionHeader } from "@/components/commerce/section-header"
 import type { StoreCategory } from "@/lib/products"
 import { cn } from "@/lib/utils"
@@ -10,45 +8,23 @@ import { ArrowRight01Icon } from "@hugeicons/core-free-icons"
 import { REFERENCE_DEPARTMENTS, referenceDepartmentHref } from "./reference-departments"
 
 /**
- * One row of tall department tiles (scrolls on phones). Tiles come from the
- * homepage studio when configured — its art/copy overrides — else the API's
- * top-level departments in buyer order.
+ * Desktop department tiles under the hero (phones use DepartmentGrid further
+ * down the page instead).
  */
 export function DepartmentRow({
   title,
   departments,
-  tiles,
   className,
   allCategories = [],
-  stocked = null,
-  only,
 }: {
   title?: string
   className?: string
   departments: StoreCategory[]
-  tiles: CategoryBannerTile[]
   allCategories?: StoreCategory[]
-  /** Categories with listings; null while unknown (show everything). */
-  stocked?: Set<string> | null
-  /** Phones browse departments below the first shelf; desktop right under the hero. */
-  only?: "phone" | "desktop"
 }) {
   const headingId = useId()
-  // An entry point with nothing behind it is a dead end: hide it once stock is known.
-  const live = stocked ? departments.filter((c) => stocked.has(c.id)) : departments
-  const byId = new Map(live.map((c) => [c.id, c]))
-  const configured = tiles.flatMap((t) => {
-    const cat = byId.get(t.categoryId)
-    return cat ? [{ tile: t, cat }] : []
-  })
-  // Studio picks lead; the row is topped up with remaining departments to six.
-  const used = new Set(configured.map((x) => x.cat.id))
-  const entries = [
-    ...configured,
-    ...live.filter((c) => !used.has(c.id)).map((cat) => ({ tile: { categoryId: cat.id } as CategoryBannerTile, cat })),
-  ].slice(0, 6)
   return (
-    <section className={cn("container-page", only === "phone" && "md:hidden", only === "desktop" && "hidden md:block", className)} aria-labelledby={headingId}>
+    <section className={cn("container-page hidden md:block", className)} aria-labelledby={headingId}>
       {title ? (
         <SectionHeader id={headingId} title={title} action={{ label: "All categories", to: "/categories" }} />
       ) : (
@@ -57,20 +33,7 @@ export function DepartmentRow({
           Shop by category
         </h2>
       )}
-      <div className="rail -mx-4 px-4 sm:mx-0 sm:px-0 md:hidden">
-        {entries.map(({ tile, cat }) => (
-          <CategoryTile
-            key={cat.id}
-            handle={cat.handle ?? cat.id}
-            name={tile.label ?? cat.name}
-            tagline={tile.eyebrow}
-            imageUrl={tile.imageUrl}
-            size="row"
-            className="w-[42%] shrink-0 sm:w-[30%] lg:w-auto"
-          />
-        ))}
-      </div>
-      <div className="hidden gap-3 md:grid md:grid-cols-3 lg:grid-cols-6">
+      <div className="grid grid-cols-3 gap-3 lg:grid-cols-6">
         {REFERENCE_DEPARTMENTS.map(dept => (
           <SmartLink key={dept.id} href={referenceDepartmentHref(dept.id, allCategories.length ? allCategories : departments)} style={{ background: dept.ground }} className={cn("group relative isolate aspect-[4/5] overflow-hidden rounded-2xl focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand", dept.light ? "text-white" : "text-foreground")}>
             <img src={`/images/departments/reference-${dept.id}-${dept.id === "fashion" ? "v2" : "v1"}.webp`} alt="" width={900} height={1125} loading="lazy" className="absolute inset-0 size-full object-cover" />

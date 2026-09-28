@@ -29,10 +29,10 @@ export function SectionHeader({
             {eyebrow}
           </p>
         ) : null}
-        <h2 id={id} className="text-lg font-extrabold sm:text-2xl">
+        <h2 id={id} className="text-lg leading-tight font-extrabold sm:text-2xl">
           {title}
         </h2>
-        {subtitle ? <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p> : null}
+        {subtitle ? <p className="section-header-subtitle mt-1 text-sm text-muted-foreground">{subtitle}</p> : null}
       </div>
       <div className="flex shrink-0 items-center gap-2">
         {action ? (
@@ -40,9 +40,12 @@ export function SectionHeader({
             to={action.to}
             params={action.params as never}
             search={action.search as never}
-            className="-my-2 inline-flex min-h-10 items-center gap-1 rounded-full py-2 text-sm font-semibold hover:underline"
+            aria-label={action.label}
+            className="-my-2 inline-flex min-h-10 shrink-0 items-center gap-1 rounded-full py-2 text-sm font-semibold whitespace-nowrap hover:underline"
           >
-            {action.label}
+            {/* Phones: the short form, so titles keep the row. */}
+            <span className="md:hidden">{action.label.startsWith("See all") ? "See all" : action.label}</span>
+            <span className="hidden md:inline">{action.label}</span>
             <HugeiconsIcon icon={ArrowRight01Icon} className="size-4" />
           </Link>
         ) : null}

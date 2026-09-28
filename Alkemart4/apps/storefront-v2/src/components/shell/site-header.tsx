@@ -23,7 +23,7 @@ import { SearchBox } from "@/components/shell/search-box"
 import { CategoryMenu } from "@/components/shell/category-menu"
 import { DeliverToPicker } from "@/components/shell/deliver-to-picker"
 import { useCartCount, useSession } from "@/hooks/use-store"
-import { useHomeSticky } from "@/lib/home-sticky"
+import { HOME_CHIP, useHomeSticky } from "@/lib/home-sticky"
 import { logout } from "@/lib/auth"
 import { getVendorAppUrl } from "@/lib/env"
 import { cn } from "@/lib/utils"
@@ -169,12 +169,12 @@ export function SiteHeader() {
                 key={c.slug}
                 to="/categories/$slug"
                 params={{ slug: c.slug }}
-                className="inline-flex h-8 shrink-0 items-center rounded-full bg-background/70 px-3 text-sm font-semibold whitespace-nowrap"
+                className={HOME_CHIP}
               >
                 {c.label}
               </Link>
             ))}
-            <Link to="/categories" className="inline-flex h-8 shrink-0 items-center rounded-full bg-background/70 px-3 text-sm font-semibold">
+            <Link to="/categories" className={HOME_CHIP}>
               All
             </Link>
           </nav>

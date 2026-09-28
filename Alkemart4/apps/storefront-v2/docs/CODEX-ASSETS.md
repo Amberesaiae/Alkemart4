@@ -55,6 +55,14 @@ scrim, and a white round arrow sits **bottom-right** (44px, 16px inset). Keep
 the **top 35%** calm (backdrop, wall, sky — no products, no busy detail) and
 keep the bottom-right corner free of the key product.
 
+**Phone department grid** (home page and Categories on phones) shows the
+studio scenes `reference-{id}-v1.webp` (fashion: `-v2`) at **4:5, ~110px wide,
+three across**, title top-left. Until a department has one it shows its colour
+and icon. Needed next, same 900×1125 format and top-35% calm zone:
+`reference-baby-v1`, `reference-food-v1`, `reference-health-v1`,
+`reference-pets-v1`, `reference-auto-v1`; then add the id to `STUDIO` in
+`src/components/commerce/department-grid.tsx`.
+
 **Which ids are actually needed.** Tiles map the *real* catalogue departments
 to an id (`src/lib/departments.ts`). Current departments and their art:
 
@@ -83,7 +91,8 @@ that belongs *in the picture* (like the handwritten notes) is part of the image.
 
 | File | Spec |
 |---|---|
-| `hero/home.webp` | **The home hero art.** Transparent WebP, 1600×1200, placed on the gold ground, anchored to the **right edge**, filling the hero's full height and the **right 52%** of its width (`object-contain`, right-aligned). Shown only ≥1024px — phones get plain gold. Content: a joyful floating collage of products (headphones, phone, sneaker, perfume, handbag, skincare) over abstract coral/violet/teal/blue **petal shapes** from the mark, plus three short **handwritten notes with little arrows**: "More choices", "Better prices", "Trusted sellers" (ink `#111114`, marker style, legible at 60% scale). Rules: the **left 12% of the canvas is empty** (it meets the headline column), nothing important in the **bottom 10%** (the white panel overlaps it), the petals may bleed off the right and top edges. No gold background baked in — it must be transparent so the hero's gold shows through. |
+| `hero/home.webp` | **The home hero art.** Transparent WebP, 1600×1200, placed on the gold ground, anchored to the **right edge**, filling the hero's full height and the **right 52%** of its width (`object-contain`, right-aligned). Desktop ≥1024px; **phones also show it** (right 54% of the hero beside the headline, ~200px wide, `object-contain`). Content: a joyful floating collage of products (headphones, phone, sneaker, perfume, handbag, skincare) over abstract coral/violet/teal/blue **petal shapes** from the mark, plus three short **handwritten notes with little arrows**: "More choices", "Better prices", "Trusted sellers" (ink `#111114`, marker style, legible at 60% scale). Rules: the **left 12% of the canvas is empty** (it meets the headline column), nothing important in the **bottom 10%** (the white panel overlaps it), the petals may bleed off the right and top edges. No gold background baked in — it must be transparent so the hero's gold shows through. |
+| `hero/phone-01.webp`, `hero/phone-02.webp`, … | **Phone hero slides** (after `hero/home.webp`, which is slide 1). Transparent WebP, **1600×1200 (4:3)**, same style as `home.webp`: floating products over the mark's petal shapes, on no background (the hero's gold shows through). Shown ~200px wide on a 375px phone, bleeding off the right edge, so: **one to three large products per slide**, not a crowd; any handwritten note ≤3 words and drawn **at least 3× the desktop size** so it reads at 200px; left 12% empty. Themes to cover, one per slide: phones and gadgets; fashion (sneaker, bag); home (chair, plant, cookware); beauty (perfume, skincare); groceries and everyday goods. List each new file in `PHONE_HERO_ART` (`src/components/home/home-hero.tsx`) — two or more swipe automatically. |
 | `promos/spotlight.webp` | **Store spotlight backdrop.** 1800×800 WebP, **opaque**, shown `object-cover` behind a dark ink card at **35% opacity**, with white text on the left third and product thumbnails on the right. Content: an atmospheric, softly out-of-focus market-stall / boutique interior (warm light, shelves of goods, no faces, no readable signage). Keep it low-contrast and mostly mid/dark tones so white text stays readable. Used only when a shop has no banner of its own. |
 | `hero/sell.webp` | **Sell band art.** 1200×900 WebP, opaque, `object-cover` on the **right half** of a dark ink `#1D1D24` rounded band (≥768px), cropped from its left edge. Content: a small-business owner's hands packing an order, with a phone showing an order notification (no readable text). No face. Fade the **left 25%** into `#1D1D24` so it blends into the band. |
 | `hero/stores.webp` | Shops page hero right-hand art on gold, transparent 1400×700: bag, sneakers, headphones, perfume, plant. Left 50% empty. |

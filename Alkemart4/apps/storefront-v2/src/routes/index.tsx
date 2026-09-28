@@ -9,8 +9,7 @@ import {
   type HomeSection,
 } from "@alkemart/shared/homepage"
 import { HomeHero } from "@/components/home/home-hero"
-import type { HeroPhoto } from "@/components/home/hero-photos"
-import { REFERENCE_DEPARTMENTS, referenceDepartmentCategory } from "@/components/home/reference-departments"
+import { DepartmentGrid } from "@/components/commerce/department-grid"
 import { DepartmentRow } from "@/components/home/department-row"
 import { HomeRows, SeeAllProducts, useHomeDiscovery } from "@/components/home/discovery"
 import { ShelfSection } from "@/components/home/shelf-section"
@@ -28,7 +27,6 @@ import { PageSeo } from "@/components/seo/page-seo"
 import { useCategories } from "@/hooks/use-store"
 import { fetchFeaturedProducts, type StoreCategory, type StoreProductCard } from "@/lib/products"
 import { fetchHomepageSections } from "@/lib/homepage"
-import { listStoreVendors } from "@/lib/vendors"
 import { assignBucket, fetchCourse, orderShelvesForBucket } from "@/lib/course"
 import { trackHomepageViewed } from "@/lib/analytics"
 import { absoluteUrl, defaultDescription, organizationJsonLd, siteOrigin } from "@/lib/seo"
@@ -61,30 +59,6 @@ function orderDepartments(all: StoreCategory[]): StoreCategory[] {
 }
 
 /**
- * Phone hero photos, all backed by something live: open shops with a cover
- * and listings, alternating with departments that have stock (their studio
- * photo). Nothing appears until stock is known.
- */
-function heroPhotos(shops: Awaited<ReturnType<typeof listStoreVendors>>, categories: StoreCategory[], stocked: Set<string> | null): HeroPhoto[] {
-  const live = shops
-    .filter((v) => v.availability !== "paused" && v.banner && (v.featured?.length ?? 0) > 0)
-    .map((v) => ({ key: `shop-${v.slug}`, image: v.banner!, caption: v.name, href: `/shops/${v.slug}` }))
-  const depts = stocked
-    ? REFERENCE_DEPARTMENTS.flatMap((d) => {
-        const c = referenceDepartmentCategory(d.id, categories)
-        if (!c || !stocked.has(c.id)) return []
-        return [{ key: `dept-${d.id}`, image: `/images/departments/reference-${d.id}-${d.id === "fashion" ? "v2" : "v1"}.webp`, caption: `Shop ${d.short}`, href: `/categories/${c.handle ?? c.id}` }]
-      })
-    : []
-  const out: HeroPhoto[] = []
-  for (let i = 0; i < Math.max(live.length, depts.length); i++) {
-    if (live[i]) out.push(live[i])
-    if (depts[i]) out.push(depts[i])
-  }
-  return out.slice(0, 8)
-}
-
-/**
  * Homepage course:
  *   brand hero → promises → departments (studio art) → decision shelf →
  *   multi-seller proof → campaign beat → paid placements → proof shelf →
@@ -106,7 +80,6 @@ function HomePage() {
     placeholderData: DEFAULT_HOMEPAGE_SECTIONS,
     staleTime: 60_000,
   })
-  const shopsQ = useQuery({ queryKey: ["store", "vendors"], queryFn: listStoreVendors, staleTime: 300_000 })
   const courseQ = useQuery({ queryKey: ["store", "homepage-course"], queryFn: fetchCourse, staleTime: 60_000, retry: false })
   const bucketQ = useQuery({
     queryKey: ["store", "experiment", "homepage-shelf-order"],
@@ -188,10 +161,14 @@ function HomePage() {
   const freshShown = decision?.source === "featured" ? featured.slice(0, decision.limit).map((p) => p.id) : []
   const discovery = useHomeDiscovery(categoriesQ.data ?? [], freshShown)
 
-  const photos = useMemo(
-    () => heroPhotos(shopsQ.data ?? [], categoriesQ.data ?? [], discovery.stocked),
-    [shopsQ.data, categoriesQ.data, discovery.stocked],
-  )
+  // Phones browse departments in a grid after the second product row.
+  // Studio picks (homepage settings) lead, then the rest in buyer order.
+  const phoneDepartments = useMemo(() => {
+    const live = discovery.stocked ? departments.filter((c) => discovery.stocked!.has(c.id)) : departments
+    const picked = (department?.tiles ?? []).map((t) => t.categoryId)
+    const rank = (c: StoreCategory) => (picked.includes(c.id) ? picked.indexOf(c.id) : picked.length)
+    return [...live].sort((a, b) => rank(a) - rank(b)).slice(0, 6)
+  }, [departments, discovery.stocked, department?.tiles])
 
   const shared = {
     categories: categoriesQ.data ?? [],
@@ -210,17 +187,11 @@ function HomePage() {
       {/* The first screen. Desktop: hero, promises and the category row as one
           unit. Phones: a compact hero, then straight into products. */}
       <div>
-        <HomeHero
-          departments={departments}
-          allCategories={categoriesQ.data ?? []}
-          stocked={discovery.stocked}
-          photos={photos}
-          photosLoading={shopsQ.isLoading || discovery.stocked == null}
-        />
+        <HomeHero departments={departments} allCategories={categoriesQ.data ?? []} stocked={discovery.stocked} />
         <div className="hidden md:block">
           <TrustPanel />
         </div>
-        {department ? <DepartmentRow only="desktop" departments={departments} allCategories={categoriesQ.data ?? []} stocked={discovery.stocked} tiles={department.tiles ?? []} className="mt-6" /> : null}
+        {department ? <DepartmentRow departments={departments} allCategories={categoriesQ.data ?? []} className="mt-6" /> : null}
       </div>
 
       {featuredQ.isError && categoriesQ.isError && departments.length === 0 ? (
@@ -237,8 +208,14 @@ function HomePage() {
       ) : null}
 
       {decision ? <ShelfSection section={decision} {...shared} /> : null}
-      {department ? <DepartmentRow only="phone" title="Shop by department" departments={departments} allCategories={categoriesQ.data ?? []} stocked={discovery.stocked} tiles={department.tiles ?? []} /> : null}
-      <HomeRows rows={discovery.top} />
+      <HomeRows rows={discovery.top.slice(0, 1)} />
+      {phoneDepartments.length ? (
+        <section className="container-page md:hidden" aria-labelledby="home-dept-grid">
+          <SectionHeader id="home-dept-grid" title="Shop by category" action={{ label: "See all", to: "/categories" }} />
+          <DepartmentGrid departments={phoneDepartments} tiles={department?.tiles} />
+        </section>
+      ) : null}
+      <HomeRows rows={discovery.top.slice(1)} />
       {COMPARE_ENABLED ? <CompareShowcase products={featured} /> : null}
       {campaign ? <PromoSection section={campaign} /> : null}
       <HomeRows rows={discovery.middle} />

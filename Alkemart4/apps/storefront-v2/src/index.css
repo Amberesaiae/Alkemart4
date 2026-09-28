@@ -26,9 +26,12 @@
 }
 
 /* Preserve the approved mobile home composition; the larger reading scale
-   applies to desktop home and the other storefront routes. Phone home steps:
-   hero line 22px → section titles 18px → product names 15px (price 16px bold)
-   → details 13px → labels 12px. Fields stay 16px (no iOS focus zoom). */
+   applies to desktop home and the other storefront routes.
+   Phone home scale — type: hero 24 → section titles 18 → prices 16 bold →
+   product names 15 → chips, tiles, details 13 → labels 12; fields always 16
+   (no iOS focus zoom). Space: 4/8/12/16/32 — 12 under a section title, 32
+   between sections, 16 page gutter. Sizes: chips 32 tall, tap targets ≥40,
+   department tiles three across. */
 @media (width < 48rem) {
   .mobile-home-preserved {
     --text-legacy-10: 0.625rem;
@@ -49,6 +52,10 @@
   .mobile-home-preserved .product-card-title {
     font-size: 0.9375rem;
     font-weight: 500;
+  }
+  /* Titles carry the row on phones; subtitles are desktop detail. */
+  .mobile-home-preserved .section-header-subtitle {
+    display: none;
   }
   /* Rows already name their department; three lines per card, not four. */
   .mobile-home-preserved .product-card-eyebrow {
