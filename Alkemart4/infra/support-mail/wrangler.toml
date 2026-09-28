@@ -1,0 +1,9 @@
+name = "alkemart-support-mail"
+main = "worker.js"
+compatibility_date = "2026-09-28"
+account_id = "c057131d18c6e024ec4370e6292686d1"
+workers_dev = false
+
+[vars]
+# Admin inboxes that receive support@alkemart.com (keep in step with Access).
+DESTINATIONS = "isaiahamber5@gmail.com,akpey.mawuena@gmail.com"
