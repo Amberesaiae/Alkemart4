@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useState } from "react"
 import { Link, useNavigate } from "@tanstack/react-router"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { MoreHorizontalIcon, Search01Icon, UserGroupIcon, WashingMachineIcon } from "@hugeicons/core-free-icons"
@@ -7,7 +7,6 @@ import { DEPARTMENT_ICON } from "@/components/commerce/category-tile"
 import { useSearchHistory } from "@/lib/search-history"
 import type { StoreCategory } from "@/lib/products"
 import { SmartLink } from "@/components/commerce/smart-link"
-import { HOME_CHIP, setHomeSticky } from "@/lib/home-sticky"
 import { REFERENCE_DEPARTMENTS, referenceDepartmentHref } from "./reference-departments"
 import { HeroArt } from "./hero-art"
 
@@ -17,14 +16,14 @@ import { HeroArt } from "./hero-art"
  */
 const PHONE_HERO_ART = ["/images/hero/home.webp"]
 
-/** Phone header height: the hero search counts as scrolled away once it passes under it. */
-const PHONE_HEADER_PX = 64
+/** Phone department chips under the hero search. */
+const CHIP =
+  "inline-flex h-8 shrink-0 items-center rounded-full bg-background/80 px-3 text-[length:var(--text-legacy-13)] font-semibold whitespace-nowrap focus-visible:outline-2 focus-visible:outline-foreground"
 
 /**
  * Full-bleed gold hero. Phones get the compact version: the headline beside
- * the hero art, search, and a row of department chips; once search scrolls
- * away the header carries search and the same chips (lib/home-sticky).
- * Desktop art is layout only — the right-hand art (product collage,
+ * the hero art, search, and a row of department chips, all scrolling away
+ * with the page (only the header stays pinned). Desktop art is layout only — the right-hand art (product collage,
  * colour petals and the handwritten "More choices / Better prices / Trusted
  * sellers" notes) is one generated image at /images/hero/home.webp
  * (docs/CODEX-ASSETS.md). Until it exists the gold simply stands on its own.
@@ -37,31 +36,7 @@ export function HomeHero({ departments, allCategories, stocked }: {
   stocked: Set<string> | null
 }) {
   const shownDepartments = stocked ? departments.filter((c) => stocked.has(c.id)) : departments
-  // Keyed by content so the header only re-renders when the departments change.
-  const chipKey = shownDepartments.slice(0, 6).map((c) => `${c.handle ?? c.id}\t${c.name.split(" & ")[0]}`).join("\n")
-  const chips = useMemo(
-    () => (chipKey ? chipKey.split("\n").map((line) => {
-      const [slug, label] = line.split("\t")
-      return { slug, label }
-    }) : []),
-    [chipKey],
-  )
-  const searchRef = useRef<HTMLFormElement>(null)
-  useEffect(() => setHomeSticky({ chips }), [chips])
-  useEffect(() => {
-    const el = searchRef.current
-    if (!el) return
-    const phone = window.matchMedia("(max-width: 47.99rem)")
-    const observer = new IntersectionObserver(
-      ([entry]) => setHomeSticky({ stuck: phone.matches && !entry.isIntersecting && entry.boundingClientRect.top < PHONE_HEADER_PX }),
-      { rootMargin: `-${PHONE_HEADER_PX}px 0px 0px 0px` },
-    )
-    observer.observe(el)
-    return () => {
-      observer.disconnect()
-      setHomeSticky({ stuck: false })
-    }
-  }, [])
+  const chips = shownDepartments.slice(0, 6).map((c) => ({ label: c.name.split(" & ")[0], slug: c.handle ?? c.id }))
   const navigate = useNavigate()
   const { trackSearch } = useSearchHistory()
   const [q, setQ] = useState("")
@@ -105,7 +80,6 @@ export function HomeHero({ departments, allCategories, stocked }: {
           </p>
 
           <form
-            ref={searchRef}
             role="search"
             className="mt-3 flex max-w-2xl items-center gap-2 rounded-full bg-background p-1.5 shadow-lift md:mt-6"
             onSubmit={(e) => {
@@ -133,11 +107,11 @@ export function HomeHero({ departments, allCategories, stocked }: {
           {chips.length > 0 ? (
             <nav aria-label="Popular departments" className="-mx-4 mt-3 flex gap-2 overflow-x-auto px-4 [scrollbar-width:none] md:hidden">
               {chips.map((c) => (
-                <Link key={c.slug} to="/categories/$slug" params={{ slug: c.slug }} className={HOME_CHIP}>
+                <Link key={c.slug} to="/categories/$slug" params={{ slug: c.slug }} className={CHIP}>
                   {c.label}
                 </Link>
               ))}
-              <Link to="/categories" className={HOME_CHIP}>
+              <Link to="/categories" className={CHIP}>
                 All
               </Link>
             </nav>

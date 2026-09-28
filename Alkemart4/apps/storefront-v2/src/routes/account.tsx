@@ -1,3 +1,4 @@
+import type { ReactNode } from "react"
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react"
@@ -5,13 +6,19 @@ import {
   ArrowRight01Icon,
   CustomerSupportIcon,
   Delete02Icon,
+  DeliveryTruck01Icon,
   FavouriteIcon,
-  Message01Icon,
+  InformationCircleIcon,
+  LinkSquare02Icon,
   Location01Icon,
   Logout01Icon,
+  Mail01Icon,
+  Message01Icon,
   Notification01Icon,
   PackageIcon,
   Shield01Icon,
+  Store04Icon,
+  UserIcon,
 } from "@hugeicons/core-free-icons"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
@@ -19,46 +26,135 @@ import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
 import { PageSeo } from "@/components/seo/page-seo"
-import { requireAuth } from "@/lib/route-guards"
+import { useSession } from "@/hooks/use-store"
 import { logout } from "@/lib/auth"
 import { addressSummary, getAccount, listAddresses } from "@/lib/account"
+import { getVendorAppUrl } from "@/lib/env"
 import { deleteSubscription, listBuyerPreferences, listMySubscriptions, setBuyerPreference } from "@/lib/notifications"
 import { formatMoney, useMarket } from "@/lib/market"
-import { listMyOrders, maskOrderId } from "@/lib/orders"
+import { listMyOrders } from "@/lib/orders"
 import { useSavedItems } from "@/lib/wishlist"
 import { cn } from "@/lib/utils"
 
+/**
+ * The Account tab. Signed out, it's a welcome with sign-in and the help a
+ * guest needs — never a bounce to a bare sign-in form. Signed in, it's the
+ * buyer's profile and one list of rows, each with an icon and one line.
+ */
 export const Route = createFileRoute("/account")({
-  beforeLoad: () => requireAuth(),
   component: AccountPage,
 })
 
-const STATUS_WORD: Record<string, string> = { placed: "Being packed", shipped: "On the way", delivered: "Delivered", cancelled: "Cancelled" }
+type Row = { label: string; icon: IconSvgElement; to?: string; href?: string; detail?: ReactNode; accent?: boolean }
 
-function Tile({ to, icon, title, body, accent }: { to: string; icon: IconSvgElement; title: string; body: React.ReactNode; accent?: boolean }) {
+function MenuList({ label, rows }: { label: string; rows: Row[] }) {
   return (
-    <Link
-      to={to}
-      className={cn(
-        "group flex min-h-32 flex-col justify-between gap-3 rounded-3xl p-4 transition-transform hover:-translate-y-0.5 sm:p-5",
-        accent ? "bg-brand text-brand-foreground" : "bg-surface",
-      )}
-    >
-      <span className={cn("grid size-11 place-items-center rounded-full", accent ? "bg-background/70" : "bg-background")}>
+    <nav aria-label={label}>
+      <ul className="divide-y divide-border overflow-hidden rounded-2xl border border-border">
+        {rows.map((r) => (
+          <li key={r.label}>
+            <MenuRow {...r} />
+          </li>
+        ))}
+      </ul>
+    </nav>
+  )
+}
+
+function MenuRow({ label, icon, to, href, detail, accent }: Row) {
+  const body = (
+    <>
+      <span className={cn("grid size-9 shrink-0 place-items-center rounded-full", accent ? "bg-brand text-brand-foreground" : "bg-surface")}>
         <HugeiconsIcon icon={icon} className="size-5" aria-hidden />
       </span>
-      <span>
-        <span className="flex items-center gap-1 font-bold">
-          {title}
-          <HugeiconsIcon icon={ArrowRight01Icon} className="size-4 transition-transform group-hover:translate-x-0.5" aria-hidden />
-        </span>
-        <span className={cn("line-clamp-2 text-sm", accent ? "text-foreground/80" : "text-muted-foreground")}>{body}</span>
+      <span className="min-w-0 flex-1">
+        <span className="block leading-tight font-semibold">{label}</span>
+        {detail ? <span className="mt-0.5 block truncate text-xs text-muted-foreground">{detail}</span> : null}
       </span>
+      <HugeiconsIcon icon={href ? LinkSquare02Icon : ArrowRight01Icon} className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+    </>
+  )
+  const cls = "flex min-h-14 items-center gap-3 px-4 py-2.5 hover:bg-muted/60 focus-visible:outline-2 focus-visible:-outline-offset-2"
+  return href ? (
+    <a href={href} className={cls}>
+      {body}
+    </a>
+  ) : (
+    <Link to={to!} className={cls}>
+      {body}
     </Link>
   )
 }
 
+const HELP_ROWS: Row[] = [
+  { label: "Help and support", icon: CustomerSupportIcon, to: "/help", detail: "Answers and order problems" },
+  { label: "Contact us", icon: Mail01Icon, to: "/contact" },
+  { label: "Sell on alkemart", icon: Store04Icon, href: getVendorAppUrl(), detail: "Open your own shop" },
+  { label: "About alkemart", icon: InformationCircleIcon, to: "/about" },
+]
+
 function AccountPage() {
+  const session = useSession()
+  return (
+    <div className="container-page max-w-xl space-y-5 pt-4 sm:pt-8">
+      <PageSeo title="Account" noindex />
+      {session.isPending ? (
+        <>
+          <Skeleton className="h-20 rounded-2xl" />
+          <Skeleton className="h-56 rounded-2xl" />
+        </>
+      ) : session.data ? (
+        <MemberAccount />
+      ) : (
+        <GuestAccount />
+      )}
+    </div>
+  )
+}
+
+function GuestAccount() {
+  return (
+    <>
+      <h1 className="text-[1.375rem] font-extrabold tracking-tight sm:text-3xl">Account</h1>
+      <section aria-labelledby="welcome-title" className="rounded-2xl bg-brand p-4 text-brand-foreground">
+        <div className="flex items-center gap-3">
+          <span className="grid size-12 shrink-0 place-items-center rounded-full bg-background/70">
+            <HugeiconsIcon icon={UserIcon} className="size-6" aria-hidden />
+          </span>
+          <div className="min-w-0">
+            <h2 id="welcome-title" className="text-lg leading-tight font-extrabold">
+              Welcome to alkemart
+            </h2>
+            <p className="mt-0.5 text-sm text-foreground/80">Sign in to track orders, save addresses and check out.</p>
+          </div>
+        </div>
+        <div className="mt-4 grid grid-cols-2 gap-2">
+          <Button asChild size="lg">
+            <Link to="/login" search={{ redirect: "/account" }}>
+              Sign in
+            </Link>
+          </Button>
+          <Button asChild size="lg" variant="outline" className="border-transparent bg-background hover:bg-background/90">
+            <Link to="/login" search={{ redirect: "/account", mode: "register" }}>
+              Create account
+            </Link>
+          </Button>
+        </div>
+      </section>
+      <MenuList
+        label="Shopping"
+        rows={[
+          { label: "Saved items", icon: FavouriteIcon, to: "/saved", detail: "Hearted products, on this device" },
+          { label: "Track an order", icon: PackageIcon, to: "/orders", detail: "Sign in to see your orders" },
+          { label: "Delivery", icon: DeliveryTruck01Icon, to: "/delivery", detail: "How shops deliver and what it costs" },
+        ]}
+      />
+      <MenuList label="Help and alkemart" rows={HELP_ROWS} />
+    </>
+  )
+}
+
+function MemberAccount() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const market = useMarket()
@@ -88,87 +184,54 @@ function AccountPage() {
   const promo = prefsQ.data?.find((p) => p.category === "promotional")
   const ops = prefsQ.data?.find((p) => p.category === "operational")
   const a = account.data
-  const name = a?.firstName || a?.email?.split("@")[0] || "there"
+  const fullName = [a?.firstName, a?.lastName].filter(Boolean).join(" ")
+  const name = fullName || a?.email?.split("@")[0] || "Your account"
+  const initials = (fullName || a?.email || "?")
+    .split(/[\s@.]+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0]!.toUpperCase())
+    .join("")
   const moving = (orders.data ?? []).filter((o) => o.fulfillmentStatus === "placed" || o.fulfillmentStatus === "shipped").length
   const def = addresses.data?.find((x) => x.isDefault)
-  const recent = (orders.data ?? []).slice(0, 3)
 
   return (
-    <div className="container-page max-w-3xl space-y-6 pt-4 sm:pt-6">
-      <PageSeo title="Account" noindex />
-      <header className="space-y-1">
-        <p className="text-sm font-medium text-muted-foreground">{a?.email ?? " "}</p>
-        <h1 className="text-3xl font-extrabold tracking-tight">Hi, {name} 👋</h1>
-      </header>
+    <>
+      <h1 className="sr-only">Account</h1>
+      <Link
+        to="/account/settings"
+        className="flex items-center gap-3 rounded-2xl border border-border p-4 hover:bg-muted/60 focus-visible:outline-2 focus-visible:outline-offset-2"
+      >
+        <span aria-hidden className="grid size-14 shrink-0 place-items-center rounded-full bg-brand text-lg font-extrabold text-brand-foreground">
+          {account.isPending ? "" : initials}
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-lg leading-tight font-extrabold">{account.isPending ? " " : name}</span>
+          <span className="mt-0.5 block truncate text-sm text-muted-foreground">{a?.email ?? " "}</span>
+          <span className="sr-only">Edit profile</span>
+        </span>
+        <HugeiconsIcon icon={ArrowRight01Icon} className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+      </Link>
 
-      <nav aria-label="Account" className="grid grid-cols-2 gap-3">
-        <Tile
-          to="/orders"
-          icon={PackageIcon}
-          title="Orders"
-          accent={moving > 0}
-          body={orders.isPending ? "…" : moving > 0 ? `${moving} on the way to you` : orders.data?.length ? "Track and reorder" : "Nothing yet"}
-        />
-        <Tile
-          to="/account/addresses"
-          icon={Location01Icon}
-          title="Addresses"
-          body={addresses.isPending ? "…" : def ? addressSummary(def) : "Save one for faster checkout"}
-        />
-        <Tile to="/account/settings" icon={Shield01Icon} title="Profile & security" body="Name, phone and password" />
-        <Tile to="/messages" icon={Message01Icon} title="Messages" body="Your conversations with shops" />
-        <Tile to="/saved" icon={FavouriteIcon} title="Saved" body={saved ? `${saved} item${saved === 1 ? "" : "s"}` : "Heart items to find them later"} />
-      </nav>
+      <MenuList
+        label="Shopping"
+        rows={[
+          {
+            label: "Orders",
+            icon: PackageIcon,
+            to: "/orders",
+            accent: moving > 0,
+            detail: orders.isPending ? "…" : moving > 0 ? `${moving} on the way to you` : orders.data?.length ? "Track and reorder" : "Nothing yet",
+          },
+          { label: "Addresses", icon: Location01Icon, to: "/account/addresses", detail: addresses.isPending ? "…" : def ? addressSummary(def) : "Save one for faster checkout" },
+          { label: "Saved items", icon: FavouriteIcon, to: "/saved", detail: saved ? `${saved} item${saved === 1 ? "" : "s"}` : "Heart items to find them later" },
+          { label: "Messages", icon: Message01Icon, to: "/messages", detail: "Your conversations with shops" },
+          { label: "Profile and security", icon: Shield01Icon, to: "/account/settings", detail: "Name, phone and password" },
+        ]}
+      />
 
-      <section aria-labelledby="recent-title" className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h2 id="recent-title" className="text-lg font-bold">
-            Latest orders
-          </h2>
-          {orders.data?.length ? (
-            <Link to="/orders" className="inline-flex min-h-11 items-center text-sm font-semibold hover:underline">
-              See all
-            </Link>
-          ) : null}
-        </div>
-        {orders.isPending ? (
-          <Skeleton className="h-24 rounded-3xl" />
-        ) : orders.isError ? (
-          <p className="rounded-3xl border border-border p-4 text-[length:var(--text-legacy-15)] text-muted-foreground">
-            Your orders didn't load.{" "}
-            <button type="button" className="font-semibold text-foreground underline" onClick={() => void orders.refetch()}>
-              Try again
-            </button>
-          </p>
-        ) : recent.length === 0 ? (
-          <p className="rounded-3xl border border-border p-4 text-sm text-muted-foreground">
-            No orders yet.{" "}
-            <Link to="/" className="font-semibold text-foreground underline underline-offset-4">
-              Start shopping
-            </Link>
-          </p>
-        ) : (
-          <ul className="divide-y divide-border overflow-hidden rounded-3xl border border-border">
-            {recent.map((o) => (
-              <li key={o.id}>
-                <Link to="/order/$id" params={{ id: o.id }} className="flex min-h-16 items-center gap-3 px-4 py-3 hover:bg-muted/60 sm:px-5">
-                  <span className="min-w-0 flex-1">
-                    <span className="block font-semibold">
-                      {maskOrderId(o.id)} · {STATUS_WORD[o.fulfillmentStatus] ?? o.fulfillmentStatus}
-                    </span>
-                    <span className="block truncate text-sm text-muted-foreground">{o.items.map((i) => i.title).join(", ")}</span>
-                  </span>
-                  <span className="text-sm font-semibold tabular">{formatMoney(o.total, o.currencyCode)}</span>
-                  <HugeiconsIcon icon={ArrowRight01Icon} className="size-4 text-muted-foreground" aria-hidden />
-                </Link>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-
-      <section aria-labelledby="notif-title" className="space-y-4 rounded-3xl border border-border p-4 sm:p-6">
-        <h2 id="notif-title" className="flex items-center gap-2 text-lg font-bold">
+      <section aria-labelledby="notif-title" className="space-y-4 rounded-2xl border border-border p-4">
+        <h2 id="notif-title" className="flex items-center gap-2 text-base font-bold">
           <HugeiconsIcon icon={Notification01Icon} className="size-5" aria-hidden /> Notifications
         </h2>
         {prefsQ.isLoading ? (
@@ -195,9 +258,9 @@ function AccountPage() {
         )}
       </section>
 
-      <section aria-labelledby="alerts-title" className="space-y-3 rounded-3xl border border-border p-4 sm:p-6">
-        <h2 id="alerts-title" className="text-lg font-bold">
-          Price & stock alerts
+      <section aria-labelledby="alerts-title" className="space-y-3 rounded-2xl border border-border p-4">
+        <h2 id="alerts-title" className="text-base font-bold">
+          Price and stock alerts
         </h2>
         {subsQ.data?.length ? (
           <ul className="divide-y divide-border">
@@ -219,16 +282,11 @@ function AccountPage() {
         )}
       </section>
 
-      <div className="flex flex-col gap-3 sm:flex-row">
-        <Button asChild variant="outline" size="lg">
-          <Link to="/help">
-            <HugeiconsIcon icon={CustomerSupportIcon} data-icon="inline-start" /> Help & support
-          </Link>
-        </Button>
-        <Button variant="outline" size="lg" onClick={() => signOut.mutate()} disabled={signOut.isPending}>
-          <HugeiconsIcon icon={Logout01Icon} data-icon="inline-start" /> Sign out
-        </Button>
-      </div>
-    </div>
+      <MenuList label="Help and alkemart" rows={HELP_ROWS} />
+
+      <Button variant="outline" size="lg" className="w-full" onClick={() => signOut.mutate()} disabled={signOut.isPending}>
+        <HugeiconsIcon icon={Logout01Icon} data-icon="inline-start" /> Sign out
+      </Button>
+    </>
   )
 }

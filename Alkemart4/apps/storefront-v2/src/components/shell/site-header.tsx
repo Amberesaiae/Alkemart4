@@ -23,7 +23,6 @@ import { SearchBox } from "@/components/shell/search-box"
 import { CategoryMenu } from "@/components/shell/category-menu"
 import { DeliverToPicker } from "@/components/shell/deliver-to-picker"
 import { useCartCount, useSession } from "@/hooks/use-store"
-import { HOME_CHIP, useHomeSticky } from "@/lib/home-sticky"
 import { logout } from "@/lib/auth"
 import { getVendorAppUrl } from "@/lib/env"
 import { cn } from "@/lib/utils"
@@ -108,13 +107,16 @@ const NAV_LINK = cn(
   ON_INK,
 )
 
+/** Phone routes that get the header search row: browsing and buying, not managing. */
+const SHOPPING_ROUTES = ["/categories", "/browse", "/shops", "/store/", "/product/"]
+
+function phoneSearch(pathname: string) {
+  return SHOPPING_ROUTES.some((r) => pathname.startsWith(r))
+}
+
 export function SiteHeader() {
   const pathname = useRouterState({ select: (s) => s.location.pathname })
-  const onSearch = pathname === "/search"
   const hero = pathname === "/"
-  const sticky = useHomeSticky()
-  // Phone home, hero search scrolled away: search and departments take over.
-  const compact = hero && sticky.stuck
   // Checkout is a focused flow: no search, menus or cart to wander off to.
   // The page's own "‹ Cart · Secure checkout" row handles the way back.
   if (pathname.startsWith("/checkout")) {
@@ -136,7 +138,7 @@ export function SiteHeader() {
           : "border-b border-border/70 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80",
       )}
     >
-      <div inert={compact} className="container-page flex h-16 items-center gap-3 md:h-[72px] lg:gap-5">
+      <div className="container-page flex h-16 items-center gap-3 md:h-[72px] lg:gap-5">
         <BrandLogo size="md" hero={hero} className="shrink-0" />
         <DeliverToPicker className={cn("hidden xl:inline-flex", ON_INK)} />
         <SearchBox className={cn("hidden max-w-2xl flex-1 md:block", hero && "[&_input]:border-transparent [&_input]:bg-background")} />
@@ -155,33 +157,9 @@ export function SiteHeader() {
           <CartButton />
         </div>
       </div>
-      {compact ? (
-        // Overlays the row it replaces instead of resizing the header, so the
-        // page below never jumps when it appears.
-        <div className="absolute inset-x-0 top-0 bg-brand shadow-sm md:hidden">
-          <div className="container-page flex items-center gap-1 pt-2">
-            <SearchBox placeholder="Search products or stores" className="min-w-0 flex-1 [&_input]:h-11 [&_input]:border-transparent [&_input]:bg-background" />
-            <CartButton />
-          </div>
-          <nav aria-label="Departments" className="flex gap-2 overflow-x-auto px-4 pt-2 pb-2 [scrollbar-width:none]">
-            {sticky.chips.map((c) => (
-              <Link
-                key={c.slug}
-                to="/categories/$slug"
-                params={{ slug: c.slug }}
-                className={HOME_CHIP}
-              >
-                {c.label}
-              </Link>
-            ))}
-            <Link to="/categories" className={HOME_CHIP}>
-              All
-            </Link>
-          </nav>
-        </div>
-      ) : null}
-      {/* Home has the hero search; a second box directly above it is clutter. */}
-      {!onSearch && !hero ? (
+      {/* Phones: search sits where people shop. Home has its own in the hero;
+          account, saved, cart, sign-in and help pages don't need one. */}
+      {phoneSearch(pathname) ? (
         <div className="container-page pb-3 md:hidden">
           <SearchBox placeholder="Search products or stores" />
         </div>

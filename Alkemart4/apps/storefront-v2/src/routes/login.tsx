@@ -2,7 +2,7 @@ import { useState } from "react"
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { DeliveryTruck01Icon, Store04Icon, Wallet01Icon, ViewIcon, ViewOffIcon } from "@hugeicons/core-free-icons"
+import { ArrowLeft01Icon, DeliveryTruck01Icon, Store04Icon, Wallet01Icon, ViewIcon, ViewOffIcon } from "@hugeicons/core-free-icons"
 import { Button } from "@/components/ui/button"
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
@@ -73,7 +73,7 @@ function LoginPage() {
   </div>
 
   return (
-    <div className="grid min-h-[calc(100dvh-4.5rem)] lg:grid-cols-2">
+    <div className="grid lg:min-h-[calc(100dvh-4.5rem)] lg:grid-cols-2">
       <PageSeo title={mode === "login" ? "Sign in" : "Create account"} noindex />
       <aside className="relative hidden overflow-hidden bg-brand lg:block">
         <img src="/images/auth/buyer.webp" alt="" className="absolute inset-0 size-full object-cover" onError={(e) => e.currentTarget.remove()} />
@@ -90,10 +90,14 @@ function LoginPage() {
         </div>
       </aside>
 
-      <div className="flex items-center justify-center px-4 py-10">
+      {/* Phones: the form starts at the top (no floating gap); wide screens centre it beside the art. */}
+      <div className="flex items-start justify-center px-4 pt-4 pb-10 lg:items-center lg:py-10">
         <div className="w-full max-w-sm space-y-6">
+          <Link to="/account" className="-ml-1 inline-flex min-h-10 items-center gap-1 text-sm font-semibold text-muted-foreground hover:text-foreground lg:hidden">
+            <HugeiconsIcon icon={ArrowLeft01Icon} className="size-4" aria-hidden /> Account
+          </Link>
           <div className="space-y-2">
-            <h1 className="text-3xl font-extrabold">{mode === "login" ? "Welcome back" : "Create your account"}</h1>
+            <h1 className="text-[1.375rem] font-extrabold sm:text-3xl">{mode === "login" ? "Welcome back" : "Create your account"}</h1>
             <p className="text-muted-foreground">
               {mode === "login" ? "Sign in to see your orders and alerts." : "Free — track orders and get restock alerts."}
             </p>

@@ -8,6 +8,7 @@ import { SiteFooter } from "@/components/shell/site-footer"
 import { MobileTabBar } from "@/components/shell/mobile-tab-bar"
 import { NotFound } from "@/components/feedback/not-found"
 import { trackPageview } from "@/lib/analytics"
+import { cn } from "@/lib/utils"
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   component: RootLayout,
@@ -44,7 +45,7 @@ function RootLayout() {
       <RouteEffects />
       <div className={`flex min-h-dvh flex-col ${pathname === "/" ? "mobile-home-preserved" : ""}`}>
         <SiteHeader />
-        <main id="main" tabIndex={-1} className="flex-1 pb-24 outline-none md:pb-0">
+        <main id="main" tabIndex={-1} className={cn("flex-1 outline-none", focused && "pb-24 md:pb-0")}>
           <Outlet />
         </main>
         {!focused ? <SiteFooter /> : null}

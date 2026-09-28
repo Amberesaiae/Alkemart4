@@ -36,14 +36,10 @@ const COLUMNS: { title: string; links: FooterLink[] }[] = [
   },
 ]
 
-/** Links a phone footer still needs: help, trust, legal. Navigation is the tab bar's job. */
-const MOBILE_LINKS: FooterLink[] = [
+/** Phone footer: one slim line. Everything else lives in Account (the tab bar navigates). */
+const MOBILE_LINKS: { label: string; to: string }[] = [
   { label: "Help", to: "/help" },
-  { label: "Track an order", to: "/orders" },
   { label: "Delivery", to: "/delivery" },
-  { label: "Contact", to: "/contact" },
-  { label: "Sell on alkemart", href: getVendorAppUrl() },
-  { label: "About", to: "/about" },
   { label: "Privacy", to: "/privacy" },
   { label: "Terms", to: "/terms" },
 ]
@@ -70,32 +66,24 @@ export function SiteFooter() {
   const market = useMarket()
   return (
     <>
-      {/* Phones: the tab bar already navigates, so this stays slim — help, trust and legal only. */}
-      {/* Phones: the tab bar navigates and Account links to selling, so the footer is
-          only a compact row of help and legal links — no bands or forms. */}
-      <footer className="mt-8 border-t border-border bg-surface md:hidden">
-        <div className="container-page pt-4 pb-28">
-          <nav aria-label="Help and legal">
-            <ul className="flex flex-wrap gap-x-4">
-              {MOBILE_LINKS.map((l) => (
-                <li key={l.label}>
-                  {l.to ? (
-                    <Link to={l.to} className="flex min-h-10 items-center text-xs font-medium text-foreground/75 hover:text-foreground">
-                      {l.label}
-                    </Link>
-                  ) : (
-                    <a href={l.href} className="flex min-h-10 items-center text-xs font-medium text-foreground/75 hover:text-foreground">
-                      {l.label}
-                    </a>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </nav>
-          <p className="mt-2 text-xs text-muted-foreground">© {new Date().getFullYear()} alkemart · {market.name}</p>
-        </div>
+      {/* Phones: a slim, centred line — four links and the copyright. It clears the
+          fixed tab bar itself (main adds no bottom padding on phones). */}
+      <footer className="mt-10 border-t border-border py-4 pb-[calc(5.75rem+env(safe-area-inset-bottom))] text-center md:hidden">
+        <nav aria-label="Help and legal" className="container-page">
+          <ul className="flex flex-wrap items-center justify-center gap-x-5">
+            {MOBILE_LINKS.map((l) => (
+              <li key={l.label}>
+                <Link to={l.to} className="inline-flex min-h-10 items-center text-[length:var(--text-legacy-13)] font-medium text-muted-foreground hover:text-foreground">
+                  {l.label}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </nav>
+        <p className="text-xs text-muted-foreground">
+          © {new Date().getFullYear()} alkemart · {market.name}
+        </p>
       </footer>
-
       <footer className="relative isolate mt-16 hidden overflow-hidden bg-[#111114] text-white md:block">
         <FooterActions />
         <img src="/brand/alkemart-mark.png" alt="" aria-hidden="true" className="pointer-events-none absolute -bottom-20 -left-20 -z-10 size-96 opacity-[0.035] brightness-0 invert" />
