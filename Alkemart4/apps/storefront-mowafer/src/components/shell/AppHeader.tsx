@@ -109,12 +109,11 @@ export function AppHeader({
           >
             <DropdownMenu open={accountOpen} onOpenChange={onAccountOpenChange}>
               <DropdownMenuTrigger asChild>
-                <button
+                <Button
                   type="button"
+                  variant="ghost"
                   className={cn(
-                    "inline-flex h-11 min-h-11 min-w-11 flex-col items-center justify-center rounded-full px-2",
-                    "text-muted-foreground transition hover:bg-muted hover:text-foreground",
-                    "focus-visible:ring-2 focus-visible:ring-ring",
+                    "h-11 min-h-11 min-w-11 flex-col rounded-full px-2 text-xs font-semibold leading-none",
                     (isAccountActive || accountOpen) && "bg-muted text-foreground",
                   )}
                   aria-label={userLabel}
@@ -132,7 +131,7 @@ export function AppHeader({
                   <span className="hidden text-xs font-semibold leading-none sm:block">
                     {userInitials ? "Account" : "Sign in"}
                   </span>
-                </button>
+                </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56" aria-label="Account menu">
                 {accountMenu}

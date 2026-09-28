@@ -7,6 +7,7 @@ import type { StoreProductCard } from "@/lib/products"
 import { addOfferToCart } from "@/lib/cart"
 import { cardRating } from "@/lib/product-rating"
 import { cn } from "@/lib/utils"
+import { normalizeCurrencyCode } from "@/lib/money"
 
 export type ProductCardSize = "tile" | "row"
 
@@ -64,7 +65,7 @@ export function ProductCard({ product, size = "tile", className }: Props) {
           <Title product={product} detailId={detailId} />
           <SellerLine product={product} />
           <div className="flex items-center justify-between gap-2">
-            <Price amount={product.amount} currency={(product.currencyCode ?? "GHS").toUpperCase()} size="sm" />
+            <Price amount={product.amount} currency={normalizeCurrencyCode(product.currencyCode)} size="sm" />
             {addBtn}
           </div>
           <RatingLine rating={rating} />
@@ -86,7 +87,7 @@ export function ProductCard({ product, size = "tile", className }: Props) {
         <SellerLine product={product} />
         <RatingLine rating={rating} />
         <div className="mt-auto flex items-center justify-between gap-2 pt-1">
-          <Price amount={product.amount} currency={(product.currencyCode ?? "GHS").toUpperCase()} size="md" />
+          <Price amount={product.amount} currency={normalizeCurrencyCode(product.currencyCode)} size="md" />
           {addBtn}
         </div>
       </div>

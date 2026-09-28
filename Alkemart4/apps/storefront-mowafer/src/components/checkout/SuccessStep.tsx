@@ -16,10 +16,12 @@ export function SuccessStep({ orderId }: Props) {
       </p>
       <div className="flex flex-col items-center justify-center gap-2 sm:flex-row">
         <Button className="rounded-full" asChild>
-          <Link to="/cart">Track order</Link>
+          <Link to="/order/$id" params={{ id: orderId }}>
+            Track order
+          </Link>
         </Button>
         <Button variant="outline" className="rounded-full" asChild>
-          <Link to="/login">My Orders</Link>
+          <Link to="/orders">My Orders</Link>
         </Button>
       </div>
     </div>

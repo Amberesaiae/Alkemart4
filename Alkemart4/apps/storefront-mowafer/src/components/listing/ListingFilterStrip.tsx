@@ -8,6 +8,7 @@ import {
 } from "@workspace/ui"
 import { SquaresFour, List } from "@phosphor-icons/react"
 import { cn } from "@/lib/utils"
+import { formatPriceRange } from "@/lib/money"
 
 export type ListingViewMode = "grid" | "list"
 
@@ -27,6 +28,7 @@ type Props = {
   onChange: (next: ListingFacetState) => void
   viewMode: ListingViewMode
   onViewModeChange: (mode: ListingViewMode) => void
+  currencyCode?: string | null
   className?: string
 }
 
@@ -39,6 +41,7 @@ export function ListingFilterStrip({
   onChange,
   viewMode,
   onViewModeChange,
+  currencyCode,
   className,
 }: Props) {
   const span = Math.max(priceBounds.max - priceBounds.min, 1)
@@ -103,7 +106,7 @@ export function ListingFilterStrip({
           }
         />
         <p className="text-xs text-muted-foreground">
-          GH₵{state.priceMin} – GH₵{state.priceMax}
+          {formatPriceRange(state.priceMin, state.priceMax, currencyCode)}
         </p>
       </fieldset>
 

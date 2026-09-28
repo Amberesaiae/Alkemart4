@@ -13,8 +13,9 @@ import {
   List,
   TShirt,
 } from "@phosphor-icons/react"
-import { Button, MerchEmpty, ToggleGroup, ToggleGroupItem } from "@workspace/ui"
+import { Button, MerchEmpty, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, ToggleGroup, ToggleGroupItem } from "@workspace/ui"
 import { ProductCard } from "@/components/product/ProductCard"
+import { ProductGridSkeleton } from "@/components/skeletons"
 import type { StoreProductCard } from "@/lib/products"
 import type { RailIconId } from "@/lib/catalog-nav"
 import {
@@ -92,17 +93,17 @@ export function LastOffers({ products, categories, loading, className }: Props) 
           <p className="text-xs font-medium text-muted-foreground">
             {sort === "price_asc" ? "Price ↑" : sort === "price_desc" ? "Price ↓" : sort === "newest" ? "Newest" : "Featured"}
           </p>
-          <select
-            aria-label="Sort"
-            className="h-9 rounded-md border border-border bg-background px-2 text-sm"
-            value={sort}
-            onChange={(e) => setSort(e.target.value as OfferSort)}
-          >
-            <option value="featured">Featured</option>
-            <option value="price_asc">Price ↑</option>
-            <option value="price_desc">Price ↓</option>
-            <option value="newest">Newest</option>
-          </select>
+          <Select value={sort} onValueChange={(v) => setSort(v as OfferSort)}>
+            <SelectTrigger className="h-9 w-32 rounded-md" aria-label="Sort">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="featured">Featured</SelectItem>
+              <SelectItem value="price_asc">Price ↑</SelectItem>
+              <SelectItem value="price_desc">Price ↓</SelectItem>
+              <SelectItem value="newest">Newest</SelectItem>
+            </SelectContent>
+          </Select>
           <ToggleGroup
             type="single"
             value={view}
@@ -121,7 +122,7 @@ export function LastOffers({ products, categories, loading, className }: Props) 
         </div>
       </div>
 
-      {loading ? <p className="text-sm text-muted-foreground">Loading offers…</p> : null}
+      {loading ? <ProductGridSkeleton count={8} view={view} /> : null}
 
       {!loading && visible.length > 0 ? (
         <div className="space-y-6">

@@ -1,7 +1,7 @@
 import { useState } from "react"
 import { createFileRoute, Link } from "@tanstack/react-router"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { MerchEmpty, Price } from "@workspace/ui"
+import { MerchEmpty, Price, Skeleton } from "@workspace/ui"
 import { CheckoutStepper, type CheckoutStepId } from "@/components/checkout/CheckoutStepper"
 import { AddressStep } from "@/components/checkout/AddressStep"
 import { DeliveryStep } from "@/components/checkout/DeliveryStep"
@@ -10,6 +10,7 @@ import { SuccessStep } from "@/components/checkout/SuccessStep"
 import { retrieveCart } from "@/lib/cart"
 import { getSessionCustomer } from "@/lib/auth"
 import { placeGhanaOrder, type CheckoutAddress } from "@/lib/checkout"
+import { normalizeCurrencyCode } from "@/lib/money"
 
 export const Route = createFileRoute("/checkout")({
   component: CheckoutPage,
@@ -89,8 +90,13 @@ function CheckoutPage() {
       {!empty && cart ? (
         <p className="text-sm text-muted-foreground">
           Total{" "}
-          <Price amount={cart.total} currency={(cart.currencyCode ?? "GHS").toUpperCase()} size="sm" />
+          <Price amount={cart.total} currency={normalizeCurrencyCode(cart.currencyCode)} size="sm" />
         </p>
+      ) : null}
+      {cartQ.isLoading ? (
+        <div role="status" aria-label="Loading checkout">
+          <Skeleton className="h-5 w-40 rounded-md" />
+        </div>
       ) : null}
 
       {step === "address" && !empty ? (

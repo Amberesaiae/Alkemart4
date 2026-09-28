@@ -3,6 +3,7 @@ import { Button, Price, Table, TableBody, TableCell, TableHead, TableHeader, Tab
 import type { CartLine, StoreCart } from "@/lib/cart"
 import { deptAccentClass } from "@/lib/catalog-nav"
 import { cn } from "@/lib/utils"
+import { normalizeCurrencyCode } from "@/lib/money"
 
 type Props = {
   cart: StoreCart
@@ -49,19 +50,21 @@ export function CartTable({ cart, busy, onInc, onDec, onRemove }: Props) {
                         {line.categoryName}
                       </span>
                     ) : null}
-                    <button
+                    <Button
                       type="button"
-                      className="text-xs text-muted-foreground hover:text-foreground"
+                      variant="link"
+                      size="sm"
+                      className="h-auto p-0 text-xs"
                       disabled={busy}
                       onClick={() => onRemove(line)}
                     >
                       Remove
-                    </button>
+                    </Button>
                   </div>
                 </div>
               </TableCell>
               <TableCell>
-                <Price amount={line.unitPrice} currency={(line.currencyCode ?? "GHS").toUpperCase()} size="sm" />
+                <Price amount={line.unitPrice} currency={normalizeCurrencyCode(line.currencyCode)} size="sm" />
               </TableCell>
               <TableCell>
                 <div className="inline-flex items-center gap-1">
@@ -75,7 +78,7 @@ export function CartTable({ cart, busy, onInc, onDec, onRemove }: Props) {
                 </div>
               </TableCell>
               <TableCell className="text-end">
-                <Price amount={sub} currency={(line.currencyCode ?? "GHS").toUpperCase()} size="sm" />
+                <Price amount={sub} currency={normalizeCurrencyCode(line.currencyCode)} size="sm" />
               </TableCell>
             </TableRow>
           )
@@ -90,19 +93,19 @@ export function CartTotals({ cart }: { cart: StoreCart }) {
     <div className="space-y-3 rounded-2xl border border-border bg-card p-4">
       <div className="flex justify-between text-sm">
         <span className="text-muted-foreground">Subtotal</span>
-        <Price amount={cart.itemTotal} currency={(cart.currencyCode ?? "GHS").toUpperCase()} size="sm" />
+        <Price amount={cart.itemTotal} currency={normalizeCurrencyCode(cart.currencyCode)} size="sm" />
       </div>
       <div className="flex justify-between text-sm">
         <span className="text-muted-foreground">Delivery</span>
         {cart.shippingTotal != null ? (
-          <Price amount={cart.shippingTotal} currency={(cart.currencyCode ?? "GHS").toUpperCase()} size="sm" />
+          <Price amount={cart.shippingTotal} currency={normalizeCurrencyCode(cart.currencyCode)} size="sm" />
         ) : (
           <span className="text-xs text-muted-foreground">Set at checkout</span>
         )}
       </div>
       <div className="flex justify-between border-t border-border pt-2">
         <span className="font-semibold">Total</span>
-        <Price amount={cart.total} currency={(cart.currencyCode ?? "GHS").toUpperCase()} size="md" />
+        <Price amount={cart.total} currency={normalizeCurrencyCode(cart.currencyCode)} size="md" />
       </div>
       <Button className="w-full rounded-full" asChild>
         <Link to="/checkout">Place Order</Link>

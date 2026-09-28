@@ -57,13 +57,13 @@ function SignInPage() {
           {mode === "login" ? "Sign in" : "Create account"}
         </Button>
       </form>
-      <button
+      <Button
         type="button"
-        className="text-sm font-semibold underline"
+        variant="link"
         onClick={() => setMode(mode === "login" ? "register" : "login")}
       >
         {mode === "login" ? "Need an account? Register" : "Have an account? Sign in"}
-      </button>
+      </Button>
     </div>
   )
 }

@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { Breadcrumbs, MerchEmpty } from "@workspace/ui"
 import { CartTable, CartTotals } from "@/components/cart/CartTable"
+import { CartSkeleton } from "@/components/skeletons"
 import { retrieveCart, updateLineQuantity, removeLine } from "@/lib/cart"
 
 export const Route = createFileRoute("/cart")({
@@ -38,7 +39,7 @@ function CartPage() {
       />
       <h1 className="text-2xl font-extrabold tracking-tight">Cart</h1>
 
-      {cartQ.isLoading ? <p className="text-sm text-muted-foreground">Loading cart…</p> : null}
+      {cartQ.isLoading ? <CartSkeleton /> : null}
 
       {!cartQ.isLoading && items.length === 0 ? (
         <MerchEmpty

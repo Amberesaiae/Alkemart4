@@ -2,14 +2,23 @@ import { Link } from "@tanstack/react-router"
 import { MerchCategoryTileBody, MerchEmpty, merchCategoryTileClass } from "@workspace/ui"
 import type { MosaicTile } from "@/lib/catalog-nav"
 import { deptAccentClass } from "@/lib/catalog-nav"
+import { MosaicSkeleton } from "@/components/skeletons"
 import { cn } from "@/lib/utils"
 
 type Props = {
   tiles: MosaicTile[]
+  loading?: boolean
   className?: string
 }
 
-export function CategoryMosaic({ tiles, className }: Props) {
+export function CategoryMosaic({ tiles, loading, className }: Props) {
+  if (loading) {
+    return (
+      <div data-testid="section-mosaic" className={className}>
+        <MosaicSkeleton />
+      </div>
+    )
+  }
   if (!tiles.length) {
     return (
       <section data-testid="section-mosaic" aria-labelledby="mosaic-heading" className={className}>

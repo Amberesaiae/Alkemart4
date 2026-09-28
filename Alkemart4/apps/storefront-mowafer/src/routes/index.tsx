@@ -26,7 +26,7 @@ export function HomePage() {
 
   return (
     <div className="space-y-10">
-      <CategoryMosaic tiles={tiles} />
+      <CategoryMosaic tiles={tiles} loading={catsQ.isLoading} />
       <LastOffers
         products={offersQ.data ?? []}
         categories={catsQ.data}

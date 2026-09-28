@@ -1,5 +1,7 @@
 import { addCartItem, createCart, ensureApiBaseUrl, workersJson } from "./api"
 import { getAlkemartApiUrl } from "./env"
+import { getMarketCurrency, getMarketLocale } from "@/design/market"
+import { normalizeCurrencyCode } from "./money"
 
 const CART_STORAGE_KEY = "alkemart.storefront.cart_id"
 
@@ -78,7 +80,7 @@ function mapWorkersCart(data: WorkersCartPayload): StoreCart {
     title: item.title?.trim() || item.offerId,
     quantity: item.qty,
     unitPrice: item.unitPricePesewas != null ? Number(item.unitPricePesewas) / 100 : null,
-    currencyCode: data.cart.currency || "ghs",
+    currencyCode: data.cart.currency || getMarketCurrency(),
     offerId: item.offerId,
     thumbnail: item.thumbnail ?? null,
     seller: {
@@ -100,7 +102,7 @@ function mapWorkersCart(data: WorkersCartPayload): StoreCart {
   const total = Number(data.quote.totalPesewas) / 100
   return {
     id: data.cart.id,
-    currencyCode: data.cart.currency || data.quote.currency || "ghs",
+    currencyCode: data.cart.currency || data.quote.currency || getMarketCurrency(),
     total,
     itemTotal: itemTotalPesewas / 100 || total - deliveryPesewas / 100,
     shippingTotal: deliveryPesewas / 100,
@@ -189,9 +191,9 @@ export function formatMoney(
   currencyCode: string | null | undefined,
 ): string {
   if (amount == null || !Number.isFinite(amount)) return "—"
-  const code = (currencyCode ?? "").toUpperCase() || "GHS"
+  const code = normalizeCurrencyCode(currencyCode)
   try {
-    return new Intl.NumberFormat(undefined, {
+    return new Intl.NumberFormat(getMarketLocale(), {
       style: "currency",
       currency: code,
     }).format(amount)

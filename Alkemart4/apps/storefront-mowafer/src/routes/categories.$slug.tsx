@@ -3,6 +3,7 @@ import { createFileRoute, Link } from "@tanstack/react-router"
 import { useQuery } from "@tanstack/react-query"
 import { Button, MerchEmpty } from "@workspace/ui"
 import { ProductCard } from "@/components/product/ProductCard"
+import { FilterSkeleton, ProductGridSkeleton } from "@/components/skeletons"
 import { ListingHero, listingHeroArt, listingHeroTitle } from "@/components/listing/ListingHero"
 import {
   ListingFilterStrip,
@@ -53,6 +54,9 @@ function BrowsePage() {
 
   const products = productsQ.data?.products ?? []
   const count = productsQ.data?.count ?? products.length
+  // Appending shimmer: limit bumps refetch in background — keep the grid
+  // mounted and prove the fetch with trailing skeletons + pending CTA.
+  const appending = productsQ.isFetching && !productsQ.isLoading
   const rail = resolveRailCategories(catsQ.data ?? [])
 
   const priceBounds = useMemo(() => {
@@ -142,7 +146,12 @@ function BrowsePage() {
         />
       }
     >
-      {productsQ.isLoading ? <p className="text-sm text-muted-foreground">Loading products…</p> : null}
+      {productsQ.isLoading ? (
+        <div className="space-y-4">
+          <FilterSkeleton />
+          <ProductGridSkeleton count={12} view={viewMode} />
+        </div>
+      ) : null}
 
       {!productsQ.isLoading && visible.length === 0 ? (
         <MerchEmpty
@@ -165,10 +174,18 @@ function BrowsePage() {
         </div>
       ) : null}
 
+      {appending ? <ProductGridSkeleton count={6} view={viewMode} /> : null}
+
       {count > visible.length || (productsQ.data && count > limit) ? (
         <div className="flex justify-center">
-          <Button variant="outline" className="rounded-full" onClick={() => setLimit((n) => n + PAGE)}>
-            View More
+          <Button
+            variant="outline"
+            className="rounded-full"
+            onClick={() => setLimit((n) => n + PAGE)}
+            disabled={appending}
+            isLoading={appending}
+          >
+            {appending ? "Loading…" : "View More"}
           </Button>
         </div>
       ) : visible.length > 0 ? (

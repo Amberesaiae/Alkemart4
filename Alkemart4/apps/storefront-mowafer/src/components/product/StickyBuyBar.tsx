@@ -1,5 +1,6 @@
 import { Button, Price } from "@workspace/ui"
 import { cn } from "@/lib/utils"
+import { normalizeCurrencyCode } from "@/lib/money"
 
 type Props = {
   amount: number | null | undefined
@@ -22,7 +23,7 @@ export function StickyBuyBar({ amount, currencyCode, canAdd, pending, onAdd, cla
       <div className="mx-auto flex max-w-[1200px] items-center gap-3">
         <Price
           amount={amount}
-          currency={(currencyCode ?? "GHS").toUpperCase()}
+          currency={normalizeCurrencyCode(currencyCode)}
           size="md"
           className="font-bold"
         />

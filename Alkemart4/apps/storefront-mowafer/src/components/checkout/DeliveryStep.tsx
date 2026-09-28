@@ -1,4 +1,5 @@
 import { Button, Price, RadioGroup, RadioGroupItem, Label } from "@workspace/ui"
+import { normalizeCurrencyCode } from "@/lib/money"
 
 type Props = {
   shippingTotal: number | null
@@ -20,7 +21,7 @@ export function DeliveryStep({ shippingTotal, currencyCode, onBack, onNext }: Pr
             <Label htmlFor="ship-standard">Standard delivery</Label>
           </div>
           {shippingTotal != null ? (
-            <Price amount={shippingTotal} currency={(currencyCode ?? "GHS").toUpperCase()} size="sm" />
+            <Price amount={shippingTotal} currency={normalizeCurrencyCode(currencyCode)} size="sm" />
           ) : (
             <span className="text-xs text-muted-foreground">Quoted at place order</span>
           )}

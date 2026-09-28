@@ -91,6 +91,9 @@ function Shell() {
             {me ? (
               <>
                 <DropdownMenuItem asChild>
+                  <Link to="/orders">My Orders</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
                   <Link to="/cart">Purchases / cart</Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem

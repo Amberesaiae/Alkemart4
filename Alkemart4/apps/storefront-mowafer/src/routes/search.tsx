@@ -2,7 +2,9 @@ import { createFileRoute } from "@tanstack/react-router"
 import { useQuery } from "@tanstack/react-query"
 import { MerchEmpty } from "@workspace/ui"
 import { ProductCard } from "@/components/product/ProductCard"
+import { ProductGridSkeleton } from "@/components/skeletons"
 import { listStoreProducts } from "@/lib/products"
+import { getMarketCountry } from "@/design/market"
 
 export type SearchRouteSearch = {
   q?: string
@@ -37,11 +39,11 @@ function SearchPage() {
           {deals === "1" ? "Best offers" : q ? `Results for “${q}”` : "Search"}
         </h1>
         <p className="text-sm text-muted-foreground">
-          Find products with the best price across Ghana sellers.
+          {`Find products with the best price across ${getMarketCountry()} sellers.`}
         </p>
       </header>
 
-      {productsQ.isLoading ? <p className="text-sm text-muted-foreground">Searching…</p> : null}
+      {productsQ.isLoading ? <ProductGridSkeleton count={8} /> : null}
 
       {!productsQ.isLoading && products.length === 0 ? (
         <MerchEmpty

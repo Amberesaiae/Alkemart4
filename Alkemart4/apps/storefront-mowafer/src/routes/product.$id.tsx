@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { Breadcrumbs, MerchEmpty, Tabs, TabsContent, TabsList, TabsTrigger } from "@workspace/ui"
 import { toast } from "sonner"
 import { ProductGallery } from "@/components/product/ProductGallery"
+import { PDPDetailSkeleton, PeerOffersSkeleton } from "@/components/skeletons"
 import { BuyPanel } from "@/components/product/BuyPanel"
 import { PeerOffersList } from "@/components/product/PeerOffersList"
 import { StickyBuyBar } from "@/components/product/StickyBuyBar"
@@ -66,7 +67,7 @@ function ProductDetailPage() {
   const images = useMemo(() => p?.images ?? (p?.thumbnail ? [{ url: p.thumbnail }] : []), [p])
 
   if (productQ.isLoading) {
-    return <p className="text-sm text-muted-foreground">Loading product…</p>
+    return <PDPDetailSkeleton />
   }
   if (productQ.isError || !p) {
     return (
@@ -148,6 +149,7 @@ function ProductDetailPage() {
         </div>
       </div>
 
+      {peersQ.isLoading ? <PeerOffersSkeleton /> : null}
       {showPeers ? (
         <PeerOffersList
           offers={peerOffers}

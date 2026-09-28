@@ -1,6 +1,7 @@
 import { Price } from "@workspace/ui"
 import type { PeerOffer } from "@/lib/products"
 import { cn } from "@/lib/utils"
+import { normalizeCurrencyCode } from "@/lib/money"
 
 type Props = {
   offers: PeerOffer[]
@@ -45,7 +46,7 @@ export function PeerOffersList({
                 <span className="min-w-0 truncate font-medium text-foreground">{o.seller.name}</span>
                 <Price
                   amount={o.amount}
-                  currency={(o.currencyCode ?? "GHS").toUpperCase()}
+                  currency={normalizeCurrencyCode(o.currencyCode)}
                   size="sm"
                   className="font-bold"
                 />

@@ -35,7 +35,10 @@ export type CardCheckoutResult = {
   reference?: string
 }
 
-export type GhanaCheckoutResult = CodCheckoutResult | MomoPendingResult | CardCheckoutResult
+export type MarketCheckoutResult = CodCheckoutResult | MomoPendingResult | CardCheckoutResult
+
+/** @deprecated Use MarketCheckoutResult — kept for existing imports. */
+export type GhanaCheckoutResult = MarketCheckoutResult
 
 export type MomoProvider = "mtn" | "vodafone" | "airteltigo"
 
@@ -55,13 +58,13 @@ export async function listShippingOptionsForCart(_cartId?: string): Promise<Ship
   return []
 }
 
-export async function placeGhanaOrder(input: {
+export async function placeMarketOrder(input: {
   address: CheckoutAddress
   email: string
   paymentMethod: "cod" | "momo" | "card"
   momoProvider?: MomoProvider
   callbackUrl?: string
-}): Promise<GhanaCheckoutResult> {
+}): Promise<MarketCheckoutResult> {
   const email = input.email.trim()
   if (!email || !email.includes("@")) throw new Error("A valid email is required")
   if (!input.address.phone?.trim()) throw new Error("Phone is required")
@@ -134,9 +137,12 @@ export async function placeGhanaOrder(input: {
   return { status: "completed", order_id: orderId, cart_id: cartId }
 }
 
+/** @deprecated Use placeMarketOrder — kept for existing imports. */
+export const placeGhanaOrder = placeMarketOrder
+
 export async function pollCheckoutStatus(
   cartId: string,
-): Promise<GhanaCheckoutResult | { status: "failed" | "idle"; message?: string; cart_id: string }> {
+): Promise<MarketCheckoutResult | { status: "failed" | "idle"; message?: string; cart_id: string }> {
   const data = await workersJson<{
     status?: string
     order_id?: string | null

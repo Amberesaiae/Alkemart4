@@ -14,6 +14,12 @@ Spec pack: `docs/research/mowafer-behance-clone/`
 
 Walked against the lab implementation (tests + typecheck green). Visual smoke on a live `:5176` + Workers API should be repeated by a human before cutover.
 
+Hardening since the last walk (all covered by vitest): shared skeleton/shimmer
+atoms (`components/skeletons.tsx`) on all 11 routes with PLP appending state;
+market-agnostic money (`lib/money.ts`, `design/market.ts`, Ghana defaults);
+squircle discipline (`rounded-2xl` cards / `rounded-xl` inners, no `rounded-3xl`);
+canonical image mirror (`public/images/categories/MANIFEST.md` + parity test).
+
 | Spec | Status | Notes / gaps |
 |------|--------|----------------|
 | 02 tokens | Pass | `--primary #febf31`, `--foreground #3c3c3b`, `--dept-*`. Contract comment bans `bg-primary/N`. Montserrat in `index.html`. |
@@ -21,13 +27,13 @@ Walked against the lab implementation (tests + typecheck green). Visual smoke on
 | 04 home | Pass | Mosaic → Last Offers (icon tabs) → Delivery → Advertise. Honest empties via `MerchEmpty`. View More pill only. |
 | 05 PLP | Pass | Breadcrumb, hero, Radix filter strip, accent categories panel, dark sellers panel, Sheet on mobile. Ratings filter hidden until `ratingCount > 0`. |
 | 06 PDP | Pass | One price in `BuyPanel`. Seller named. `PeerOffersList` only when `offerCount > 1`. Specs/Reviews tabs hide empty. Toast on ATC. Sticky buy bar `< md`. |
-| 07 cart/checkout | Pass with gaps | Separate `/cart` + `/checkout`. Stepper address → delivery → payment → success. COD + Paystack card. **No** points. Track CTA currently returns to `/cart`; My Orders goes to `/login` (no `/orders` route yet). Category colour tags render only when the cart API hydrates category on the line. |
+| 07 cart/checkout | Pass | Separate `/cart` + `/checkout`. Stepper address → delivery → payment → success. COD + Paystack card. **No** points. Success CTAs now land on `/order/$id` (Track) and `/orders` (My Orders). Category colour tags render only when the cart API hydrates category on the line. |
 | 08 mobile | Pass | Bottom tabs Home · Offers · Search · Account (`md:hidden`). Offers → `/search?deals=1` (see `src/design/SPINE.md`). Main padded `pb-20`. Filters in Sheet. Sticky buy above tabs. Checkout single column. |
 
 ### Open issues to file before traffic swap
 
-1. **Stores directory** (`/shops`) is still a stub listing — shop detail can load via `getSellerShop` once the index is wired to real sellers.
-2. **Orders / track** — no buyer orders route; success CTAs are placeholders.
+1. ~~**Stores directory** (`/shops`) is still a stub listing~~ — **CLOSED 2026-09-19:** real index wired to `GET /store/sellers` (search, sorts, `StoreCard*` atoms, catalog fallback) + full shop detail via `getSellerShop`.
+2. ~~**Orders / track** — no buyer orders route~~ — **CLOSED 2026-09-19:** `/orders` (guest lookup + recent + account list) and `/order/$id` (totals, delivery, seller-grouped items) live; checkout success CTAs wired.
 3. **Cart category tags** — confirm Workers cart payload includes `categoryHandle` / `categoryName`; otherwise tags stay empty (honest, not invented).
 4. **Hero photography** — only shared `category-art` handles (electronics, food, health, pet) have photos; others use glyph/empty, never stock fill.
 5. **Legal pages** — Privacy / Terms are footer labels, not routes.

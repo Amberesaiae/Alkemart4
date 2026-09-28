@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router"
 import { Button, Price } from "@workspace/ui"
 import { cn } from "@/lib/utils"
+import { normalizeCurrencyCode } from "@/lib/money"
 
 type Props = {
   amount: number | null | undefined
@@ -31,7 +32,7 @@ export function BuyPanel({
     <div className={cn("space-y-4 rounded-2xl border border-border bg-card p-4 shadow-sm", className)}>
       <Price
         amount={amount}
-        currency={(currencyCode ?? "GHS").toUpperCase()}
+        currency={normalizeCurrencyCode(currencyCode)}
         size="lg"
         className="text-2xl font-extrabold"
       />

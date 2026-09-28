@@ -56,7 +56,7 @@ export function MerchPromoHero({ eyebrow, title, subtitle, body, imageUrl, actio
   ) : null
   if (layout === "band") {
     return (
-      <section className={cn("relative overflow-hidden rounded-3xl", themeClass(theme), compact ? "p-6" : "p-7 sm:p-10", className)}>
+      <section className={cn("relative overflow-hidden rounded-2xl", themeClass(theme), compact ? "p-6" : "p-7 sm:p-10", className)}>
         {imageUrl ? <div className="absolute inset-0 bg-cover bg-center opacity-25" style={{ backgroundImage: `url(${imageUrl})` }} aria-hidden="true" /> : null}
         <div className="relative z-10 max-w-2xl">
           {eyebrow ? <p className="mb-3 text-xs font-black uppercase tracking-[0.18em] opacity-65">{eyebrow}</p> : null}
@@ -69,7 +69,7 @@ export function MerchPromoHero({ eyebrow, title, subtitle, body, imageUrl, actio
     )
   }
   return (
-    <section className={cn("grid overflow-hidden rounded-3xl sm:grid-cols-2", compact ? "min-h-52" : "min-h-[300px]", themeClass(theme), className)}>
+    <section className={cn("grid overflow-hidden rounded-2xl sm:grid-cols-2", compact ? "min-h-52" : "min-h-[300px]", themeClass(theme), className)}>
       <div className={cn("flex flex-col justify-center", compact ? "p-6" : "p-7 sm:p-10 lg:p-14")}>
         {eyebrow ? <p className="mb-3 text-xs font-black uppercase tracking-[0.18em] opacity-65">{eyebrow}</p> : null}
         <h2 className={cn("font-black leading-[1.02] tracking-tight", compact ? "text-2xl" : "text-3xl sm:text-4xl lg:text-5xl")}>{title}</h2>
@@ -566,7 +566,7 @@ export function MerchValueGrid({ title, subtitle, items, compact = false, classN
   className?: string
 }) {
   return (
-    <section className={cn("rounded-3xl bg-black text-white", compact ? "p-5" : "p-6 sm:p-8", className)}>
+    <section className={cn("rounded-2xl bg-black text-white", compact ? "p-5" : "p-6 sm:p-8", className)}>
       {title ? <h2 className="text-2xl font-black">{title}</h2> : null}
       {subtitle ? <p className="mt-1 text-sm text-white/65">{subtitle}</p> : null}
       <div className={cn("grid gap-3 sm:grid-cols-2 lg:grid-cols-4", title || subtitle ? "mt-5" : "")}>

@@ -2,6 +2,7 @@ import { pesewasToMajor } from "@alkemart/shared/ghana"
 import type { PeerOffer as CfPeerOffer, ProductCard as CfProductCard, ProductDetail as CfProductDetail } from "@alkemart/api-client"
 import { ensureApiBaseUrl, getCatalog, getCategories, getProduct, getSellerShop } from "./api"
 import { getAlkemartApiUrl } from "./env"
+import { normalizeCurrencyCode } from "./money"
 import type { SellerRef } from "./cart"
 import type { NavCategory } from "./catalog-nav"
 
@@ -62,7 +63,7 @@ function mapCfProductCard(c: CfProductCard): StoreProductCard {
     offerId: c.bestOfferId,
     offerCount: c.offerCount,
     amount: pesewasStringToMajor(c.fromPricePesewas),
-    currencyCode: c.currency === "ghs" ? "ghs" : c.currency,
+    currencyCode: normalizeCurrencyCode(c.currency),
     categoryLabel: c.categoryName,
     categoryHandles: c.categoryHandle ? [c.categoryHandle] : null,
     seller: c.sellerName
@@ -96,7 +97,7 @@ function mapCfDetail(d: CfProductDetail): StoreProductCard {
     offerId: best?.offerId ?? null,
     offerCount: d.offers.length,
     amount: best ? pesewasStringToMajor(best.pricePesewas) : null,
-    currencyCode: best?.currency === "ghs" ? "ghs" : best?.currency ?? "ghs",
+    currencyCode: normalizeCurrencyCode(best?.currency),
     categoryLabel: d.categoryName,
     categoryHandles: d.categoryHandle ? [d.categoryHandle] : null,
     attributes: readAttributes(d),
@@ -127,7 +128,7 @@ function mapCfPeer(o: CfPeerOffer, productId: string): PeerOffer {
       handle: o.sellerHandle,
     },
     amount: pesewasStringToMajor(o.pricePesewas),
-    currencyCode: o.currency === "ghs" ? "ghs" : o.currency,
+    currencyCode: normalizeCurrencyCode(o.currency),
   }
 }
 
