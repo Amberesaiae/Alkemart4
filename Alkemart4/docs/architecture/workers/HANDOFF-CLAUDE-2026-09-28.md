@@ -54,8 +54,17 @@ new storefront needs verification mail to let anyone buy.
    piped straight into `wrangler secret put RESEND_API_KEY`; EMAIL_FROM
    ("Alkemart <no-reply@alkemart.com>") and optional EMAIL_REPLY_TO in [vars];
    test send; optionally a DMARC record. Turnstile is done.
-3. Fresh full backup (needs pg_dump 17 or Supabase CLI), restore-test it,
-   then `bun run db:migrate` over session port 5432 for 0050 + 0051.
+3. Backup + rehearsal DONE 2026-09-28: `pg_dump -Fc` (client 18.6, server
+   17.6) of production, 390 KB, saved (mode 600, git-ignored) as
+   `../alkemart-backup-2026-09-28.dump`. Restored the public schema into a
+   throwaway local Postgres (needs pg_trgm in public and a `seller_api` role):
+   all 80 tables match production row for row (680 rows). `bun run db:migrate`
+   on the copy applied 0050 + 0051 (ledger 50 → 52); a rerun was a no-op; only
+   four new empty tables appeared; no user auto-verified.
+   The direct host db.<ref>.supabase.co is IPv6-only. From IPv4 networks use
+   the pooler host from DATABASE_URL_POOLER on **port 5432** (session mode),
+   never 6543. Remaining: run the same migrate against production
+   (additive, so the currently live code is unaffected).
 4. `cd apps/api && bunx wrangler deploy` (WORKOS_ENABLED stays 0; creates the
    AuthRateLimiter DO and the two auth zone routes). Record the new version.
 5. `bun run deploy:pages` (clean tree required) for all three apps.
