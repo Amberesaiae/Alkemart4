@@ -49,6 +49,8 @@ export function workosAuthorizationUrl(input: {
   state: string
   challenge: string
   signUp?: boolean
+  /** Skip the hosted AuthKit page and go straight to the provider (our own UI offers the choice). */
+  provider?: "GoogleOAuth"
 }) {
   const callback = new URL(input.redirectUri)
   const local = callback.hostname === "localhost" || callback.hostname === "127.0.0.1"
@@ -61,13 +63,13 @@ export function workosAuthorizationUrl(input: {
   const url = new URL("https://api.workos.com/user_management/authorize")
   url.search = new URLSearchParams({
     client_id: input.clientId,
-    provider: "authkit",
+    provider: input.provider ?? "authkit",
     response_type: "code",
     redirect_uri: callback.href,
     state: input.state,
     code_challenge: input.challenge,
     code_challenge_method: "S256",
-    screen_hint: input.signUp ? "sign-up" : "sign-in",
+    ...(input.provider ? {} : { screen_hint: input.signUp ? "sign-up" : "sign-in" }),
   }).toString()
   return url.href
 }
@@ -138,4 +140,23 @@ export async function revokeWorkosSession(config: WorkosConfig, sessionId: strin
     })
     if (!response.ok) throw new Error("rejected")
   } catch { throw new WorkosAuthenticationError("unavailable") }
+}
+
+/** Email a six-digit Magic Auth code (expires in 10 minutes). Never reveals whether the email has an account. */
+export async function sendMagicAuthCode(config: WorkosConfig, email: string, fetcher: typeof fetch = fetch) {
+  if (!config.apiKey) throw new Error("WorkOS configuration missing")
+  let response: Response
+  try {
+    response = await fetcher("https://api.workos.com/user_management/magic_auth", {
+      method: "POST", redirect: "error", signal: AbortSignal.timeout(10_000),
+      headers: { Authorization: `Bearer ${config.apiKey}`, "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({ email }),
+    })
+  } catch { throw new WorkosAuthenticationError("unavailable") }
+  if (!response.ok) throw new WorkosAuthenticationError(response.status === 429 || response.status >= 500 ? "unavailable" : "rejected")
+}
+
+export function authenticateWithMagicCode(config: WorkosConfig, email: string, code: string, fetcher: typeof fetch = fetch) {
+  if (!/^\d{6}$/.test(code) || !email || email.length > 320) throw new WorkosAuthenticationError("rejected")
+  return authenticate(config, { grant_type: "urn:workos:oauth:grant-type:magic-auth:code", code, email }, fetcher)
 }

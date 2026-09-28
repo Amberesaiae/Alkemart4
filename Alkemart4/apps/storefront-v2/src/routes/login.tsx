@@ -65,11 +65,13 @@ function LoginPage() {
   })
   const tooShort = mode === "register" && password.length > 0 && password.length < 8
 
-  if (workosEnabled) return <div className="mx-auto max-w-md space-y-8 px-4 py-12">
+  // Google or an emailed code both create the account on first use, so there's no separate sign-up switch.
+  if (workosEnabled) return <div className="mx-auto max-w-md space-y-4 px-4 pt-4 pb-10 sm:pt-10">
     <PageSeo title={mode === "register" ? "Create account" : "Sign in"} noindex />
-    <BrandLogo size="lg" />
-    <WorkosSignIn register={mode === "register"} start={(input) => workosBrowser.start({ ...input, redirect: safeRedirect(redirect) })} />
-    <button type="button" className="text-sm font-semibold underline" onClick={() => setMode(mode === "login" ? "register" : "login")}>{mode === "login" ? "Create an account" : "Sign in instead"}</button>
+    <Link to="/account" className="-ml-1 inline-flex min-h-10 items-center gap-1 text-sm font-semibold text-muted-foreground hover:text-foreground">
+      <HugeiconsIcon icon={ArrowLeft01Icon} className="size-4" aria-hidden /> Account
+    </Link>
+    <WorkosSignIn register={mode === "register"} browser={workosBrowser} redirect={safeRedirect(redirect)} />
   </div>
 
   return (

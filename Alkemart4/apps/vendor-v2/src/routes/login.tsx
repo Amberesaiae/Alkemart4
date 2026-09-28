@@ -56,7 +56,7 @@ function LoginPage() {
   return (
     <AuthLayout>
       {workosEnabled ? <>
-        <WorkosSignIn vendor start={(input) => workosBrowser.start({ ...input, redirect: back })} />
+        <WorkosSignIn vendor browser={workosBrowser} redirect={back} />
         <p className="mt-8 text-center"><Link to="/register" className="font-semibold underline">Open your shop</Link></p>
       </> : <>
       <h1 className="text-3xl font-extrabold tracking-tight">Welcome back</h1>

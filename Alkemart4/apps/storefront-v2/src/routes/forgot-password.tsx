@@ -17,7 +17,7 @@ export const Route = createFileRoute("/forgot-password")({ component: ForgotPass
 function ForgotPasswordPage() {
   const [email, setEmail] = useState("")
   const send = useMutation({ mutationFn: () => requestPasswordReset(email) })
-  if (workosEnabled) return <div className="container-page max-w-md py-10"><WorkosSignIn start={(input) => workosBrowser.start(input)} /><p className="mt-6 text-sm text-muted-foreground">Choose email sign-in, then Forgot password on the secure page. If your old account isn’t connected yet and you lost its password, contact support for reviewed recovery.</p></div>
+  if (workosEnabled) return <div className="container-page max-w-md py-10"><WorkosSignIn browser={workosBrowser} /><p className="mt-6 text-sm text-muted-foreground">You don’t need a password any more: sign in with Google or an emailed code. If your old account isn’t connected yet and you’ve lost its password, contact support and we’ll help you recover it.</p></div>
   return (
     <div className="container-page flex max-w-md flex-col gap-6 py-10">
       <PageSeo title="Reset your password" noindex />

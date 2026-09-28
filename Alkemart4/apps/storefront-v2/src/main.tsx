@@ -1,4 +1,5 @@
 import { StrictMode } from "react"
+import { toast } from "sonner"
 import { createRoot } from "react-dom/client"
 import { RouterProvider, createRouter } from "@tanstack/react-router"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
@@ -48,11 +49,9 @@ function renderApp() { createRoot(document.getElementById("root")!).render(
 if (workosEnabled) {
   try { localStorage.removeItem("alkemart_session") } catch { /* storage may be unavailable */ }
   workosBrowser.restore().then(renderApp).catch(() => {
-    const notice = document.createElement("p")
-    notice.setAttribute("role", "status")
-    notice.textContent = "Sign-in is temporarily unavailable. You can still browse; reload to retry."
-    document.body.prepend(notice)
     renderApp()
+    // A styled notice once the app (and its toaster) is on screen, not raw text above the header.
+    window.setTimeout(() => toast("Sign-in is temporarily unavailable", { description: "You can keep browsing. Reload the page to try again." }), 800)
   })
 } else renderApp()
 

@@ -20,7 +20,7 @@ function ForgotPasswordPage() {
   const emailId = useId()
   const [email, setEmail] = useState("")
   const send = useMutation({ mutationFn: () => requestResetLink(email.trim()) })
-  if (workosEnabled) return <AuthLayout><WorkosSignIn vendor start={(input) => workosBrowser.start(input)} /><p className="mt-6 text-sm text-muted-foreground">Choose email sign-in, then Forgot password on the secure page. For an unconnected legacy account with a lost password, contact support for reviewed recovery.</p></AuthLayout>
+  if (workosEnabled) return <AuthLayout><WorkosSignIn vendor browser={workosBrowser} /><p className="mt-6 text-sm text-muted-foreground">You don’t need a password any more: sign in with Google or an emailed code. If your old shop account isn’t connected yet and you’ve lost its password, contact support and we’ll help you recover it.</p></AuthLayout>
 
   return (
     <AuthLayout>

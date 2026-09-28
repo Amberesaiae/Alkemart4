@@ -25,6 +25,8 @@ export default defineConfig(({ mode }) => {
       VITE_MARKET_CODE: "GH",
       VITE_STOREFRONT_URL: `http://localhost:${LIVE_PORT}`,
       VITE_VENDOR_APP_URL: "https://sell.alkemart.com",
+      // Production signs in through WorkOS; match it (sign-in POSTs stay blocked by the proxy).
+      VITE_WORKOS_ENABLED: "1",
     })
   }
   return {

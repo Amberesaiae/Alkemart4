@@ -169,3 +169,73 @@ describe("WorkOS marketplace authentication", () => {
     await expect(openWorkosData(sealed, "another-secret")).rejects.toThrow()
   })
 })
+
+describe("WorkOS sign-in on our own pages", () => {
+  beforeEach(resetRateLimits)
+  const json = (body: unknown, extra: Record<string, string> = {}) => ({ method: "POST", headers: { Origin: env.STOREFRONT_URL, "Content-Type": "application/json", ...extra }, body: JSON.stringify(body) })
+  const emailCookie = (response: Response) => (response.headers.get("set-cookie") ?? "").match(/alkemart_store_email=([^; ,]+)/)?.[0] ?? ""
+
+  it("sends Google straight to Google, skipping the hosted page", async () => {
+    const s = setup()
+    const response = await s.call("/store/auth/workos/start", json({ provider: "google" }))
+    const url = new URL((await response.json() as { url: string }).url)
+    expect(url.searchParams.get("provider")).toBe("GoogleOAuth")
+    expect(url.searchParams.get("screen_hint")).toBeNull()
+    expect(url.searchParams.get("code_challenge_method")).toBe("S256")
+  })
+
+  it("emails a code, lets a wrong code be retried, then signs in with the right one", async () => {
+    const s = setup()
+    s.fetcher.mockImplementation(async (input, init) => {
+      const url = String(input)
+      if (url.endsWith("/user_management/magic_auth")) return Response.json({ id: "magic_auth_1" })
+      const body = JSON.parse(String(init?.body))
+      if (body.grant_type !== "refresh_token") {
+        if (body.code !== "123456") return new Response("{}", { status: 400 })
+        expect(body.grant_type).toBe("urn:workos:oauth:grant-type:magic-auth:code")
+        expect(body.email).toBe("buyer@example.com")
+      }
+      return Response.json({ user: identity, access_token: `e30.${btoa(JSON.stringify({ sub: identity.id, sid: "session_test", exp: Math.floor(Date.now() / 1000) + 300 }))}.signature`, refresh_token: "provider-refresh" })
+    })
+    const started = await s.call("/store/auth/workos/email/start", json({ email: " Buyer@Example.com " }))
+    expect(started.status).toBe(200)
+    const c = emailCookie(started)
+    expect(c).toContain("alkemart_store_email=")
+    expect(String(s.fetcher.mock.calls[0]![0])).toContain("/user_management/magic_auth")
+
+    const wrong = await s.call("/store/auth/workos/email/verify", json({ code: "000000" }, { Cookie: c }))
+    expect(wrong.status).toBe(400)
+
+    const right = await s.call("/store/auth/workos/email/verify", json({ code: "123456" }, { Cookie: c }))
+    expect(right.status).toBe(200)
+    expect(await right.json()).toEqual({ redirect: "/account" })
+    const session = (right.headers.get("set-cookie") ?? "").match(/alkemart_store_session=([^; ,]+)/)
+    expect(session).not.toBeNull()
+    const restored = await restore(s, `alkemart_store_session=${session![1]}`)
+    expect(restored.response.status).toBe(200)
+    expect(restored.data.user.role).toBe("buyer")
+
+    // The code attempt is single use once it succeeds.
+    const replay = await s.call("/store/auth/workos/email/verify", json({ code: "123456" }, { Cookie: c }))
+    expect(replay.status).toBe(400)
+  })
+
+  it("stops accepting codes after too many wrong tries", async () => {
+    const s = setup()
+    s.fetcher.mockImplementation(async (input) => String(input).endsWith("/magic_auth") ? Response.json({}) : new Response("{}", { status: 400 }))
+    const c = emailCookie(await s.call("/store/auth/workos/email/start", json({ email: "buyer@example.com" })))
+    for (let i = 0; i < 5; i++) await s.call("/store/auth/workos/email/verify", json({ code: "000000" }, { Cookie: c }))
+    const after = await s.call("/store/auth/workos/email/verify", json({ code: "123456" }, { Cookie: c }))
+    expect(after.status).toBe(400)
+    // Only the send plus five checks reached the provider; the sixth never did.
+    expect(s.fetcher).toHaveBeenCalledTimes(6)
+  })
+
+  it("rejects verification without the browser's code cookie or from another site", async () => {
+    const s = setup()
+    s.fetcher.mockImplementation(async () => Response.json({}))
+    await s.call("/store/auth/workos/email/start", json({ email: "buyer@example.com" }))
+    expect((await s.call("/store/auth/workos/email/verify", json({ code: "123456" }))).status).toBe(400)
+    expect((await s.call("/store/auth/workos/email/start", json({ email: "buyer@example.com" }, { Origin: "https://attacker.example" }))).status).toBe(403)
+  })
+})

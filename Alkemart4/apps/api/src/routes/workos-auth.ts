@@ -1,11 +1,11 @@
-import { Hono } from "hono"
+import { Hono, type Context } from "hono"
 import { getCookie, setCookie, deleteCookie } from "hono/cookie"
 import { HTTPException } from "hono/http-exception"
 import { z } from "zod"
 import { verifyPassword } from "@alkemart/domain"
 import type { AppEnv } from "../context"
 import { WorkosAccountError, passwordVersion, type WorkosActor } from "../workos-store"
-import { createWorkosChallenge, exchangeWorkosCode, refreshWorkosSession, revokeWorkosSession, WorkosAuthenticationError, workosAuthorizationUrl } from "../lib/workos-client"
+import { authenticateWithMagicCode, createWorkosChallenge, exchangeWorkosCode, refreshWorkosSession, revokeWorkosSession, sendMagicAuthCode, WorkosAuthenticationError, workosAuthorizationUrl, type WorkosAuthentication } from "../lib/workos-client"
 import { hashWorkosSecret, openWorkosData, sealWorkosData, workosConfig, workosSessionUser } from "../lib/workos-session"
 import { signSessionJwt } from "../lib/jwt"
 import { readJsonBody } from "../lib/session"
@@ -16,24 +16,73 @@ const Start = z.object({
   redirect: z.string().max(2048).optional(),
   link: z.object({ email: z.string().email(), password: z.string().min(1).max(200) }).optional(),
   shop: z.object({ name: z.string().trim().min(1).max(80), handle: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).min(2).max(40) }).optional(),
+  /** "google" goes straight to Google; omitted opens the hosted AuthKit page. */
+  provider: z.enum(["google"]).optional(),
 })
+const EmailStart = Start.omit({ provider: true }).extend({ email: z.string().trim().toLowerCase().email().max(320) })
+const EmailVerify = z.object({ code: z.string().regex(/^\d{6}$/) })
+/** Wrong codes allowed per emailed code before the buyer must ask for a new one. */
+const EMAIL_CODE_TRIES = 5
 const Attempt = z.object({
   actor: z.enum(["store", "vendor"]), clientId: z.string(), verifier: z.string(), redirect: z.string(),
   link: z.object({ userId: z.string(), passwordVersion: z.string() }).optional(),
   shop: z.object({ name: z.string(), handle: z.string() }).optional(),
+  email: z.string().optional(),
+  tries: z.number().int().optional(),
 })
 function safePath(value: string | undefined, fallback: string) {
   if (!value || !value.startsWith("/") || value.startsWith("//") || /[\\\x00-\x20]/.test(value)) return fallback
   const url = new URL(value, "https://safe.invalid")
   return url.origin === "https://safe.invalid" ? `${url.pathname}${url.search}${url.hash}` : fallback
 }
-function cookieName(actor: WorkosActor, kind: "attempt" | "session", secure: boolean) { return `${secure ? "__Host-" : ""}alkemart_${actor}_${kind}` }
+function cookieName(actor: WorkosActor, kind: "attempt" | "session" | "email", secure: boolean) { return `${secure ? "__Host-" : ""}alkemart_${actor}_${kind}` }
 function checkOrigin(origin: string | undefined, expected: string) {
   if (origin !== expected) throw new HTTPException(403, { message: "invalid_origin" })
 }
 function cookieParts(cookie: string | undefined) {
   const [id, secret, extra] = (cookie ?? "").split(".")
   return id && secret && !extra && /^[a-f0-9-]{36}$/.test(id) && /^[a-zA-Z0-9_-]{43}$/.test(secret) ? { id, secret } : null
+}
+
+type Cfg = ReturnType<typeof workosConfig>
+
+/** Old-account linking: the existing password proves ownership (never an email-only merge). */
+async function checkLink(c: Context<AppEnv>, input: { email: string; password: string } | undefined) {
+  if (!input) return undefined
+  const email = input.email.trim().toLowerCase()
+  await limitAccountAttempts(c, "workos-link", email)
+  const user = await c.get("authRepo").findUserByEmail(email)
+  const dummy = `pbkdf2-sha256$100000$${"00".repeat(16)}$${"00".repeat(32)}`
+  const valid = await verifyPassword(input.password, user?.passwordHash ?? dummy)
+  if (!valid || !user || user.role === "admin") throw new HTTPException(401, { message: "invalid credentials" })
+  return { userId: user.id, passwordVersion: passwordVersion(user) }
+}
+
+/**
+ * After WorkOS has authenticated someone (Google or email code): provision or
+ * link the local account, store a server-side session and set the host-only
+ * cookie. Returns the safe in-app path to go to next.
+ */
+async function establishSession(c: Context<AppEnv>, cfg: Cfg, actor: WorkosActor, authenticated: WorkosAuthentication, data: z.infer<typeof Attempt>) {
+  const user = await c.get("workos").provision({ clientId: cfg.clientId, subject: authenticated.user.id, email: authenticated.user.email, actor, link: data.link, shop: data.shop })
+  const id = crypto.randomUUID(), secret = (await createWorkosChallenge()).state
+  const session = {
+    id, userId: user.id, subject: authenticated.user.id, clientId: cfg.clientId, actor,
+    secretHash: await hashWorkosSecret(secret), encryptedRefresh: await sealWorkosData({ token: authenticated.refreshToken, providerSessionId: authenticated.providerSessionId }, cfg.secret, 604800),
+    passwordVersion: passwordVersion(user), expiresAt: new Date(Date.now() + 604800_000), idleExpiresAt: new Date(Date.now() + 86400_000),
+    revokedAt: null, lockId: null, createdAt: new Date(),
+  }
+  await workosSessionUser(c, session)
+  // Never silently replace a browser session without revoking its local predecessor.
+  const old = cookieParts(getCookie(c, cookieName(actor, "session", cfg.secure)))
+  if (old) {
+    const previous = await c.get("workos").getSession(old.id)
+    if (previous?.secretHash === await hashWorkosSecret(old.secret)) await c.get("workos").revokeSession(old.id)
+  }
+  await c.get("workos").saveSession(session)
+  setCookie(c, cookieName(actor, "session", cfg.secure), `${id}.${secret}`, { path: "/", httpOnly: true, secure: cfg.secure, sameSite: "Lax", maxAge: 604800 })
+  console.info(JSON.stringify({ event: "workos-login", actor, userId: user.id, outcome: "success" }))
+  return safePath(data.redirect, actor === "store" ? "/account" : "/")
 }
 
 export function workosAuth(actor: WorkosActor) {
@@ -48,16 +97,7 @@ export function workosAuth(actor: WorkosActor) {
     checkOrigin(c.req.header("Origin"), cfg.appOrigin)
     const parsed = Start.safeParse(await readJsonBody(c))
     if (!parsed.success) throw new HTTPException(400, { message: "invalid body" })
-    let link: { userId: string; passwordVersion: string } | undefined
-    if (parsed.data.link) {
-      const email = parsed.data.link.email.trim().toLowerCase()
-      await limitAccountAttempts(c, "workos-link", email)
-      const user = await c.get("authRepo").findUserByEmail(email)
-      const dummy = `pbkdf2-sha256$100000$${"00".repeat(16)}$${"00".repeat(32)}`
-      const valid = await verifyPassword(parsed.data.link.password, user?.passwordHash ?? dummy)
-      if (!valid || !user || user.role === "admin") throw new HTTPException(401, { message: "invalid credentials" })
-      link = { userId: user.id, passwordVersion: passwordVersion(user) }
-    }
+    const link = await checkLink(c, parsed.data.link)
     const { state, verifier, challenge } = await createWorkosChallenge()
     const browser = (await createWorkosChallenge()).state
     await c.get("workos").saveAttempt({
@@ -66,7 +106,68 @@ export function workosAuth(actor: WorkosActor) {
       expiresAt: new Date(Date.now() + 600_000),
     })
     setCookie(c, cookieName(actor, "attempt", cfg.secure), browser, { path: "/", httpOnly: true, secure: cfg.secure, sameSite: "Lax", maxAge: 600 })
-    return c.json({ url: workosAuthorizationUrl({ clientId: cfg.clientId, redirectUri: `${cfg.apiOrigin}/${actor}/auth/workos/callback`, state, challenge, signUp: parsed.data.mode === "register" }) })
+    return c.json({ url: workosAuthorizationUrl({ clientId: cfg.clientId, redirectUri: `${cfg.apiOrigin}/${actor}/auth/workos/callback`, state, challenge, signUp: parsed.data.mode === "register", ...(parsed.data.provider === "google" ? { provider: "GoogleOAuth" as const } : {}) }) })
+  })
+  // Email sign-in on our own page: send a six-digit code, then verify it here.
+  // The answer never says whether the email has an account.
+  routes.post("/email/start", async (c) => {
+    const cfg = workosConfig(c, actor)
+    checkOrigin(c.req.header("Origin"), cfg.appOrigin)
+    const parsed = EmailStart.safeParse(await readJsonBody(c))
+    if (!parsed.success) throw new HTTPException(400, { message: "invalid body" })
+    await limitAccountAttempts(c, "workos-email", parsed.data.email)
+    const link = await checkLink(c, parsed.data.link)
+    try { await sendMagicAuthCode(cfg, parsed.data.email, c.get("workosFetch")) } catch (error) {
+      if (error instanceof WorkosAuthenticationError && error.reason === "rejected") throw new HTTPException(400, { message: "email_not_accepted" })
+      throw new HTTPException(503, { message: "authentication_unavailable" })
+    }
+    const state = (await createWorkosChallenge()).state, browser = (await createWorkosChallenge()).state
+    await c.get("workos").saveAttempt({
+      stateHash: await hashWorkosSecret(state), browserHash: await hashWorkosSecret(browser),
+      encryptedData: await sealWorkosData({ actor, clientId: cfg.clientId, verifier: state, email: parsed.data.email, tries: 0, redirect: safePath(parsed.data.redirect, actor === "store" ? "/account" : "/"), ...(link ? { link } : {}), ...(parsed.data.shop ? { shop: parsed.data.shop } : {}) }, cfg.secret, 600),
+      expiresAt: new Date(Date.now() + 600_000),
+    })
+    setCookie(c, cookieName(actor, "email", cfg.secure), `${state}.${browser}`, { path: "/", httpOnly: true, secure: cfg.secure, sameSite: "Strict", maxAge: 600 })
+    return c.json({ sent: true })
+  })
+  routes.post("/email/verify", async (c) => {
+    const cfg = workosConfig(c, actor)
+    checkOrigin(c.req.header("Origin"), cfg.appOrigin)
+    const parsed = EmailVerify.safeParse(await readJsonBody(c))
+    if (!parsed.success) throw new HTTPException(400, { message: "invalid_code" })
+    const [state, browser, extra] = (getCookie(c, cookieName(actor, "email", cfg.secure)) ?? "").split(".")
+    if (!state || !browser || extra) throw new HTTPException(400, { message: "code_expired" })
+    const stateHash = await hashWorkosSecret(state), browserHash = await hashWorkosSecret(browser)
+    const row = await c.get("workos").consumeAttempt(stateHash, browserHash)
+    if (!row) throw new HTTPException(400, { message: "code_expired" })
+    let data: z.infer<typeof Attempt>
+    try { data = Attempt.parse(await openWorkosData(row.encryptedData, cfg.secret)) } catch { throw new HTTPException(400, { message: "code_expired" }) }
+    if (data.actor !== actor || data.clientId !== cfg.clientId || !data.email) throw new HTTPException(400, { message: "code_expired" })
+    const clearCookie = () => deleteCookie(c, cookieName(actor, "email", cfg.secure), { path: "/", secure: cfg.secure, httpOnly: true, sameSite: "Strict" })
+    let authenticated: WorkosAuthentication
+    try {
+      authenticated = await authenticateWithMagicCode(cfg, data.email, parsed.data.code, c.get("workosFetch"))
+    } catch (error) {
+      const tries = (data.tries ?? 0) + 1
+      if (error instanceof WorkosAuthenticationError && error.reason === "rejected" && tries < EMAIL_CODE_TRIES) {
+        // Wrong code: keep the same attempt (same cookie) for another try, until the code's own expiry.
+        await c.get("workos").saveAttempt({ stateHash, browserHash, encryptedData: await sealWorkosData({ ...data, tries }, cfg.secret, Math.max(1, Math.floor((row.expiresAt.getTime() - Date.now()) / 1000))), expiresAt: row.expiresAt })
+        throw new HTTPException(400, { message: "invalid_code" })
+      }
+      clearCookie()
+      if (error instanceof WorkosAuthenticationError && error.reason === "rejected") throw new HTTPException(400, { message: "code_expired" })
+      throw new HTTPException(503, { message: "authentication_unavailable" })
+    }
+    clearCookie()
+    try {
+      const redirect = await establishSession(c, cfg, actor, authenticated, data)
+      return c.json({ redirect })
+    } catch (error) {
+      console.warn(JSON.stringify({ event: "workos-login", actor, method: "email", outcome: "rejected" }))
+      if (error instanceof WorkosAccountError) throw new HTTPException(409, { message: error.code })
+      if (error instanceof HTTPException) throw error
+      throw new HTTPException(503, { message: "authentication_unavailable" })
+    }
   })
   routes.get("/callback", async (c) => {
     const cfg = workosConfig(c, actor)
@@ -82,25 +183,8 @@ export function workosAuth(actor: WorkosActor) {
     if (data.actor !== actor || data.clientId !== cfg.clientId || c.req.query("error")) return fail("authentication_failed")
     try {
       const authenticated = await exchangeWorkosCode(cfg, c.req.query("code") ?? "", data.verifier, c.get("workosFetch"))
-      const user = await c.get("workos").provision({ clientId: cfg.clientId, subject: authenticated.user.id, email: authenticated.user.email, actor, link: data.link, shop: data.shop })
-      const id = crypto.randomUUID(), secret = (await createWorkosChallenge()).state
-      const session = {
-        id, userId: user.id, subject: authenticated.user.id, clientId: cfg.clientId, actor,
-        secretHash: await hashWorkosSecret(secret), encryptedRefresh: await sealWorkosData({ token: authenticated.refreshToken, providerSessionId: authenticated.providerSessionId }, cfg.secret, 604800),
-        passwordVersion: passwordVersion(user), expiresAt: new Date(Date.now() + 604800_000), idleExpiresAt: new Date(Date.now() + 86400_000),
-        revokedAt: null, lockId: null, createdAt: new Date(),
-      }
-      await workosSessionUser(c, session)
-      // Never silently replace a browser session without revoking its local predecessor.
-      const old = cookieParts(getCookie(c, cookieName(actor, "session", cfg.secure)))
-      if (old) {
-        const previous = await c.get("workos").getSession(old.id)
-        if (previous?.secretHash === await hashWorkosSecret(old.secret)) await c.get("workos").revokeSession(old.id)
-      }
-      await c.get("workos").saveSession(session)
-      setCookie(c, cookieName(actor, "session", cfg.secure), `${id}.${secret}`, { path: "/", httpOnly: true, secure: cfg.secure, sameSite: "Lax", maxAge: 604800 })
-      console.info(JSON.stringify({ event: "workos-login", actor, userId: user.id, outcome: "success" }))
-      return c.redirect(`${cfg.appOrigin}${safePath(data.redirect, actor === "store" ? "/account" : "/")}`)
+      const redirect = await establishSession(c, cfg, actor, authenticated, data)
+      return c.redirect(`${cfg.appOrigin}${redirect}`)
     } catch (error) {
       console.warn(JSON.stringify({ event: "workos-login", actor, outcome: "rejected" }))
       if (error instanceof WorkosAccountError) return fail(error.code)
