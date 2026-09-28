@@ -67,8 +67,13 @@ STOREFRONT_URL = "https://alkemart.com"
 VENDOR_URL = "https://sell.alkemart.com"
 WORKOS_STOREFRONT_API_ORIGIN = "https://alkemart.com"
 WORKOS_VENDOR_API_ORIGIN = "https://sell.alkemart.com"
-# Keep cutover off until production provider, migrations and E2E gates pass.
-WORKOS_ENABLED = "0"
+# Production WorkOS client (public). Secrets WORKOS_API_KEY and
+# WORKOS_COOKIE_SECRET live in `wrangler secret`; deploy only after both exist,
+# or sign-in answers 503 while old bearer sessions are already rejected.
+WORKOS_CLIENT_ID = "client_01M3JKT2097PXF3Y42N1R74GV1"
+# Cutover on (2026-09-28): buyers and sellers sign in through WorkOS; old
+# marketplace bearer tokens are rejected. Admin stays behind Cloudflare Access.
+WORKOS_ENABLED = "1"
 # Admin API trusts only Cloudflare Access assertions for this team/audience,
 # and only for these identities (keep in step with the Access policy).
 ADMIN_ACCESS_TEAM = "https://proud-block-b3f8.cloudflareaccess.com"
