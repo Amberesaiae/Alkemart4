@@ -33,7 +33,7 @@ Only `main` exists locally and on origin. Superseded branches are kept as tags
 JWT_SECRET, PAYSTACK_SECRET_KEY, WORKOS_API_KEY, TURNSTILE_SECRET_KEY
 (production widget "alkemart production sign-up", site key
 0x4AAAAAAFFxBFw6fPs_cRjN, hosts alkemart.com + sell.alkemart.com). check-migrations OK (52
-files); live ledger pending 0050/0051.
+files); live ledger now 52 (0050/0051 applied 2026-09-28).
 
 ### Release runbook (backend + UIs ship together)
 
@@ -63,8 +63,12 @@ new storefront needs verification mail to let anyone buy.
    four new empty tables appeared; no user auto-verified.
    The direct host db.<ref>.supabase.co is IPv6-only. From IPv4 networks use
    the pooler host from DATABASE_URL_POOLER on **port 5432** (session mode),
-   never 6543. Remaining: run the same migrate against production
-   (additive, so the currently live code is unaffected).
+   never 6543.
+   **Applied to production 2026-09-28** (owner ran `bun run db:migrate`
+   after a ledger diff showed exactly 0050/0051 pending). Verified read-only:
+   ledger 52; the four new tables exist, are empty and have RLS on; every other
+   table's row count is unchanged from the backup; 0 users auto-verified; API
+   /health 200. The database is ready for the release; step 3 is complete.
 4. `cd apps/api && bunx wrangler deploy` (WORKOS_ENABLED stays 0; creates the
    AuthRateLimiter DO and the two auth zone routes). Record the new version.
 5. `bun run deploy:pages` (clean tree required) for all three apps.
