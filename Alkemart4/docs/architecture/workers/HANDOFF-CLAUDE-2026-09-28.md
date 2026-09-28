@@ -28,9 +28,10 @@ Only `main` exists locally and on origin. Superseded branches are kept as tags
 (raw image assets) and a stray root `pnpm-lock.yaml`.
 
 **Preflight (read-only):** live Worker version
-`ae278336-7caa-4699-970f-9e9664e946d2` is the rollback point
-(`bunx wrangler rollback ae278336-7caa-4699-970f-9e9664e946d2`). Worker secrets:
-JWT_SECRET, PAYSTACK_SECRET_KEY, WORKOS_API_KEY, TURNSTILE_SECRET_KEY
+`fd39ddb6-2839-449b-807f-c1eec17eae9d` is the rollback point
+(`bunx wrangler rollback fd39ddb6-2839-449b-807f-c1eec17eae9d`). Worker secrets:
+JWT_SECRET, PAYSTACK_SECRET_KEY, WORKOS_API_KEY, TURNSTILE_SECRET_KEY,
+RESEND_API_KEY
 (production widget "alkemart production sign-up", site key
 0x4AAAAAAFFxBFw6fPs_cRjN, hosts alkemart.com + sell.alkemart.com). check-migrations OK (52
 files); live ledger now 52 (0050/0051 applied 2026-09-28).
@@ -46,14 +47,13 @@ new storefront needs verification mail to let anyone buy.
    rather than adding a second one); Turnstile widget for alkemart.com +
    sell.alkemart.com (site key → `VITE_TURNSTILE_SITE_KEY`, secret →
    `TURNSTILE_SECRET_KEY`, `TURNSTILE_HOSTNAMES`).
-2. Email (parked until later this week). Done: alkemart.com added in Resend
-   (domain id 33238fea-40d8-4f2f-aa88-fb4f716820c4, eu-west-1, receiving off),
-   and its DKIM/MX/SPF/CNAME records created in Cloudflare on
-   resend._domainkey, send and rsend only (root MX/SPF forwarding untouched).
-   Left: `resend domains verify <id>`; a sending-only key scoped to that domain
-   piped straight into `wrangler secret put RESEND_API_KEY`; EMAIL_FROM
-   ("Alkemart <no-reply@alkemart.com>") and optional EMAIL_REPLY_TO in [vars];
-   test send; optionally a DMARC record. Turnstile is done.
+2. Email DONE 2026-09-28: Resend domain alkemart.com verified
+   (33238fea-40d8-4f2f-aa88-fb4f716820c4, eu-west-1); RESEND_API_KEY is a
+   send-only key scoped to that domain, piped straight into the Worker secret;
+   EMAIL_FROM "Alkemart <no-reply@alkemart.com>" and EMAIL_REPLY_TO
+   support@alkemart.com are in [vars] (they take effect on deploy). A test via
+   the Resend CLI was delivered. Receiving and DMARC: docs/ops/DOMAIN-ROLLOUT.md.
+   Turnstile is done.
 3. Backup + rehearsal DONE 2026-09-28: `pg_dump -Fc` (client 18.6, server
    17.6) of production, 390 KB, saved (mode 600, git-ignored) as
    `../alkemart-backup-2026-09-28.dump`. Restored the public schema into a
