@@ -84,6 +84,17 @@
         "--strictPort"
       ],
       "port": 3013
+    },
+    {
+      "name": "live-storefront",
+      "runtimeExecutable": "bun",
+      "runtimeArgs": [
+        "run",
+        "--cwd",
+        "Alkemart4/apps/storefront-v2",
+        "dev:live"
+      ],
+      "port": 5196
     }
   ]
 }
