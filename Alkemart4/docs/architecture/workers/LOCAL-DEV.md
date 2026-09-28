@@ -78,6 +78,19 @@ Postgres (alkemart)
 
 Vite proxies for `/store`, `/vendor`, `/admin` also target `127.0.0.1:8787` as a fallback when the client uses relative paths. Prefer the absolute Workers URL.
 
+## Storefront over the live catalogue (read-only)
+
+For design review with real departments, shops and photos:
+
+```bash
+cd apps/storefront-v2 && bun run dev:live   # http://localhost:5196
+```
+
+The dev server proxies `https://api.alkemart.com` (the live API doesn't allow
+localhost origins) and forwards only GET/HEAD — carts, sign-in and orders are
+refused locally with a 404, so nothing is written to production. Browsing
+works; anything that needs a session doesn't.
+
 ## Smoke against local API
 
 ```bash
