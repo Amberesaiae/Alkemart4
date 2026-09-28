@@ -169,9 +169,19 @@ function readAttributes(d: unknown): { label: string; value: string }[] {
   )
 }
 
+/** Sellable units across a product's active combinations; null when the
+ * API sent none, so cards never claim "sold out" without a stock fact. */
+export function detailAvailableQty(combos: { availableQty?: number | null; active?: boolean }[] | null | undefined): number | null {
+  if (!combos?.length) return null
+  return combos.reduce((sum, c) => sum + (c.active !== false && typeof c.availableQty === "number" ? Math.max(0, c.availableQty) : 0), 0)
+}
+
 function mapCfDetail(d: CfProductDetail): StoreProductCard {
   const best = d.offers[0]
   return {
+    // Same stock fact the catalog card carries, so detail-loaded cards
+    // (recently viewed, cart suggestions) show "Sold out" too.
+    availableQty: detailAvailableQty(d.combos),
     id: d.productId,
     title: d.title,
     description: d.description ?? null,
